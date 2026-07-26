@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Navigate, Route, Routes, useNavigate } from 'react-router';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { useQuizStore } from '../../stores/quizStore';
 import { AboutPage, ContactPage, ManualQuizWorkspacePage, PhieuPublicPage, PrivacyPolicy, TeacherResultDetailPage, TermsOfService } from './lazyViews';
 import { PageLoading } from './PageLoading';
@@ -19,10 +19,17 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
 }) => {
     const quizStore = useQuizStore();
     const navigate = useNavigate();
+    const location = useLocation();
     const onNavigate = (path: RoutePath) => navigate(path);
     const goBackHome = () => {
         quizStore.goHome();
-        navigate('/');
+        // Same reason as TeacherResultDetailPage.handleBack: navigate('/') is a PUSH and
+        // useScrollReset sends those to the top, so a reader who opened the policy from the home
+        // page footer would come back to the top of home instead of the footer they left.
+        // react-router keys the first history entry "default", so a deep link or a fresh tab still
+        // gets a replace and is never walked off the site.
+        if (location.key === 'default') navigate('/', { replace: true });
+        else navigate(-1);
     };
     const suspended = (content: React.ReactNode) => <Suspense fallback={<PageLoading />}>{content}</Suspense>;
 

@@ -5,11 +5,16 @@
  * ĐỌC KỸ TRƯỚC KHI SỬA: không phải điều hướng nào cũng bắt được lỗi này. Đo trên dev server khi
  * gỡ hẳn phần reset cuộn ra khỏi app:
  *
- * | điều hướng            | scrollY khi KHÔNG có bản sửa | bắt được lỗi? |
- * |-----------------------|------------------------------|---------------|
- * | `/` → `/about`        | 0                            | KHÔNG         |
- * | `/about` → `/contact` | 1466                         | CÓ            |
- * | Back về `/`           | khôi phục đúng               | KHÔNG         |
+ * | điều hướng                             | scrollY khi KHÔNG có bản sửa | bắt được lỗi? |
+ * |----------------------------------------|------------------------------|---------------|
+ * | `/` → `/about`                         | 0                            | KHÔNG         |
+ * | `/about` → `/contact`                  | 1466                         | CÓ            |
+ * | Back về `/`                            | khôi phục đúng               | KHÔNG         |
+ * | `/privacy` → `/` bằng nút "Quay lại"   | 0 (đáng lẽ 448)              | CÓ            |
+ *
+ * Dòng cuối đo ở mốc khác ba dòng trên: giữ nguyên `useScrollReset`, chỉ trả
+ * `AppRoutes.goBackHome` về `navigate('/')`. Đó là PUSH nên hook đẩy người đọc lên đầu trang chủ,
+ * mất luôn chỗ footer họ vừa rời đi.
  *
  * `/` → `/about` tự về 0 vì `<PageLoading/>` của route lazy làm document co lại còn một màn hình
  * (đo được `scrollHeight` 2370 → 812) và trình duyệt kẹp `scrollY` về 0 — không liên quan gì đến
@@ -56,6 +61,25 @@ describe('Scroll position across client-side navigation', () => {
 
     cy.location('pathname').should('equal', '/about');
     cy.window().its('scrollY').should('equal', 0);
+  });
+
+  // Test phân biệt thứ hai: nút của trang pháp lý từng là `navigate('/')`, một PUSH, nên bản hỏng
+  // trả người đọc về scrollY 0 thay vì chỗ footer họ vừa rời đi.
+  it('returns the reader to the footer they left when the legal page hands them back', () => {
+    visitScrolledToBottom('/');
+
+    cy.window().then((win) => win.scrollY).then((offsetBeforeLeaving) => {
+      footerLink('Chính sách bảo mật').click();
+      cy.location('pathname').should('equal', '/privacy');
+
+      // Nút này nằm cuối trang; `cy.click()` tự cuộn nó vào tầm nhìn, không ảnh hưởng gì vì ta đang rời trang.
+      cy.contains('button', 'Quay lại Trang chủ').click();
+
+      cy.location('pathname').should('equal', '/');
+      cy.window().should((win) => {
+        expect(win.scrollY, 'vị trí cuộn sau khi bấm Quay lại Trang chủ').to.be.closeTo(offsetBeforeLeaving, 100);
+      });
+    });
   });
 
   it('returns to the offset the previous page was left at on browser Back', () => {
