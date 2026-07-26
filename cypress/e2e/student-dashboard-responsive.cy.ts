@@ -77,10 +77,16 @@ const assertPracticeLibrary = () => {
 
   cy.get('#practice-library').then(($section) => {
     if ($section.text().includes('Đang chuẩn bị')) {
-      cy.contains('#practice-library', 'Đang chuẩn bị')
+      // Phải nhắm vào hàng <li>, không phải '#practice-library': cy.contains(selector, text) trả về
+      // phần tử khớp SELECTOR chứa đoạn chữ, mà chỉ có đúng một phần tử mang id đó — thẻ <section>.
+      // Bản cũ vì thế assert "section không phải button" và "section không có tổ tiên là button",
+      // hai mệnh đề luôn đúng: guard không bao giờ đỏ được kể cả khi hàng "Đang chuẩn bị" bị biến
+      // thành nút bấm — đúng thứ nó có nhiệm vụ ngăn.
+      cy.contains('#practice-library li', 'Đang chuẩn bị')
         .should('not.match', 'button')
-        .parents('button')
-        .should('not.exist');
+        .and('not.have.attr', 'role', 'button');
+      cy.contains('#practice-library li', 'Đang chuẩn bị').find('button').should('not.exist');
+      cy.contains('#practice-library li', 'Đang chuẩn bị').parents('button').should('not.exist');
     }
   });
 };
@@ -159,16 +165,31 @@ describe('Authenticated student dashboard responsive regression', () => {
 
   it('honors reduced motion on the dashboard shell', () => {
     cy.viewport(375, 812);
-    cy.wrap(
-      Cypress.automation(CDP_AUTOMATION, {
-        command: 'Emulation.setEmulatedMedia',
-        params: {
-          features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
-        },
-      }),
-    );
+    // Cypress.automation() KHÔNG phải lệnh xếp hàng: nó chạy ngay khi biểu thức đối số được đánh
+    // giá. Trước đây cả lệnh bật lẫn lệnh reset đều nằm ở vị trí đối số của cy.wrap(), nên chúng
+    // chạy liền nhau trước cả cy.visit() và triệt tiêu nhau — phần đo thực chất diễn ra ở trạng
+    // thái không giả lập. Test vẫn xanh chỉ vì trình duyệt headless của Cypress mặc định đã báo
+    // prefers-reduced-motion: reduce; trên trình duyệt mặc định no-preference nó sẽ đỏ.
+    // Đưa lệnh vào hàng đợi để nó thực sự có hiệu lực lúc trang tải.
+    cy.then(() => Cypress.automation(CDP_AUTOMATION, {
+      command: 'Emulation.setEmulatedMedia',
+      params: {
+        features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+      },
+    }));
 
     loginAsStudent();
+
+    // Chốt điều kiện tiên quyết: nếu giả lập không có hiệu lực thì test phải đỏ ngay tại đây,
+    // thay vì âm thầm đo ở trạng thái sai rồi báo xanh.
+    cy.window().its('matchMedia').should('exist');
+    cy.window().then((win) => {
+      expect(
+        win.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        'trang đang ở chế độ giảm chuyển động',
+      ).to.equal(true);
+    });
+
     cy.get('.student-dashboard button').first().then(($button) => {
       const durationsInMs = getComputedStyle($button[0]).transitionDuration
         .split(',')
@@ -182,11 +203,9 @@ describe('Authenticated student dashboard responsive regression', () => {
       ).to.be.lte(0.01);
     });
 
-    cy.wrap(
-      Cypress.automation(CDP_AUTOMATION, {
-        command: 'Emulation.setEmulatedMedia',
-        params: { features: [] },
-      }),
-    );
+    cy.then(() => Cypress.automation(CDP_AUTOMATION, {
+      command: 'Emulation.setEmulatedMedia',
+      params: { features: [] },
+    }));
   });
 });

@@ -103,6 +103,36 @@ mistakes are easy to reintroduce:
 Prefer `data-testid` over Vietnamese copy in these two specs, and never read a DOM
 alias across a navigation.
 
+### Two tests were passing without testing anything
+
+A separate audit of every assertion found two **false greens** — worse than red
+tests, because they report coverage that does not exist. Both are fixed, and both
+fixes were verified by measurement rather than reasoning:
+
+1. **The coming-soon guard asserted a tautology.** `cy.contains(selector, text)`
+   yields the element matching the *selector* that contains the text, and only one
+   element carries `#practice-library` — the `<section>`. So
+   `cy.contains('#practice-library', 'Đang chuẩn bị').should('not.match','button')`
+   asserted that a `<section>` is not a `<button>`, and `.parents('button')`
+   asserted the section has no button ancestor. Both are always true, so the guard
+   could never catch the thing it exists to prevent: a coming-soon row becoming
+   clickable. Measured: the old selector returns `SECTION#practice-library`, the
+   new `#practice-library li` returns the `LI` row. The guard now also asserts the
+   row contains no `<button>`.
+2. **The reduced-motion test never applied its own emulation.**
+   `Cypress.automation()` is not a queued command — it runs as soon as its
+   argument expression is evaluated. Both the set and the reset call sat in
+   `cy.wrap(...)` argument position, so they fired back to back before `cy.visit()`
+   and cancelled out. The test still passed because Cypress's headless browser
+   already reports `prefers-reduced-motion: reduce` by default; on a browser
+   defaulting to no-preference it would have failed. Measured: with
+   `no-preference` emulated from a queued step, `matchMedia(...).matches` flips to
+   `false` and the first dashboard button's `transition-duration` goes from
+   `1e-05s` to `0.2s` — which also proves the app's reduce styling is what
+   produces the near-zero duration. The emulation calls are now enqueued, and the
+   test asserts the reduced-motion state is actually active before measuring, so a
+   silent no-op fails loudly instead of passing.
+
 Run them against a deployed environment with a throwaway student account:
 
 ```bash
