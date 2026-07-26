@@ -41,4 +41,6 @@ API tạo batch và gửi queue. Consumer render ảnh, ghi R2, cập nhật D1 
 
 ## Môi trường
 
-Repository mặc định dùng URL `.invalid` và D1 UUID toàn số 0 để ngăn deploy nhầm. Trước production phải thay bằng tài nguyên thuộc tài khoản mới theo `docs/deployment/NEW_SYSTEM_SETUP.md`.
+Production chạy trên tài nguyên thuộc tài khoản TôHiệuQuiz: Worker `tohieuquiz-api` tại `api.thtohieu.com`, D1 `tohieuquiz-db`, R2 `tohieuquiz-og-images` (public qua `assets.thtohieu.com`) và `tohieuquiz-certificates` (private), Queue `tohieuquiz-certificate-generation` kèm DLQ. Frontend chạy trên Vercel, tự động deploy từ nhánh `main`.
+
+Các cờ tính năng (`VITE_FEATURE_*`) đang tắt trên production và được bật dần theo `docs/ROADMAP.md`. Trạng thái hạ tầng chi tiết: `docs/deployment/CURRENT_PROGRESS.md`.

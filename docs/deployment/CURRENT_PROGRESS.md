@@ -15,9 +15,25 @@ Tài liệu này là điểm tiếp tục công việc cho phiên sau. Không l�
 
 - `npx tsc --noEmit`: 0 lỗi.
 - `npx tsc -p workers/tsconfig.json --noEmit`: 0 lỗi.
-- `npm run test:run`: **266 file test / 1272 test pass**, 0 fail (~306s).
-- `npm run security:scan`: pass (1616 file được kiểm tra).
+- `npm run test:run`: **268 file test / 1283 test pass**, 0 fail (~194s) — chạy với **tất cả cờ tính năng bật**.
+- `npm run security:scan`: pass (1627 file được kiểm tra).
+- Cypress: 25 test stubbed + 2 test Blueprint V3 + 9 component test — tất cả pass.
 - Không còn `TODO`/`FIXME` trong `src/` hoặc `workers/src/`.
+- GitNexus đã reindex: 12.261 node, 27.056 edge, 815 cluster, 300 flow.
+
+### Việc đã làm trong phiên 2 (ngoài phần Vercel bên dưới)
+
+- Sửa nợ kỹ thuật `GameCanvas`: thay `loseLife()` hack bằng `endGame()` — hack cũ khiến người chơi
+  không bao giờ thấy màn hình tổng kết sau khi trả lời hết câu hỏi. Thêm `tests/gameStore.test.ts`.
+- Sửa `tests/manualQuizTelemetry.test.ts`: hai test "defaults off" đang đọc môi trường sẵn có
+  (`vi.unstubAllEnvs()`) nên fail với bất kỳ ai bật cờ trong `.env.local`. Đổi sang `vi.stubEnv(..., undefined)`.
+- Thêm `.github/workflows/ci.yml` (typecheck / test / build / e2e), chặn `.invalid` lọt vào bundle.
+- Thêm 4 rollback migration còn thiếu (`0015`, `0016`, `0040`, `0042`) và `tests/d1RollbackCoverage.test.ts`.
+- Thêm `docs/testing/e2e.md` — ba nhóm spec E2E và ma trận cờ. **Quan trọng:**
+  `ai-quiz-generation-v2.cy.ts` chỉ pass khi `VITE_FEATURE_AI_BLUEPRINT_V3=false`.
+- `cypress/e2e/quiz.cy.ts` bị quarantine (`describe.skip`) — assert thương hiệu cũ đã không còn trong mã.
+- Đồng bộ `README.md`, `AGENTS.md`, `docs/architecture/system_overview.md`,
+  `docs/deployment/NEW_SYSTEM_SETUP.md`, `DEPLOYMENT_CHECKLIST.md` với hiện trạng production.
 
 ## Cloudflare đã hoàn tất
 
@@ -137,9 +153,11 @@ Các record này đã đúng cho Vercel và **không cần đổi** khi chuyển
 - Chưa cấu hình dịch vụ AI thật tại `ai.thtohieu.com`; chưa thay `CLIPROXY_TOKEN` tạm.
 - Chưa tạo tài khoản quản trị đầu tiên trong D1.
 - Chưa cấu hình email provider, monitoring hoặc Cloudinary production.
-- Chưa có CI GitHub Actions cho typecheck/test/build (hiện chỉ có `security.yml`).
-- Chưa bật các feature flag đang để `false` (xem `docs/ROADMAP.md`, giai đoạn 1 và 5).
-- Chưa chạy bộ Cypress E2E lần nào (9 suite e2e + 5 component).
+- Chưa bật branch protection cho `main` trên GitHub (CI đã có, nhưng chưa bắt buộc).
+- Chưa bật các feature flag đang để `false` trên production (xem `docs/ROADMAP.md`, giai đoạn 5).
+- `cypress/e2e/quiz.cy.ts` đang skip — cần viết lại theo UI hiện tại.
+- Hai spec `student-dashboard-responsive` và `student-practice-library` cần tài khoản học sinh thật
+  để chạy trên môi trường đã deploy (xem `docs/testing/e2e.md`).
 
 ## Nguyên tắc tiếp tục
 

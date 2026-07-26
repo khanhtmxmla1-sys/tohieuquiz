@@ -1,21 +1,25 @@
 # Thiết lập hệ thống TôHiệuQuiz mới
 
+> **Trạng thái 26/07/2026:** phần lớn tài liệu này đã được thực hiện xong. Xem
+> `docs/deployment/CURRENT_PROGRESS.md` để biết chính xác cái gì đã xong và cái gì còn lại.
+> Giữ tài liệu này làm quy trình tham chiếu cho lần thiết lập tiếp theo (ví dụ môi trường staging).
+
 Tài liệu này dùng cho lần triển khai đầu tiên của hệ thống độc lập. Không sao chép `.env`, token, resource ID hoặc dữ liệu từ hệ thống nguồn.
 
 ## Thông tin chủ sở hữu cần chốt
 
 | Hạng mục | Giá trị cần chuẩn bị |
 |---|---|
+| Domain chính | `thtohieu.com` — đã chốt, DNS trên Cloudflare |
+| GitHub repository | `khanhtmxmla1-sys/tohieuquiz` (private) — đã tạo |
+| Vercel project | `vh-s-projects3/tohieuquiz` — đã tạo, Git integration hoạt động |
+| Cloudflare account | Đã tạo — Worker, D1, R2, Queue đều đã deploy |
 | Tên pháp lý/chủ sở hữu | Chưa điền |
-| Domain chính | Chưa điền |
 | Email quản trị | Chưa điền |
 | Email hỗ trợ | Chưa điền |
-| GitHub organization | Chưa điền |
-| Cloudflare account | Chưa điền |
-| Vercel team | Chưa điền |
-| Nhà cung cấp email | Chưa điền |
-| Nhà cung cấp AI/proxy | Chưa điền |
-| Monitoring | Chưa điền |
+| Nhà cung cấp email | Chưa cấu hình |
+| Nhà cung cấp AI/proxy | Chưa có dịch vụ thật tại `ai.thtohieu.com` |
+| Monitoring | Chưa cấu hình |
 
 Không lưu mật khẩu, OTP, recovery code hoặc API key trong bảng này.
 

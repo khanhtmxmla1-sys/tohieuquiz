@@ -70,7 +70,7 @@ describe('manual quiz telemetry privacy', () => {
 
 describe('AI quiz V2 feature flag', () => {
     it('defaults off and accepts all supported truthy values', () => {
-        vi.unstubAllEnvs();
+        vi.stubEnv('VITE_FEATURE_AI_QUIZ_V2', undefined);
         expect(isAiQuizV2Enabled()).toBe(false);
         for (const value of ['1', 'true', 'yes', 'on', 'enabled']) {
             vi.stubEnv('VITE_FEATURE_AI_QUIZ_V2', value);
@@ -84,7 +84,7 @@ describe('AI quiz V2 feature flag', () => {
 
 describe('AI blueprint V3 feature flag', () => {
     it('defaults off and accepts all supported truthy values', () => {
-        vi.unstubAllEnvs();
+        vi.stubEnv('VITE_FEATURE_AI_BLUEPRINT_V3', undefined);
         expect(isAiBlueprintV3Enabled()).toBe(false);
         for (const value of ['1', 'true', 'yes', 'on', 'enabled']) {
             vi.stubEnv('VITE_FEATURE_AI_BLUEPRINT_V3', value);

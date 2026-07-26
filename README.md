@@ -41,8 +41,26 @@ npm run security:check
 npm run build
 ```
 
+Kiểm thử đầu-cuối cần chạy riêng vì phụ thuộc cờ tính năng — xem `docs/testing/e2e.md`:
+
+```bash
+npm run dev                      # terminal khác
+npm run cypress:run:stubbed
+npm run cypress:run:component
+```
+
 ## Trạng thái hạ tầng
 
-Các domain và resource ID trong cấu hình hiện là placeholder `.invalid`. Không deploy trước khi hoàn tất `docs/deployment/NEW_SYSTEM_SETUP.md` và `DEPLOYMENT_CHECKLIST.md`.
+Hệ thống đã chạy trên production tại `thtohieu.com`:
+
+| Thành phần | Địa chỉ |
+|---|---|
+| Web/ứng dụng | `https://www.thtohieu.com` |
+| API Worker | `https://api.thtohieu.com` |
+| Portal phụ huynh | `https://phuhuynh.thtohieu.com` |
+| Public assets (R2) | `https://assets.thtohieu.com` |
+
+Frontend deploy qua Vercel (tự động từ nhánh `main`), backend qua Cloudflare Workers + D1 + R2 + Queues.
+Trạng thái chi tiết và việc còn lại: `docs/deployment/CURRENT_PROGRESS.md`. Kế hoạch: `docs/ROADMAP.md`.
 
 Không đưa mật khẩu, OTP, API key hoặc token vào Git, issue, log, ảnh chụp hoặc nội dung chat.

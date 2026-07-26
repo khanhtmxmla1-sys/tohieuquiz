@@ -6,7 +6,7 @@ import { getRandomQuestions } from './gameQuestions';
 
 const GameCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const { state, score, lives, highScore, startGame, resetGame, addScore, loseLife } = useGameStore();
+    const { state, score, lives, highScore, startGame, endGame, resetGame, addScore, loseLife } = useGameStore();
     const { quizzes } = useQuizStore();
 
     // Local Game State
@@ -108,22 +108,12 @@ const GameCanvas: React.FC = () => {
             } else if (localQIndex >= gameQuestions.length && localFlowers.length === 0) {
                 isGameOver = true;
                 setTimeout(() => {
-                    // Start Over with same questions for now (Loop Mode)
-                    // Or ideally fetch new quiz.
-                    // For now, let's just trigger Game Over to show score.
-                    // But if lives > 0, we should probably win?
-                    // Let's just create a loop by resetting index
-                    // localQIndex = 0; 
-                    // NO, let's show Game Over screen with High Score updated.
-                    loseLife(); // Hack to trigger Game Over logic in store? No, explicit EndGame needed.
-                    // Accessing store getState would be better but hooks don't expose it directly.
-                    // But we can just use the bound functions.
-                    // Since 'loseLife' checks <=0, we can force it or add 'endGame' to store.
-                    // Resetting game loops to menu. Use logic to show summary.
-                    // Let's just call loseLife repeatedly? No.
-                    // Let's modify store to have 'winGame' or just show score.
-                    // For now:
-                    resetGame();
+                    // Every question has been answered: end the run explicitly so the
+                    // Game Over screen shows the final score and the high score is
+                    // persisted. This previously called loseLife() as a workaround,
+                    // which silently consumed a life and then reset straight back to
+                    // the menu without showing a summary.
+                    endGame();
                 }, 500);
             }
 

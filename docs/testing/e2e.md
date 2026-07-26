@@ -1,0 +1,86 @@
+# End-to-end testing — TôHiệuQuiz
+
+Cypress specs fall into three categories. They are **not** interchangeable: two of
+them need a running backend, and one of them needs a specific feature-flag
+combination. Running everything in one pass will always produce failures.
+
+## 1. Stubbed specs — run anywhere, run in CI
+
+Every API call is stubbed with `cy.intercept`, so these need nothing but the Vite
+dev server on `http://localhost:3001`.
+
+| Spec | Requires |
+|---|---|
+| `ai-question-blueprint-v3.cy.ts` | `VITE_FEATURE_AI_BLUEPRINT_V3=true` |
+| `ai-quiz-generation-v2.cy.ts` | `VITE_FEATURE_AI_QUIZ_V2=true` and **`VITE_FEATURE_AI_BLUEPRINT_V3=false`** |
+| `manual-quiz-workspace.cy.ts` | default flags |
+| `mobile-responsive.cy.ts` | default flags |
+| `parent-portal.cy.ts` | `VITE_FEATURE_PARENT_PORTAL_V1=true` |
+| `unified-notifications.cy.ts` | default flags |
+
+### The AI flag conflict
+
+`ai-quiz-generation-v2.cy.ts` asserts the V2 pipeline's stage sequence
+(`OCR → GENERATE → REPAIR → REVIEW`) and its review screen. Blueprint V3 replaces
+that pipeline — `useCreateQuizLogic` computes
+`aiBlueprintV3Enabled = aiQuizV2Enabled && isAiBlueprintV3Enabled()` — so with V3
+enabled the REPAIR stage never runs and the "Lưu đề" button never appears.
+
+Measured on 2026-07-26:
+
+| `VITE_FEATURE_AI_BLUEPRINT_V3` | `ai-quiz-generation-v2.cy.ts` | `ai-question-blueprint-v3.cy.ts` |
+|---|---|---|
+| `true` | 2 passing, **3 failing** | 2 passing |
+| `false` | **5 passing** | (not applicable) |
+
+This is expected behaviour, not a defect: each spec pins one side of the flag. CI
+therefore runs the suite in two passes — the main pass with V3 off, then the V3
+spec on its own with V3 on.
+
+## 2. Live-environment specs — need a real backend and a real student
+
+These log in for real and assert against live data. They fail fast in a stubbed run
+with `studentUsername is required`.
+
+- `student-dashboard-responsive.cy.ts`
+- `student-practice-library.cy.ts`
+
+Run them against a deployed environment with a throwaway student account:
+
+```bash
+npx cypress run --e2e \
+  --spec "cypress/e2e/student-dashboard-responsive.cy.ts,cypress/e2e/student-practice-library.cy.ts" \
+  --config baseUrl=https://www.thtohieu.com \
+  --env studentUsername=<code>,studentPassword=<pin>
+```
+
+Never commit those credentials, and never point them at a real pupil's account.
+
+## 3. Quarantined specs
+
+- `quiz.cy.ts` — inherited from the source system. It asserts the old school
+  branding and a "Dành cho Giáo viên" link that no longer exist, and it logs in with
+  `admin`/`admin` against a live backend. Both `describe` blocks are `.skip`ped with
+  the reasoning in the file header. Rewrite or delete it; do not un-skip as-is.
+
+## Commands
+
+```bash
+# Everything CI runs (stubbed only) — needs `npm run dev` in another terminal
+npm run cypress:run:stubbed
+npm run cypress:run:blueprint-v3   # with VITE_FEATURE_AI_BLUEPRINT_V3=true
+
+# Component tests
+npm run cypress:run:component
+```
+
+## Component specs
+
+`cypress/component/**` mounts components directly through the Vite dev server and
+needs no flags:
+
+- `announcement-composer-layout.cy.tsx`
+- `console-hygiene.cy.tsx`
+- `math-rendering.cy.tsx`
+- `result-report-delivery.cy.tsx`
+- `student-dropdown-menu.cy.tsx`

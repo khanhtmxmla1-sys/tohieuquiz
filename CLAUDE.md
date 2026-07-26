@@ -42,19 +42,3 @@ This project is indexed by GitNexus as **tohieuquiz** (12261 symbols, 27056 rela
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
-
-## Agent skills
-
-### Issue tracker
-
-Issues live in the private GitHub repository `khanhtmxmla1-sys/tohieuquiz` (the remote is configured). See `docs/agents/issue-tracker.md`.
-
-A stale `GITHUB_TOKEN` environment variable on the development machine overrides the `gh` keyring and breaks both `gh` and `git push`. Clear it for the session with `set "GITHUB_TOKEN="` (cmd) or `Remove-Item Env:GITHUB_TOKEN` (PowerShell).
-
-### Triage labels
-
-Uses default label vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context repo: `CONTEXT.md` at root + `docs/adr/` for architecture decisions. See `docs/agents/domain.md`.

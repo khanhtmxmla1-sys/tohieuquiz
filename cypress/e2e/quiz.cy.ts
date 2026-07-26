@@ -1,4 +1,20 @@
-describe('Student Quiz Flow', () => {
+/**
+ * QUARANTINED — inherited from the source system, asserts a UI that no longer exists.
+ *
+ * Why it is skipped:
+ *   1. It asserts the old school branding ("TRƯỜNG TIỂU HỌC IT ÔNG") and a
+ *      "Dành cho Giáo viên" entry link. Neither string exists anywhere in `src/`
+ *      any more — the home page now renders `HeroSection` plus a `LoginForm` with
+ *      "Học sinh" / "Giáo viên" tabs.
+ *   2. It stubs no API traffic and logs in with `admin`/`admin`, so it needs a live
+ *      Worker + D1 with a seeded admin account. The new database is intentionally
+ *      empty (see docs/deployment/CURRENT_PROGRESS.md).
+ *
+ * To bring it back: rewrite the selectors against the current home page and move it
+ * to the live-environment suite documented in docs/testing/e2e.md, or restub it with
+ * `cy.intercept` the way `parent-portal.cy.ts` does.
+ */
+describe.skip('Student Quiz Flow', () => {
     beforeEach(() => {
         cy.visit('/');
     });
@@ -44,19 +60,19 @@ describe('Student Quiz Flow', () => {
     });
 });
 
-describe('Teacher Login Flow', () => {
+describe.skip('Teacher Login Flow', () => {
     beforeEach(() => {
         cy.visit('/');
     });
 
     it('should login with admin credentials', () => {
         cy.contains('Dành cho Giáo viên').click();
-        
+
         // Fill login form
         cy.get('input[type="text"]').first().type('admin');
         cy.get('input[type="password"]').type('admin');
         cy.contains('Đăng nhập').click();
-        
+
         // Should be on teacher dashboard
         cy.contains('Đăng xuất').should('be.visible');
     });
