@@ -109,8 +109,11 @@ const assertAccountMenuKeyboardFlow = () => {
 };
 
 const assertNoDistractingPulse = () => {
-  cy.contains('button', /Điểm danh nhận thưởng|Đã điểm danh hôm nay/)
-    .should('not.have.class', 'animate-pulse');
+  // Bám vào data-testid thay vì nhãn tiếng Việt: nhãn nút điểm danh do getAttendanceBadgeText()
+  // sinh ra và có ba dạng khác nhau tuỳ trạng thái ("Đã điểm danh hôm nay",
+  // "Đang tải câu hỏi điểm danh...", "Điểm danh ngày N: +X Xu +Y EXP"), nên regex theo chữ chỉ
+  // đúng trong một trạng thái duy nhất. Ý định của test vẫn là: nút này không được nhấp nháy.
+  cy.get('[data-testid="attendance-check-in"]').should('not.have.class', 'animate-pulse');
   cy.get('button[aria-label="Thi trực tiếp"]').should('not.have.class', 'animate-pulse');
 };
 

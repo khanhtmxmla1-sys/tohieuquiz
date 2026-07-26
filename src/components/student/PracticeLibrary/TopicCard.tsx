@@ -19,6 +19,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, count, isStarting, onClick
   return (
     <button
       type="button"
+      data-testid="practice-topic-card"
       onClick={() => onClick(topic)}
       disabled={isStarting}
       aria-busy={isStarting}

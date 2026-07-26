@@ -36,6 +36,7 @@ export function StudentDashboardHero({
 
           <button
             type="button"
+            data-testid="attendance-check-in"
             onClick={onAttendance}
             disabled={attendanceDisabled}
             className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-500"

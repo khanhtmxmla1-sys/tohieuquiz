@@ -45,17 +45,30 @@ const assertNoHorizontalOverflow = () => {
   });
 };
 
+/** Thẻ chuyên đề bám theo data-testid nên không lệ thuộc nhãn tiếng Việt hay trạng thái loading. */
+const topicCards = () => cy.get('[data-testid="practice-topic-card"]');
+
 const openFirstAvailableSubject = () => {
+  // Giữ tiêu đề môn trong một biến JS thường, KHÔNG dùng alias Cypress: alias sinh từ truy vấn DOM
+  // sẽ được truy vấn lại khi đọc, nên sau khi click điều hướng sang /student/practice/<môn> thì
+  // phần tử gốc không còn tồn tại và alias trả về tập rỗng — trước đây mọi test trong file đều
+  // chết ở đúng bước này dù trang đích render đúng.
+  let subjectTitle = '';
+
   cy.get('#practice-library').scrollIntoView().should('be.visible');
-  cy.get('[data-testid="subject-practice-grid"] button').first().as('firstSubject');
-  cy.get('@firstSubject').find('span.text-lg').invoke('text').as('subjectTitle');
-  cy.get('@firstSubject').click();
+  cy.get('[data-testid="subject-practice-grid"] button').first().within(() => {
+    cy.get('span.text-lg').invoke('text').then((text) => {
+      subjectTitle = String(text).trim();
+    });
+  });
+  cy.get('[data-testid="subject-practice-grid"] button').first().click();
   cy.location('pathname', { timeout: 15_000 }).should(
     'match',
     /^\/student\/practice\/(toan|tieng-viet|tu-nhien-xa-hoi|tieng-anh|tin-hoc)$/,
   );
-  cy.get('@subjectTitle').then((title) => {
-    cy.contains('h1', String(title).trim()).should('be.visible');
+  cy.then(() => {
+    expect(subjectTitle, 'tiêu đề môn đọc được trước khi điều hướng').to.not.equal('');
+    cy.contains('h1', subjectTitle).should('be.visible');
   });
   cy.get('input[type="search"][aria-label="Tìm chuyên đề"], input#practice-topic-search')
     .should('be.visible');
@@ -96,10 +109,9 @@ describe('Authenticated student practice library flow', () => {
     loginAsStudent();
     openFirstAvailableSubject();
 
-    cy.contains('button', 'Luyện 10 câu').first().as('firstTopic');
-    cy.get('@firstTopic').find('span.text-xl').invoke('text').then((topicTitle) => {
+    topicCards().first().find('span.text-xl').invoke('text').then((topicTitle) => {
       cy.get('input#practice-topic-search').clear().type(String(topicTitle).trim());
-      cy.contains('button', 'Luyện 10 câu').should('have.length.at.least', 1);
+      topicCards().should('have.length.at.least', 1);
     });
 
     cy.get('input#practice-topic-search').clear().type('khong-co-chuyen-de-nay-987654');
@@ -119,8 +131,11 @@ describe('Authenticated student practice library flow', () => {
       }
     });
 
-    cy.contains('button', 'Luyện 10 câu').first().as('startingTopic').click();
-    cy.get('@startingTopic').should('have.attr', 'aria-busy', 'true').and('be.disabled');
+    // Không dùng alias theo chữ: khi bấm, nhãn nút đổi từ "Luyện 10 câu" thành "Đang chuẩn bị..."
+    // (TopicCard.tsx), nên truy vấn lại theo chữ cũ sẽ bắt sang một chuyên đề khác đang rảnh và
+    // assert aria-busy chắc chắn fail. data-testid không đổi theo trạng thái.
+    topicCards().first().click();
+    topicCards().first().should('have.attr', 'aria-busy', 'true').and('be.disabled');
 
     cy.get('body', { timeout: 20_000 }).should(($body) => {
       const hasQuizQuestions = $body.find('[aria-label^="Câu "]').length > 0;
@@ -136,7 +151,7 @@ describe('Authenticated student practice library flow', () => {
       openFirstAvailableSubject();
       assertNoHorizontalOverflow();
       cy.get('header button[aria-label="Trở về thư viện"]').should('have.css', 'min-height', '44px');
-      cy.contains('button', 'Luyện 10 câu').first().should('be.visible');
+      topicCards().first().should('be.visible');
     });
   });
 });
