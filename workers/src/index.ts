@@ -43,7 +43,7 @@ import { handleResultReportRoutes } from './routes/resultReports';
 import { handleParentPortalRoutes } from './routes/parentPortal';
 import { handleNotificationRoutes } from './routes/notifications/route';
 import { Env } from './types';
-import { rateLimit } from './middleware/rateLimit';
+import { purgeExpiredRateLimits, rateLimit } from './middleware/rateLimit';
 import { mapQuestionForSave, mapAssignment, mapAssignments, handleValidateAnswers } from './utils/helpers';
 import { checkAndAutoCloseExpiredExams } from './services/liveExamService';
 import { createDueHomeworkReminders } from './parentPortal/deadlineReminderService';
@@ -219,6 +219,16 @@ export default {
     // Scheduled maintenance, reminders, and weekly leaderboard rewards.
     async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
         if (event.cron === '0 23 * * *') {
+            // Dọn bộ đếm rate limit đã hết hạn trước, và tách try/catch riêng: đây là việc
+            // vệ sinh, không được phép làm hỏng lượt nhắc hạn bài tập của phụ huynh.
+            // Dọn bộ đếm rate limit đã hết hạn trước, và tách try/catch riêng: đây là việc
+            // vệ sinh, không được phép làm hỏng lượt nhắc hạn bài tập của phụ huynh.
+            try {
+                const purged = await purgeExpiredRateLimits(env.DB, new Date());
+                if (purged > 0) console.log(`[Cron] Purged ${purged} expired rate limit rows`);
+            } catch (error) {
+                console.error('[Cron] Failed to purge expired rate limits:', error);
+            }
             await createDueHomeworkReminders(env.DB, new Date());
             return;
         }

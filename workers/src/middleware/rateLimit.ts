@@ -90,13 +90,27 @@ export async function rateLimit(
   }
 }
 
-export async function ensureRateLimitTable(db: D1Database): Promise<void> {
-  await db.prepare(`
-    CREATE TABLE IF NOT EXISTS rate_limits (
-      key TEXT PRIMARY KEY,
-      count INTEGER NOT NULL DEFAULT 0,
-      window_start TEXT NOT NULL DEFAULT '',
-      updated_at TEXT NOT NULL DEFAULT ''
-    )
-  `).run();
+/**
+ * Giữ bản ghi lâu hơn mọi cửa sổ đang dùng (dài nhất là 15 phút ở `utils/loginRateLimit.ts`),
+ * nhưng vẫn chặn bảng phình vô hạn. Bản ghi cũ hơn mốc này không còn ảnh hưởng tới quyết định
+ * chặn/cho qua của bất kỳ limiter nào.
+ */
+export const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Dọn các bộ đếm đã hết hạn. Không có việc này thì bảng chỉ lớn thêm: `clearLoginFailures()`
+ * chỉ xoá đúng một khoá sau khi đăng nhập thành công, còn khoá theo IP và khoá của những lần
+ * đăng nhập thất bại không bao giờ được xoá.
+ *
+ * Trả về số dòng đã xoá để cron ghi log.
+ */
+export async function purgeExpiredRateLimits(
+  db: D1Database,
+  now: Date = new Date(),
+): Promise<number> {
+  const cutoffIso = new Date(now.getTime() - RATE_LIMIT_RETENTION_MS).toISOString();
+  const result = await db.prepare('DELETE FROM rate_limits WHERE window_start <= ?')
+    .bind(cutoffIso)
+    .run();
+  return Number(result?.meta?.changes ?? 0);
 }

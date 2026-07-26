@@ -1,5 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { ensureRateLimitTable, rateLimit } from '../workers/src/middleware/rateLimit';
+import {
+  RATE_LIMIT_RETENTION_MS,
+  purgeExpiredRateLimits,
+  rateLimit,
+} from '../workers/src/middleware/rateLimit';
 
 class FakeStatement {
   bindings: unknown[] = [];
@@ -7,6 +12,7 @@ class FakeStatement {
     readonly sql: string,
     private readonly firstResult: unknown,
     private readonly shouldThrow = false,
+    private readonly changes = 0,
   ) {}
   bind(...values: unknown[]) {
     this.bindings = values;
@@ -18,15 +24,15 @@ class FakeStatement {
   }
   async run() {
     if (this.shouldThrow) throw new Error('D1 unavailable');
-    return { success: true };
+    return { success: true, meta: { changes: this.changes } };
   }
 }
 
-function createEnv(firstResult: unknown, shouldThrow = false) {
+function createEnv(firstResult: unknown, shouldThrow = false, changes = 0) {
   const statements: FakeStatement[] = [];
   const DB = {
     prepare: vi.fn((sql: string) => {
-      const statement = new FakeStatement(sql, firstResult, shouldThrow);
+      const statement = new FakeStatement(sql, firstResult, shouldThrow, changes);
       statements.push(statement);
       return statement;
     }),
@@ -120,14 +126,48 @@ describe('D1 rate limiter', () => {
     expect(statements[0].bindings[0]).toBe('ratelimit:POST:/api/login:1.2.3.4');
   });
 
-  it('creates the same aggregate table shape used by production', async () => {
-    const { env, statements } = createEnv(null);
-    await ensureRateLimitTable(env.DB as any);
+  it('writes only columns that the deployed table actually has', () => {
+    // Trước đây hình dạng bảng được canh bằng `ensureRateLimitTable()` — một hàm không ai gọi,
+    // nên nó vẫn "xanh" trong lúc production hoàn toàn không có bảng và mọi lượt đăng nhập trả 503.
+    // Giờ canh trực tiếp vào hai nguồn tạo bảng thật: schema (DB mới) và migration (DB đang chạy).
+    const columns = ['key', 'count', 'window_start', 'updated_at'];
+    const schema = readFileSync('workers/schema.sql', 'utf8');
+    const migration = readFileSync('workers/migrations/0043_create_rate_limits.sql', 'utf8');
+    const runtime = readFileSync('workers/src/middleware/rateLimit.ts', 'utf8');
 
-    expect(statements[0].sql).toContain('key TEXT PRIMARY KEY');
-    expect(statements[0].sql).toContain('count INTEGER NOT NULL');
-    expect(statements[0].sql).toContain('window_start TEXT NOT NULL');
-    expect(statements[0].sql).toContain('updated_at TEXT NOT NULL');
-    expect(statements[0].sql).not.toContain('created_at');
+    for (const source of [schema, migration]) {
+      const table = /CREATE TABLE IF NOT EXISTS rate_limits\s*\(([^;]*?)\)\s*;/i.exec(source);
+      expect(table, 'khai báo bảng rate_limits').not.toBeNull();
+      for (const column of columns) expect(table![1]).toContain(column);
+      expect(table![1]).not.toContain('created_at');
+    }
+
+    expect(runtime).toContain('INSERT INTO rate_limits (key, count, window_start, updated_at)');
+  });
+});
+
+describe('rate limit retention', () => {
+  it('deletes only rows whose window closed before the retention cutoff', async () => {
+    const { env, statements } = createEnv(null, false, 7);
+    const now = new Date('2026-07-26T12:00:00.000Z');
+
+    const purged = await purgeExpiredRateLimits(env.DB as any, now);
+
+    expect(purged).toBe(7);
+    expect(statements).toHaveLength(1);
+    expect(statements[0].sql).toBe('DELETE FROM rate_limits WHERE window_start <= ?');
+    expect(statements[0].bindings).toEqual([
+      new Date(now.getTime() - RATE_LIMIT_RETENTION_MS).toISOString(),
+    ]);
+  });
+
+  it('keeps rows for longer than the widest limiter window', () => {
+    const widestWindowMs = 15 * 60 * 1000; // utils/loginRateLimit.ts
+    expect(RATE_LIMIT_RETENTION_MS).toBeGreaterThan(widestWindowMs);
+  });
+
+  it('reports zero when D1 gives no change count', async () => {
+    const { env } = createEnv(null);
+    await expect(purgeExpiredRateLimits(env.DB as any, new Date())).resolves.toBe(0);
   });
 });

@@ -89,6 +89,23 @@ gọi `/api/login` thật lần nào.
 **Bẫy khi chạy wrangler trong `workers/`:** phải truyền `--config wrangler.toml`, nếu không wrangler
 bắt được `wrangler.jsonc` ở thư mục gốc và báo `Couldn't find a D1 DB with the name or binding`.
 
+### Dọn bảng `rate_limits` và xoá `ensureRateLimitTable()`
+
+Bảng chỉ lớn thêm theo thời gian: `clearLoginFailures()` xoá đúng một khoá sau khi đăng nhập thành
+công, còn khoá theo IP và khoá của các lần đăng nhập thất bại không bao giờ được xoá. Cron
+`0 23 * * *` giờ gọi `purgeExpiredRateLimits()` trước phần nhắc hạn bài tập, trong try/catch riêng
+để việc vệ sinh không làm hỏng việc nhắc hạn. Mốc lưu trữ 24 giờ — dài hơn hẳn cửa sổ rộng nhất
+đang dùng (15 phút ở `utils/loginRateLimit.ts`) nên không đổi hành vi chặn/cho qua.
+
+`ensureRateLimitTable()` đã bị xoá. Impact analysis xác nhận **0 caller**: nó chỉ được gọi trong
+test của chính nó. Đáng chú ý là hàm này vẫn "xanh" trong suốt thời gian production hoàn toàn không
+có bảng `rate_limits` và mọi lượt đăng nhập trả 503 — một hàm không ai gọi thì không bảo vệ được gì,
+chỉ tạo cảm giác an toàn giả. Phần assertion về hình dạng bảng đã chuyển sang canh trực tiếp hai
+nguồn tạo bảng thật (`workers/schema.sql` và migration `0043`) cùng câu INSERT trong
+`middleware/rateLimit.ts`, nên nếu ba nơi lệch cột là test đỏ.
+
+Không có migration mới nên không cần rollback tương ứng.
+
 ### Smoke test có phiên đăng nhập thật — 12/12 đạt
 
 Đăng nhập cả ba vai trò; buộc đổi mật khẩu ở lần đăng nhập đầu hoạt động đúng; `/api/system-settings`
