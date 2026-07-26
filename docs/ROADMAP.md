@@ -112,7 +112,10 @@ Chốt bằng test: `tests/freshD1Bootstrap.test.ts` giờ bắt buộc `schema.
 - [x] Đăng nhập đủ vai trò: quản trị, giáo viên, học sinh — 12/12 kiểm tra đạt trên production
       (đổi mật khẩu bắt buộc lần đầu, `/api/system-settings`, `/api/admin/teachers`, `/api/classes`,
       `/api/students`, `/api/notifications`, `/api/results`, và học sinh bị chặn 403 khỏi API admin).
-- [ ] Tạo đề thủ công → giao bài → học sinh làm → chấm & xem kết quả.
+- [x] Tạo đề thủ công → giao bài → học sinh làm → chấm & xem kết quả — 7/7 bước đạt trên production
+      (đề `q-test-gd5-toan`, 3 câu MCQ, `show_on_home=FALSE`; giao cho "Lớp Test 1" tối đa 2 lượt;
+      `test.hs1` nộp bài đúng 2/3 → **server tự tính 6.7 điểm, bỏ qua điểm 10 mà client gửi**;
+      giáo viên xem được kết quả; 2 thông báo giao bài được ghi; lượt thứ 3 bị chặn 403).
 - [ ] Thi trực tiếp (đủ 5 trạng thái).
 - [ ] Phiếu kết quả `/phieu/*`.
 - [ ] Chứng nhận: batch → queue consumer → R2 → thông báo.
@@ -143,5 +146,5 @@ Cờ frontend cần redeploy Vercel với env mới để bật/tắt (vài phú
 | Dữ liệu test còn trong production | Lẫn với dữ liệu thật khi khai trương | Xoá `test.gv1`, `test.hs1`, `test.hs2`, "Lớp Test 1" sau khi xong giai đoạn 5 |
 | Bảng `rate_limits` phình dần | Không có cron dọn bản ghi hết hạn | Theo dõi dung lượng D1; thêm job dọn nếu tăng nhanh |
 | `quiz.cy.ts` đang skip | Mất phủ luồng home/login | Viết lại theo UI hiện tại hoặc restub như `parent-portal.cy.ts` |
-| 2 spec cần credential thật **và dữ liệu luyện tập** | Không chạy trong CI; chạy trên DB rỗng chỉ 1/13 test đạt | Seed ít nhất 1 câu hỏi có tag `#toan`, rồi chạy thủ công (xem `docs/testing/e2e.md`) |
+| 2 spec live đã lỗi thời so với UI | Không phủ được dashboard/thư viện học sinh | Sửa spec: nhãn nút điểm danh và cách giữ alias sau điều hướng (xem `docs/testing/e2e.md`) |
 | Chưa bật branch protection | CI có thể bị bỏ qua khi merge | Bật trong GitHub Settings |

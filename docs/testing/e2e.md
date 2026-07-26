@@ -67,6 +67,28 @@ So the environment needs at least one question whose `tags` contains a hashtag
 matching a subject alias in `SUBJECT_CONFIG` (`src/features/student-dashboard/model/dashboardConstants.ts`)
 — e.g. `#toan` for Toán học. Seed that before blaming the specs.
 
+### Both specs are also stale against the current UI
+
+With practice content seeded, the specs get much further — the subject page loads,
+`/student/practice/toan` renders real topics, and the canonical-route assertion
+passes — but neither goes green. Two spec-side defects remain, measured 2026-07-26:
+
+1. `student-dashboard-responsive.cy.ts`, `assertNoDistractingPulse()` looks for a
+   button matching `/Điểm danh nhận thưởng|Đã điểm danh hôm nay/`. The attendance
+   button's label comes from `getAttendanceBadgeText()`
+   (`src/features/student-dashboard/model/attendanceRewards.ts`), which returns
+   `Đã điểm danh hôm nay`, `Đang tải câu hỏi điểm danh...`, or
+   `Điểm danh ngày N: +X Xu +Y EXP`. `Điểm danh nhận thưởng` only ever appears in a
+   `<p>` inside `AttendanceModal`, never as button text, so the assertion cannot
+   pass unless the student has already claimed today.
+2. `student-practice-library.cy.ts`, `openFirstAvailableSubject()` aliases
+   `@firstSubject` from a DOM query and then reads `@subjectTitle` after clicking
+   through to the subject route. After the navigation the alias resolves to an
+   empty set, so every test in the file dies on the same step even though the page
+   itself is correct.
+
+Fix the specs before treating a red run here as a product regression.
+
 Run them against a deployed environment with a throwaway student account:
 
 ```bash

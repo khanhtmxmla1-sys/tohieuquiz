@@ -107,6 +107,32 @@ trong `questions.tags`. D1 chưa có câu hỏi nào → mọi môn nằm ở nh
 Tức là hai spec này cần **tài khoản học sinh + dữ liệu luyện tập**, không chỉ tài khoản. Đã ghi rõ
 điều kiện này vào `docs/testing/e2e.md`.
 
+Sau khi seed đề test, chạy lại: trang môn học `/student/practice/toan` render đúng ("Toán học ·
+4 chuyên đề · 6 câu hỏi") và assert route chuẩn đã pass — nhưng vẫn đỏ vì **hai spec lỗi thời so với
+UI**, không phải lỗi sản phẩm: nhãn nút điểm danh không còn khớp regex của spec, và alias DOM
+`@firstSubject` rỗng sau khi điều hướng. Chi tiết trong `docs/testing/e2e.md`.
+
+### Luồng dạy–học đã smoke test trọn vòng trên production
+
+Đề `q-test-gd5-toan` (3 câu MCQ, tag `#toan`, `show_on_home=FALSE` nên không lên trang chủ) →
+giao cho "Lớp Test 1" (tối đa 2 lượt) → `test.hs1` nộp bài đúng 2/3 → giáo viên xem kết quả →
+lượt thứ 3 bị chặn `403`. Điểm đáng ghi nhận: client gửi `score: 10, correctCount: 3` nhưng server
+tự tính lại từ `answers` thành **6.7 / 2 đúng 3** — `deriveResultMetricsFromAnswers()` không tin
+client. Hai thông báo `assignment_created` được ghi đúng (một cho mỗi học sinh trong lớp).
+
+Chính lần smoke test này lộ ra lỗi mojibake: thông báo `403` trả về nguyên văn
+`Báº¡n Ä‘Ã£ háº¿t lÆ°á»£t lÃ m bÃ i táº­p nÃ y (2/2).` Đã sửa trong mã (commit riêng),
+**cần redeploy Worker** để có hiệu lực trên production.
+
+### Dữ liệu test hiện có trong production (cần xoá trước khi khai trương)
+
+| Bản ghi | Ghi chú |
+|---|---|
+| `test.gv1`, `test.hs1`, `test.hs2`, "Lớp Test 1" | tài khoản và lớp kiểm thử |
+| `q-test-gd5-toan` + 3 câu hỏi | ẩn khỏi trang chủ (`show_on_home=FALSE`) |
+| `a-89e6d829` | bài được giao, 2 kết quả của `test.hs1` |
+| `quiz-manual-f18226a6-…` | **do `admin` tạo lúc 12:06:23Z**, tiêu đề "Đề kiểm tra mới", 1 câu hỏi, `show_on_home=TRUE` → đang hiện trên trang chủ công khai. Không phải do script tạo; xác nhận lại trước khi xoá. |
+
 ## Cloudflare đã hoàn tất
 
 - Domain chính: `thtohieu.com`.
