@@ -320,7 +320,10 @@ const ManageTab: React.FC<ManageTabProps> = ({ quizzes, onDelete, onEdit, onMana
                 </select>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            {/* Không dùng overflow-hidden ở đây: nó cắt mất menu "⋮" của từng thẻ đề, và với danh
+                sách chỉ một đề thì menu gần như biến mất hoàn toàn. Bo góc cho thẻ đầu/cuối bên dưới
+                để nền hover không tràn ra ngoài viền bo, thay cho việc cắt cả cây con. */}
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                 {quizManager.paginatedQuizzes.map((quiz, index) => {
                     const tags = parseQuizTags((quiz as any).tags);
                     const stats = assignmentStats.get(quiz.id) || { status: 'unassigned', openCount: 0, total: 0 };
@@ -338,7 +341,7 @@ const ManageTab: React.FC<ManageTabProps> = ({ quizzes, onDelete, onEdit, onMana
                     return (
                         <article
                             key={quiz.id}
-                            className={`flex min-h-[104px] flex-col gap-4 px-4 py-4 transition-colors hover:bg-slate-50/70 sm:flex-row sm:items-center ${index > 0 ? 'border-t border-slate-100' : ''}`}
+                            className={`flex min-h-[104px] flex-col gap-4 px-4 py-4 transition-colors hover:bg-slate-50/70 first:rounded-t-[11px] last:rounded-b-[11px] sm:flex-row sm:items-center ${index > 0 ? 'border-t border-slate-100' : ''}`}
                         >
                             <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
