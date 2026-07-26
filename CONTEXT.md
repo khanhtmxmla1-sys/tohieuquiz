@@ -44,4 +44,12 @@
 - Browser storage/session keys: tiền tố `tohieuquiz_`.
 - JWT issuer: `tohieuquiz-api`.
 
-Tên miền production chưa được chốt; mọi URL `.invalid` chỉ là placeholder chống deploy nhầm.
+Tên miền production chính thức là `thtohieu.com`. Sơ đồ hostname hiện tại:
+
+- `www.thtohieu.com`: frontend chính.
+- `api.thtohieu.com`: Cloudflare API Worker.
+- `phuhuynh.thtohieu.com`: portal phụ huynh.
+- `assets.thtohieu.com`: public R2 assets.
+- `ai.thtohieu.com`: dành cho dịch vụ AI/proxy, hiện chưa cấu hình dịch vụ thật.
+
+Checkpoint triển khai mới nhất được lưu tại `docs/deployment/CURRENT_PROGRESS.md`.
