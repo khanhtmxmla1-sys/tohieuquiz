@@ -61,7 +61,12 @@ Cập nhật các vị trí:
 2. Điền D1 ID vào cấu hình.
 3. Chạy toàn bộ migration theo thứ tự.
 4. Xác minh schema bằng script audit.
-5. Tạo duy nhất tài khoản quản trị ban đầu bằng quy trình được phê duyệt.
+5. Tạo duy nhất tài khoản quản trị ban đầu bằng quy trình được phê duyệt:
+   `node workers/scripts/bootstrap-first-admin.mjs <username> "<họ tên>"` sinh SQL kèm mật khẩu
+   tạm dùng một lần; chạy SQL bằng `wrangler d1 execute ... --config wrangler.toml`, rồi đăng nhập
+   để đổi mật khẩu (tài khoản có `must_change_password = 1` nên mọi route khác bị chặn 403 đến khi
+   đổi xong). Không tạo admin bằng hash sinh từ công cụ khác — encoding phải khớp
+   `workers/src/utils/password.ts`.
 6. Chỉ seed dữ liệu tổng hợp nếu cần demo.
 
 Không export/import bảng từ database cũ.

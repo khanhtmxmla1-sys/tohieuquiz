@@ -364,6 +364,16 @@ CREATE TABLE IF NOT EXISTS system_settings (
   updated_at TEXT NOT NULL
 );
 
+-- Bộ đếm rate limit theo cửa sổ cố định (middleware/rateLimit.ts, utils/loginRateLimit.ts).
+-- BẮT BUỘC phải có: các endpoint đăng nhập chạy limiter với failureMode 'closed', nên thiếu bảng
+-- này là mọi lượt đăng nhập trả 503. Hình dạng bảng khớp ensureRateLimitTable() và migration 0043.
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT PRIMARY KEY,
+  count INTEGER NOT NULL DEFAULT 0,
+  window_start TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT ''
+);
+
 CREATE TABLE IF NOT EXISTS teacher_ai_daily_usage (
   username TEXT NOT NULL,
   usage_date TEXT NOT NULL,

@@ -43,13 +43,29 @@ another port, and Cypress keeps talking to the *previous* server — built with 
 wrong flag — until it dies with `ECONNREFUSED`. Separate runners make the isolation
 real.
 
-## 2. Live-environment specs — need a real backend and a real student
+## 2. Live-environment specs — need a real backend, a real student, **and practice content**
 
 These log in for real and assert against live data. They fail fast in a stubbed run
 with `studentUsername is required`.
 
 - `student-dashboard-responsive.cy.ts`
 - `student-practice-library.cy.ts`
+
+### A student account is not enough
+
+Measured against production on 2026-07-26 with a real student account on an empty
+database: **1 of 13 tests passed**. Every failure traced to one missing element,
+`[data-testid="subject-practice-grid"] button`.
+
+`buildPracticeCatalog()` marks a subject `available` only when `questionCount > 0`,
+and that count comes from `GET /api/practice/topics`, which reads hashtags out of
+`questions.tags`. With no tagged questions, every subject renders in the "Sắp có"
+list as plain `Đang chuẩn bị` text, `availableSubjects` is empty, and
+`SubjectPracticeGrid` never renders the grid the specs click into.
+
+So the environment needs at least one question whose `tags` contains a hashtag
+matching a subject alias in `SUBJECT_CONFIG` (`src/features/student-dashboard/model/dashboardConstants.ts`)
+— e.g. `#toan` for Toán học. Seed that before blaming the specs.
 
 Run them against a deployed environment with a throwaway student account:
 

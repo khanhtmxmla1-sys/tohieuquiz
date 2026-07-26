@@ -30,6 +30,7 @@ const ROLLBACK_REQUIRED = [
     '0038',
     '0040',
     '0042',
+    '0043',
 ];
 
 describe('D1 rollback coverage', () => {

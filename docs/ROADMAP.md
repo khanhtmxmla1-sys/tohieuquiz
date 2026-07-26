@@ -12,7 +12,7 @@
 | 2 | Đồng bộ tài liệu với thực tế | ✅ Xong |
 | 3 | CI/CD tự động | ✅ Xong (chờ bật branch protection) |
 | 4 | Hạ tầng Cloudflare/Vercel & deploy | ✅ Xong, trừ AI/email/monitoring |
-| 5 | Kiểm thử production & rollout cờ | ⏳ Chờ tài khoản quản trị + nhịp theo dõi |
+| 5 | Kiểm thử production & rollout cờ | 🔄 Đang chạy — đã có tài khoản, chờ nhịp bật cờ |
 
 Quality gate hiện tại (đo ngày 26/07/2026, với tất cả cờ bật ở local):
 
@@ -82,15 +82,36 @@ Còn lại:
 
 - [ ] Dịch vụ AI thật tại `ai.thtohieu.com` và thay `CLIPROXY_TOKEN` tạm.
 - [ ] Email provider (SPF/DKIM/DMARC), monitoring, Cloudinary production.
-- [ ] Tài khoản quản trị đầu tiên trong D1.
+- [x] Tài khoản quản trị đầu tiên trong D1 — xong 26/07/2026 (phiên 3).
 
-## Giai đoạn 5 — Rollout production ⏳
+## Giai đoạn 5 — Rollout production 🔄
 
-**Điều kiện tiên quyết:** tạo tài khoản quản trị đầu tiên. Không có nó thì không bật được
-Unified Notifications (setting server) và không smoke test được luồng giáo viên.
+**Điều kiện tiên quyết đã xong (26/07/2026, phiên 3):** tài khoản quản trị đầu tiên `admin` đã
+tồn tại trong D1 production, cùng bộ tài khoản kiểm thử `test.gv1` / `test.hs1` / `test.hs2` và
+lớp "Lớp Test 1". Mật khẩu **không** lưu trong repo — xem `docs/deployment/CURRENT_PROGRESS.md`.
+
+### Lỗi chặn phát hiện khi tạo tài khoản: đăng nhập production trả 503
+
+`/api/login`, `/api/student-login` và đăng nhập phụ huynh chạy rate limiter với
+`failureMode: 'closed'` (`workers/src/index.ts`), nhưng bảng `rate_limits` **chưa bao giờ được tạo
+trên D1 mới**: nó chỉ có trong `data/migrations/007_create_notifications.sql` của hệ thống cũ và
+trong `ensureRateLimitTable()` — hàm không được gọi ở bất kỳ đâu. Hệ quả: **mọi lượt đăng nhập của
+mọi vai trò đều trả 503**, không riêng tài khoản mới. Smoke test các phiên trước không bắt được vì
+chỉ kiểm tra endpoint chưa đăng nhập trả `401`.
+
+Đã sửa ở ba nơi để DB mới không lặp lại lỗi:
+
+- `workers/schema.sql` — thêm `rate_limits` (đường bootstrap DB mới).
+- `workers/migrations/0043_create_rate_limits.sql` + `workers/rollbacks/0043_drop_rate_limits.sql`
+  (đường DB đang chạy). Đã `wrangler d1 migrations apply --remote` lên production.
+- `workers/scripts/bootstrap_d1_migration_registry.sql` — đăng ký 0043.
+
+Chốt bằng test: `tests/freshD1Bootstrap.test.ts` giờ bắt buộc `schema.sql` có `rate_limits`.
 
 ### Smoke test thủ công còn lại
-- [ ] Đăng nhập đủ vai trò: giáo viên, học sinh, quản trị.
+- [x] Đăng nhập đủ vai trò: quản trị, giáo viên, học sinh — 12/12 kiểm tra đạt trên production
+      (đổi mật khẩu bắt buộc lần đầu, `/api/system-settings`, `/api/admin/teachers`, `/api/classes`,
+      `/api/students`, `/api/notifications`, `/api/results`, và học sinh bị chặn 403 khỏi API admin).
 - [ ] Tạo đề thủ công → giao bài → học sinh làm → chấm & xem kết quả.
 - [ ] Thi trực tiếp (đủ 5 trạng thái).
 - [ ] Phiếu kết quả `/phieu/*`.
@@ -119,7 +140,8 @@ Cờ frontend cần redeploy Vercel với env mới để bật/tắt (vài phú
 | Rủi ro | Ảnh hưởng | Phương án |
 |---|---|---|
 | Chưa có AI proxy thật | Chặn rollout AI V2/V3 | Bật Unified Notifications và Gift Shop trước |
-| Chưa có tài khoản quản trị | Chặn toàn bộ smoke test vai trò | Tạo theo quy trình phê duyệt, không import dữ liệu cũ |
+| Dữ liệu test còn trong production | Lẫn với dữ liệu thật khi khai trương | Xoá `test.gv1`, `test.hs1`, `test.hs2`, "Lớp Test 1" sau khi xong giai đoạn 5 |
+| Bảng `rate_limits` phình dần | Không có cron dọn bản ghi hết hạn | Theo dõi dung lượng D1; thêm job dọn nếu tăng nhanh |
 | `quiz.cy.ts` đang skip | Mất phủ luồng home/login | Viết lại theo UI hiện tại hoặc restub như `parent-portal.cy.ts` |
-| 2 spec cần credential thật | Không chạy trong CI | Chạy thủ công định kỳ với tài khoản học sinh dùng một lần |
+| 2 spec cần credential thật **và dữ liệu luyện tập** | Không chạy trong CI; chạy trên DB rỗng chỉ 1/13 test đạt | Seed ít nhất 1 câu hỏi có tag `#toan`, rồi chạy thủ công (xem `docs/testing/e2e.md`) |
 | Chưa bật branch protection | CI có thể bị bỏ qua khi merge | Bật trong GitHub Settings |

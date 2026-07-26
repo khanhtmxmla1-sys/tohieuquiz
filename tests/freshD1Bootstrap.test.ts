@@ -31,6 +31,8 @@ describe('fresh D1 bootstrap contract', () => {
       'parent_activation_tokens',
       'parent_class_announcements',
       'parent_notifications',
+      // Thiếu bảng này thì mọi endpoint đăng nhập trả 503 (limiter chạy failureMode 'closed').
+      'rate_limits',
     ]) {
       expect(schema).toContain(`create table if not exists ${table}`);
     }
@@ -74,7 +76,7 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(41);
+    expect(migrationNames).toHaveLength(42);
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);
