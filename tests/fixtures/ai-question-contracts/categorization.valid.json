@@ -1,0 +1,17 @@
+{
+  "slotId": "slot-1",
+  "type": "CATEGORIZATION",
+  "difficulty": 2,
+  "question": "Phân loại các số vào nhóm chẵn hoặc lẻ.",
+  "categories": [
+    { "id": "chan", "name": "Số chẵn" },
+    { "id": "le", "name": "Số lẻ" }
+  ],
+  "items": [
+    { "id": "i-1", "content": "2", "categoryId": "chan" },
+    { "id": "i-2", "content": "3", "categoryId": "le" },
+    { "id": "i-3", "content": "4", "categoryId": "chan" },
+    { "id": "i-4", "content": "5", "categoryId": "le" }
+  ],
+  "explanation": "Số chẵn chia hết cho 2, số lẻ không chia hết cho 2."
+}

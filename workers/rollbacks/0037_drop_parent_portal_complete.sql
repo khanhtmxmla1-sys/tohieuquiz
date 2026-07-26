@@ -1,0 +1,12 @@
+DROP INDEX IF EXISTS idx_parent_notifications_student_unread;
+DROP INDEX IF EXISTS idx_parent_notifications_student_feed;
+DROP INDEX IF EXISTS idx_parent_notifications_unique_source;
+DROP TABLE IF EXISTS parent_notifications;
+DROP INDEX IF EXISTS idx_parent_announcements_class_published;
+DROP TABLE IF EXISTS parent_class_announcements;
+DROP INDEX IF EXISTS idx_parent_activation_link;
+DROP TABLE IF EXISTS parent_activation_tokens;
+DROP INDEX IF EXISTS idx_parent_links_creator_created;
+DROP INDEX IF EXISTS idx_parent_links_one_active_student;
+DROP TABLE IF EXISTS parent_links;
+DROP INDEX IF EXISTS idx_results_student_id_submitted;

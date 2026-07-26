@@ -1,0 +1,11 @@
+{
+  "slotId": "slot-1",
+  "type": "RIDDLE",
+  "difficulty": 2,
+  "question": "Em hãy giải câu đố sau.",
+  "riddleLines": ["Thân em nhiều đốt", "Ruột trắng áo xanh"],
+  "correctAnswer": "cây mía",
+  "answerType": "original",
+  "answerLabel": "Đáp án",
+  "explanation": "Cây mía có thân chia nhiều đốt, vỏ xanh và ruột trắng."
+}

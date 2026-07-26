@@ -1,0 +1,10 @@
+{
+  "slotId": "slot-1",
+  "type": "DRAG_DROP",
+  "difficulty": 2,
+  "question": "Kéo từ thích hợp vào chỗ trống.",
+  "text": "Bầu trời thường có màu [1].",
+  "blanks": ["xanh"],
+  "distractors": ["đỏ", "đen"],
+  "explanation": "Trong ngày quang đãng, bầu trời thường có màu xanh."
+}

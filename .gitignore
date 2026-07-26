@@ -1,0 +1,90 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+.next
+tmp
+*.local
+*.tmp
+*.tsbuildinfo
+
+# Generated/debug artifacts
+audit.json
+q.json
+quiz_check.json
+tsc_output.txt
+stitch_petshop.html
+design_preview.html
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.vercel
+.gitnexus
+workers/.wrangler/
+
+# AI Agent configs
+.agents/
+.agent/skills/
+.agent/rules/
+.agent/workflows/
+.agent/AGENTS.md
+.agent/ecc-install-state.json
+.claude/
+tohieuquiz/
+llm-mux/
+skills-lock.json
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+
+# Visual regression output (baselines are tracked separately)
+cypress/screenshots/
+artifacts/math-screenshots/
+
+# Generated dependency audit reports
+reports/dependency-audit*.json
+artifacts/dependency-audit/
+
+# Sensitive local exports and credentials
+data/migration/*
+!data/migration/README.md
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+.jwt-rotation.tmp
+.qwen/settings*.corrupted*
+
+# Local D1 exports generated from ignored migration CSV files
+workers/data/*
+!workers/data/README.md
+
+# Local Worker operational dumps and one-off repair scripts
+workers/dump*.json
+workers/*query*.txt
+workers/fix_*.ps1

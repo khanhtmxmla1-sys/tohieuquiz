@@ -1,0 +1,8 @@
+{
+  "slotId": "slot-1",
+  "type": "SHORT_ANSWER",
+  "difficulty": 2,
+  "question": "Thủ đô của Việt Nam là thành phố nào?",
+  "correctAnswer": "Hà Nội",
+  "explanation": "Hà Nội là thủ đô của nước Việt Nam."
+}

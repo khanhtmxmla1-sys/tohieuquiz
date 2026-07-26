@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1270" height="698" viewBox="0 0 1270 698">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffdf6"/>
+      <stop offset="1" stop-color="#fff8e8"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8f5e08"/>
+      <stop offset="0.23" stop-color="#f7dc77"/>
+      <stop offset="0.5" stop-color="#bf8112"/>
+      <stop offset="0.72" stop-color="#fff0a7"/>
+      <stop offset="1" stop-color="#95610a"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#72000b"/>
+      <stop offset="0.52" stop-color="#d8182a"/>
+      <stop offset="1" stop-color="#7b000f"/>
+    </linearGradient>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07182f"/>
+      <stop offset="0.55" stop-color="#18355f"/>
+      <stop offset="1" stop-color="#07162b"/>
+    </linearGradient>
+    <pattern id="waves" width="44" height="18" patternUnits="userSpaceOnUse">
+      <path d="M0 9 Q11 0 22 9 T44 9" fill="none" stroke="#d8b86a" stroke-opacity=".16" stroke-width="1"/>
+    </pattern>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#3f2100" flood-opacity=".25"/>
+    </filter>
+    <g id="corner">
+      <path d="M2 70 Q8 22 54 4 Q34 27 25 55 Q52 33 78 31 Q48 48 36 78 Q60 62 84 65 Q55 77 42 100" fill="none" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
+      <path d="M13 59 Q28 54 32 39 Q17 43 13 59Z M35 31 Q49 28 54 14 Q39 17 35 31Z M33 74 Q49 72 58 58 Q43 59 33 74Z" fill="#d8a42f"/>
+      <circle cx="18" cy="78" r="4" fill="#c88713"/>
+      <circle cx="54" cy="43" r="3" fill="#f5df8d"/>
+    </g>
+  </defs>
+
+  <rect width="1270" height="698" fill="url(#paper)"/>
+  <rect x="14" y="14" width="1242" height="670" fill="url(#waves)" rx="3"/>
+
+  <!-- Sweeping ribbons -->
+  <path d="M20 18 H465 C345 45 220 65 114 145 C74 176 47 205 20 241Z" fill="url(#navy)"/>
+  <path d="M20 18 H390 C290 47 188 81 91 164 C62 189 40 215 20 241Z" fill="url(#red)"/>
+  <path d="M20 18 H350 C267 47 159 85 70 171" fill="none" stroke="url(#gold)" stroke-width="8"/>
+  <path d="M1250 18 H930 C1029 44 1123 73 1250 159Z" fill="url(#navy)"/>
+  <path d="M1250 18 H975 C1063 43 1150 76 1250 139Z" fill="url(#red)"/>
+  <path d="M1250 18 H998 C1078 43 1150 70 1250 124" fill="none" stroke="url(#gold)" stroke-width="8"/>
+
+  <path d="M20 680 H677 C565 632 442 606 301 615 C197 621 103 649 20 680Z" fill="url(#navy)"/>
+  <path d="M20 680 H720 C585 619 442 587 278 605 C170 616 87 646 20 680Z" fill="url(#red)"/>
+  <path d="M20 680 H741 C594 609 439 577 272 596 C162 609 77 640 20 671" fill="none" stroke="url(#gold)" stroke-width="8"/>
+
+  <!-- Ornamental frame -->
+  <rect x="9" y="9" width="1252" height="680" fill="none" stroke="url(#gold)" stroke-width="5"/>
+  <rect x="19" y="19" width="1232" height="660" fill="none" stroke="#b67d14" stroke-width="1.5"/>
+  <rect x="27" y="27" width="1216" height="644" fill="none" stroke="#e5be55" stroke-width="2"/>
+  <use href="#corner" x="19" y="17"/>
+  <use href="#corner" transform="translate(1251 17) scale(-1 1)"/>
+  <use href="#corner" transform="translate(19 681) scale(1 -1)"/>
+  <use href="#corner" transform="translate(1251 681) scale(-1 -1)"/>
+
+  <!-- Top-right medal -->
+  <g transform="translate(1085 76)" filter="url(#shadow)">
+    <path d="M58 112 L42 164 70 148 84 178 98 148 126 164 110 112Z" fill="url(#red)" stroke="#9c680e" stroke-width="3"/>
+    <circle cx="84" cy="78" r="61" fill="url(#gold)" stroke="#9d680d" stroke-width="4"/>
+    <circle cx="84" cy="78" r="47" fill="#fff4c9" stroke="#b1780c" stroke-width="2"/>
+    <path d="M57 76 L84 62 111 76 84 90Z" fill="#10233f"/>
+    <path d="M67 82 V99 Q84 110 101 99 V82 L84 92Z" fill="#10233f"/>
+    <path d="M109 77 V99" stroke="#10233f" stroke-width="3"/>
+    <circle cx="109" cy="102" r="4" fill="#c68a17"/>
+    <path d="M43 104 Q52 126 69 135 M125 104 Q116 126 99 135" fill="none" stroke="#97700c" stroke-width="3"/>
+  </g>
+
+  <!-- Bottom-left medal -->
+  <g transform="translate(63 512)" filter="url(#shadow)">
+    <path d="M54 104 L40 158 68 141 82 170 96 141 124 158 110 104Z" fill="url(#red)" stroke="#a97613" stroke-width="3"/>
+    <circle cx="82" cy="76" r="58" fill="url(#gold)" stroke="#98630a" stroke-width="4"/>
+    <circle cx="82" cy="76" r="45" fill="#0b2345" stroke="#f0d067" stroke-width="3"/>
+    <path d="M54 72 Q82 58 110 72 V105 Q82 92 54 105Z" fill="#fff7dc"/>
+    <path d="M82 66 V103" stroke="#0b2345" stroke-width="3"/>
+    <circle cx="62" cy="47" r="4" fill="#f3cf44"/>
+    <circle cx="82" cy="42" r="4" fill="#f3cf44"/>
+    <circle cx="102" cy="47" r="4" fill="#f3cf44"/>
+  </g>
+
+  <!-- Quiet content guides -->
+  <path d="M395 279 H875" stroke="#c79525" stroke-width="1.5" opacity=".45"/>
+  <path d="M432 360 H838" stroke="#c79525" stroke-width="1" opacity=".3"/>
+  <rect x="510" y="447" width="250" height="62" rx="4" fill="none" stroke="#d19a20" stroke-width="2" opacity=".65"/>
+  <path d="M900 592 H1140" stroke="#c79525" stroke-width="1.5" opacity=".55"/>
+</svg>

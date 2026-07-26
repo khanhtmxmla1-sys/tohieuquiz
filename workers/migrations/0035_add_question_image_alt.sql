@@ -1,0 +1,1 @@
+ALTER TABLE questions ADD COLUMN image_alt TEXT NOT NULL DEFAULT '';

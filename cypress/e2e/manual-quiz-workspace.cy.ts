@@ -1,0 +1,211 @@
+const TEACHER = 'manual-e2e-teacher';
+
+const authStorageValue = JSON.stringify({
+    state: {
+        isLoggedIn: true,
+        username: TEACHER,
+        teacherName: 'Cô E2E',
+        isAdmin: false,
+        teacherClass: '3A',
+    },
+    version: 0,
+});
+
+const validDraft = () => {
+    const now = new Date().toISOString();
+    return {
+        schemaVersion: 1,
+        draftId: 'manual-e2e-draft',
+        ownerUsername: TEACHER,
+        revision: 0,
+        selectedQuestionId: 'manual-e2e-question',
+        targetPoints: 10,
+        updatedAt: now,
+        quiz: {
+            id: 'manual-e2e-quiz',
+            title: 'Đề kiểm tra E2E',
+            classLevel: '3',
+            category: 'toan',
+            topic: 'Toán',
+            tags: ['e2e'],
+            timeLimit: 15,
+            createdAt: now,
+            requireCode: false,
+            showOnHome: true,
+            questions: [{
+                id: 'manual-e2e-question',
+                type: 'MCQ',
+                question: 'Hai cộng ba bằng bao nhiêu?',
+                options: ['4', '5', '6', '7'],
+                correctAnswer: 'B',
+                difficulty: 1,
+                points: 10,
+                explanation: 'Hai cộng ba bằng năm.',
+            }],
+        },
+    };
+};
+
+const installAuth = (win: Window) => {
+    win.localStorage.setItem('auth-storage', authStorageValue);
+};
+
+const installDraft = (win: Window, draft = validDraft()) => {
+    installAuth(win);
+    win.localStorage.setItem(
+        `tohieuquiz:manual-draft:v1:${TEACHER}:${draft.draftId}`,
+        JSON.stringify(draft),
+    );
+    win.localStorage.setItem(
+        `tohieuquiz:manual-draft:index:v1:${TEACHER}`,
+        JSON.stringify([{
+            draftId: draft.draftId,
+            updatedAt: draft.updatedAt,
+        }]),
+    );
+};
+
+const interceptManualQuizBackend = () => {
+    cy.intercept('GET', '**/api/account/me', {
+        statusCode: 200,
+        body: {
+            data: {
+                username: TEACHER,
+                fullName: 'Cô E2E',
+                role: 'teacher',
+                classes: [{ id: 'class-3a', name: '3A' }],
+                mustChangePassword: false,
+            },
+        },
+    }).as('accountProfile');
+    cy.intercept('PUT', '**/api/quiz-drafts/*', (request) => {
+        const draft = request.body.draft;
+        const revision = Number(request.body.expectedRevision || 0) + 1;
+        request.reply({
+            statusCode: 200,
+            body: {
+                id: draft.draftId,
+                quizId: draft.quizId,
+                ownerUsername: draft.ownerUsername,
+                revision,
+                updatedAt: new Date().toISOString(),
+                draft: { ...draft, revision },
+            },
+        });
+    }).as('saveDraft');
+    cy.intercept('DELETE', '**/api/quiz-drafts/*', {
+        statusCode: 200,
+        body: { status: 'success', id: 'manual-e2e-draft' },
+    }).as('deleteDraft');
+    cy.intercept('POST', '**/api/quizzes', {
+        statusCode: 200,
+        body: { status: 'success', id: 'published-e2e-quiz' },
+    }).as('publishQuiz');
+};
+
+const visitManualWorkspace = (draft?: ReturnType<typeof validDraft>) => {
+    cy.visit('/teacher/quizzes/manual/new', {
+        onBeforeLoad: (win) => {
+            if (draft) installDraft(win, draft);
+            else installAuth(win);
+        },
+    });
+};
+
+const continueRecoveredDraft = (expectedTitle: string) => {
+    cy.get('body', { timeout: 15_000 }).should(($body) => {
+        const hasContinue = Array.from($body.find('button'))
+            .some((button) => button.textContent?.includes('Tiếp tục soạn'));
+        const currentTitle = String($body.find('#manual-quiz-title').val() || '');
+        expect(
+            hasContinue || currentTitle === expectedTitle,
+            'recovery action or hydrated draft title',
+        ).to.eq(true);
+    }).then(($body) => {
+        const button = Array.from($body.find('button'))
+            .find((item) => item.textContent?.includes('Tiếp tục soạn'));
+        if (button) cy.wrap(button).click({ force: true });
+    });
+    cy.get('[data-testid="manual-quiz-workspace"]', { timeout: 15_000 }).should('be.visible');
+    cy.get('#manual-quiz-title', { timeout: 15_000 }).should('have.value', expectedTitle);
+};
+
+const assertNoHorizontalOverflow = () => {
+    cy.window().then((win) => {
+        const documentElement = win.document.documentElement;
+        expect(documentElement.scrollWidth, 'document scroll width')
+            .to.be.lte(documentElement.clientWidth + 1);
+    });
+};
+
+describe('Manual quiz workspace end-to-end', () => {
+    beforeEach(() => {
+        interceptManualQuizBackend();
+    });
+
+    it('creates a draft, saves immediately, survives reload and reconnects after offline editing', () => {
+        visitManualWorkspace();
+        cy.wait('@accountProfile', { timeout: 15_000 });
+        cy.get('[data-testid="manual-quiz-workspace"]', { timeout: 15_000 }).should('be.visible');
+
+        cy.get('#manual-quiz-title').clear().type('Đề đang tự động lưu');
+        cy.get('button[aria-label="Thêm nhanh Trắc nghiệm"]').click();
+        cy.get('textarea[placeholder="Nhập nội dung câu hỏi..."]').clear().type('1 + 1 bằng bao nhiêu?');
+        cy.get('input[placeholder="Đáp án A"]').type('1');
+        cy.get('input[placeholder="Đáp án B"]').type('2');
+        cy.get('input[placeholder="Đáp án C"]').type('3');
+        cy.get('input[placeholder="Đáp án D"]').type('4');
+        cy.get('input[placeholder="A, B, C hoặc D"]').type('B');
+        cy.get('input[aria-label="Điểm câu hỏi"]').clear().type('10');
+        cy.contains('button', 'Lưu câu hỏi').click();
+        cy.get('body').type('{ctrl}s');
+        cy.wait('@saveDraft', { timeout: 15_000 });
+        cy.contains('Đã tự động lưu').should('be.visible');
+
+        cy.reload();
+        cy.wait('@accountProfile', { timeout: 15_000 });
+        continueRecoveredDraft('Đề đang tự động lưu');
+        cy.contains('1 + 1 bằng bao nhiêu?').should('exist');
+
+        cy.window().then((win) => {
+            Object.defineProperty(win.navigator, 'onLine', { configurable: true, value: false });
+            win.dispatchEvent(new Event('offline'));
+        });
+        cy.get('#manual-quiz-title').clear().type('Đề sửa khi ngoại tuyến');
+        cy.contains('Ngoại tuyến – đã lưu trên thiết bị').should('be.visible');
+
+        cy.window().then((win) => {
+            Object.defineProperty(win.navigator, 'onLine', { configurable: true, value: true });
+            win.dispatchEvent(new Event('online'));
+        });
+        cy.wait('@saveDraft', { timeout: 15_000 });
+        cy.contains('Đã tự động lưu').should('be.visible');
+    });
+
+    it('validates a recovered draft and publishes exactly once', () => {
+        visitManualWorkspace(validDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+        cy.contains('button', 'Kiểm tra và xuất bản').click();
+        cy.get('[role="dialog"][aria-label="Kiểm tra trước khi xuất bản"]').should('be.visible');
+        cy.contains('Cần sửa hết lỗi bắt buộc trước khi xuất bản.').should('not.exist');
+        cy.contains('button', 'Xuất bản đề').click();
+        cy.wait('@publishQuiz');
+        cy.wait('@deleteDraft');
+        cy.location('pathname', { timeout: 15_000 }).should('eq', '/');
+    });
+
+    [
+        { width: 390, height: 844, label: 'mobile-390' },
+        { width: 768, height: 1024, label: 'tablet-768' },
+        { width: 1024, height: 768, label: 'tablet-1024' },
+        { width: 1440, height: 900, label: 'desktop-1440' },
+    ].forEach(({ width, height, label }) => {
+        it(`has no horizontal overflow and captures ${label}`, () => {
+            cy.viewport(width, height);
+            visitManualWorkspace(validDraft());
+            continueRecoveredDraft('Đề kiểm tra E2E');
+            assertNoHorizontalOverflow();
+            cy.screenshot(`manual-quiz-workspace/${label}`, { capture: 'viewport' });
+        });
+    });
+});

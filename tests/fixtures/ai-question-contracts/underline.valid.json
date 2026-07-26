@@ -1,0 +1,9 @@
+{
+  "slotId": "slot-1",
+  "type": "UNDERLINE",
+  "difficulty": 2,
+  "question": "Gạch chân các tính từ trong câu.",
+  "sentence": "Bầu trời xanh và cao.",
+  "targetWords": ["xanh", "cao"],
+  "explanation": "“Xanh” và “cao” là các từ miêu tả đặc điểm."
+}

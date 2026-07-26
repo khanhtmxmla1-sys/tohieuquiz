@@ -1,0 +1,2 @@
+ALTER TABLE questions ADD COLUMN points REAL;
+ALTER TABLE questions ADD COLUMN explanation TEXT NOT NULL DEFAULT '';

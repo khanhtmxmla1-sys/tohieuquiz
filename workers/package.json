@@ -1,0 +1,46 @@
+{
+    "name": "tohieuquiz-api",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy --config ./wrangler.toml",
+    "deploy:api": "wrangler deploy --config ./wrangler.toml",
+        "db:migrate": "wrangler d1 execute tohieuquiz-db --file=schema.sql --remote",
+        "db:migrate:local": "wrangler d1 execute tohieuquiz-db --file=schema.sql --local",
+        "db:migrate:0013:local": "wrangler d1 execute tohieuquiz-db --file=migrations/0013_add_question_skill_metadata.sql --local",
+        "db:migrate:0013:remote": "wrangler d1 execute tohieuquiz-db --file=migrations/0013_add_question_skill_metadata.sql --remote",
+        "db:migrate:0014:local": "wrangler d1 execute tohieuquiz-db --file=migrations/0014_add_question_difficulty.sql --local",
+        "db:migrate:0014:remote": "wrangler d1 execute tohieuquiz-db --file=migrations/0014_add_question_difficulty.sql --remote",
+        "db:verify:question-skills:local": "wrangler d1 execute tohieuquiz-db --command \"SELECT name, type FROM pragma_table_info('questions') WHERE name IN ('subject','skill_code','subskill_code');\" --local",
+        "db:verify:question-skills:remote": "wrangler d1 execute tohieuquiz-db --command \"SELECT name, type FROM pragma_table_info('questions') WHERE name IN ('subject','skill_code','subskill_code');\" --remote",
+        "db:verify:question-difficulty:local": "wrangler d1 execute tohieuquiz-db --command \"SELECT name, type FROM pragma_table_info('questions') WHERE name = 'difficulty';\" --local",
+        "db:verify:question-difficulty:remote": "wrangler d1 execute tohieuquiz-db --command \"SELECT name, type FROM pragma_table_info('questions') WHERE name = 'difficulty';\" --remote",
+        "db:audit:question-metadata:local": "node scripts/audit-question-metadata.cjs",
+        "db:audit:question-metadata:remote": "node scripts/audit-question-metadata.cjs --remote",
+        "db:preview:metadata-backfill:local": "node scripts/preview-question-metadata-backfill.cjs",
+        "db:preview:metadata-backfill:remote": "node scripts/preview-question-metadata-backfill.cjs --remote",
+        "db:analyze:metadata-phase2:local": "node scripts/analyze-question-metadata-phase2.cjs",
+        "db:analyze:metadata-phase2:remote": "node scripts/analyze-question-metadata-phase2.cjs --remote",
+        "db:apply:metadata-backfill:local:dry-run": "node scripts/apply-question-metadata-backfill.cjs",
+        "db:apply:metadata-backfill:remote:dry-run": "node scripts/apply-question-metadata-backfill.cjs --remote",
+        "db:apply:metadata-backfill:local": "node scripts/apply-question-metadata-backfill.cjs --write",
+        "db:apply:metadata-backfill:remote": "node scripts/apply-question-metadata-backfill.cjs --remote --write",
+        "rag:sync": "node scripts/rag-sync.cjs",
+        "rag:sync:remote": "node scripts/rag-sync.cjs --remote"
+    },
+    "dependencies": {
+        "@resvg/resvg-wasm": "^2.6.2",
+        "jose": "^5.2.0",
+        "nanoid": "^5.1.5",
+        "zod": "^4.2.1"
+    },
+    "devDependencies": {
+        "@cloudflare/workers-types": "^5.20260717.1",
+        "typescript": "^5.7.0",
+        "wrangler": "^4.111.0"
+    },
+    "overrides": {
+        "sharp": "0.35.3"
+    }
+}

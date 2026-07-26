@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1270" height="698" viewBox="0 0 1270 698">
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#072f78"/><stop offset="1" stop-color="#118bd5"/></linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff7a00"/><stop offset="1" stop-color="#ffc21c"/></linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#09a6bb"/><stop offset="1" stop-color="#2ecf9c"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9e6200"/><stop offset=".35" stop-color="#ffd954"/><stop offset=".68" stop-color="#e79c00"/><stop offset="1" stop-color="#fff09e"/></linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#12335f" flood-opacity=".2"/></filter>
+    <pattern id="dots" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.6" fill="#fff" opacity=".78"/></pattern>
+  </defs>
+  <rect width="1270" height="698" fill="#fffefd"/>
+
+  <!-- Top dynamic arcs -->
+  <path d="M0 0 H440 C300 30 156 88 0 202Z" fill="url(#blue)"/>
+  <path d="M0 0 H312 C213 39 108 90 0 174Z" fill="#0da9df"/>
+  <path d="M0 138 C131 47 254 8 422 0 H512 C345 50 183 127 0 278Z" fill="url(#orange)"/>
+  <path d="M1270 0 H932 C1037 30 1146 82 1270 178Z" fill="url(#orange)"/>
+  <path d="M1270 0 H1092 C1160 38 1212 83 1270 137Z" fill="#ffc312"/>
+  <path d="M1202 20 H1258 V78 H1202Z" fill="url(#dots)"/>
+
+  <!-- Bottom waves -->
+  <path d="M0 540 C160 652 303 670 466 645 C643 618 779 563 946 596 C1067 619 1155 678 1270 698 H0Z" fill="url(#blue)"/>
+  <path d="M0 585 C162 681 325 682 490 641 C632 606 758 571 912 611 C1022 640 1137 686 1270 676 V698 H0Z" fill="#07468a"/>
+  <path d="M205 698 C350 632 487 594 655 610 C778 622 887 675 1006 698Z" fill="url(#orange)"/>
+  <path d="M765 698 C890 631 1022 614 1134 653 C1181 669 1225 687 1270 698Z" fill="url(#teal)"/>
+  <path d="M0 528 C174 634 325 651 478 622 C634 593 766 550 922 582 C1055 609 1155 666 1270 682" fill="none" stroke="#fff" stroke-width="9"/>
+
+  <!-- Fine frame -->
+  <path d="M44 209 V631 M1225 185 V620 M48 625 H1108 M162 42 H1105" fill="none" stroke="#eca900" stroke-width="1.6"/>
+  <path d="M56 218 V619 M1213 196 V608 M60 613 H1100" fill="none" stroke="#f8c733" stroke-width="1"/>
+  <path d="M54 217 L70 201 M1211 196 L1196 181 M1098 614 L1114 598" stroke="#eba500" stroke-width="2"/>
+
+  <!-- Trophy -->
+  <g transform="translate(72 381)" filter="url(#shadow)">
+    <path d="M38 20 H142 V67 Q142 129 90 154 Q38 129 38 67Z" fill="url(#gold)" stroke="#be7900" stroke-width="3"/>
+    <path d="M38 36 H15 V72 Q15 107 52 113" fill="none" stroke="#d89505" stroke-width="12"/>
+    <path d="M142 36 H165 V72 Q165 107 128 113" fill="none" stroke="#d89505" stroke-width="12"/>
+    <rect x="78" y="149" width="24" height="46" rx="5" fill="#d48a00"/>
+    <path d="M54 195 H126 L141 221 H39Z" fill="#9c5b00"/>
+    <path d="M69 14 H111" stroke="#fff2aa" stroke-width="5" opacity=".9"/>
+    <circle cx="8" cy="0" r="6" fill="#ff5b17"/><rect x="168" y="8" width="10" height="26" transform="rotate(18 173 21)" fill="#10a8e3"/><path d="M-2 48 l8 12 13-5-8 12 8 12-13-5-8 12-1-14-14-3 13-5Z" fill="#18a9e2"/>
+  </g>
+
+  <!-- Bottom medal -->
+  <g transform="translate(582 530)" filter="url(#shadow)">
+    <path d="M28 82 L15 142 54 119 80 154 102 119 142 142 128 82Z" fill="#0a3f7d"/>
+    <circle cx="80" cy="70" r="58" fill="url(#gold)" stroke="#e1a018" stroke-width="4"/>
+    <circle cx="80" cy="70" r="44" fill="#0a3f7d" stroke="#fff0a2" stroke-width="3"/>
+    <path d="M55 66 L80 53 105 66 80 79Z" fill="#fff"/>
+    <path d="M62 73 V89 Q80 100 98 89 V73 L80 82Z" fill="#fff"/>
+    <path d="M109 67 V90" stroke="#fff" stroke-width="3"/>
+    <path d="M48 99 Q56 116 69 124 M112 99 Q104 116 91 124" fill="none" stroke="#f0c23c" stroke-width="3"/>
+  </g>
+
+  <!-- Celebratory confetti -->
+  <g opacity=".95">
+    <path d="M112 357 l7 11 12-5-6 12 9 10-13-2-7 11-1-13-13-4 12-6Z" fill="#ff9f00"/>
+    <rect x="184" y="342" width="10" height="24" transform="rotate(12 189 354)" fill="#08a6e7"/>
+    <rect x="222" y="370" width="11" height="25" transform="rotate(39 227 382)" fill="#ff4e12"/>
+    <path d="M1188 177 l7 11 12-5-6 12 9 10-13-2-7 11-1-13-13-4 12-6Z" fill="#14aae8"/>
+    <path d="M1158 146 l7 11 12-5-6 12 9 10-13-2-7 11-1-13-13-4 12-6Z" fill="#ff7100"/>
+  </g>
+
+  <!-- Blank content guides -->
+  <path d="M375 255 H895" stroke="#122b5c" stroke-width="1.3" opacity=".4"/>
+  <path d="M355 346 H915" stroke="#122b5c" stroke-width="1.1" opacity=".36"/>
+  <path d="M400 413 H870" stroke="#122b5c" stroke-width="1" opacity=".25"/>
+  <path d="M490 472 H780 L760 526 H510Z" fill="none" stroke="#eba400" stroke-width="2" opacity=".72"/>
+  <path d="M884 576 H1125" stroke="#132f67" stroke-width="1.5" opacity=".6"/>
+</svg>

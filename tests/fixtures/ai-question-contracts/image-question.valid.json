@@ -1,0 +1,11 @@
+{
+  "slotId": "slot-1",
+  "type": "IMAGE_QUESTION",
+  "difficulty": 2,
+  "question": "Quan sát hình và chọn hình vuông.",
+  "image": "image-library-square-1",
+  "imageAlt": "Bốn hình cơ bản gồm hình vuông, tròn, tam giác và chữ nhật.",
+  "options": ["Hình thứ nhất", "Hình thứ hai", "Hình thứ ba", "Hình thứ tư"],
+  "correctAnswer": "A",
+  "explanation": "Hình thứ nhất có bốn cạnh bằng nhau và bốn góc vuông."
+}

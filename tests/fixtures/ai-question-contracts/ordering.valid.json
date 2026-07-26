@@ -1,0 +1,9 @@
+{
+  "slotId": "slot-1",
+  "type": "ORDERING",
+  "difficulty": 2,
+  "question": "Sắp xếp các bước trồng cây theo thứ tự hợp lý.",
+  "items": ["Tưới nước", "Đặt cây vào hố", "Đào hố"],
+  "correctOrder": [2, 1, 0],
+  "explanation": "Cần đào hố, đặt cây rồi mới tưới nước."
+}

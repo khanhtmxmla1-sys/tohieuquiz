@@ -1,0 +1,10 @@
+{
+  "slotId": "slot-1",
+  "type": "WORD_SCRAMBLE",
+  "difficulty": 2,
+  "question": "Sắp xếp các chữ cái để tạo thành tên một loài hoa.",
+  "letters": ["h", "o", "a"],
+  "correctWord": "hoa",
+  "hint": "Loài cây thường có màu sắc đẹp.",
+  "explanation": "Sắp xếp h, o, a được từ “hoa”."
+}

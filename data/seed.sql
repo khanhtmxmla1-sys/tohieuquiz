@@ -1,0 +1,2 @@
+-- TôHiệuQuiz intentionally ships without user or production data.
+-- Use migrations for schema creation and an approved synthetic seed script for demos.

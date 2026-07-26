@@ -1,0 +1,11 @@
+{
+  "slotId": "slot-1",
+  "type": "TRUE_FALSE",
+  "difficulty": 2,
+  "mainQuestion": "Xác định tính đúng sai của các nhận định sau.",
+  "items": [
+    { "statement": "Hai phần tư bằng một phần hai.", "isCorrect": true },
+    { "statement": "Một phần ba lớn hơn một phần hai.", "isCorrect": false }
+  ],
+  "explanation": "Rút gọn và so sánh các phân số để xác định từng nhận định."
+}

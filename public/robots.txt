@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /teacher-dashboard/
+Disallow: /student-portal/
+Disallow: /*?*token=
+Disallow: /*?*auth=
+
+# TôHiệuQuiz production sitemap.
+Sitemap: https://www.thtohieu.com/sitemap.xml

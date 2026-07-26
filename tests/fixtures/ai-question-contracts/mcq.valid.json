@@ -1,0 +1,9 @@
+{
+  "slotId": "slot-1",
+  "type": "MCQ",
+  "difficulty": 2,
+  "question": "Phân số nào bằng một phần hai?",
+  "options": ["2/4", "1/3", "3/4", "2/3"],
+  "correctAnswer": "A",
+  "explanation": "Hai phần tư rút gọn được một phần hai."
+}

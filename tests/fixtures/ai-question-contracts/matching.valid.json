@@ -1,0 +1,12 @@
+{
+  "slotId": "slot-1",
+  "type": "MATCHING",
+  "difficulty": 2,
+  "question": "Nối phép tính với kết quả.",
+  "pairs": [
+    { "left": "1 + 1", "right": "2" },
+    { "left": "2 + 2", "right": "4" },
+    { "left": "3 + 3", "right": "6" }
+  ],
+  "explanation": "Thực hiện từng phép cộng rồi nối với kết quả tương ứng."
+}

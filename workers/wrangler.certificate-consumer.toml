@@ -1,0 +1,22 @@
+name = "tohieuquiz-certificate-consumer"
+main = "src/queues/certificateQueue.ts"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+minify = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tohieuquiz-db"
+database_id = "527fd53b-b69c-4373-9512-b0f23a96c42d"
+
+[[r2_buckets]]
+binding = "CERT_IMAGES"
+bucket_name = "tohieuquiz-certificates"
+
+[[queues.consumers]]
+queue = "tohieuquiz-certificate-generation"
+max_batch_size = 5
+max_batch_timeout = 30
+max_retries = 3
+retry_delay = 30
+dead_letter_queue = "tohieuquiz-certificate-generation-dlq"

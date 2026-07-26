@@ -1,0 +1,9 @@
+{
+  "slotId": "slot-1",
+  "type": "MULTIPLE_SELECT",
+  "difficulty": 2,
+  "question": "Chọn tất cả phân số bằng một phần hai.",
+  "options": ["2/4", "3/6", "2/3", "4/5"],
+  "correctAnswers": ["A", "B"],
+  "explanation": "Hai phần tư và ba phần sáu đều rút gọn thành một phần hai."
+}

@@ -1,0 +1,12 @@
+export { StudentDashboardContent } from './components/StudentDashboardContent';
+export { StudentDashboardModals } from './components/StudentDashboardModals';
+export { StudentLiveExamScreen } from './components/StudentLiveExamScreen';
+export { useStudentAccount } from './hooks/useStudentAccount';
+export { useStudentAssignments } from './hooks/useStudentAssignments';
+export { useStudentAttendance } from './hooks/useStudentAttendance';
+export { useStudentDashboardController } from './hooks/useStudentDashboardController';
+export { useStudentLiveExam } from './hooks/useStudentLiveExam';
+export { useStudentPracticeCatalog } from './hooks/useStudentPracticeCatalog';
+export { useStudentRewards } from './hooks/useStudentRewards';
+export type { StudentDashboardSection } from './components/StudentDashboardContent';
+export type { StudentDashboardController } from './hooks/useStudentDashboardController';

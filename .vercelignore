@@ -1,0 +1,30 @@
+# Dependencies are installed by Vercel during the build.
+node_modules/
+workers/node_modules/
+
+# Local repository copies and tooling metadata.
+tohieuquiz/
+.git/
+.agent/
+.agents/
+.claude/
+.codex/
+.gitnexus/
+.vercel/
+
+# Local/generated output.
+dist/
+dist-ssr/
+coverage/
+artifacts/
+workers/.wrangler/
+cypress/screenshots/
+cypress/videos/
+*.log
+
+# Secrets must never be uploaded as source files.
+.env
+.env.*
+workers/.env
+workers/.env.*
+workers/.jwt-secret.txt

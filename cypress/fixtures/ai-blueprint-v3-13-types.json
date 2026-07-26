@@ -1,0 +1,148 @@
+{
+  "promptVersion": "ai-blueprint-v3",
+  "blueprintVersion": 3,
+  "title": "Đề Blueprint V3 đủ 13 dạng",
+  "detectedCategory": "toan",
+  "detectedLesson": "Ôn tập tổng hợp",
+  "suggestedTags": ["blueprint_v3", "lop_4", "on_tap"],
+  "timeLimit": 25,
+  "questions": [
+    {
+      "slotId": "slot-1",
+      "type": "MCQ",
+      "difficulty": 1,
+      "question": "Kết quả của 6 cộng 4 là bao nhiêu?",
+      "options": ["10", "9", "11", "12"],
+      "correctAnswer": "A",
+      "explanation": "Cộng 6 với 4 được 10."
+    },
+    {
+      "slotId": "slot-2",
+      "type": "TRUE_FALSE",
+      "difficulty": 1,
+      "mainQuestion": "Xác định tính đúng sai về hình học.",
+      "items": [
+        { "statement": "Hình vuông có bốn cạnh bằng nhau.", "isCorrect": true },
+        { "statement": "Hình tam giác có bốn cạnh.", "isCorrect": false }
+      ],
+      "explanation": "Hình vuông có bốn cạnh bằng nhau, còn hình tam giác có ba cạnh."
+    },
+    {
+      "slotId": "slot-3",
+      "type": "SHORT_ANSWER",
+      "difficulty": 1,
+      "question": "Thủ đô của Việt Nam là thành phố nào?",
+      "correctAnswer": "Hà Nội",
+      "explanation": "Hà Nội là thủ đô của Việt Nam."
+    },
+    {
+      "slotId": "slot-4",
+      "type": "MATCHING",
+      "difficulty": 1,
+      "question": "Nối phép tính với kết quả tương ứng.",
+      "pairs": [
+        { "left": "2 + 3", "right": "5" },
+        { "left": "4 + 3", "right": "7" },
+        { "left": "5 + 4", "right": "9" }
+      ],
+      "explanation": "Thực hiện từng phép cộng rồi nối với kết quả đúng."
+    },
+    {
+      "slotId": "slot-5",
+      "type": "MULTIPLE_SELECT",
+      "difficulty": 2,
+      "question": "Chọn tất cả các số chẵn.",
+      "options": ["2", "5", "8", "9"],
+      "correctAnswers": ["A", "C"],
+      "explanation": "Hai và tám chia hết cho hai nên là số chẵn."
+    },
+    {
+      "slotId": "slot-6",
+      "type": "DRAG_DROP",
+      "difficulty": 2,
+      "question": "Kéo từ thích hợp vào chỗ trống.",
+      "text": "Nước đóng băng ở [1] độ C.",
+      "blanks": ["0"],
+      "distractors": ["10", "100"],
+      "explanation": "Ở điều kiện thông thường, nước đóng băng ở 0 độ C."
+    },
+    {
+      "slotId": "slot-7",
+      "type": "ORDERING",
+      "difficulty": 2,
+      "question": "Sắp xếp các bước rửa tay đúng cách.",
+      "items": ["Lau khô tay", "Làm ướt tay", "Xoa xà phòng"],
+      "correctOrder": [1, 2, 0],
+      "explanation": "Làm ướt tay, xoa xà phòng rồi lau khô."
+    },
+    {
+      "slotId": "slot-8",
+      "type": "IMAGE_QUESTION",
+      "difficulty": 2,
+      "question": "Quan sát hình và chọn tên hình phù hợp.",
+      "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect x='20' y='20' width='80' height='80' fill='%23dbeafe' stroke='%231d4ed8'/%3E%3C/svg%3E",
+      "imageAlt": "Một hình vuông màu xanh nhạt.",
+      "options": ["Hình vuông", "Hình tròn", "Hình tam giác", "Hình thang"],
+      "correctAnswer": "A",
+      "explanation": "Hình có bốn cạnh bằng nhau và bốn góc vuông là hình vuông."
+    },
+    {
+      "slotId": "slot-9",
+      "type": "DROPDOWN",
+      "difficulty": 2,
+      "question": "Chọn từ đúng cho ô trống.",
+      "text": "Cây cần [1] để quang hợp.",
+      "blanks": [
+        { "id": "1", "options": ["ánh sáng", "đá", "cát"], "correctAnswer": "ánh sáng" }
+      ],
+      "explanation": "Cây sử dụng ánh sáng để thực hiện quang hợp."
+    },
+    {
+      "slotId": "slot-10",
+      "type": "UNDERLINE",
+      "difficulty": 3,
+      "question": "Gạch chân các tính từ trong câu.",
+      "sentence": "Bầu trời xanh và cao.",
+      "targetWords": ["xanh", "cao"],
+      "explanation": "Xanh và cao là những từ miêu tả đặc điểm."
+    },
+    {
+      "slotId": "slot-11",
+      "type": "CATEGORIZATION",
+      "difficulty": 3,
+      "question": "Phân loại các con vật theo môi trường sống.",
+      "categories": [
+        { "id": "nuoc", "name": "Sống dưới nước" },
+        { "id": "can", "name": "Sống trên cạn" }
+      ],
+      "items": [
+        { "id": "i-1", "content": "Cá chép", "categoryId": "nuoc" },
+        { "id": "i-2", "content": "Cá heo", "categoryId": "nuoc" },
+        { "id": "i-3", "content": "Con mèo", "categoryId": "can" },
+        { "id": "i-4", "content": "Con voi", "categoryId": "can" }
+      ],
+      "explanation": "Cá chép và cá heo sống dưới nước; mèo và voi sống trên cạn."
+    },
+    {
+      "slotId": "slot-12",
+      "type": "WORD_SCRAMBLE",
+      "difficulty": 3,
+      "question": "Sắp xếp các chữ cái thành tên một loài hoa.",
+      "letters": ["h", "o", "a"],
+      "correctWord": "hoa",
+      "hint": "Cây thường có màu sắc đẹp.",
+      "explanation": "Ghép h, o, a tạo thành từ hoa."
+    },
+    {
+      "slotId": "slot-13",
+      "type": "RIDDLE",
+      "difficulty": 3,
+      "question": "Em hãy giải câu đố sau.",
+      "riddleLines": ["Thân em nhiều đốt", "Ruột trắng áo xanh"],
+      "correctAnswer": "cây mía",
+      "answerType": "original",
+      "answerLabel": "Đáp án",
+      "explanation": "Cây mía có thân nhiều đốt, vỏ xanh và ruột trắng."
+    }
+  ]
+}

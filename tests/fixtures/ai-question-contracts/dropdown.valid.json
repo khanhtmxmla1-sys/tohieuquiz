@@ -1,0 +1,15 @@
+{
+  "slotId": "slot-1",
+  "type": "DROPDOWN",
+  "difficulty": 2,
+  "question": "Chọn từ đúng cho ô trống.",
+  "text": "Thủ đô Việt Nam là [1].",
+  "blanks": [
+    {
+      "id": "1",
+      "options": ["Hà Nội", "Huế", "Đà Nẵng"],
+      "correctAnswer": "Hà Nội"
+    }
+  ],
+  "explanation": "Hà Nội là thủ đô của Việt Nam."
+}
