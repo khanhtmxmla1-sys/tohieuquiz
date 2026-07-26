@@ -120,7 +120,16 @@ Chốt bằng test: `tests/freshD1Bootstrap.test.ts` giờ bắt buộc `schema.
 - [ ] Phiếu kết quả `/phieu/*`.
 - [ ] Chứng nhận: batch → queue consumer → R2 → thông báo.
 - [ ] Email xác minh / quên mật khẩu (sau khi có email provider).
-- [ ] Backup D1 + thử phục hồi.
+- [ ] Backup D1 + thử phục hồi. **Kế hoạch cũ không chạy được:** `wrangler d1 export` từ chối
+      toàn bộ database với lỗi `cannot export databases with Virtual Tables (fts5)` — do
+      `rag_chunks_fts` (migration 0007). Hai đường thay thế đã kiểm chứng:
+  - **Time Travel là đường phục hồi chính** — `wrangler d1 time-travel info tohieuquiz-db` chạy được
+    và trả về bookmark hiện tại; khôi phục bằng `time-travel restore --bookmark=...`. Không cần export.
+  - Export theo bảng vẫn khả thi: chỉ `rag_chunks_fts` là VIRTUAL (5 bảng `rag_chunks_fts_*` còn lại
+    là shadow table của nó), nên `--table` cho từng bảng thật là được. Chỉ số FTS là dữ liệu dẫn xuất,
+    dựng lại từ `rag_chunks` bằng migration 0007 + `workers/scripts/rag-sync.cjs`.
+    **Chưa chạy:** bản dump chứa hồ sơ học sinh/giáo viên và hash mật khẩu, cần chủ sở hữu chỉ định
+    đích lưu an toàn trước khi thực hiện.
 
 ### Thứ tự bật cờ (mỗi bước cách nhau 2–3 ngày, theo dõi 24–48h)
 

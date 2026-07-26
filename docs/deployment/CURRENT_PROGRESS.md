@@ -124,6 +124,22 @@ Chính lần smoke test này lộ ra lỗi mojibake: thông báo `403` trả v�
 `Báº¡n Ä‘Ã£ háº¿t lÆ°á»£t lÃ m bÃ i táº­p nÃ y (2/2).` Đã sửa trong mã (commit riêng),
 **cần redeploy Worker** để có hiệu lực trên production.
 
+### Backup D1: `wrangler d1 export` không dùng được cho database này
+
+`npx wrangler d1 export tohieuquiz-db --remote` thất bại ngay với
+`D1 Export error: cannot export databases with Virtual Tables (fts5)`. Nguyên nhân là
+`rag_chunks_fts` (`CREATE VIRTUAL TABLE ... USING fts5`, migration `0007_add_rag_tables.sql`).
+Đây là giới hạn của D1 export, không phải lỗi cấu hình.
+
+- **Đường phục hồi chính: Time Travel.** `wrangler d1 time-travel info tohieuquiz-db --config wrangler.toml`
+  chạy được và trả về bookmark hiện tại; khôi phục bằng `time-travel restore --bookmark=<id>`.
+  Không cần export, hoạt động trong cửa sổ lưu trữ của gói đang dùng.
+- **Export theo bảng là đường phụ.** Chỉ `rag_chunks_fts` là VIRTUAL; 5 bảng `rag_chunks_fts_*`
+  là shadow table của FTS5. `wrangler d1 export --table <tên>` (lặp lại) cho các bảng thật là hợp lệ.
+  Chỉ số FTS dựng lại được từ `rag_chunks` (migration 0007 + `workers/scripts/rag-sync.cjs`).
+- **Chưa thực hiện dump.** Bản dump chứa hồ sơ học sinh/giáo viên và hash mật khẩu PBKDF2, nên cần
+  chủ sở hữu chỉ định đích lưu an toàn (không để trong thư mục repo) trước khi chạy.
+
 ### Dữ liệu test hiện có trong production (cần xoá trước khi khai trương)
 
 | Bản ghi | Ghi chú |
