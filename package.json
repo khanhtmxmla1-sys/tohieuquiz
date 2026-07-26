@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "cypress": "cypress open",
     "cypress:run": "cypress run",
-    "cypress:run:stubbed": "cypress run --e2e --spec \"cypress/e2e/ai-quiz-generation-v2.cy.ts,cypress/e2e/manual-quiz-workspace.cy.ts,cypress/e2e/mobile-responsive.cy.ts,cypress/e2e/parent-portal.cy.ts,cypress/e2e/unified-notifications.cy.ts\"",
+    "cypress:run:stubbed": "cypress run --e2e --spec \"cypress/e2e/ai-quiz-generation-v2.cy.ts,cypress/e2e/manual-quiz-workspace.cy.ts,cypress/e2e/mobile-responsive.cy.ts,cypress/e2e/parent-portal.cy.ts,cypress/e2e/route-scroll.cy.ts,cypress/e2e/unified-notifications.cy.ts\"",
     "cypress:run:blueprint-v3": "cypress run --e2e --spec \"cypress/e2e/ai-question-blueprint-v3.cy.ts\"",
     "cypress:run:component": "cypress run --component",
     "cypress:math-screenshots": "node scripts/math-visual-regression.mjs",

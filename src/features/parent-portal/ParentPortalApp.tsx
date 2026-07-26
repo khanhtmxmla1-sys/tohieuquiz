@@ -11,6 +11,7 @@ import ParentProfilePage from './pages/ParentProfilePage';
 import ParentResultDetailPage from './pages/ParentResultDetailPage';
 import ParentResultsPage from './pages/ParentResultsPage';
 import { useParentPortalStore } from './useParentPortalStore';
+import { useScrollReset } from '../../app/useScrollReset';
 
 const ProtectedRoute: React.FC<React.PropsWithChildren> = ({ children }) => {
   const session = useParentPortalStore(state => state.session);
@@ -43,6 +44,9 @@ export default function ParentPortalApp() {
   const restoreSession = useParentPortalStore(state => state.restoreSession);
   const session = useParentPortalStore(state => state.session);
   const [restoreComplete, setRestoreComplete] = useState(false);
+
+  // The portal has list → detail routes (/results → /results/:resultId) with the same scroll bug.
+  useScrollReset();
 
   useEffect(() => {
     const previousTitle = document.title;

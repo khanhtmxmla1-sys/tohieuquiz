@@ -188,5 +188,6 @@ Cờ frontend cần redeploy Vercel với env mới để bật/tắt (vài phú
 | ~~Bảng `rate_limits` phình dần~~ | Đã xử lý | Cron `0 23 * * *` gọi `purgeExpiredRateLimits()`, xoá bản ghi cũ hơn 24h |
 | `quiz.cy.ts` đang skip | Mất phủ luồng home/login | Viết lại theo UI hiện tại hoặc restub như `parent-portal.cy.ts` |
 | ~~2 spec live đã lỗi thời so với UI~~ | Đã xử lý | Sửa xong, **13/13 pass** trên production; xem `docs/testing/e2e.md` |
-| Không reset cuộn khi đổi route | Học sinh bấm vào môn từ giữa dashboard sẽ thấy trang môn mở ở giữa, tiêu đề ngoài màn hình | Chưa sửa — cân nhắc thêm reset cuộn khi đổi route (đo được: `scrollY` giữ 1371px sau điều hướng) |
+| ~~Không reset cuộn khi đổi route~~ | Đã xử lý | `useScrollReset` (`src/app/useScrollReset.ts`): PUSH/REPLACE về đầu trang, POP khôi phục vị trí đã lưu. Spec e2e assert `scrollY === 0` thay cho workaround cũ |
+| Hai nút "quay lại" của giáo viên vẫn là PUSH | Bấm quay lại từ chi tiết kết quả / manual workspace sẽ về đầu dashboard thay vì đúng chỗ cũ | `TeacherResultDetailPage.tsx:79` và `ManualQuizWorkspacePage.tsx:85` — áp dụng cách của `useStudentPracticeCatalog.closeSubject` (back thật khi `location.key !== 'default'`) |
 | Chưa bật branch protection | CI có thể bị bỏ qua khi merge | Bật trong GitHub Settings |
