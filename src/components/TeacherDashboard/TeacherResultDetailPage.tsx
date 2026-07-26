@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import { StudentDetailModal } from '../teacher/ResultsView';
 import { fetchResultAnswers } from '../../services/results/resultAnswersService';
 import { useQuizStore } from '../../../stores/quizStore';
@@ -10,6 +10,7 @@ import type { Question, StudentResult } from '../../types';
 const TeacherResultDetailPage: React.FC = () => {
     const { resultId = '' } = useParams<{ resultId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const quizStore = useQuizStore();
     const setActiveTab = useTeacherDashboardUIStore((state) => state.setActiveTab);
 
@@ -76,7 +77,12 @@ const TeacherResultDetailPage: React.FC = () => {
     const handleBack = () => {
         quizStore.setView('teacher_dash');
         setActiveTab('results');
-        navigate('/');
+        // Same reason as useStudentPracticeCatalog.closeSubject: navigate('/') is a PUSH, and
+        // useScrollReset sends those to the top, so a teacher returning from a result would lose
+        // their place in the results table. react-router keys the first history entry "default", so
+        // any other key means we pushed our way here and a real Back restores that position.
+        if (location.key === 'default') navigate('/', { replace: true });
+        else navigate(-1);
     };
 
     if (!result) {

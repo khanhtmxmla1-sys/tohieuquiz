@@ -166,10 +166,28 @@ và vị trí cuộn giữ nguyên qua điều hướng làm header dính nằm 
 cách tránh tái phát: `docs/testing/e2e.md`. Đã thêm hai `data-testid`
 (`attendance-check-in`, `practice-topic-card`) để spec không còn bám vào chữ.
 
-**Phát hiện sản phẩm kèm theo (chưa sửa):** `src/` không có chỗ nào reset vị trí cuộn khi đổi route.
+**Phát hiện sản phẩm kèm theo — đã sửa:** `src/` không có chỗ nào reset vị trí cuộn khi đổi route.
 Đo bằng spec chẩn đoán: sau khi cuộn xuống thư viện ở dashboard rồi bấm vào môn, trang môn học mở ra
 với `scrollY = 1371`, `h1` ở `top = -324` — tiêu đề nằm ngoài vùng nhìn thấy. Layout không có lỗi
 (`scrollWidth === clientWidth === 360`), chỉ là vị trí cuộn. Ảnh hưởng người dùng thật trên mobile.
+
+Đã xử lý bằng hook `useScrollReset` (`src/app/useScrollReset.ts`), gắn ở `MainApp` và
+`ParentPortalApp`. `<ScrollRestoration/>` của react-router không dùng được vì nó đòi data router
+còn `index.tsx` mount `<BrowserRouter>` thường, nên hook tự làm:
+
+- PUSH/REPLACE → về đầu trang; POP → khôi phục vị trí đã lưu theo `location.key`
+  (`history.scrollRestoration = 'manual'`, map lưu trong `sessionStorage`). Nhờ vậy Back/Forward
+  **tốt hơn** trước chứ không phải đánh đổi.
+- Route lazy render `<PageLoading/>` trước nên trang chưa đủ cao để cuộn tới vị trí cũ: khôi phục
+  bằng vòng `requestAnimationFrame` tối đa 20 frame, tự dừng ngay khi người dùng cuộn tay.
+- Đổi màn hình mà URL không đổi (`quizStore.view`, ví dụ bấm "Luyện 10 câu" ở `SubjectLibrary`)
+  cũng reset — `useLocation` không thấy được các chuyển đổi này.
+- `useStudentPracticeCatalog.closeSubject` đổi từ `navigate('/')` (một PUSH mới, sẽ bị đẩy về đầu
+  dashboard) sang back thật khi `location.key !== 'default'`.
+
+Đo lại sau khi sửa: `scrollY = 0` ngay sau khi điều hướng sang trang môn. Workaround
+`win.scrollTo(0, 0)` trong `student-practice-library.cy.ts` đã đổi thành assertion, cộng hai test
+mới cho Back của trình duyệt và nút "Trở về thư viện". Unit: `tests/ScrollReset.test.tsx` (11 test).
 
 ### Luồng dạy–học đã smoke test trọn vòng trên production
 

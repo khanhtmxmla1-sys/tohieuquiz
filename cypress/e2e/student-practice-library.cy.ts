@@ -48,6 +48,9 @@ const assertNoHorizontalOverflow = () => {
 /** Thẻ chuyên đề bám theo data-testid nên không lệ thuộc nhãn tiếng Việt hay trạng thái loading. */
 const topicCards = () => cy.get('[data-testid="practice-topic-card"]');
 
+/** Vị trí cuộn của dashboard ngay trước khi bấm vào môn — dùng để kiểm tra Back khôi phục đúng chỗ. */
+let dashboardScrollY = 0;
+
 const openFirstAvailableSubject = () => {
   // Giữ tiêu đề môn trong một biến JS thường, KHÔNG dùng alias Cypress: alias sinh từ truy vấn DOM
   // sẽ được truy vấn lại khi đọc, nên sau khi click điều hướng sang /student/practice/<môn> thì
@@ -56,6 +59,7 @@ const openFirstAvailableSubject = () => {
   let subjectTitle = '';
 
   cy.get('#practice-library').scrollIntoView().should('be.visible');
+  cy.window().then((win) => { dashboardScrollY = win.scrollY; });
   cy.get('[data-testid="subject-practice-grid"] button').first().within(() => {
     cy.get('span.text-lg').invoke('text').then((text) => {
       subjectTitle = String(text).trim();
@@ -66,11 +70,11 @@ const openFirstAvailableSubject = () => {
     'match',
     /^\/student\/practice\/(toan|tieng-viet|tu-nhien-xa-hoi|tieng-anh|tin-hoc)$/,
   );
-  // Điều hướng client-side KHÔNG reset vị trí cuộn (không có ScrollToTop nào trong src/), nên sau
-  // khi cuộn xuống #practice-library ở dashboard thì trang môn học mở ra ở giữa trang và header
-  // dính nằm trên vùng nhìn thấy — ở 375px phần cuộn còn lại đủ lớn để đẩy hẳn h1 ra ngoài.
-  // Các test này kiểm layout, không kiểm hành vi cuộn, nên đưa về đầu trang trước khi assert.
-  cy.window().then((win) => win.scrollTo(0, 0));
+  // Trước đây chỗ này phải tự gọi win.scrollTo(0, 0): điều hướng client-side giữ nguyên vị trí cuộn
+  // nên trang môn mở ra ở giữa trang, và ở 375px phần cuộn còn lại đủ lớn để đẩy hẳn h1 ra ngoài
+  // màn hình (đo được scrollY 1371, h1 ở top -324). useScrollReset đã xử lý, nên workaround đó giờ
+  // thành assertion — chính nó chứng minh lỗi không quay lại.
+  cy.window().its('scrollY').should('equal', 0);
   cy.then(() => {
     expect(subjectTitle, 'tiêu đề môn đọc được trước khi điều hướng').to.not.equal('');
     cy.contains('h1', subjectTitle).should('be.visible');
@@ -85,12 +89,35 @@ describe('Authenticated student practice library flow', () => {
   });
 
   it('returns to the dashboard with browser Back from a canonical subject route', () => {
+    // 375x812 là đúng cấu hình từng đỏ: dashboard một cột đủ cao để phần cuộn còn lại đẩy hẳn
+    // tiêu đề ra ngoài màn hình.
+    cy.viewport(375, 812);
     loginAsStudent();
     openFirstAvailableSubject();
 
     cy.go('back');
     cy.location('pathname').should('equal', '/');
     cy.get('#practice-library').should('be.visible');
+    // Đọc dashboardScrollY trong cy.then để lấy giá trị lúc chạy, không phải lúc xếp hàng lệnh.
+    cy.then(() => {
+      expect(dashboardScrollY, 'dashboard đã cuộn trước khi điều hướng').to.be.greaterThan(0);
+      cy.window().its('scrollY').should('be.closeTo', dashboardScrollY, 50);
+    });
+  });
+
+  it('returns to where the student left the dashboard via the in-app back button', () => {
+    cy.viewport(375, 812);
+    loginAsStudent();
+    openFirstAvailableSubject();
+
+    // Nút này từng là navigate('/') — một PUSH mới, nên sau khi có reset cuộn nó sẽ đẩy học sinh
+    // về đầu dashboard. Giờ nó lùi lại history thật, và POP khôi phục đúng vị trí cũ.
+    cy.get('header button[aria-label="Trở về thư viện"]').click();
+    cy.location('pathname').should('equal', '/');
+    cy.get('#practice-library').should('be.visible');
+    cy.then(() => {
+      cy.window().its('scrollY').should('be.closeTo', dashboardScrollY, 50);
+    });
   });
 
   it('keeps a canonical direct subject route across reload', () => {

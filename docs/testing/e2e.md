@@ -91,14 +91,55 @@ mistakes are easy to reintroduce:
    click swaps that text to `Đang chuẩn bị...`, so the re-query landed on a
    different, idle card. Titles now go into plain variables and topic cards are
    addressed by `[data-testid="practice-topic-card"]`.
-3. **Scroll position surviving client-side navigation.** `src/` has no
+3. **Scroll position surviving client-side navigation.** `src/` had no
    scroll-reset on route change, so after scrolling to `#practice-library` on the
-   dashboard the subject page opens mid-page with its sticky header above the
+   dashboard the subject page opened mid-page with its sticky header above the
    viewport. At 375px the leftover scroll was large enough that the `h1` sat at
-   `top: -324` and Cypress correctly called it invisible. The helper now scrolls to
-   top before asserting. Note the document itself measured
-   `scrollWidth === clientWidth === 360`, i.e. there was never any horizontal
-   overflow — the layout was fine, only the scroll position was wrong.
+   `top: -324` and Cypress correctly called it invisible. Note the document itself
+   measured `scrollWidth === clientWidth === 360`, i.e. there was never any
+   horizontal overflow — the layout was fine, only the scroll position was wrong.
+
+   This one was a real product bug, not a stale spec, so the helper carried a
+   `win.scrollTo(0, 0)` workaround until it was fixed for real by
+   `useScrollReset` (`src/app/useScrollReset.ts`). That workaround is now an
+   assertion — `cy.window().its('scrollY').should('equal', 0)` — so the line that
+   used to hide the bug is the line that proves it stays fixed. Two tests were
+   added alongside it: browser Back and the in-app "Trở về thư viện" button both
+   have to put the dashboard back at the offset the student left it, within 50px.
+
+   Worth copying as a habit: when a spec needs a workaround to go green, make the
+   workaround the thing you delete first once the product is fixed, and replace it
+   with the assertion it was suppressing.
+
+### Not every navigation can show the scroll bug
+
+`route-scroll.cy.ts` covers the same fix without credentials, but only one of its
+three tests actually discriminates. Measured on the dev server with the scroll
+reset removed from the app entirely:
+
+| navigation | `scrollY` with no fix | catches the bug? |
+|---|---|---|
+| `/` → `/about` | 0 | no |
+| `/about` → `/contact` | 1466 | **yes** |
+| Back to `/` | restored correctly | no |
+
+The first hop out of the landing page self-corrects: `/about` is a `React.lazy`
+route, `<PageLoading/>` renders first and collapses the document to one viewport
+(`scrollHeight` 2370 → 812, measured at 375x812), so the browser clamps `scrollY`
+to the new maximum — zero — before the real content arrives. Back self-corrects
+too, because `history.scrollRestoration` defaults to `auto`.
+
+Only the lazy → lazy hop keeps the old offset and exposes the bug, so that is the
+test carrying the weight. The other two are regression guards, and the file says so
+in a comment. Do not repoint this spec at a different pair of routes without
+re-measuring — the obvious-looking navigations are exactly the ones that pass on
+their own.
+
+`/student/practice/:subjectId` shows the bug for a different reason: it and `/` are
+both rendered by `RootView` with no Suspense boundary between them, so the document
+never collapses. That path needs a real student account, which is why
+`student-practice-library.cy.ts` still carries the assertion for the flow that was
+actually reported.
 
 Prefer `data-testid` over Vietnamese copy in these two specs, and never read a DOM
 alias across a navigation.
