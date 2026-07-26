@@ -116,7 +116,25 @@ Chốt bằng test: `tests/freshD1Bootstrap.test.ts` giờ bắt buộc `schema.
       (đề `q-test-gd5-toan`, 3 câu MCQ, `show_on_home=FALSE`; giao cho "Lớp Test 1" tối đa 2 lượt;
       `test.hs1` nộp bài đúng 2/3 → **server tự tính 6.7 điểm, bỏ qua điểm 10 mà client gửi**;
       giáo viên xem được kết quả; 2 thông báo giao bài được ghi; lượt thứ 3 bị chặn 403).
-- [ ] Thi trực tiếp (đủ 5 trạng thái).
+- [x] Thi trực tiếp (đủ 5 trạng thái) — 11/12 kiểm tra đạt trên production: `scheduled` → `waiting`
+      → `active` → `scoring` → `closed`, kèm 4 chốt chặn chuyển trạng thái sai (`start_exam` khi còn
+      `scheduled`, học sinh vào khi chưa mở phòng chờ, `open_session` lần hai, `end_early` khi đã
+      `closed` — tất cả trả `409`). **Lộ ra một lỗi chấm điểm nghiêm trọng, xem bên dưới.**
+
+### Lỗi chấm điểm thi trực tiếp: mọi đáp án dạng số bị tính sai
+
+Học sinh trả lời đúng 2/3 câu nhưng nhận `score = 0`, `correct_count = 0`.
+`workers/src/services/liveExamQuestionMapper.ts` chạy `JSON.parse` lên **mọi** giá trị
+`correct_answer`, nên đáp án `"56"` trở thành **số** `56`. `calculateStudentScore` chấm MCQ bằng
+`answers[q.id] === correctAnswer`, tức `"56" === 56` → `false`. Với đề toán tiểu học thì gần như
+toàn bộ câu hỏi có đáp án là số.
+
+Chỉ ảnh hưởng thi trực tiếp: đường đề thường để client tự chuẩn hoá (`stores/quizStore.ts` gán
+`correctAnswer = correct_answer`, không parse), nên chấm đúng.
+
+Đã sửa: chỉ parse khi chuỗi thật sự là JSON mảng/đối tượng (các loại nhiều đáp án như
+MULTIPLE_SELECT, ORDERING, UNDERLINE), còn lại giữ nguyên chuỗi. Chốt bằng
+`tests/liveExamNumericAnswerScoring.test.ts` — đã xác nhận test đỏ đúng khi đưa lỗi trở lại.
 - [ ] Phiếu kết quả `/phieu/*`.
 - [ ] Chứng nhận: batch → queue consumer → R2 → thông báo.
 - [ ] Email xác minh / quên mật khẩu (sau khi có email provider).

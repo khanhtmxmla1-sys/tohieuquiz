@@ -16,13 +16,31 @@ function parsePipeList(value: unknown): string[] {
     return value.split('|');
 }
 
+/**
+ * `questions.correct_answer` giữ hai dạng: JSON (mảng/đối tượng) cho các loại nhiều đáp án
+ * (MULTIPLE_SELECT, ORDERING, UNDERLINE...) và văn bản thuần cho các loại một đáp án.
+ *
+ * Chỉ được parse dạng thứ nhất. `JSON.parse` vô điều kiện biến đáp án `"56"` thành **số** `56`,
+ * mà `calculateStudentScore` so sánh MCQ bằng `===` với đáp án chuỗi của học sinh, nên mọi câu
+ * có đáp án là số đều bị chấm sai — với đề toán thì đó là gần như toàn bộ câu hỏi.
+ */
+function looksLikeJsonCollection(value: unknown): boolean {
+    if (typeof value !== 'string') return false;
+    const trimmed = value.trim();
+    return (trimmed.startsWith('[') && trimmed.endsWith(']'))
+        || (trimmed.startsWith('{') && trimmed.endsWith('}'));
+}
+
 export function mapLiveExamQuestionRow(row: any): Question {
     const type = String(row.type || '').toUpperCase();
     const items = parseJson<any[]>(row.items, []);
     const blanks = parseJson<any[]>(row.blanks, []);
     const distractors = parseJson<any[]>(row.distractors, []);
     const words = parseJson<any[]>(row.words, []);
-    const parsedCorrectAnswer = parseJson<any>(row.correct_answer, row.correct_answer ?? '');
+    const rawCorrectAnswer = row.correct_answer ?? '';
+    const parsedCorrectAnswer = looksLikeJsonCollection(rawCorrectAnswer)
+        ? parseJson<any>(rawCorrectAnswer, rawCorrectAnswer)
+        : rawCorrectAnswer;
 
     const base: any = {
         id: String(row.id),

@@ -19,7 +19,7 @@ Tài liệu này là điểm tiếp tục công việc cho phiên sau. Không l�
 - `npm run security:scan`: pass (1627 file được kiểm tra).
 - Cypress: 25 test stubbed + 2 test Blueprint V3 + 9 component test — tất cả pass.
 - Không còn `TODO`/`FIXME` trong `src/` hoặc `workers/src/`.
-- GitNexus đã reindex: 12.261 node, 27.056 edge, 815 cluster, 300 flow.
+- GitNexus đã reindex (phiên 3): 12.313 node, 27.117 edge, 819 cluster, 300 flow.
 
 ### Việc đã làm trong phiên 2 (ngoài phần Vercel bên dưới)
 
@@ -141,6 +141,24 @@ bình thường, `/api/students` theo lớp `200`, học sinh vẫn bị chặn 
 **Bẫy khi đọc kết quả script:** một script kiểm tra CSS viết chuỗi tìm kiếm theo *tên class*
 (`first\:rounded-t-\[11px\]`) sẽ cho âm tính giả, vì heredoc/JS làm mất backslash và tên class trong
 CSS thì có escape. Tìm theo phần khai báo (`:first-child{border-top-left-radius:11px`) để tránh.
+
+### Thi trực tiếp: 5 trạng thái đạt, nhưng lộ ra lỗi chấm điểm đáp án số
+
+Chạy trọn vòng trên production với đề `q-test-gd5-toan`, lớp "Lớp Test 1", học sinh `test.hs1`:
+`scheduled` → `waiting` → `active` → `scoring` → `closed`. Bốn chốt chặn chuyển trạng thái sai đều
+trả `409` đúng như thiết kế. Phòng chờ, danh sách người tham gia, nộp bài, đóng phiên, `/analytics`
+phía giáo viên và `/results` phía học sinh đều hoạt động.
+
+**Lỗi phát hiện:** học sinh đúng 2/3 câu nhưng `live_exam_participants.score = 0`,
+`correct_count = 0`, `wrong_count = 3`. Đáp án đã lưu đúng
+(`{"...q1":"56","...q2":"223","...q3":"5"}`) và `questions.correct_answer` là `56`, `223`, `4`.
+Nguyên nhân: `liveExamQuestionMapper.ts` `JSON.parse` mọi `correct_answer`, biến `"56"` thành số
+`56`; `calculateStudentScore` so sánh MCQ bằng `===` nên luôn false. Đã sửa để chỉ parse chuỗi
+thật sự là JSON mảng/đối tượng. **Cần redeploy Worker** để có hiệu lực.
+
+Lưu ý phân vai endpoint: `/api/live-exam/:id/results` là endpoint **của học sinh**
+(`authenticateStudent`) trả kết quả của chính em đó kèm bảng xếp hạng; phía giáo viên dùng
+`/api/live-exam/:id/analytics`. Gọi `/results` bằng phiên giáo viên trả `403` — đúng thiết kế.
 
 ### Backup D1: `wrangler d1 export` không dùng được cho database này
 
