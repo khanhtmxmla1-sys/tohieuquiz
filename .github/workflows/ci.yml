@@ -100,18 +100,34 @@ jobs:
 
       - name: Verify no placeholder host leaked into the bundle
         run: |
-          if grep -rIl --exclude-dir=node_modules '\.invalid' dist; then
+          # Match a hostname ending in `.invalid`, not any identifier containing it.
+          # A bare '\.invalid' also hits `cacheService.invalidate(...)`, which is bundled.
+          if grep -rIlE --exclude-dir=node_modules '[a-z0-9-]+\.invalid([^a-zA-Z0-9_]|$)' dist; then
             echo "::error::Placeholder '.invalid' host found in the production bundle."
             exit 1
           fi
           echo "No placeholder hosts in the bundle."
 
-  e2e:
-    name: Cypress end-to-end
+  # E2E runs as TWO jobs, not two steps in one job.
+  #
+  # Why two: `ai-quiz-generation-v2.cy.ts` asserts the V2 pipeline
+  # (OCR → GENERATE → REPAIR → REVIEW), which Blueprint V3 replaces, so the two AI
+  # specs need opposite values of VITE_FEATURE_AI_BLUEPRINT_V3. See docs/testing/e2e.md.
+  #
+  # Why separate jobs rather than two steps: cypress-io/github-action leaves its
+  # `start` server running, so a second step finds port 3001 occupied, Vite silently
+  # moves to another port, and Cypress then talks to the *previous* server (built with
+  # the wrong flag) until it dies. Separate runners make the isolation real.
+  #
+  # student-dashboard-responsive.cy.ts and student-practice-library.cy.ts are excluded
+  # from both: they log in for real and need --env studentUsername=...,studentPassword=...
+  # against a deployed environment. quiz.cy.ts is quarantined (see its file header).
+  e2e-stubbed:
+    name: Cypress — stubbed specs (Blueprint V3 off)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # E2E is the slowest gate and every spec stubs its own API traffic, so it runs
-    # on pull requests and on main rather than on every feature-branch push.
+    # E2E is the slowest gate, so it runs on pull requests and on main rather than
+    # on every feature-branch push.
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
@@ -128,18 +144,13 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      # Pass 1 — every stubbed spec with Blueprint V3 OFF.
-      # ai-quiz-generation-v2 asserts the V2 pipeline (OCR → GENERATE → REPAIR →
-      # REVIEW), which V3 replaces, so the two AI specs cannot share one pass.
-      # See docs/testing/e2e.md.
-      - name: Cypress — stubbed specs (Blueprint V3 off)
+      - name: Run stubbed specs
         uses: cypress-io/github-action@v6
         with:
           install: false
           start: npm run dev
           wait-on: http://localhost:3001
           wait-on-timeout: 120
-          browser: chrome
           command: npm run cypress:run:stubbed
         env:
           VITE_FEATURE_GIFT_SHOP_V2: 'true'
@@ -148,15 +159,42 @@ jobs:
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
           VITE_GIFT_SHOP_MODE: api
 
-      # Pass 2 — the Blueprint V3 spec with its own flag on.
-      - name: Cypress — Blueprint V3 spec (Blueprint V3 on)
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots-stubbed
+          path: cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e-blueprint-v3:
+    name: Cypress — Blueprint V3 spec (Blueprint V3 on)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run Blueprint V3 spec
         uses: cypress-io/github-action@v6
         with:
           install: false
           start: npm run dev
           wait-on: http://localhost:3001
           wait-on-timeout: 120
-          browser: chrome
           command: npm run cypress:run:blueprint-v3
         env:
           VITE_FEATURE_GIFT_SHOP_V2: 'true'
@@ -165,16 +203,11 @@ jobs:
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
           VITE_GIFT_SHOP_MODE: api
 
-      # student-dashboard-responsive.cy.ts and student-practice-library.cy.ts are
-      # deliberately excluded: they log in for real and need
-      # --env studentUsername=...,studentPassword=... against a deployed
-      # environment. quiz.cy.ts is quarantined (see its file header).
-
       - name: Upload failure screenshots
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: cypress-screenshots
+          name: cypress-screenshots-blueprint-v3
           path: cypress/screenshots
           if-no-files-found: ignore
           retention-days: 7

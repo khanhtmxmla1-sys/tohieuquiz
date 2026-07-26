@@ -34,8 +34,14 @@ Measured on 2026-07-26:
 | `false` | **5 passing** | (not applicable) |
 
 This is expected behaviour, not a defect: each spec pins one side of the flag. CI
-therefore runs the suite in two passes — the main pass with V3 off, then the V3
-spec on its own with V3 on.
+therefore runs the suite as **two separate jobs** (`e2e-stubbed` and
+`e2e-blueprint-v3`), not two steps in one job.
+
+Two steps in one job does not work: `cypress-io/github-action` leaves its `start`
+server running, so the second step finds port 3001 occupied, Vite silently moves to
+another port, and Cypress keeps talking to the *previous* server — built with the
+wrong flag — until it dies with `ECONNREFUSED`. Separate runners make the isolation
+real.
 
 ## 2. Live-environment specs — need a real backend and a real student
 

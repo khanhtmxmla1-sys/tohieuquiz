@@ -35,6 +35,20 @@ Tài liệu này là điểm tiếp tục công việc cho phiên sau. Không l�
 - Đồng bộ `README.md`, `AGENTS.md`, `docs/architecture/system_overview.md`,
   `docs/deployment/NEW_SYSTEM_SETUP.md`, `DEPLOYMENT_CHECKLIST.md` với hiện trạng production.
 
+### Ba lỗi chỉ CI mới phát hiện (lần chạy CI đầu tiên)
+
+Máy dev chạy Node 24 trên Windows, runner chạy Node 22 trên Ubuntu — khác biệt này lộ ra 3 vấn đề:
+
+1. `tests/cookieAuthClients.test.ts` — `expect(...).toBeInstanceOf(Blob)` fail trên CI vì Blob do
+   fetch mock trả về và Blob của test realm là hai constructor khác nhau trên Node 22. Đã đổi sang
+   kiểm tra brand `Object.prototype.toString.call(...) === '[object Blob]'`.
+2. Bước chặn `.invalid` trong job `build` báo nhầm: pattern `\.invalid` khớp cả
+   `cacheService.invalidate(...)` có trong bundle. Đã siết thành `[a-z0-9-]+\.invalid([^a-zA-Z0-9_]|$)`
+   và kiểm chứng hai chiều — sạch trên bundle thật, vẫn bắt được chuỗi `tohieuquiz.invalid` giả lập.
+3. Hai lượt Cypress chạy trong **cùng một job** thì lượt hai fail: `cypress-io/github-action` để lại
+   dev server của lượt một, port 3001 bị chiếm, Vite nhảy sang port khác còn Cypress vẫn gọi 3001 —
+   tức là đang test server dựng bằng cờ sai. Đã tách thành hai job riêng.
+
 ## Cloudflare đã hoàn tất
 
 - Domain chính: `thtohieu.com`.

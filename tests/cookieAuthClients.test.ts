@@ -33,7 +33,7 @@ describe('cookie-only feature clients', () => {
   it('loads protected certificate images with cookie credentials only', async () => {
     fetchMock.mockResolvedValue(new Response(new Blob(['png']), { status: 200 }));
 
-    await expect(fetchCertificateImageBlob('/api/certificates/cert-1/image')).resolves.toBeInstanceOf(Blob);
+    expect(Object.prototype.toString.call(await fetchCertificateImageBlob('/api/certificates/cert-1/image'))).toBe('[object Blob]'); // brand check, not `instanceof`: the Blob the fetch mock returns and the test realm's Blob are different constructors on Node 22 (CI), so `toBeInstanceOf` fails there while passing locally.
     assertCookieRequest(fetchMock.mock.calls[0]?.[1]);
   });
 
