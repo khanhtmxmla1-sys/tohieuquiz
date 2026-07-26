@@ -413,7 +413,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
 
             const currentAttempts = countResult?.cnt || 0;
             if (currentAttempts >= maxAttempts) {
-                return errorResponse(`Báº¡n Ä‘Ã£ háº¿t lÆ°á»£t lÃ m bÃ i táº­p nÃ y (${currentAttempts}/${maxAttempts}).`, 403);
+                return errorResponse(`Bạn đã hết lượt làm bài tập này (${currentAttempts}/${maxAttempts}).`, 403);
             }
         }
 
@@ -450,8 +450,8 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
                     kind: 'quiz_result',
                     sourceType: 'result',
                     sourceId: String(resultId),
-                    title: 'CÃ³ káº¿t quáº£ bÃ i kiá»ƒm tra má»›i',
-                    body: `${body.quizTitle || 'BÃ i kiá»ƒm tra'}: ${score.toFixed(1)}/10, Ä‘Ãºng ${correctCount}/${totalQuestions} cÃ¢u.`,
+                    title: 'Có kết quả bài kiểm tra mới',
+                    body: `${body.quizTitle || 'Bài kiểm tra'}: ${score.toFixed(1)}/10, đúng ${correctCount}/${totalQuestions} câu.`,
                     payload: { resultId: String(resultId), quizId, score, correctCount, totalQuestions },
                     publishedAt: submittedAt,
                 });
