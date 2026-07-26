@@ -157,7 +157,15 @@ MULTIPLE_SELECT, ORDERING, UNDERLINE), còn lại giữ nguyên chuỗi. Chốt 
 
 ### Thứ tự bật cờ (mỗi bước cách nhau 2–3 ngày, theo dõi 24–48h)
 
-1. [ ] **Unified Notifications** — cờ server, bật/tắt tức thì không cần redeploy, rủi ro thấp nhất.
+1. [x] **Unified Notifications** — chủ sở hữu bật qua UI lúc `2026-07-26T14:10:54Z`
+   (`unified_notifications_v1 = true`, audit log `SYSTEM_SETTINGS_UPDATED` bởi `admin`).
+   Kiểm tra ngay sau đó: `/api/system-settings` trả `degraded = false`, `/api/notifications` trả
+   `200` cho cả giáo viên và học sinh, `/api/announcements/current` `200`. Đang trong cửa sổ theo
+   dõi 24–48h trước khi sang bước 2.
+   **Bẫy:** `POST /api/system-settings` ghi **cả hai** cờ trong một request. Hai dòng cài đặt cùng
+   `updated_at`, và seed đặt `ai_assistant_enabled = 'true'` nhưng giá trị hiện tại là `false` —
+   nên việc bật thông báo có thể đã kéo theo tắt cờ AI. Lần đổi cờ sau phải đọc giá trị hiện tại
+   rồi gửi lại đúng cả hai.
 2. [ ] **Gift Shop V2**.
 3. [ ] **AI Quiz V2** — chỉ sau khi có AI proxy thật; theo dõi chi phí và quota giáo viên.
 4. [ ] **AI Blueprint V3**.

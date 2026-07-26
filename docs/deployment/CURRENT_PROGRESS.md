@@ -106,6 +106,34 @@ nguồn tạo bảng thật (`workers/schema.sql` và migration `0043`) cùng c�
 
 Không có migration mới nên không cần rollback tương ứng.
 
+Đã deploy Worker version `4935bf68-7ab3-40c1-8072-f16e399c13c0`; cron `0 23 * * *` có trong danh
+sách trigger. Smoke test sau deploy: ba domain và `/api/health` `200`, auth guard `401`,
+`/api/system-settings` `200`, thi trực tiếp vẫn chấm đúng `6.7` (đúng 2/3).
+
+**Chưa quan sát được lần dọn thật.** Toàn bộ 24 dòng trong `rate_limits` đều được tạo trong ngày,
+nên mốc cắt 24 giờ của lần cron 23:00 UTC hôm nay chưa chạm dòng nào; lần đầu thực sự xoá là 23:00
+UTC **hôm sau**. Tôi đã thử chứng minh câu DELETE trên bảng thật bằng một dòng tổng hợp hết hạn,
+nhưng lệnh quét theo tuổi trên production bị chặn vì nằm ngoài phạm vi "deploy worker" — dòng tổng
+hợp đã được xoá lại theo đúng khoá, bảng sạch. Logic dọn được phủ bởi
+`tests/rateLimitPurgeCron.test.ts` chạy trên chính `scheduled()` thật.
+
+Quan sát phụ đáng ghi: chỉ trong ~20 phút kiểm thử, bảng `rate_limits` sinh thêm tổ hợp khoá mới
+(mỗi `method + path + IP` là một dòng). Đó đúng là lý do cần cron dọn. Lưu ý các IP lạ trong bảng
+(`13.212.77.112`, `13.228.27.206`, `47.129.145.80`) là edge của Vercel: request đi qua rewrite
+frontend nên Worker thấy IP của Vercel, không phải IP người dùng.
+
+## Thay đổi do chủ sở hữu thực hiện trực tiếp (phiên 3)
+
+Ghi lại để phiên sau không nhầm là dữ liệu kiểm thử:
+
+| Thời điểm (UTC) | Việc | Ghi chú |
+|---|---|---|
+| 12:06:10 | `admin` đổi mật khẩu | mật khẩu bàn giao ban đầu hết hiệu lực |
+| 12:06:23 | `admin` tạo đề `quiz-manual-f18226a6…` qua UI | `show_on_home=TRUE`, đang hiện trên trang chủ công khai |
+| 13:37:13 | `admin` tạo giáo viên **`tongminhkhanh`** ("Tòng Minh Khánh") | **tài khoản thật, KHÔNG xoá khi dọn dữ liệu test** |
+| 13:37:41 | `tongminhkhanh` tự đổi mật khẩu | luồng buộc đổi mật khẩu lần đầu hoạt động đúng |
+| 14:10:54 | `admin` bật `unified_notifications_v1 = true` | bước 1 đợt rollout; xem `docs/ROADMAP.md` |
+
 ### Smoke test có phiên đăng nhập thật — 12/12 đạt
 
 Đăng nhập cả ba vai trò; buộc đổi mật khẩu ở lần đăng nhập đầu hoạt động đúng; `/api/system-settings`
@@ -223,7 +251,7 @@ Hai đường dẫn dễ đoán sai (tôi đã đoán sai lần đầu): ảnh c
 
 | Bản ghi | Ghi chú |
 |---|---|
-| `test.gv1`, `test.hs1`, `test.hs2`, "Lớp Test 1" | tài khoản và lớp kiểm thử |
+| `test.gv1`, `test.hs1`, `test.hs2`, "Lớp Test 1" | tài khoản và lớp kiểm thử — **`tongminhkhanh` không thuộc nhóm này, giữ lại** |
 | `q-test-gd5-toan` + 3 câu hỏi | ẩn khỏi trang chủ (`show_on_home=FALSE`) |
 | `a-89e6d829` | bài được giao, 2 kết quả của `test.hs1` |
 | 3 phiên thi trực tiếp `[TEST] Thi trực tiếp…` | hai phiên đầu có điểm sai (0) do lỗi chấm trước khi vá; phiên thứ ba đúng 6.7 |
