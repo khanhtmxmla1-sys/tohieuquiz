@@ -54,6 +54,10 @@ Máy dev chạy Node 24 trên Windows, runner chạy Node 22 trên Ubuntu — kh
 Đã tạo tài khoản đầu tiên trong D1 production. **Mật khẩu không lưu ở đây** — đã giao trực tiếp
 cho chủ sở hữu; nếu mất, dùng `/api/admin/teachers/reset-passwords` hoặc seed lại admin.
 
+Chủ sở hữu đã tự đổi mật khẩu `admin` lúc `2026-07-26T12:06:10Z` (audit log
+`ACCOUNT_PASSWORD_CHANGED`, `token_version=3`), nên mật khẩu bàn giao ban đầu không còn giá trị.
+Đây là hành vi đúng và đã được khuyến nghị; chỉ cần lưu ý khi chạy lại script smoke test.
+
 | Tài khoản | Vai trò | Cách tạo |
 |---|---|---|
 | `admin` | admin | INSERT trực tiếp vào `teachers` (hash PBKDF2-SHA256 100k vòng, đúng encoding `workers/src/utils/password.ts`), `must_change_password = 1`, đã đổi mật khẩu ở lần đăng nhập đầu |
@@ -123,6 +127,20 @@ client. Hai thông báo `assignment_created` được ghi đúng (một cho mỗ
 Chính lần smoke test này lộ ra lỗi mojibake: thông báo `403` trả về nguyên văn
 `Báº¡n Ä‘Ã£ háº¿t lÆ°á»£t lÃ m bÃ i táº­p nÃ y (2/2).` Đã sửa trong mã (commit riêng),
 **cần redeploy Worker** để có hiệu lực trên production.
+
+### Deploy phiên 3 — cả hai bản vá đã lên production và được xác minh
+
+| Bản vá | Đường deploy | Cách xác minh |
+|---|---|---|
+| Mojibake 3 chuỗi trong `results.ts` | `wrangler deploy --config wrangler.toml` (version `f1a23bc0-e5e8-4422-88d0-601d707f68ea`) | Gọi lại đường 403 hết lượt: thông báo trả về `Bạn đã hết lượt làm bài tập này (2/2).` — không còn mojibake |
+| Menu `⋮` bị cắt trong `ManageTab` | Merge fast-forward vào `main` + push → Vercel tự deploy (Ready, 29s) | CSS trên `www.thtohieu.com` **giống hệt từng byte** bản build local sau vá và chứa cả hai rule `:first-child{border-top-left-radius:11px` / `:last-child{border-bottom-right-radius:11px` |
+
+Smoke test lại sau deploy: `api/health` `200`, ba domain `200`, giáo viên và học sinh đăng nhập
+bình thường, `/api/students` theo lớp `200`, học sinh vẫn bị chặn `403` khỏi API admin.
+
+**Bẫy khi đọc kết quả script:** một script kiểm tra CSS viết chuỗi tìm kiếm theo *tên class*
+(`first\:rounded-t-\[11px\]`) sẽ cho âm tính giả, vì heredoc/JS làm mất backslash và tên class trong
+CSS thì có escape. Tìm theo phần khai báo (`:first-child{border-top-left-radius:11px`) để tránh.
 
 ### Backup D1: `wrangler d1 export` không dùng được cho database này
 
