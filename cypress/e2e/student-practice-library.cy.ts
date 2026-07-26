@@ -66,6 +66,11 @@ const openFirstAvailableSubject = () => {
     'match',
     /^\/student\/practice\/(toan|tieng-viet|tu-nhien-xa-hoi|tieng-anh|tin-hoc)$/,
   );
+  // Điều hướng client-side KHÔNG reset vị trí cuộn (không có ScrollToTop nào trong src/), nên sau
+  // khi cuộn xuống #practice-library ở dashboard thì trang môn học mở ra ở giữa trang và header
+  // dính nằm trên vùng nhìn thấy — ở 375px phần cuộn còn lại đủ lớn để đẩy hẳn h1 ra ngoài.
+  // Các test này kiểm layout, không kiểm hành vi cuộn, nên đưa về đầu trang trước khi assert.
+  cy.window().then((win) => win.scrollTo(0, 0));
   cy.then(() => {
     expect(subjectTitle, 'tiêu đề môn đọc được trước khi điều hướng').to.not.equal('');
     cy.contains('h1', subjectTitle).should('be.visible');

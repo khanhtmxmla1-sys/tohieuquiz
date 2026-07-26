@@ -67,27 +67,41 @@ So the environment needs at least one question whose `tags` contains a hashtag
 matching a subject alias in `SUBJECT_CONFIG` (`src/features/student-dashboard/model/dashboardConstants.ts`)
 — e.g. `#toan` for Toán học. Seed that before blaming the specs.
 
-### Both specs are also stale against the current UI
+### Both specs pass again — and why they had rotted
 
-With practice content seeded, the specs get much further — the subject page loads,
-`/student/practice/toan` renders real topics, and the canonical-route assertion
-passes — but neither goes green. Two spec-side defects remain, measured 2026-07-26:
+Measured 2026-07-26 after the fix: **13/13 green** against production
+(`student-dashboard-responsive` 5/5, `student-practice-library` 8/8).
 
-1. `student-dashboard-responsive.cy.ts`, `assertNoDistractingPulse()` looks for a
-   button matching `/Điểm danh nhận thưởng|Đã điểm danh hôm nay/`. The attendance
-   button's label comes from `getAttendanceBadgeText()`
-   (`src/features/student-dashboard/model/attendanceRewards.ts`), which returns
-   `Đã điểm danh hôm nay`, `Đang tải câu hỏi điểm danh...`, or
-   `Điểm danh ngày N: +X Xu +Y EXP`. `Điểm danh nhận thưởng` only ever appears in a
-   `<p>` inside `AttendanceModal`, never as button text, so the assertion cannot
-   pass unless the student has already claimed today.
-2. `student-practice-library.cy.ts`, `openFirstAvailableSubject()` aliases
-   `@firstSubject` from a DOM query and then reads `@subjectTitle` after clicking
-   through to the subject route. After the navigation the alias resolves to an
-   empty set, so every test in the file dies on the same step even though the page
-   itself is correct.
+Three spec-side defects were repaired. They are worth knowing because the same
+mistakes are easy to reintroduce:
 
-Fix the specs before treating a red run here as a product regression.
+1. **Assertions bound to Vietnamese copy that changes with state.**
+   `assertNoDistractingPulse()` matched a button by
+   `/Điểm danh nhận thưởng|Đã điểm danh hôm nay/`, but the attendance label comes
+   from `getAttendanceBadgeText()` and has three forms
+   (`Đã điểm danh hôm nay`, `Đang tải câu hỏi điểm danh...`,
+   `Điểm danh ngày N: +X Xu +Y EXP`); `Điểm danh nhận thưởng` is none of them —
+   it only exists in a `<p>` inside `AttendanceModal`. Now selects
+   `[data-testid="attendance-check-in"]`.
+2. **DOM aliases read after navigation or re-render.** Cypress re-queries DOM
+   aliases, so an alias whose element is gone resolves to an empty set.
+   `openFirstAvailableSubject()` hit this by reading a title alias after clicking
+   through to the subject route, and the loading test hit it again by aliasing a
+   topic button on its `Luyện 10 câu` text and re-reading it after the click — the
+   click swaps that text to `Đang chuẩn bị...`, so the re-query landed on a
+   different, idle card. Titles now go into plain variables and topic cards are
+   addressed by `[data-testid="practice-topic-card"]`.
+3. **Scroll position surviving client-side navigation.** `src/` has no
+   scroll-reset on route change, so after scrolling to `#practice-library` on the
+   dashboard the subject page opens mid-page with its sticky header above the
+   viewport. At 375px the leftover scroll was large enough that the `h1` sat at
+   `top: -324` and Cypress correctly called it invisible. The helper now scrolls to
+   top before asserting. Note the document itself measured
+   `scrollWidth === clientWidth === 360`, i.e. there was never any horizontal
+   overflow — the layout was fine, only the scroll position was wrong.
+
+Prefer `data-testid` over Vietnamese copy in these two specs, and never read a DOM
+alias across a navigation.
 
 Run them against a deployed environment with a throwaway student account:
 

@@ -158,8 +158,18 @@ Tức là hai spec này cần **tài khoản học sinh + dữ liệu luyện t�
 
 Sau khi seed đề test, chạy lại: trang môn học `/student/practice/toan` render đúng ("Toán học ·
 4 chuyên đề · 6 câu hỏi") và assert route chuẩn đã pass — nhưng vẫn đỏ vì **hai spec lỗi thời so với
-UI**, không phải lỗi sản phẩm: nhãn nút điểm danh không còn khớp regex của spec, và alias DOM
-`@firstSubject` rỗng sau khi điều hướng. Chi tiết trong `docs/testing/e2e.md`.
+UI**, không phải lỗi sản phẩm.
+
+**Đã sửa xong, 13/13 pass trên production** (dashboard 5/5, thư viện luyện tập 8/8). Ba lỗi trong
+spec: assertion bám nhãn tiếng Việt đổi theo trạng thái; alias DOM đọc sau khi điều hướng (hai chỗ);
+và vị trí cuộn giữ nguyên qua điều hướng làm header dính nằm ngoài màn hình ở 375px. Chi tiết và
+cách tránh tái phát: `docs/testing/e2e.md`. Đã thêm hai `data-testid`
+(`attendance-check-in`, `practice-topic-card`) để spec không còn bám vào chữ.
+
+**Phát hiện sản phẩm kèm theo (chưa sửa):** `src/` không có chỗ nào reset vị trí cuộn khi đổi route.
+Đo bằng spec chẩn đoán: sau khi cuộn xuống thư viện ở dashboard rồi bấm vào môn, trang môn học mở ra
+với `scrollY = 1371`, `h1` ở `top = -324` — tiêu đề nằm ngoài vùng nhìn thấy. Layout không có lỗi
+(`scrollWidth === clientWidth === 360`), chỉ là vị trí cuộn. Ảnh hưởng người dùng thật trên mobile.
 
 ### Luồng dạy–học đã smoke test trọn vòng trên production
 

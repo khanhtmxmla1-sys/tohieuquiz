@@ -187,5 +187,6 @@ Cờ frontend cần redeploy Vercel với env mới để bật/tắt (vài phú
 | Dữ liệu test còn trong production | Lẫn với dữ liệu thật khi khai trương | Xoá `test.gv1`, `test.hs1`, `test.hs2`, "Lớp Test 1" sau khi xong giai đoạn 5 |
 | ~~Bảng `rate_limits` phình dần~~ | Đã xử lý | Cron `0 23 * * *` gọi `purgeExpiredRateLimits()`, xoá bản ghi cũ hơn 24h |
 | `quiz.cy.ts` đang skip | Mất phủ luồng home/login | Viết lại theo UI hiện tại hoặc restub như `parent-portal.cy.ts` |
-| 2 spec live đã lỗi thời so với UI | Không phủ được dashboard/thư viện học sinh | Sửa spec: nhãn nút điểm danh và cách giữ alias sau điều hướng (xem `docs/testing/e2e.md`) |
+| ~~2 spec live đã lỗi thời so với UI~~ | Đã xử lý | Sửa xong, **13/13 pass** trên production; xem `docs/testing/e2e.md` |
+| Không reset cuộn khi đổi route | Học sinh bấm vào môn từ giữa dashboard sẽ thấy trang môn mở ở giữa, tiêu đề ngoài màn hình | Chưa sửa — cân nhắc thêm reset cuộn khi đổi route (đo được: `scrollY` giữ 1371px sau điều hướng) |
 | Chưa bật branch protection | CI có thể bị bỏ qua khi merge | Bật trong GitHub Settings |
