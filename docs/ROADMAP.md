@@ -135,8 +135,14 @@ Chỉ ảnh hưởng thi trực tiếp: đường đề thường để client t
 Đã sửa: chỉ parse khi chuỗi thật sự là JSON mảng/đối tượng (các loại nhiều đáp án như
 MULTIPLE_SELECT, ORDERING, UNDERLINE), còn lại giữ nguyên chuỗi. Chốt bằng
 `tests/liveExamNumericAnswerScoring.test.ts` — đã xác nhận test đỏ đúng khi đưa lỗi trở lại.
-- [ ] Phiếu kết quả `/phieu/*`.
-- [ ] Chứng nhận: batch → queue consumer → R2 → thông báo.
+Đã deploy và xác minh trên production: phiên thi mới cho `score = 6.7`, đúng 2/3.
+- [x] Phiếu kết quả `/phieu/*` — 8/8 đạt trên production: từ kết quả quiz → tạo phiếu (server tự
+      suy ra điểm 6.7 và xếp loại "Khá") → xuất bản batch → link công khai đọc được **không cần
+      đăng nhập** và không lộ dữ liệu nội bộ → thu hồi link thì trả `404`.
+- [x] Chứng nhận: batch → queue consumer → R2 → thông báo — đạt trên production: batch `pending`
+      → consumer xử lý qua Queue → `sent` với 2 chứng nhận (một cho mỗi học sinh), ảnh tải về là
+      **PNG thật 38.350 byte** từ bucket private, truy cập ẩn danh trả `401`. Gửi lại cùng
+      `request_id` trả đúng batch cũ (idempotent).
 - [ ] Email xác minh / quên mật khẩu (sau khi có email provider).
 - [ ] Backup D1 + thử phục hồi. **Kế hoạch cũ không chạy được:** `wrangler d1 export` từ chối
       toàn bộ database với lỗi `cannot export databases with Virtual Tables (fts5)` — do

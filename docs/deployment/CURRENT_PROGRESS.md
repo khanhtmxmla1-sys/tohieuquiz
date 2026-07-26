@@ -149,6 +149,11 @@ Chạy trọn vòng trên production với đề `q-test-gd5-toan`, lớp "Lớp
 trả `409` đúng như thiết kế. Phòng chờ, danh sách người tham gia, nộp bài, đóng phiên, `/analytics`
 phía giáo viên và `/results` phía học sinh đều hoạt động.
 
+**Đã vá và xác minh trên production:** phiên thi sau khi deploy cho `score = 6.7`, đúng 2/3
+(Worker version `31d21cc4`). Lưu ý vận hành: lần verify đầu chạy **30 giây** sau khi
+`wrangler deploy` trả về và vẫn nhận hành vi của mã cũ; deploy lại từ **cùng commit** rồi chờ
+~45 giây thì đúng. Sau khi deploy Worker phải chờ rồi mới kết luận, đừng vội quy cho mã nguồn.
+
 **Lỗi phát hiện:** học sinh đúng 2/3 câu nhưng `live_exam_participants.score = 0`,
 `correct_count = 0`, `wrong_count = 3`. Đáp án đã lưu đúng
 (`{"...q1":"56","...q2":"223","...q3":"5"}`) và `questions.correct_answer` là `56`, `223`, `4`.
@@ -159,6 +164,27 @@ thật sự là JSON mảng/đối tượng. **Cần redeploy Worker** để có
 Lưu ý phân vai endpoint: `/api/live-exam/:id/results` là endpoint **của học sinh**
 (`authenticateStudent`) trả kết quả của chính em đó kèm bảng xếp hạng; phía giáo viên dùng
 `/api/live-exam/:id/analytics`. Gọi `/results` bằng phiên giáo viên trả `403` — đúng thiết kế.
+
+### Phiếu kết quả và chứng nhận — đã smoke test trọn vòng trên production
+
+**Phiếu nhận xét (8/8 đạt).** Đường đi từ kết quả quiz, không cần bài tập về nhà:
+`GET /api/phieu/results/:resultId` (chưa có → `phieu: null`) → `POST` cùng đường dẫn với
+`nhan_xet`/`de_xuat`; server tự lấy điểm, số câu đúng/sai và xếp loại từ bản ghi kết quả
+(6.7 → "Khá") → `POST /api/phieu/batches` với `phieuIds` sinh link công khai →
+`GET /api/phieu/public/:token` đọc được **không cần đăng nhập**, không chứa mật khẩu/hash →
+`POST /api/phieu/public-links/:token/deactivate` thu hồi, sau đó link trả `404`.
+
+**Chứng nhận (đủ chuỗi batch → Queue → R2 → thông báo).** `POST /api/certificate-batches` trả `201`
+với `status=pending`; gửi lại cùng `request_id` trả đúng `batch_id` cũ (idempotent, không tạo batch
+trùng). Consumer xử lý qua Queue rồi batch chuyển `sent` với **2 chứng nhận**, mỗi học sinh một bản.
+`GET /api/certificates/:id/image` bằng phiên học sinh trả **PNG 38.350 byte**
+(`content-type: image/png`); gọi ẩn danh trả `401` — bucket `tohieuquiz-certificates` vẫn private,
+mọi truy cập đi qua endpoint có xác thực. Học sinh cũng nhận thông báo qua
+`GET /api/certificates/notifications`.
+
+Hai đường dẫn dễ đoán sai (tôi đã đoán sai lần đầu): ảnh chứng nhận là
+`/api/certificates/:id/image` — **không** phải `/api/certificates/image/:id`; và
+`GET /api/certificate-batches/:id` trả `{ batch, certificates }` — không có khoá `items`.
 
 ### Backup D1: `wrangler d1 export` không dùng được cho database này
 
@@ -183,6 +209,9 @@ Lưu ý phân vai endpoint: `/api/live-exam/:id/results` là endpoint **của h�
 | `test.gv1`, `test.hs1`, `test.hs2`, "Lớp Test 1" | tài khoản và lớp kiểm thử |
 | `q-test-gd5-toan` + 3 câu hỏi | ẩn khỏi trang chủ (`show_on_home=FALSE`) |
 | `a-89e6d829` | bài được giao, 2 kết quả của `test.hs1` |
+| 3 phiên thi trực tiếp `[TEST] Thi trực tiếp…` | hai phiên đầu có điểm sai (0) do lỗi chấm trước khi vá; phiên thứ ba đúng 6.7 |
+| `phieu-d2055127-e18` | phiếu nhận xét test, link công khai đã thu hồi |
+| `batch-841f94f2-…` + 2 chứng nhận | ảnh nằm trong R2 private, kèm 2 thông báo cho học sinh |
 | `quiz-manual-f18226a6-…` | **do `admin` tạo lúc 12:06:23Z**, tiêu đề "Đề kiểm tra mới", 1 câu hỏi, `show_on_home=TRUE` → đang hiện trên trang chủ công khai. Không phải do script tạo; xác nhận lại trước khi xoá. |
 
 ## Cloudflare đã hoàn tất
