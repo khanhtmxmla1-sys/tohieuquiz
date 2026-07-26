@@ -74,47 +74,42 @@ Smoke test frontend production mới đã đạt:
 | `/sitemap.xml` | `200`, 6 URL |
 | `/api/health` qua rewrite frontend | `200`, `{"status":"ok"}` |
 
-## BLOCKER hiện tại — 3 custom domain vẫn thuộc project Vercel cũ
+## Custom domain — ĐÃ CHUYỂN XONG sang project mới
 
-Đây là việc **cần người dùng thao tác thủ công**, CLI không xử lý được.
+Ba domain đã được gán vào project `vh-s-projects3/tohieuquiz` bằng `vercel domains add`.
+**Không cần** TXT `_vercel` challenge và **không cần** thao tác thủ công trên account Vercel cũ.
 
-Bằng chứng đã thu thập:
+Lưu ý về cách kiểm tra: ngay sau `vercel domains add`, deployment production **đã tồn tại trước đó** vẫn chỉ có alias `*.vercel.app`. Domain chỉ được alias vào **deployment production kế tiếp**. Vì vậy phải deploy lại (hoặc push commit mới) rồi mới `vercel inspect` để xác nhận.
 
-- `vercel domains add <domain>` báo "Success! Domain added to project tohieuquiz", nhưng gọi lại lần hai trả về:
-  `Error: Cannot add www.thtohieu.com since it's already assigned to another project. (400)`
-- `vercel domains inspect thtohieu.com` trả `403 You don't have access to "thtohieu.com"` → domain vẫn nằm trong account/team Vercel cũ.
-- `vercel inspect https://tohieuquiz-nu.vercel.app` cho thấy deployment production mới **chỉ có alias `*.vercel.app`**:
-  - `tohieuquiz-nu.vercel.app`
-  - `tohieuquiz-vh-s-projects3.vercel.app`
-  - `tohieuquiz-khanhtmxmla1-sys-vh-s-projects3.vercel.app`
-  → Không có `thtohieu.com`, `www.thtohieu.com`, `phuhuynh.thtohieu.com`.
-- Ba domain vẫn trả `200` nhưng đang được **project Vercel cũ** phục vụ (DNS `A @ 76.76.21.21` và `CNAME` trỏ Vercel; Vercel định tuyến theo project đang sở hữu domain).
-- `_vercel` TXT hiện **không tồn tại** trên DNS (`nslookup -type=TXT _vercel.thtohieu.com` → Non-existent domain).
+Trạng thái xác nhận trên deployment production hiện tại (`tohieuquiz-bmyf1gsly`, tạo tự động từ git push):
 
-### Việc người dùng cần làm (thủ công, trên Vercel Dashboard)
-
-1. Đăng nhập Vercel bằng **account cũ** (trước đây là `bskhanh01-5922`, team `team_oB46Nsd5UwCuCeeq1wNcguK2`).
-2. Mở project cũ → Settings → Domains → **Remove** cả ba domain:
-   - `thtohieu.com`
-   - `www.thtohieu.com`
-   - `phuhuynh.thtohieu.com`
-3. (Khuyến nghị) Xóa luôn project cũ để tránh nhầm lẫn về sau.
-4. Quay lại account `khanhtmxmla1-sys` → project `vh-s-projects3/tohieuquiz` → Settings → Domains → thêm lại ba domain.
-5. Nếu Vercel yêu cầu xác minh, copy **TXT `_vercel` challenge mới** từ giao diện project mới và tạo record tương ứng trên Cloudflare DNS. Không tái sử dụng challenge cũ.
-
-### Sau khi domain đã thuộc project mới
-
-Chạy lại bộ smoke test:
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://thtohieu.com/
-curl -s -o /dev/null -w "%{http_code}\n" https://www.thtohieu.com/
-curl -s -o /dev/null -w "%{http_code}\n" https://phuhuynh.thtohieu.com/
-curl -s https://www.thtohieu.com/api/health
-curl -s https://api.thtohieu.com/api/health
+```text
+Aliases
+  https://thtohieu.com
+  https://www.thtohieu.com
+  https://phuhuynh.thtohieu.com
+  https://tohieuquiz-nu.vercel.app
+  https://tohieuquiz-vh-s-projects3.vercel.app
+  https://tohieuquiz-git-main-vh-s-projects3.vercel.app
 ```
 
-Và xác nhận bằng `vercel inspect https://tohieuquiz-nu.vercel.app` — ba domain phải xuất hiện trong danh sách Aliases.
+### Git integration — ĐÃ XÁC NHẬN
+
+Push commit tài liệu lên `main` → Vercel tự tạo deployment Production mới (build 25s, status Ready) mà không cần chạy `vercel deploy`. Git integration hoạt động đúng.
+
+### Smoke test production đầy đủ — TẤT CẢ ĐẠT
+
+| Kiểm tra | Kết quả |
+|---|---|
+| `https://thtohieu.com/` | `200` |
+| `https://www.thtohieu.com/` | `200` |
+| `https://phuhuynh.thtohieu.com/` | `200` |
+| `https://www.thtohieu.com/api/health` (qua rewrite) | `200` `{"status":"ok"}` |
+| `https://api.thtohieu.com/api/health` (trực tiếp) | `200` `{"status":"ok"}` |
+| CSP / HSTS / X-Frame-Options / X-Content-Type-Options trên domain thật | đầy đủ, đúng giá trị |
+| `/sitemap.xml`, `/robots.txt` trên domain thật | `200` |
+| Auth guard: `/api/results`, `/api/teachers`, `/api/classrooms`, `/api/notifications`, `/api/system/settings` | `401` (đúng) |
+| `/api/quizzes` | `200` — **đúng thiết kế**, đây là danh mục đề công khai |
 
 ## DNS Cloudflare hiện tại
 
@@ -138,7 +133,7 @@ Các record này đã đúng cho Vercel và **không cần đổi** khi chuyển
 
 ## Chưa thực hiện hoặc cần quyết định sau
 
-- Chưa giải phóng 3 custom domain khỏi project Vercel cũ (BLOCKER ở trên).
+- Nên xóa project Vercel cũ ở account cũ để tránh nhầm lẫn về sau (không còn là blocker).
 - Chưa cấu hình dịch vụ AI thật tại `ai.thtohieu.com`; chưa thay `CLIPROXY_TOKEN` tạm.
 - Chưa tạo tài khoản quản trị đầu tiên trong D1.
 - Chưa cấu hình email provider, monitoring hoặc Cloudinary production.

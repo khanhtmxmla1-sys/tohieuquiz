@@ -132,8 +132,10 @@ Làm theo `DEPLOYMENT_CHECKLIST.md` + `docs/deployment/NEW_SYSTEM_SETUP.md`. Cá
 - [x] Git integration tới repo private `khanhtmxmla1-sys/tohieuquiz`.
 - [x] Đặt 6 biến Production (4 feature flag `false`, `VITE_GIFT_SHOP_MODE=api`, `SITEMAP_SITE_URL`).
 - [x] Deploy Production thành công: `https://tohieuquiz-nu.vercel.app` — 200, CSP, HSTS, robots, sitemap, `/api/health` qua rewrite đều đạt.
-- [ ] **BLOCKER:** 3 custom domain (`thtohieu.com`, `www`, `phuhuynh`) vẫn thuộc project Vercel của account cũ. Cần đăng nhập account cũ và Remove domain, rồi thêm lại vào project mới. Chi tiết + bằng chứng trong `CURRENT_PROGRESS.md`.
-- [ ] Xác nhận project `tohieuquiz` link đúng repo, production branch `main`.
+- [x] 3 custom domain (`thtohieu.com`, `www`, `phuhuynh`) đã gán vào project mới và alias đúng vào deployment production; không cần TXT challenge.
+- [x] Xác nhận Git integration: push lên `main` tự sinh deployment Production (25s, Ready).
+- [x] Smoke test đầy đủ trên domain thật: 200, CSP, HSTS, robots, sitemap, `/api/health` qua rewrite và trực tiếp, auth guard trả 401 đúng.
+- [ ] Xóa project Vercel cũ ở account cũ (dọn dẹp, không gấp).
 - [ ] Đặt biến môi trường production: `VITE_WORKERS_API_URL` (để trống nếu dùng rewrite `/api`), các cờ tính năng **để `false` khi golive** (bật dần ở giai đoạn 5), cấu hình Cloudinary nếu dùng, `SITEMAP_SITE_URL`.
 - [ ] Deploy và xác nhận rewrite `/api/*` → `api.thtohieu.com` hoạt động.
 
