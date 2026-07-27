@@ -50,6 +50,6 @@ Tên miền production chính thức là `thtohieu.com`. Sơ đồ hostname hi�
 - `api.thtohieu.com`: Cloudflare API Worker.
 - `phuhuynh.thtohieu.com`: portal phụ huynh.
 - `assets.thtohieu.com`: public R2 assets.
-- `ai.thtohieu.com`: dành cho dịch vụ AI/proxy, hiện chưa cấu hình dịch vụ thật.
+- `ai.thtohieu.com`: OpenAI-compatible AI gateway (`tohieuquiz-ai-gateway`) chuyển tiếp tới AIClient2API; chỉ mở `/v1/*` và yêu cầu Bearer token.
 
 Checkpoint triển khai mới nhất được lưu tại `docs/deployment/CURRENT_PROGRESS.md`.

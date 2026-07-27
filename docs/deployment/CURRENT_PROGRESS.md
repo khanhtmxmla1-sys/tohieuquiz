@@ -298,9 +298,12 @@ Hai đường dẫn dễ đoán sai (tôi đã đoán sai lần đầu): ảnh c
 - Public R2 custom domain: `assets.thtohieu.com`, SSL active.
 - Queue: `tohieuquiz-certificate-generation`; DLQ: `tohieuquiz-certificate-generation-dlq`.
 - API Worker: `tohieuquiz-api`, đã deploy tại `api.thtohieu.com`.
+- AI gateway Worker: `tohieuquiz-ai-gateway`, đã deploy trên route `ai.thtohieu.com/*`; chỉ xử lý `/v1/*`, tắt `workers.dev` và preview URL.
 - Certificate consumer: `tohieuquiz-certificate-consumer`, đã deploy.
 - `JWT_SECRET` đã tạo mới và lưu trong Cloudflare Worker Secrets.
-- `CLIPROXY_TOKEN` hiện là giá trị ngẫu nhiên tạm để cho phép deploy; AI chưa hoạt động vì `ai.thtohieu.com` chưa có dịch vụ thật. **Phải thay token này khi cấu hình AI/proxy chính thức.**
+- `CLIPROXY_TOKEN` đã thay bằng token production mới ngày 27/07/2026; token không nằm trong Git, tài liệu hoặc biến `VITE_*`.
+- AIClient2API production chạy bằng Windows Scheduled Task, chỉ lắng nghe `127.0.0.1:3000`, tắt Web UI và chỉ có 1 Gemini OAuth node đang khỏe.
+- Endpoint cũ `ai.thitong.site/v1` vẫn được giữ cho tương thích; token cũ chỉ hợp lệ theo hostname cũ và bị từ chối tại `ai.thtohieu.com`.
 
 Smoke test Cloudflare đã đạt:
 
@@ -308,6 +311,9 @@ Smoke test Cloudflare đã đạt:
 - CORS cho `https://www.thtohieu.com` đúng và cho phép credentials.
 - Endpoint cần xác thực trả `401` khi không có phiên đăng nhập.
 - Certificate assets: 10 font và 5 background đã upload, tải ngược và khớp SHA-256.
+- `GET https://ai.thtohieu.com/v1/models` với token mới trả `200`, 8 model; token cũ hoặc thiếu token trả `401`.
+- `POST /v1/chat/completions` thường và streaming đều trả `200` và nội dung kiểm tra `OK`.
+- Đo ổn định tuần tự: `ai.thtohieu.com/v1/models` đạt 12/12 và `ai.thitong.site/v1/models` đạt 12/12.
 
 ## Vercel — đã hoàn tất trong phiên 2
 
@@ -403,7 +409,6 @@ Các record này đã đúng cho Vercel và **không cần đổi** khi chuyển
 ## Chưa thực hiện hoặc cần quyết định sau
 
 - Nên xóa project Vercel cũ ở account cũ để tránh nhầm lẫn về sau (không còn là blocker).
-- Chưa cấu hình dịch vụ AI thật tại `ai.thtohieu.com`; chưa thay `CLIPROXY_TOKEN` tạm.
 - Chưa xoá dữ liệu kiểm thử `test.gv1` / `test.hs1` / `test.hs2` / "Lớp Test 1" khỏi production.
 - Chưa bật cờ nào trong đợt rollout giai đoạn 5 (bước 1 là Unified Notifications, cờ server).
 - Chưa cấu hình email provider, monitoring hoặc Cloudinary production.

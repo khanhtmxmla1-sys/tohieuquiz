@@ -70,17 +70,17 @@ Quality gate hiện tại (đo ngày 26/07/2026, với tất cả cờ bật ở
 - [x] `tests/d1RollbackCoverage.test.ts` — **mới**, ép mọi migration rủi ro cao phải có rollback, chặn rollback mồ côi, và kiểm tra thứ tự DROP an toàn với khoá ngoại.
 - [ ] **Cần thao tác trên GitHub:** bật branch protection cho `main` (bắt buộc CI xanh trước khi merge).
 
-## Giai đoạn 4 — Hạ tầng & deploy ✅ (còn 3 hạng mục)
+## Giai đoạn 4 — Hạ tầng & deploy ✅ (còn 1 hạng mục)
 
 Chi tiết và bằng chứng: `docs/deployment/CURRENT_PROGRESS.md`.
 
-Đã xong: D1, R2 (public + private), Queue + DLQ, 2 Worker, `JWT_SECRET`, `api.thtohieu.com`,
-DNS/SSL cho 4 hostname, Vercel project + Git integration + biến môi trường, 3 custom domain,
-smoke test đầy đủ (200 / CSP / HSTS / robots / sitemap / health / auth guard 401).
+Đã xong: D1, R2 (public + private), Queue + DLQ, API/certificate/AI gateway Workers,
+`JWT_SECRET`, `api.thtohieu.com`, `ai.thtohieu.com/v1`, DNS/SSL cho các hostname production,
+Vercel project + Git integration + biến môi trường, custom domains và smoke test đầy đủ.
 
 Còn lại:
 
-- [ ] Dịch vụ AI thật tại `ai.thtohieu.com` và thay `CLIPROXY_TOKEN` tạm.
+- [x] Dịch vụ AI thật tại `ai.thtohieu.com/v1`, Bearer token mới và `CLIPROXY_TOKEN` production — xong 27/07/2026.
 - [ ] Email provider (SPF/DKIM/DMARC), monitoring, Cloudinary production.
 - [x] Tài khoản quản trị đầu tiên trong D1 — xong 26/07/2026 (phiên 3).
 

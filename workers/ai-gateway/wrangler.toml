@@ -1,0 +1,15 @@
+name = "tohieuquiz-ai-gateway"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+minify = true
+workers_dev = false
+preview_urls = false
+
+routes = [
+  { pattern = "ai.thtohieu.com/*", zone_name = "thtohieu.com" }
+]
+
+[vars]
+UPSTREAM_BASE_URL = "https://ai.thitong.site"
+ALLOWED_ORIGINS = "https://thtohieu.com,https://www.thtohieu.com,https://app.thtohieu.com,https://phuhuynh.thtohieu.com"
+MAX_REQUEST_BODY_BYTES = "10485760"

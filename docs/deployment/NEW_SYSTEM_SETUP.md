@@ -18,7 +18,7 @@ Tài liệu này dùng cho lần triển khai đầu tiên của hệ thống đ
 | Email quản trị | Chưa điền |
 | Email hỗ trợ | Chưa điền |
 | Nhà cung cấp email | Chưa cấu hình |
-| Nhà cung cấp AI/proxy | Chưa có dịch vụ thật tại `ai.thtohieu.com` |
+| Nhà cung cấp AI/proxy | AIClient2API sau Cloudflare Worker gateway tại `ai.thtohieu.com/v1` — đã cấu hình |
 | Monitoring | Chưa cấu hình |
 
 Không lưu mật khẩu, OTP, recovery code hoặc API key trong bảng này.
@@ -29,6 +29,7 @@ Tạo mới và ghi ID trong password manager/tài liệu nội bộ không comm
 
 - D1: `tohieuquiz-db`
 - API Worker: `tohieuquiz-api`
+- AI gateway Worker: `tohieuquiz-ai-gateway`
 - Certificate Worker: `tohieuquiz-certificate-consumer`
 - R2: `tohieuquiz-og-images`
 - R2: `tohieuquiz-certificates`

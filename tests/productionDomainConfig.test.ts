@@ -9,6 +9,12 @@ describe('TôHiệuQuiz production domain contract', () => {
 
     expect(config).toContain('{ pattern = "api.thtohieu.com", custom_domain = true }');
     expect(config).toContain('R2_PUBLIC_URL = "https://assets.thtohieu.com"');
+
+    const aiGateway = read('workers/ai-gateway/wrangler.toml');
+    expect(aiGateway).toContain('{ pattern = "ai.thtohieu.com/*", zone_name = "thtohieu.com" }');
+    expect(aiGateway).toContain('UPSTREAM_BASE_URL = "https://ai.thitong.site"');
+    expect(aiGateway).toContain('workers_dev = false');
+    expect(aiGateway).toContain('preview_urls = false');
     for (const origin of [
       'https://thtohieu.com',
       'https://www.thtohieu.com',
