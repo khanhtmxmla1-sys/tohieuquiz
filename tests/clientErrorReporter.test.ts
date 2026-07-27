@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildClientErrorReport,
@@ -5,6 +7,15 @@ import {
 } from '../src/services/observability/clientErrorReporter';
 
 describe('client error reporter', () => {
+  it('keeps placeholder .invalid hostnames out of observability source', () => {
+    const sources = [
+      readFileSync(resolve(process.cwd(), 'src/services/observability/clientErrorReporter.ts'), 'utf8'),
+      readFileSync(resolve(process.cwd(), 'workers/src/utils/logger.ts'), 'utf8'),
+    ].join('\n');
+
+    expect(sources).not.toMatch(/[a-z0-9-]+\.invalid([^a-zA-Z0-9_]|$)/i);
+  });
+
   it('builds an allowlisted event and removes sensitive values', () => {
     const error = Object.assign(
       new Error('Request failed for pupil@example.test with Bearer secret-token eyJhbGciOiJIUzI1NiJ9.payload.signature'),

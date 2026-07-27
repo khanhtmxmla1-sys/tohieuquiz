@@ -34,7 +34,7 @@ export const sanitizeLogText = (value: unknown, limit = TEXT_LIMIT): string => (
 
 export const normalizeLogRoute = (value: unknown): string => {
   try {
-    return new URL(String(value || '/'), 'https://tohieuquiz.invalid').pathname || '/';
+    return new URL(String(value || '/'), 'https://route.local').pathname || '/';
   } catch {
     return '/';
   }

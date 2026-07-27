@@ -79,7 +79,7 @@ const currentRoute = (): string => {
 const normalizeRoute = (route: string | undefined): string => {
   const candidate = route || currentRoute();
   try {
-    return new URL(candidate, 'https://tohieuquiz.invalid').pathname || '/';
+    return new URL(candidate, 'https://route.local').pathname || '/';
   } catch {
     return '/';
   }
