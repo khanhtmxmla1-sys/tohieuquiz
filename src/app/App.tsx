@@ -7,6 +7,7 @@ import { AppRoutes } from './AppRoutes';
 import { useLegacyQuizQuery } from './useLegacyQuizQuery';
 import { useLoadQuizzes } from './useLoadQuizzes';
 import { useQuizUrlSelection } from './useQuizUrlSelection';
+import { useScrollReset } from './useScrollReset';
 import { useSystemSettings } from './useSystemSettings';
 import { useTeacherEntry } from './useTeacherEntry';
 import { useAuthStore } from '../../stores/authStore';
@@ -34,6 +35,7 @@ const MainApp: React.FC = () => {
     useLegacyQuizQuery();
     const aiAssistantEnabled = useSystemSettings();
     useQuizUrlSelection();
+    useScrollReset(quizStore.view);
 
     return (
         <>

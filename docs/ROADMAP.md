@@ -39,7 +39,7 @@ Quality gate hiện tại (đo ngày 26/07/2026, với tất cả cờ bật ở
 | AI Quiz V2 | `VITE_FEATURE_AI_QUIZ_V2` | ✅ 5/5 E2E pass (**yêu cầu Blueprint V3 tắt**) |
 | AI Blueprint V3 | `VITE_FEATURE_AI_BLUEPRINT_V3` | ✅ 2/2 E2E pass |
 | Parent Portal V1 | `VITE_FEATURE_PARENT_PORTAL_V1` | ✅ 2/2 E2E pass |
-| Gift Shop V2 | `VITE_FEATURE_GIFT_SHOP_V2` | ✅ pass qua unit test + build |
+| Gift Shop V2 | `VITE_FEATURE_GIFT_SHOP_V2` | ✅ 3/3 E2E pass (`gift-shop.cy.ts`, bổ sung sau giai đoạn này) |
 | Unified Notifications | setting server `unified_notifications_v1` | ✅ 4/4 E2E pass |
 
 ### Ba phát hiện trong giai đoạn này
@@ -166,7 +166,8 @@ MULTIPLE_SELECT, ORDERING, UNDERLINE), còn lại giữ nguyên chuỗi. Chốt 
    `updated_at`, và seed đặt `ai_assistant_enabled = 'true'` nhưng giá trị hiện tại là `false` —
    nên việc bật thông báo có thể đã kéo theo tắt cờ AI. Lần đổi cờ sau phải đọc giá trị hiện tại
    rồi gửi lại đúng cả hai.
-2. [ ] **Gift Shop V2**.
+2. [ ] **Gift Shop V2** — `gift-shop.cy.ts` (3/3 pass) đã khoá luồng đổi quà → trao → hủy và hoàn xu
+   trước khi bật; cờ frontend nên cần redeploy Vercel với `VITE_FEATURE_GIFT_SHOP_V2=true`.
 3. [ ] **AI Quiz V2** — chỉ sau khi có AI proxy thật; theo dõi chi phí và quota giáo viên.
 4. [ ] **AI Blueprint V3**.
 5. [ ] **Parent Portal V1** — kèm truyền thông tới phụ huynh; theo dõi rate-limit đăng nhập.
@@ -188,5 +189,6 @@ Cờ frontend cần redeploy Vercel với env mới để bật/tắt (vài phú
 | ~~Bảng `rate_limits` phình dần~~ | Đã xử lý | Cron `0 23 * * *` gọi `purgeExpiredRateLimits()`, xoá bản ghi cũ hơn 24h |
 | `quiz.cy.ts` đang skip | Mất phủ luồng home/login | Viết lại theo UI hiện tại hoặc restub như `parent-portal.cy.ts` |
 | ~~2 spec live đã lỗi thời so với UI~~ | Đã xử lý | Sửa xong, **13/13 pass** trên production; xem `docs/testing/e2e.md` |
-| Không reset cuộn khi đổi route | Học sinh bấm vào môn từ giữa dashboard sẽ thấy trang môn mở ở giữa, tiêu đề ngoài màn hình | Chưa sửa — cân nhắc thêm reset cuộn khi đổi route (đo được: `scrollY` giữ 1371px sau điều hướng) |
+| ~~Không reset cuộn khi đổi route~~ | Đã xử lý | `useScrollReset` (`src/app/useScrollReset.ts`): PUSH/REPLACE về đầu trang, POP khôi phục vị trí đã lưu. Spec e2e assert `scrollY === 0` thay cho workaround cũ |
+| ~~Nút "quay lại" của giáo viên vẫn là PUSH~~ | Đã xử lý | `TeacherResultDetailPage.handleBack` dùng back thật khi `location.key !== 'default'`. `ManualQuizWorkspacePage.tsx:85` hoá ra **không** phải nút quay lại mà là điều hướng sau khi xuất bản (về tab Quản lý) — về đầu trang ở đó là đúng; nút quay lại thật của workspace (`WorkspaceHeader.tsx:39`) vốn đã là `navigate(-1)` |
 | Chưa bật branch protection | CI có thể bị bỏ qua khi merge | Bật trong GitHub Settings |
