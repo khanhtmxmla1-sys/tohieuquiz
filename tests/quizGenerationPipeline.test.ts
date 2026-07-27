@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { expectConsoleMessage, expectConsoleWarn } from './helpers/expectedConsole';
 import { QuestionType } from '../src/types';
 import type { QuizGenerationOptions } from '../src/services/geminiService';
 import { buildQuizSchemaRepairPrompt } from '../src/services/ai/quizRepair';
@@ -141,6 +142,10 @@ const execution = {
 };
 
 describe('quiz generation quality pipeline', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.generateWithOpenAIResilient.mockResolvedValue({
@@ -378,6 +383,7 @@ describe('quiz generation quality pipeline', () => {
   });
 
   it('keeps the deterministically valid result when the reviewer fails', async () => {
+    const warnSpy = expectConsoleWarn();
     mocks.requestWorkerAiText.mockImplementation(async (_body, requestOptions) => {
       if (requestOptions?.action?.stage === 'REPAIR') {
         return JSON.stringify({ title: 'Phần sửa', questions: [makeMcq(2)] });
@@ -399,5 +405,6 @@ describe('quiz generation quality pipeline', () => {
 
     expect(result.questions).toHaveLength(2);
     expect(result.questions[1].question).toBe(makeMcq(2).question);
+    expectConsoleMessage(warnSpy, 'Reviewer unavailable');
   });
 });

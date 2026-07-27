@@ -17,6 +17,28 @@ env:
   NODE_VERSION: 22.22.0
 
 jobs:
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Lint source and tests
+        run: npm run lint
+
   typecheck:
     name: Type check (frontend + workers)
     runs-on: ubuntu-latest
@@ -40,15 +62,22 @@ jobs:
         run: npm ci --prefix workers --ignore-scripts
 
       - name: Type check frontend
-        run: npx tsc --noEmit
+        run: npm run typecheck
+
+      - name: Type check strict schema and utility lane
+        run: npm run typecheck:strict
 
       - name: Type check workers
-        run: npx tsc -p workers/tsconfig.json --noEmit
+        run: npm run typecheck:workers
 
   test:
-    name: Unit and integration tests
+    name: Vitest shard ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -64,8 +93,30 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
 
-      - name: Run Vitest
-        run: npm run test:run
+      - name: Run Vitest shard
+        run: npm run test:ci:shard -- --shard=${{ matrix.shard }}/4 --reporter=dot
+
+  coverage:
+    name: Coverage threshold
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run coverage threshold
+        run: npm run test:coverage
 
   build:
     name: Production build

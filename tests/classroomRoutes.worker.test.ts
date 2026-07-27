@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 import { ClassroomDatabase, classroomEnv, classroomRequest } from './fixtures/classroomWorkerFixture';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 
 const { authState, verifyJWTMiddleware } = vi.hoisted(() => ({
     authState: { currentUser: null as JWTPayload | null },
@@ -28,6 +29,7 @@ const asStudent = (classId = 'class-a') => {
 };
 
 describe('Classroom route contracts', () => {
+    afterEach(() => { vi.restoreAllMocks(); });
     beforeEach(() => { authState.currentUser = null; verifyJWTMiddleware.mockClear(); });
 
     it('keeps student login public before JWT verification', async () => {
@@ -128,6 +130,7 @@ describe('Classroom route contracts', () => {
     });
 
     it('does not expose D1 details when student batch persistence fails', async () => {
+        const errorSpy = expectConsoleError();
         authState.currentUser = { username: 'teacher-a', role: 'teacher' };
         const db = new ClassroomDatabase({
             classroom: { id: 'class-a', teacher_username: 'teacher-a', archived_at: '' },
@@ -155,5 +158,6 @@ describe('Classroom route contracts', () => {
         expect(payload.message).toBe('Internal server error');
         expect(payload.requestId).toBe('req-classroom-1');
         expect(JSON.stringify(payload)).not.toContain('UNIQUE constraint');
+        expectConsoleMessage(errorSpy, 'UNIQUE constraint failed');
     });
 });

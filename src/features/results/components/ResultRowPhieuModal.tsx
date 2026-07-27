@@ -73,7 +73,9 @@ const ResultRowPhieuModal: React.FC<Props> = ({
     setLoadingAI(true);
     try {
       // Simulate async (có thể thay bằng API call thật nếu có)
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 600);
+      });
       const styles = ['nhe_nhang', 'vui_ve', 'nghiem_tuc'] as const;
       const currentStyle = phieu.nhan_xet_style ?? 'nhe_nhang';
       const nextStyle = styles[(styles.indexOf(currentStyle) + 1) % styles.length];

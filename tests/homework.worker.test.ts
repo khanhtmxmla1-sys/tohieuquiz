@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 type TestUser = { id?: string; username: string; role: 'student' | 'teacher' | 'admin'; classId?: string };
 let currentUser: TestUser;
 vi.mock('../workers/src/middleware/jwtAuth', () => ({
@@ -46,6 +47,11 @@ class Database {
 const env = (db: Database) => ({ DB: db, JWT_SECRET: 'test' } as any);
 
 describe('canonical homework authorization and deadlines', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => { currentUser = { username: 'teacher-a', role: 'teacher' }; });
 
   it('scopes the teacher assignment list by JWT username', async () => {
@@ -98,6 +104,7 @@ describe('canonical homework authorization and deadlines', () => {
   });
 
   it('marks a submission for manual review when the AI provider is unavailable', async () => {
+    const errorSpy = expectConsoleError();
     const db = new Database();
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 500 })));
     const response = await handleHomeworkRoutes(new Request('https://test/api/homework/submissions/sub-1/ai-suggestion', { method: 'POST' }), {
@@ -105,6 +112,6 @@ describe('canonical homework authorization and deadlines', () => {
     }, '/api/homework/submissions/sub-1/ai-suggestion', 'POST');
     expect(response.status).toBe(502);
     expect(db.executed.some(statement => statement.sql.includes("status='NEEDS_REVIEW'"))).toBe(true);
-    vi.unstubAllGlobals();
+    expectConsoleMessage(errorSpy, 'AI service returned 500');
   });
 });

@@ -1,42 +1,47 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { handleCors, corsHeaders } from '../workers/src/middleware/cors';
+import { enforceOriginGuard } from '../workers/src/middleware/originGuard';
+import { errorResponse, jsonResponse } from '../workers/src/utils/response';
+import { internalErrorResponse } from '../workers/src/utils/internalError';
+import {
+  createWorkerFetch,
+  type WorkerFetchDependencies,
+} from '../workers/src/router/createWorkerFetch';
 
-const rateLimitMock = vi.hoisted(() => vi.fn(async () => null as Response | null));
+const rateLimitMock = vi.fn(async () => null as Response | null);
+const verifyTokenMock = vi.fn(() => unauthorized());
 
-vi.mock('../workers/src/routes/certificates', () => ({
-  createBatch: vi.fn(),
-  getBatches: vi.fn(),
-  getBatchDetail: vi.fn(),
-  preview: vi.fn(),
-  uploadTemplate: vi.fn(),
-  getTemplates: vi.fn(),
-  getMyCertificates: vi.fn(),
-  handleCertificateRoutes: vi.fn(async () => null),
-}));
-
-vi.mock('../workers/src/routes/adminCertificates', () => ({
-  handleAdminCertificateRoutes: vi.fn(async () => null),
-}));
-
-vi.mock('../workers/src/routes/phieu', () => ({
-  handlePhieuSubdomain: vi.fn(async () => null),
-  handlePublicPhieuApi: vi.fn(async () => null),
-  handlePhieuRoutes: vi.fn(async () => null),
-}));
-
-vi.mock('../workers/src/middleware/rateLimit', () => ({
-  rateLimit: rateLimitMock,
-}));
-
-let worker: typeof import('../workers/src/index').default;
-
-beforeAll(async () => {
-  worker = (await import('../workers/src/index')).default;
-});
-
-beforeEach(() => {
-  rateLimitMock.mockReset();
-  rateLimitMock.mockResolvedValue(null);
-});
+const routeMocks = {
+  handleTeacherRoutes: vi.fn(async () => null as Response | null),
+  handleLogoutRoute: vi.fn(async () => null as Response | null),
+  handleQuizDraftRoutes: vi.fn(async () => null as Response | null),
+  handleQuizRoutes: vi.fn(async () => null as Response | null),
+  handleResultRoutes: vi.fn(async () => null as Response | null),
+  handleClassroomRoutes: vi.fn(async () => null as Response | null),
+  handleGamificationRoutes: vi.fn(async () => null as Response | null),
+  handleAnnouncementRoutes: vi.fn(async () => null as Response | null),
+  handleAiTutorRoutes: vi.fn(async () => null as Response | null),
+  handleAiProxy: vi.fn(async () => null as Response | null),
+  handlePracticeRoutes: vi.fn(async () => null as Response | null),
+  handleGiftShopRoutes: vi.fn(async () => null as Response | null),
+  handleGameLoopRoutes: vi.fn(async () => null as Response | null),
+  handleHelpRagRoutes: vi.fn(async () => null as Response | null),
+  handleSystemSettingsRoutes: vi.fn(async () => null as Response | null),
+  handleResultReportRoutes: vi.fn(async () => null as Response | null),
+  handlePhieuRoutes: vi.fn(async () => null as Response | null),
+  handleHomeworkRoutes: vi.fn(async () => null as Response | null),
+  handleAnalyticsRoutes: vi.fn(async () => null as Response | null),
+  handleTestBankRoutes: vi.fn(async () => null as Response | null),
+  handleTeacherAiQuotaRoutes: vi.fn(async () => null as Response | null),
+  handleLiveExamRoutes: vi.fn(async () => null as Response | null),
+  handleNotificationRoutes: vi.fn(async () => null as Response | null),
+  handleCertificateRoutes: vi.fn(async () => null as Response | null),
+  handleAdminCertificateRoutes: vi.fn(async () => null as Response | null),
+  handleMathObservabilityRoutes: vi.fn(async () => null as Response | null),
+  handlePhieuSubdomain: vi.fn(async () => null as Response | null),
+  handlePublicPhieuApi: vi.fn(async () => null as Response | null),
+  handleParentPortalRoutes: vi.fn(async () => unauthorized()),
+};
 
 const env = {
   ENVIRONMENT: 'production',
@@ -62,66 +67,119 @@ const request = (
   body: method === 'POST' ? '{}' : undefined,
 });
 
+function unauthorized() {
+  return new Response(JSON.stringify({ status: 'error', message: 'unauthorized' }), {
+    status: 401,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 const unavailable = () => new Response(JSON.stringify({ status: 'error', message: 'unavailable' }), {
   status: 503,
   headers: { 'Content-Type': 'application/json' },
 });
 
+let workerFetch: ReturnType<typeof createWorkerFetch>;
+
+beforeEach(() => {
+  rateLimitMock.mockReset();
+  rateLimitMock.mockResolvedValue(null);
+  verifyTokenMock.mockReset();
+  verifyTokenMock.mockReturnValue(unauthorized());
+
+  for (const [name, mock] of Object.entries(routeMocks)) {
+    mock.mockReset();
+    mock.mockResolvedValue(name === 'handleParentPortalRoutes' ? unauthorized() : null);
+  }
+
+  const dependencies: WorkerFetchDependencies = {
+    handleCors,
+    corsHeaders,
+    enforceOriginGuard,
+    verifyToken: verifyTokenMock,
+    jsonResponse,
+    errorResponse,
+    internalErrorResponse,
+    rateLimit: rateLimitMock,
+    ...routeMocks,
+  };
+
+  workerFetch = createWorkerFetch(dependencies);
+});
+
 describe('Worker root route dispatch', () => {
   it('dispatches parent portal routes before the shared authentication fallback', async () => {
-    const source = await import('../workers/src/index?raw');
-    const parentRoute = source.default.indexOf('handleParentPortalRoutes(request, env, path, method)');
-    const sharedAuth = source.default.indexOf('const authError = verifyToken(request, env)');
+    routeMocks.handleParentPortalRoutes.mockResolvedValueOnce(unauthorized());
 
-    expect(parentRoute).toBeGreaterThan(-1);
-    expect(sharedAuth).toBeGreaterThan(parentRoute);
+    const response = await workerFetch(request('/api/parent-links'), env);
 
-    const response = await worker.fetch(request('/api/parent-links'), env);
     expect(response.status).toBe(401);
+    expect(routeMocks.handleParentPortalRoutes).toHaveBeenCalledOnce();
+    expect(verifyTokenMock).not.toHaveBeenCalled();
   });
 
   it('registers manual quiz drafts before the broader quiz routes', async () => {
-    const source = await import('../workers/src/index?raw');
-    const draftRoute = source.default.indexOf("path.startsWith('/api/quiz-drafts/')");
-    const quizRoute = source.default.indexOf("path.startsWith('/api/quizzes')");
+    verifyTokenMock.mockReturnValue(null);
+    routeMocks.handleQuizDraftRoutes.mockResolvedValueOnce(new Response('draft'));
 
-    expect(draftRoute).toBeGreaterThan(-1);
-    expect(quizRoute).toBeGreaterThan(draftRoute);
-    expect(source.default).toContain('handleQuizDraftRoutes(request, env, path, method)');
+    const response = await workerFetch(request('/api/quiz-drafts/draft-1'), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handleQuizDraftRoutes).toHaveBeenCalledOnce();
+    expect(routeMocks.handleQuizRoutes).not.toHaveBeenCalled();
   });
 
   it('routes the read-only math monitor before legacy handlers', async () => {
-    const response = await worker.fetch(request('/api/admin/math-audit/issues?limit=1'), env);
+    routeMocks.handleMathObservabilityRoutes.mockResolvedValueOnce(unauthorized());
+
+    const response = await workerFetch(request('/api/admin/math-audit/issues?limit=1'), env);
+
     expect(response.status).toBe(401);
+    expect(routeMocks.handleMathObservabilityRoutes).toHaveBeenCalledOnce();
+    expect(routeMocks.handlePhieuSubdomain).not.toHaveBeenCalled();
+    expect(verifyTokenMock).not.toHaveBeenCalled();
   });
 
   it('routes the disabled bulk-repair endpoint before legacy handlers', async () => {
-    const response = await worker.fetch(request('/api/admin/math-audit/apply', 'POST'), env);
+    routeMocks.handleMathObservabilityRoutes.mockResolvedValueOnce(unauthorized());
+
+    const response = await workerFetch(request('/api/admin/math-audit/apply', 'POST'), env);
+
     expect(response.status).toBe(401);
+    expect(routeMocks.handleMathObservabilityRoutes).toHaveBeenCalledOnce();
+    expect(routeMocks.handlePhieuSubdomain).not.toHaveBeenCalled();
   });
 
   it('still routes gamification mutations to JWT authentication', async () => {
-    const response = await worker.fetch(request('/api/game-state', 'POST'), env);
+    const response = await workerFetch(request('/api/game-state', 'POST'), env);
+
     expect(response.status).toBe(401);
+    expect(verifyTokenMock).toHaveBeenCalledOnce();
+    expect(routeMocks.handleGamificationRoutes).not.toHaveBeenCalled();
   });
 
   it('blocks an unsafe request from an untrusted origin before auth and routing', async () => {
-    const response = await worker.fetch(request('/api/game-state', 'POST', 'https://evil.example'), env);
+    const response = await workerFetch(request('/api/game-state', 'POST', 'https://evil.example'), env);
+
     expect(response.status).toBe(403);
     expect(rateLimitMock).not.toHaveBeenCalled();
+    expect(verifyTokenMock).not.toHaveBeenCalled();
   });
 
   it('authenticates AI endpoints before applying the role-aware limiter', async () => {
     rateLimitMock.mockResolvedValueOnce(unavailable());
-    const response = await worker.fetch(request('/api/ai/chat', 'POST'), env);
+
+    const response = await workerFetch(request('/api/ai/chat', 'POST'), env);
 
     expect(response.status).toBe(401);
     expect(rateLimitMock).not.toHaveBeenCalled();
+    expect(routeMocks.handleAiProxy).not.toHaveBeenCalled();
   });
 
   it('fails closed for parent activation and login when limiter storage is unavailable', async () => {
     rateLimitMock.mockResolvedValueOnce(unavailable());
-    const response = await worker.fetch(request('/api/parent/login', 'POST'), env);
+
+    const response = await workerFetch(request('/api/parent/login', 'POST'), env);
 
     expect(response.status).toBe(503);
     expect(rateLimitMock).toHaveBeenCalledWith(
@@ -137,7 +195,8 @@ describe('Worker root route dispatch', () => {
 
   it('fails closed for student login when limiter storage is unavailable', async () => {
     rateLimitMock.mockResolvedValueOnce(unavailable());
-    const response = await worker.fetch(request('/api/student-login', 'POST'), env);
+
+    const response = await workerFetch(request('/api/student-login', 'POST'), env);
 
     expect(response.status).toBe(503);
     expect(rateLimitMock).toHaveBeenCalledWith(
@@ -149,7 +208,8 @@ describe('Worker root route dispatch', () => {
 
   it('fails closed for legacy admin teacher mutations', async () => {
     rateLimitMock.mockResolvedValueOnce(unavailable());
-    const response = await worker.fetch(request('/api/teachers', 'POST'), env);
+
+    const response = await workerFetch(request('/api/teachers', 'POST'), env);
 
     expect(response.status).toBe(503);
     expect(rateLimitMock).toHaveBeenCalledWith(
@@ -160,7 +220,10 @@ describe('Worker root route dispatch', () => {
   });
 
   it('keeps public read rate limiting fail open by default', async () => {
-    const response = await worker.fetch(request('/api/phieu/public/sample'), env);
+    verifyTokenMock.mockReturnValue(null);
+
+    const response = await workerFetch(request('/api/phieu/public/sample'), env);
+
     expect(response.status).toBe(404);
     expect(rateLimitMock).toHaveBeenCalledWith(
       expect.any(Request),

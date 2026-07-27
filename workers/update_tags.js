@@ -3,7 +3,7 @@ const fs = require('fs');
 let rawData;
 try {
     rawData = fs.readFileSync('dump.json', 'utf16le');
-} catch (e) {
+} catch {
     rawData = fs.readFileSync('dump.json', 'utf8');
 }
 
@@ -66,8 +66,8 @@ for (const q of data) {
         if (q.tags.startsWith('[')) {
             try {
                 currentTags = JSON.parse(q.tags);
-            } catch (e) {
-                currentTags = q.tags.replace(/[\[\]"]/g, '').split(',').map(t => t.trim());
+            } catch {
+                currentTags = q.tags.replace(/[[\]"]/g, '').split(',').map(t => t.trim());
             }
         } else {
             currentTags = q.tags.split(',').map(t => t.trim());
@@ -109,12 +109,9 @@ for (const q of data) {
     cleanedTags = [...new Set(cleanedTags)].sort();
     const newTagsStr = cleanedTags.join(',');
 
-    const oldTagsSorted = [...new Set(currentTags.filter(t => t && t !== '[]').map(t => t.trim()))].sort().join(',');
-
-    if (newTagsStr !== oldTagsSorted || true) { // Force update to standardize 
-        const escapedTagsStr = newTagsStr.replace(/'/g, "''");
-        sqlStatements.push(`UPDATE questions SET tags = '${escapedTagsStr}' WHERE id = '${q.id}';`);
-    }
+    // Force every row through the standardization pass, even when the tag set is unchanged.
+    const escapedTagsStr = newTagsStr.replace(/'/g, "''");
+    sqlStatements.push(`UPDATE questions SET tags = '${escapedTagsStr}' WHERE id = '${q.id}';`);
 }
 
 const chunkSize = 100;

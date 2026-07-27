@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TeacherDashboard from '../src/components/TeacherDashboard';
 import TeacherDashboardModule from '../src/components/TeacherDashboard/teacher-dashboard-shell';
@@ -109,6 +109,12 @@ vi.mock('../src/components/TeacherDashboard/CreateTab', () => ({
 }));
 
 const simpleTab = (testId: string) => ({ default: () => <div data-testid={testId}>{testId}</div> });
+
+const click = async (element: HTMLElement) => {
+  await act(async () => {
+    fireEvent.click(element);
+  });
+};
 vi.mock('../src/components/TeacherDashboard/AnnouncementSettings', () => simpleTab('announcements-tab'));
 vi.mock('../src/components/TeacherDashboard/ClassManagementTab', () => simpleTab('classes-tab'));
 vi.mock('../src/components/TeacherDashboard/AssignmentTab', () => simpleTab('assignments-tab'));
@@ -257,7 +263,7 @@ describe('TeacherDashboard shell contracts', () => {
     render(<TeacherDashboard />);
 
     expect(screen.getByTestId('sidebar-mobile-state')).toHaveTextContent('closed');
-    fireEvent.click(screen.getByRole('button', { name: 'Mở menu điều hướng' }));
+    await click(screen.getByRole('button', { name: 'Mở menu điều hướng' }));
     expect(screen.getByTestId('sidebar-mobile-state')).toHaveTextContent('open');
     expect(screen.queryByRole('button', { name: 'Bottom tạo đề' })).toBeNull();
   });
@@ -310,7 +316,9 @@ describe('TeacherDashboard shell contracts', () => {
     await waitFor(() => expect(useTeacherDashboardUIStore.getState().activeTab).toBe('overview'));
     expect(await screen.findByTestId('overview-tab')).toBeTruthy();
 
-    useTeacherDashboardUIStore.getState().setActiveTab('gift-shop');
+    await act(async () => {
+      useTeacherDashboardUIStore.getState().setActiveTab('gift-shop');
+    });
     await waitFor(() => expect(useTeacherDashboardUIStore.getState().activeTab).toBe('overview'));
   });
 
@@ -321,7 +329,7 @@ describe('TeacherDashboard shell contracts', () => {
     });
     render(<TeacherDashboard />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sidebar đăng xuất' }));
+    await click(screen.getByRole('button', { name: 'Sidebar đăng xuất' }));
 
     expect(useTeacherDashboardUIStore.getState().activeTab).toBe('overview');
     expect(useTeacherDashboardUIStore.getState().assignmentComposerDraft).toBeNull();

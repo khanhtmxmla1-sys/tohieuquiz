@@ -51,7 +51,7 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
         try {
             const url = new URL(request.url);
             let topic = url.searchParams.get('topic');
-            let limitParam = url.searchParams.get('limit') || '10';
+            const limitParam = url.searchParams.get('limit') || '10';
             const limit = Math.min(parseInt(limitParam, 10) || 10, 50); // Max 50 questions
 
             if (!topic) {
@@ -76,7 +76,7 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
 
             // Map D1 snake_case and JSON string fields to frontend camelCase objects
             const mappedQuestions = rows.results.map((q: any) => {
-                let parsed = { ...q };
+                const parsed = { ...q };
                 if (typeof q.items === 'string') try { parsed.items = JSON.parse(q.items); } catch { }
                 if (typeof q.pairs === 'string') try { parsed.pairs = JSON.parse(q.pairs); } catch { }
                 if (typeof q.categories === 'string') try { parsed.categories = JSON.parse(q.categories); } catch { }

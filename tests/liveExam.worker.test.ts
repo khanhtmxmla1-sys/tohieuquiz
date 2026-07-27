@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 
 let currentUser: JWTPayload;
@@ -11,6 +12,10 @@ vi.mock('../workers/src/middleware/jwtAuth', () => ({
 import * as LiveExamService from '../workers/src/services/liveExamService';
 import { handleLiveExamRoutes } from '../workers/src/routes/liveExam';
 import { liveExamErrorResponse } from '../workers/src/routes/liveExam/responses';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 class FakeStatement {
   bindings: unknown[] = [];
@@ -338,6 +343,7 @@ describe('live exam analytics route', () => {
     });
     expect(business.status).toBe(409);
 
+    const errorSpy = expectConsoleError();
     const internal = liveExamErrorResponse(
       new Error('D1_ERROR: no such table live_exam_sessions'),
       request,
@@ -348,9 +354,11 @@ describe('live exam analytics route', () => {
     expect(payload.message).toBe('Failed to get session');
     expect(payload.requestId).toBe('req-live-1');
     expect(JSON.stringify(payload)).not.toContain('live_exam_sessions');
+    expectConsoleMessage(errorSpy, 'live_exam_sessions');
   });
 
   it('does not expose raw errors from the teacher sessions route', async () => {
+    const errorSpy = expectConsoleError();
     const db = new FakeDB();
     db.all = () => { throw new Error('D1_ERROR: no such column secret_score'); };
     const response = await handleLiveExamRoutes(
@@ -367,5 +375,6 @@ describe('live exam analytics route', () => {
     expect(payload.message).toBe('Failed to get sessions');
     expect(payload.requestId).toBe('req-live-list-1');
     expect(JSON.stringify(payload)).not.toContain('secret_score');
+    expectConsoleMessage(errorSpy, 'secret_score');
   });
 });

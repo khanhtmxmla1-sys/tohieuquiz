@@ -118,7 +118,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
 
         const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
         return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [step, timeLeft, quiz.isPractice, quiz.timeLimit]);
 
     // Browser navigation protection
@@ -146,16 +146,16 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         if (isLoggedIn && step === 'info' && studentName && studentClass) {
             handleStart();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [isLoggedIn, step]);
 
     // Handlers
     const handleStart = useCallback(() => {
         if (!studentName || !studentClass) return;
-        
+
         const hasLevels = quiz.questions.some((q: any) => q.difficultyLevel);
         const finalQuestions = hasLevels ? shuffleWithinLevel(quiz.questions) : shuffleArray(quiz.questions);
-        
+
         setShuffledQuestions(finalQuestions);
         setStartTime(Date.now());
         setStep('quiz');
@@ -185,7 +185,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     const handleMatchingClick = useCallback((questionId: string, item: string, type: 'left' | 'right') => {
         setAnswers(prev => {
             const currentAnswers = prev[questionId] || {};
-            let newAnswers = { ...currentAnswers };
+            const newAnswers = { ...currentAnswers };
 
             if (type === 'left') {
                 if (newAnswers.selectedLeft === item) {
@@ -224,7 +224,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
 
             // Senior Enrichment: Merge server results with client overrides
             const clientScoring = calculateStudentScore(quiz, answers);
-            
+
             // Rebuild final answers with snapshots and corrections
             const finalAnswersWithSnapshots: Record<string, any> = {};
             const isAnswerSkipped = (value: any): boolean => (
@@ -394,7 +394,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     const isQuestionAnswered = useCallback((q: Question) => {
         const val = answers[q.id];
         if (!val) return false;
-        
+
         switch(q.type) {
             case QuestionType.TRUE_FALSE:
                 return (q.items ?? []).every((item: any, idx: number) => {

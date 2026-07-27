@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 import { SignJWT } from 'jose';
 import {
     JWT_AUDIENCE,
@@ -9,6 +10,10 @@ import {
     verifyJWT,
 } from '../workers/src/utils/jwt';
 import { verifyJWTMiddleware } from '../workers/src/middleware/jwtAuth';
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
 
 describe('JWT security contract', () => {
     it('issues HS256 tokens with issuer, audience, and a normalized session purpose', async () => {
@@ -42,6 +47,7 @@ describe('JWT security contract', () => {
     });
 
     it('rejects non-HS256 algorithms and malformed auth payloads', async () => {
+        const errorSpy = expectConsoleError();
         const secret = 'a-test-secret-that-is-long-enough';
         const key = new TextEncoder().encode(secret);
         const hs384 = await new SignJWT({ username: 'teacher-a', role: 'teacher', purpose: 'session' })
@@ -61,6 +67,7 @@ describe('JWT security contract', () => {
 
         await expect(verifyJWT(hs384, secret, { allowLegacy: false })).resolves.toBeNull();
         await expect(verifyJWT(missingRole, secret, { allowLegacy: false })).resolves.toBeNull();
+        expectConsoleMessage(errorSpy, 'Verification failed');
     });
 
     it('uses a host-only HttpOnly Lax cookie for browser sessions', () => {

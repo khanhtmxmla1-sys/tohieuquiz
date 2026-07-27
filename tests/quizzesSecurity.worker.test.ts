@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 
 let currentUser: JWTPayload | null = null;
@@ -65,6 +66,10 @@ const authRequest = (url: string, init: RequestInit = {}) => new Request(url, {
 });
 
 describe('quiz answer confidentiality and ownership', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     currentUser = null;
     currentAuthErrorStatus = 401;
@@ -178,6 +183,7 @@ describe('quiz answer confidentiality and ownership', () => {
   });
 
   it('does not expose D1 details when quiz creation fails', async () => {
+    const errorSpy = expectConsoleError();
     currentUser = { username: 'teacher-a', role: 'teacher' };
     const db = new Database();
     db.batchError = new Error('D1_ERROR: no such table: secret_quizzes');
@@ -195,5 +201,6 @@ describe('quiz answer confidentiality and ownership', () => {
     expect(payload.message).toBe('Internal server error');
     expect(payload.requestId).toBe('req-quiz-1');
     expect(JSON.stringify(payload)).not.toContain('secret_quizzes');
+    expectConsoleMessage(errorSpy, 'secret_quizzes');
   });
 });

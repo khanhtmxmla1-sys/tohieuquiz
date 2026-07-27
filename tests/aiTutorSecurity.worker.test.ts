@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 
 vi.mock('../workers/src/middleware/jwtAuth', () => ({
   verifyJWTMiddleware: vi.fn(async () => ({
@@ -8,8 +9,13 @@ vi.mock('../workers/src/middleware/jwtAuth', () => ({
 
 import { handleAiTutorRoutes } from '../workers/src/routes/aiTutor';
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe('AI Tutor internal error handling', () => {
   it('does not expose database details in a 500 response', async () => {
+    const errorSpy = expectConsoleError();
     const db = {
       prepare: () => ({
         bind: () => ({
@@ -38,5 +44,6 @@ describe('AI Tutor internal error handling', () => {
     expect(payload.message).toBe('Internal server error');
     expect(payload.requestId).toBe('req-ai-tutor-1');
     expect(JSON.stringify(payload)).not.toContain('questions_private');
+    expectConsoleMessage(errorSpy, 'questions_private');
   });
 });

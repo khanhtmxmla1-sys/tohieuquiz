@@ -101,7 +101,11 @@ export const generateWithGemini = async (
       return resolveImageLibrary(quizData, imageLibrary || []);
     } catch (error) {
       lastError = error;
-      if (attempt < maxRetries) await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt));
+      if (attempt < maxRetries) {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 1000 * 2 ** attempt);
+        });
+      }
     }
   }
   throw lastError instanceof Error ? lastError : new Error('Không thể tạo đề bằng AI.');

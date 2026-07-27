@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 
 const processBatchMock = vi.hoisted(() => vi.fn());
 
@@ -89,6 +90,10 @@ async function dispatch(db: QueueDB, message: ReturnType<typeof queueMessage>) {
 }
 
 describe('certificate queue delivery semantics', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     processBatchMock.mockReset();
     processBatchMock.mockResolvedValue(undefined);
@@ -121,6 +126,7 @@ describe('certificate queue delivery semantics', () => {
   });
 
   it('retries a transient processor failure without acknowledging it', async () => {
+    const errorSpy = expectConsoleError();
     const db = new QueueDB();
     const message = queueMessage(1);
     processBatchMock.mockRejectedValueOnce(new Error('R2 temporarily unavailable'));
@@ -130,9 +136,11 @@ describe('certificate queue delivery semantics', () => {
     expect(message.retry).toHaveBeenCalledWith({ delaySeconds: 30 });
     expect(message.ack).not.toHaveBeenCalled();
     expect(db.batches).toHaveLength(2);
+    expectConsoleMessage(errorSpy, 'failed batch=batch-1 attempt=1');
   });
 
   it('marks the final attempt failed and acknowledges it', async () => {
+    const errorSpy = expectConsoleError();
     const db = new QueueDB();
     const message = queueMessage(3);
     processBatchMock.mockRejectedValueOnce(new Error('render failed'));
@@ -143,5 +151,6 @@ describe('certificate queue delivery semantics', () => {
     expect(message.ack).toHaveBeenCalledOnce();
     expect(db.batches).toHaveLength(2);
     expect(db.batches[1][0].sql).toContain("status = 'failed'");
+    expectConsoleMessage(errorSpy, 'failed batch=batch-1 attempt=3');
   });
 });

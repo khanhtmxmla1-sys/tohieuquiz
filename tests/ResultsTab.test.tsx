@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ResultsTab from '../src/components/TeacherDashboard/ResultsTab';
 import ResultsTabModule from '../src/components/TeacherDashboard/results-tab';
@@ -133,6 +133,18 @@ const quizzes = [
   { id: 'quiz-2', title: 'Hình học', questions: [] },
 ] as any;
 
+const change = async (element: HTMLElement, value: string) => {
+  await act(async () => {
+    fireEvent.change(element, { target: { value } });
+  });
+};
+
+const click = async (element: HTMLElement) => {
+  await act(async () => {
+    fireEvent.click(element);
+  });
+};
+
 const results = [
   makeResult('1', 'An', '3A', 'quiz-1', '2026-07-19T07:00:00.000Z'),
   makeResult('2', 'Bình', '3A', 'quiz-2', '2026-07-19T06:00:00.000Z'),
@@ -179,20 +191,20 @@ describe('TeacherDashboard ResultsTab contracts', () => {
     expect(screen.getByText('Trang 2/2')).toBeTruthy();
   });
 
-  it('combines name, quiz, and class filters and clears them together', () => {
+  it('combines name, quiz, and class filters and clears them together', async () => {
     render(<ResultsTab results={results} quizzes={quizzes} />);
 
-    fireEvent.change(screen.getByPlaceholderText('Tìm học sinh...'), { target: { value: 'Lan' } });
+    await change(screen.getByPlaceholderText('Tìm học sinh...'), 'Lan');
     expect(screen.getByText('Danh sách kết quả (1)')).toBeTruthy();
     expect(screen.getByText('Lan')).toBeTruthy();
     expect(screen.getByText('🔍 "Lan"')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Xóa bộ lọc' }));
+    await click(screen.getByRole('button', { name: 'Xóa bộ lọc' }));
     expect(screen.getByText('Danh sách kết quả (7)')).toBeTruthy();
 
     const selects = screen.getAllByRole('combobox');
-    fireEvent.change(selects[0], { target: { value: 'quiz-1' } });
-    fireEvent.change(selects[1], { target: { value: '3A' } });
+    await change(selects[0], 'quiz-1');
+    await change(selects[1], '3A');
 
     expect(screen.getByText('Danh sách kết quả (3)')).toBeTruthy();
     expect(screen.getByText('An')).toBeTruthy();
@@ -201,7 +213,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
     expect(screen.getByTestId('question-analysis')).toBeTruthy();
   });
 
-  it('requires one class and one quiz before opening the class delivery wizard', () => {
+  it('requires one class and one quiz before opening the class delivery wizard', async () => {
     render(<ResultsTab results={results} quizzes={quizzes} />);
 
     const deliveryButton = screen.getByRole('button', { name: 'Tạo và gửi phiếu' });
@@ -209,13 +221,13 @@ describe('TeacherDashboard ResultsTab contracts', () => {
     expect(deliveryButton).toHaveAttribute('title', 'Hãy chọn một lớp và một bài kiểm tra trước khi tạo phiếu.');
 
     const selects = screen.getAllByRole('combobox');
-    fireEvent.change(selects[0], { target: { value: 'quiz-1' } });
+    await change(selects[0], 'quiz-1');
     expect(deliveryButton).toBeDisabled();
-    fireEvent.change(selects[1], { target: { value: '3A' } });
+    await change(selects[1], '3A');
     expect(deliveryButton).toBeEnabled();
 
-    fireEvent.change(screen.getByPlaceholderText('Tìm học sinh...'), { target: { value: 'An' } });
-    fireEvent.click(deliveryButton);
+    await change(screen.getByPlaceholderText('Tìm học sinh...'), 'An');
+    await click(deliveryButton);
 
     expect(screen.getByTestId('result-report-wizard')).toBeInTheDocument();
     expect(screen.getByTestId('wizard-scope')).toHaveTextContent(JSON.stringify({
