@@ -40,10 +40,10 @@ jobs:
         run: npm ci --prefix workers --ignore-scripts
 
       - name: Type check frontend
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Type check workers
-        run: npx tsc -p workers/tsconfig.json --noEmit
+        run: npm run typecheck:workers
 
   test:
     name: Unit and integration tests
@@ -65,7 +65,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Run Vitest
-        run: npm run test:run
+        run: npm run test:ci
 
   build:
     name: Production build
