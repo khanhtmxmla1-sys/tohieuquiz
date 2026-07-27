@@ -56,7 +56,6 @@ export const makeGeneratedQuizV3Fixture = (
       slotId: slot.slotId,
       type: slot.type,
       difficulty: slot.difficulty,
-      explanation: `Lời giải fixture hợp lệ cho slot ${slot.ordinal}.`,
       subject: slot.subject,
       skillCode: slot.skillCode,
       subskillCode: slot.subskillCode,

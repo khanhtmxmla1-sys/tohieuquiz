@@ -120,6 +120,7 @@ describe('quiz generation V3 quality pipeline', () => {
     );
     expect(repairCalls).toHaveLength(1);
     expect(repairCalls[0][0].messages[1].content).toContain('slot-3');
+    expect(repairCalls[0][0].messages[1].content).toContain('Không tạo trường explanation');
     expect(mocks.requestWorkerAiText.mock.calls.map((call) => call[1]?.action?.stage)).toEqual([
       'REPAIR',
       'REVIEW',
@@ -130,6 +131,7 @@ describe('quiz generation V3 quality pipeline', () => {
     expect(result.questions[0].difficulty).toBe(blueprint.slots[0].difficulty);
     expect(result.questions[0].skillCode).toBe('phan_so');
     expect((result.questions[0] as any).slotId).toBeUndefined();
+    expect(result.questions.every((question) => !('explanation' in question))).toBe(true);
   });
 
   it('passes the capability-aware V3 system instruction to the provider', async () => {
@@ -187,6 +189,7 @@ describe('quiz generation V3 quality pipeline', () => {
     );
 
     expect(result.questions).toHaveLength(1);
+    expect(result.questions[0]).not.toHaveProperty('explanation');
     expect(mocks.requestWorkerAiText).not.toHaveBeenCalled();
   });
 });

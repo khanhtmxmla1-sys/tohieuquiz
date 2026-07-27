@@ -14,6 +14,7 @@ describe('saved question schema coverage', () => {
         slotId: `slot-${index + 1}`,
         type,
         difficulty: ((index % 3) + 1) as 1 | 2 | 3,
+        explanation: 'Lời giải legacy phải bị bỏ khỏi output AI mới.',
       } as GeneratedQuestionV3;
       const domainQuestion = mapGeneratedQuizV3ToDomain({
         promptVersion: 'ai-blueprint-v3',
@@ -23,6 +24,7 @@ describe('saved question schema coverage', () => {
       }).questions[0];
 
       expect(validateQuestion(domainQuestion).success, type).toBe(true);
+      expect(domainQuestion).not.toHaveProperty('explanation');
     }
   });
 

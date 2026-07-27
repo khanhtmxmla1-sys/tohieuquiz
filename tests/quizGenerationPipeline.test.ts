@@ -326,6 +326,11 @@ describe('quiz generation quality pipeline', () => {
     );
 
     expect(result.questions).toHaveLength(2);
+    expect(result.questions.every((question) => !('explanation' in question))).toBe(true);
+    const repairCalls = mocks.requestWorkerAiText.mock.calls.filter(
+      (call) => call[1]?.action?.stage === 'REPAIR',
+    );
+    expect(repairCalls[0][0].messages[1].content).toContain('Không tạo trường explanation');
     expect(mocks.requestWorkerAiText).toHaveBeenCalledTimes(2);
     expect(mocks.requestWorkerAiText.mock.calls.map((call) => call[1]?.action?.stage)).toEqual(['REPAIR', 'REVIEW']);
     expect(mocks.requestWorkerAiText.mock.calls.every((call) => call[1]?.action?.actionId === execution.action.actionId)).toBe(true);
