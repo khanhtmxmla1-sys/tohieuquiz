@@ -60,6 +60,12 @@ const renderAt = (initialEntries: string[], initialIndex: number) =>
 /** The legal pages are React.lazy, so every render has to wait for the chunk before clicking. */
 const openPage = async (bottomButton: string) => screen.findByRole('button', { name: bottomButton });
 
+const click = async (element: HTMLElement) => {
+    await act(async () => {
+        fireEvent.click(element);
+    });
+};
+
 beforeEach(() => {
     window.sessionStorage.clear();
     setScrollY(0);
@@ -71,8 +77,10 @@ beforeEach(() => {
     vi.stubGlobal('cancelAnimationFrame', () => {});
 });
 
-afterEach(() => {
-    useQuizStore.setState(originalQuizState, true);
+afterEach(async () => {
+    await act(async () => {
+        useQuizStore.setState(originalQuizState, true);
+    });
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
 });
@@ -82,7 +90,7 @@ describe.each(PAGES)('$name back control', ({ path, bottomButton }) => {
         renderAt(['/', path], 1);
         await openPage(bottomButton);
 
-        fireEvent.click(screen.getByRole('button', { name: bottomButton }));
+        await click(screen.getByRole('button', { name: bottomButton }));
 
         expect(screen.getByTestId('probe')).toHaveTextContent('/|POP');
         expect(await screen.findByText('home-page')).toBeVisible();
@@ -93,7 +101,7 @@ describe.each(PAGES)('$name back control', ({ path, bottomButton }) => {
         renderAt([path], 0);
         await openPage(bottomButton);
 
-        fireEvent.click(screen.getByRole('button', { name: bottomButton }));
+        await click(screen.getByRole('button', { name: bottomButton }));
 
         expect(screen.getByTestId('probe')).toHaveTextContent('/|REPLACE');
         expect(await screen.findByText('home-page')).toBeVisible();
@@ -105,7 +113,7 @@ describe.each(PAGES)('$name back control', ({ path, bottomButton }) => {
 
         // The header control is an icon with no accessible name, so it is taken by DOM order —
         // the page renders it first and the mocked footer contributes no buttons.
-        fireEvent.click(screen.getAllByRole('button')[0]);
+        await click(screen.getAllByRole('button')[0]);
 
         expect(screen.getByTestId('probe')).toHaveTextContent('/|POP');
     });
@@ -130,7 +138,7 @@ describe('legal page back scroll restore', () => {
         setScrollY(0);
         scrollTo.mockClear();
 
-        act(() => { fireEvent.click(screen.getByRole('button', { name: 'Quay lại Trang chủ' })); });
+        await click(screen.getByRole('button', { name: 'Quay lại Trang chủ' }));
 
         // The store update flushes in its own commit ahead of navigate(-1), so the view branch
         // scrolls /privacy to the top before the POP even happens.
