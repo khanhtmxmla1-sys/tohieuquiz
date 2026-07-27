@@ -54,7 +54,9 @@ jobs:
         run: npm run verify
 
       - name: Run release-readiness policy
-        run: npm run release:readiness -- --base="${{ inputs.base_ref }}"
+        env:
+          RELEASE_BASE_REF: ${{ inputs.base_ref }}
+        run: npm run release:readiness -- --base="$RELEASE_BASE_REF"
 
   e2e-stubbed:
     name: Cypress stubbed readiness
