@@ -92,6 +92,28 @@ jobs:
       - name: Run Vitest
         run: npm run test:ci
 
+  coverage:
+    name: Coverage threshold
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run coverage threshold
+        run: npm run test:coverage
+
   build:
     name: Production build
     runs-on: ubuntu-latest

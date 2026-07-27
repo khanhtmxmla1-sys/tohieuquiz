@@ -16,7 +16,13 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
-            include: ['utils/**', 'schemas/**', 'services/**', 'stores/**']
-        }
-    }
+            include: ['schemas/**/*.ts', 'utils/**/*.ts'],
+            thresholds: {
+                statements: 75,
+                branches: 54,
+                functions: 94,
+                lines: 78,
+            },
+        },
+    },
 });

@@ -90,4 +90,5 @@ workers/*query*.txt
 workers/fix_*.ps1
  
 # Local git worktrees 
-.worktrees/ 
+.worktrees/
+coverage/
