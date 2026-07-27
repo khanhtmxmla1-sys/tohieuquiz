@@ -226,7 +226,8 @@ const request = (body: Record<string, unknown>) => new Request('https://www.thto
 
 let fakeDb: FakeAiDb;
 let env: any;
-let fetchSpy: ReturnType<typeof vi.spyOn>;
+let gatewayFetch: ReturnType<typeof vi.fn>;
+let globalFetchSpy: ReturnType<typeof vi.spyOn>;
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -234,19 +235,23 @@ afterEach(() => {
 
 beforeEach(() => {
   fakeDb = new FakeAiDb();
+  gatewayFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
   env = {
     DB: fakeDb as unknown as D1Database,
-    CLIPROXY_API: 'https://ai.example.test/v1',
+    AI_GATEWAY: { fetch: gatewayFetch },
+    CLIPROXY_API: 'https://ai-gateway.internal/v1',
     CLIPROXY_TOKEN: 'test-token',
     JWT_SECRET: 'test-secret',
   };
   authState.user = { username: 'teacher-a', role: 'teacher' };
   rateLimitMock.mockReset();
   rateLimitMock.mockResolvedValue(null);
-  fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  }));
+  globalFetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(
+    new Error('AI proxy must use the AI_GATEWAY service binding'),
+  );
 });
 
 describe('AI request policy', () => {
@@ -290,7 +295,7 @@ describe('/api/ai/chat', () => {
 
     expect(response?.status).toBe(400);
     await expect(response?.json()).resolves.toMatchObject({ code: 'AI_META_REQUIRED' });
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(gatewayFetch).not.toHaveBeenCalled();
   });
 
   it('returns 403 when a student requests QUIZ_CREATE', async () => {
@@ -307,11 +312,11 @@ describe('/api/ai/chat', () => {
     );
 
     expect(response?.status).toBe(403);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(gatewayFetch).not.toHaveBeenCalled();
   });
 
   it('releases the reservation on upstream 503 during GENERATE', async () => {
-    fetchSpy.mockResolvedValueOnce(new Response('down', { status: 503 }));
+    gatewayFetch.mockResolvedValueOnce(new Response('down', { status: 503 }));
 
     const response = await handleAiProxy(
       request({
@@ -377,7 +382,9 @@ describe('/api/ai/chat', () => {
     expect(response?.status).toBe(200);
     expect(JSON.stringify(infoSpy.mock.calls)).toContain('ai-blueprint-v3');
     expect(JSON.stringify(infoSpy.mock.calls)).not.toContain('SECRET');
-    const upstreamBody = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+    const upstreamBody = JSON.parse(String(gatewayFetch.mock.calls[0][1]?.body));
+    expect(String(gatewayFetch.mock.calls[0][0])).toBe('https://ai-gateway.internal/v1/chat/completions');
+    expect(globalFetchSpy).not.toHaveBeenCalled();
     expect(upstreamBody._meta).toBeUndefined();
   });
 
@@ -402,7 +409,7 @@ describe('/api/ai/chat', () => {
 
     expect(response?.status).toBe(400);
     await expect(response?.json()).resolves.toMatchObject({ code: 'AI_META_INVALID' });
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(gatewayFetch).not.toHaveBeenCalled();
   });
 
   it('does not forward internal action metadata to the upstream provider', async () => {
@@ -417,7 +424,9 @@ describe('/api/ai/chat', () => {
       'POST',
     );
 
-    const upstreamBody = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+    const upstreamBody = JSON.parse(String(gatewayFetch.mock.calls[0][1]?.body));
+    expect(String(gatewayFetch.mock.calls[0][0])).toBe('https://ai-gateway.internal/v1/chat/completions');
+    expect(globalFetchSpy).not.toHaveBeenCalled();
     expect(upstreamBody._meta).toBeUndefined();
   });
 });

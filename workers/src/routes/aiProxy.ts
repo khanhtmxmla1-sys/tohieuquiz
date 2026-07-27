@@ -105,7 +105,9 @@ export async function handleAiProxy(
 
     const serializedLength = JSON.stringify(body).length;
     if (serializedLength > 12 * 1024 * 1024) return errorResponse('AI request is too large', 413);
-    if (!env.CLIPROXY_API || !env.CLIPROXY_TOKEN) return errorResponse('AI service not configured', 503);
+    if (!env.AI_GATEWAY || !env.CLIPROXY_API || !env.CLIPROXY_TOKEN) {
+        return errorResponse('AI service not configured', 503);
+    }
 
     let meta: AiRequestMeta;
     try {
@@ -139,7 +141,7 @@ export async function handleAiProxy(
 
     let aiResponse: Response;
     try {
-        aiResponse = await fetch(`${env.CLIPROXY_API.replace(/\/$/, '')}/chat/completions`, {
+        aiResponse = await env.AI_GATEWAY.fetch(`${env.CLIPROXY_API.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

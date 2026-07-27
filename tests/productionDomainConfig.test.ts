@@ -48,7 +48,10 @@ describe('TôHiệuQuiz production domain contract', () => {
     expect(workerClient).toContain('AI_CHAT_API_PATH');
     expect(workerClient).toContain("credentials: 'include'");
     expect(workerClient).not.toContain('Authorization:');
-    expect(workerConfig).toContain('CLIPROXY_API = "https://ai.thtohieu.com/v1"');
+    expect(workerConfig).toContain('[[services]]');
+    expect(workerConfig).toContain('binding = "AI_GATEWAY"');
+    expect(workerConfig).toContain('service = "tohieuquiz-ai-gateway"');
+    expect(workerConfig).toContain('CLIPROXY_API = "https://ai-gateway.internal/v1"');
   });
 
   it('keeps the frontend, SEO, sitemap and CSP on the official domains', () => {

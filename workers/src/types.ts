@@ -1,5 +1,10 @@
+export interface AiGatewayBinding {
+    fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+}
+
 export interface Env {
     DB: D1Database;
+    AI_GATEWAY: AiGatewayBinding;
     CLIPROXY_API: string;
     CLIPROXY_TOKEN: string;
     JWT_SECRET: string;
