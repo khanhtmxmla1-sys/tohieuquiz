@@ -1,5 +1,6 @@
 import { getWorkersApiBaseUrl } from '../api/config';
 import { type AiActionOptions, resolveAiActionMeta } from './aiAction';
+import { AI_CHAT_API_PATH } from './endpointConfig';
 import { extractAIContent, extractAIErrorMessage } from './utils/aiResponseParser';
 
 export interface WorkerAiRequest extends Record<string, unknown> {
@@ -69,7 +70,7 @@ export const requestWorkerAi = async (
   requestBody: WorkerAiRequest,
   options: WorkerAiRequestOptions = {},
 ): Promise<WorkerAiResult> => {
-  const path = '/api/ai/chat';
+  const path = AI_CHAT_API_PATH;
   const controller = new AbortController();
   const actionMeta = resolveAiActionMeta(options);
   let timedOut = false;

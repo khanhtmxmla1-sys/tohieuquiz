@@ -12,6 +12,7 @@ import { requestWorkerAiText } from '../workerAiClient';
 
 type ImageLibraryItem = { id: string; name: string; data?: string };
 type StepCallback = (step: 'generating' | 'reviewing' | 'repairing' | 'completed') => void;
+export type OpenAiModelProfile = 'mux' | 'openai';
 
 const formatMathSigns = (text: string): string =>
   text
@@ -78,15 +79,14 @@ export const generateWithOpenAIResilient = async (
   _apiKey: string,
   file?: File | null,
   imageLibrary?: ImageLibraryItem[],
-  baseUrl: string = '',
+  modelProfile: OpenAiModelProfile = 'mux',
   _onStepChange?: StepCallback,
   execution?: QuizAiExecutionContext,
   systemInstruction?: string,
 ): Promise<unknown> => {
-  const isMux = !/api\.openai\.com/i.test(baseUrl);
-  const allModelCandidates = isMux
-    ? ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview']
-    : ['gpt-4o'];
+  const allModelCandidates = modelProfile === 'openai'
+    ? ['gpt-4o']
+    : ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-preview'];
   const modelCandidates = execution ? allModelCandidates.slice(0, 1) : allModelCandidates;
   const imageLibraryItems = imageLibrary || [];
   const userContent = await buildUserContent(promptText, file, imageLibraryItems);

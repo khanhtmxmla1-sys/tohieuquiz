@@ -50,8 +50,7 @@ export const createProvider = (config: CreateProviderConfig): IAIProvider => {
             return new OpenAIProvider(apiKey, 'openai', baseUrl || '', model);
 
         case 'llm-mux':
-            const muxBaseUrl = baseUrl || 'https://ai.thtohieu.com/v1';
-            return new OpenAIProvider(apiKey, 'llm-mux', muxBaseUrl, model);
+            return new OpenAIProvider(apiKey, 'llm-mux', '', model);
 
         default:
             throw new Error(`Unknown AI provider type: ${type}`);

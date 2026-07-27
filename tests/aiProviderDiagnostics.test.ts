@@ -54,7 +54,7 @@ describe('AI provider V3 diagnostics propagation', () => {
       '',
       null,
       [],
-      'https://ai.thtohieu.com/v1',
+      'mux',
       undefined,
       execution,
       '[SYSTEM ai-blueprint-v3]',

@@ -116,31 +116,31 @@ export const AI_PROVIDER_INFO: Record<AIProviderType, AIProviderInfo> = {
     gemini: {
         type: 'gemini',
         displayName: 'Google Gemini',
-        description: 'Gemini 2.0 Flash - Free tier available',
-        requiresApiKey: true,
+        description: 'Gemini thông qua API bảo mật của TôHiệuQuiz',
+        requiresApiKey: false,
         defaultModel: 'gemini-2.0-flash',
         website: 'https://ai.google.dev/'
     },
     perplexity: {
         type: 'perplexity',
         displayName: 'Perplexity',
-        description: 'Sonar model with web search',
-        requiresApiKey: true,
+        description: 'Sonar thông qua API bảo mật của TôHiệuQuiz',
+        requiresApiKey: false,
         defaultModel: 'sonar',
         website: 'https://perplexity.ai/'
     },
     openai: {
         type: 'openai',
         displayName: 'OpenAI',
-        description: 'GPT-4o model',
-        requiresApiKey: true,
+        description: 'GPT-4o thông qua API bảo mật của TôHiệuQuiz',
+        requiresApiKey: false,
         defaultModel: 'gpt-4o',
         website: 'https://openai.com/'
     },
     'llm-mux': {
         type: 'llm-mux',
-        displayName: 'LLM-Mux',
-        description: 'Local proxy for multiple providers',
+        displayName: 'AI TôHiệuQuiz',
+        description: 'Multi-model thông qua API bảo mật của TôHiệuQuiz',
         requiresApiKey: false,
         defaultModel: 'gemini-2.5-flash',
         website: 'https://github.com/nghyane/llm-mux'

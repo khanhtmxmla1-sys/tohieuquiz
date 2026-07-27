@@ -1,7 +1,15 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(path, 'utf8');
+
+const collectFrontendSourceFiles = (directory: string): string[] => readdirSync(directory, { withFileTypes: true })
+  .flatMap((entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) return collectFrontendSourceFiles(path);
+    return /\.(ts|tsx)$/.test(entry.name) ? [path] : [];
+  });
 
 describe('TôHiệuQuiz production domain contract', () => {
   it('routes the API Worker through api.thtohieu.com with the approved origins', () => {
@@ -23,6 +31,21 @@ describe('TôHiệuQuiz production domain contract', () => {
     ]) {
       expect(config).toContain(origin);
     }
+  });
+
+  it('keeps AI gateway credentials and direct gateway calls out of browser code', () => {
+    const browserSources = collectFrontendSourceFiles('src');
+    const directGatewayReferences = browserSources.filter((path) => read(path).includes('ai.thtohieu.com'));
+    const workerClient = read('src/services/ai/workerAiClient.ts');
+    const endpointConfig = read('src/services/ai/endpointConfig.ts');
+    const workerConfig = read('workers/wrangler.toml');
+
+    expect(directGatewayReferences).toEqual([]);
+    expect(endpointConfig).toContain("AI_CHAT_API_PATH = '/api/ai/chat'");
+    expect(workerClient).toContain('AI_CHAT_API_PATH');
+    expect(workerClient).toContain("credentials: 'include'");
+    expect(workerClient).not.toContain('Authorization:');
+    expect(workerConfig).toContain('CLIPROXY_API = "https://ai.thtohieu.com/v1"');
   });
 
   it('keeps the frontend, SEO, sitemap and CSP on the official domains', () => {

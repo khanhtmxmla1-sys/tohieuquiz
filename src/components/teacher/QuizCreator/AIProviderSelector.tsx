@@ -10,8 +10,12 @@ import { AIProvider } from '../../../services/geminiService';
 import { Bot } from 'lucide-react';
 
 const AI_PROVIDERS = [
-    { id: 'localhost', name: 'Localhost', description: 'AIcliproxy trên máy (Không timeout)', adminOnly: false },
-    { id: 'llm-mux', name: 'AI Client Pro', description: 'Multi-Model qua ai.thtohieu.com', adminOnly: false },
+    {
+        id: 'llm-mux',
+        name: 'AI TôHiệuQuiz',
+        description: 'Kết nối an toàn qua API TôHiệuQuiz; không cần nhập API key.',
+        adminOnly: false,
+    },
 ];
 
 interface AIProviderSelectorProps {
@@ -25,14 +29,8 @@ export const AIProviderSelector: React.FC<AIProviderSelectorProps> = ({
     onChange,
     isAdmin = false,
 }) => {
-    const isLocalBrowser = typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-    // Filter providers based on admin status
-    const availableProviders = AI_PROVIDERS.filter((p) => {
-        if ((p.id === 'localhost') && !isLocalBrowser) return false;
-        return !p.adminOnly || isAdmin;
-    });
+    // All browser requests use the authenticated TôHiệuQuiz Worker proxy.
+    const availableProviders = AI_PROVIDERS.filter((provider) => !provider.adminOnly || isAdmin);
 
     // If current value is not available, switch to first available
     React.useEffect(() => {
