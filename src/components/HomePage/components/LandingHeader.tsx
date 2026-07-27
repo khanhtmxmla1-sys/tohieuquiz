@@ -27,6 +27,14 @@ const LandingHeader: React.FC = () => {
             <div className="flex items-center gap-8 header-nav-container">
                 <nav className="hidden md:flex gap-6">
                     <button className="font-baloo font-semibold text-[#1e3a8a] hover:text-[#2563eb] text-base transition-colors" onClick={() => navigate('/')}>Trang chủ</button>
+                    <a
+                        href="https://phuhuynh.thtohieu.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-baloo font-semibold text-[#1e3a8a] hover:text-[#2563eb] text-base whitespace-nowrap transition-colors"
+                    >
+                        Cổng liên lạc phụ huynh
+                    </a>
                     <button className="font-baloo font-semibold text-[#1e3a8a] hover:text-[#2563eb] text-base transition-colors" onClick={() => navigate('/about')}>Giới thiệu</button>
                     <button className="font-baloo font-semibold text-[#1e3a8a] hover:text-[#2563eb] text-base transition-colors" onClick={() => navigate('/contact')}>Liên hệ</button>
                 </nav>

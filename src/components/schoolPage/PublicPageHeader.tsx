@@ -11,6 +11,7 @@ interface PublicPageHeaderProps {
 
 const navItems = [
     { label: 'Trang chủ', path: '/', key: 'home' },
+    { label: 'Cổng liên lạc phụ huynh', path: 'https://phuhuynh.thtohieu.com/', key: 'parent-portal', external: true },
     { label: 'Giới thiệu', path: '/about', key: 'about' },
     { label: 'Liên hệ', path: '/contact', key: 'contact' },
 ] as const;
@@ -66,15 +67,27 @@ const PublicPageHeader: React.FC<PublicPageHeaderProps> = ({ activePage, onBack 
                 <div className="hidden items-center gap-3 md:flex">
                     <nav className="flex items-center gap-1" aria-label="Điều hướng trang công khai">
                         {navItems.map((item) => (
-                            <button
-                                key={item.key}
-                                type="button"
-                                onClick={() => goTo(item.path)}
-                                className={navButtonClass(item.key)}
-                                aria-current={item.key === activePage ? 'page' : undefined}
-                            >
-                                {item.label}
-                            </button>
+                            'external' in item && item.external ? (
+                                <a
+                                    key={item.key}
+                                    href={item.path}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${navButtonClass(item.key)} whitespace-nowrap`}
+                                >
+                                    {item.label}
+                                </a>
+                            ) : (
+                                <button
+                                    key={item.key}
+                                    type="button"
+                                    onClick={() => goTo(item.path)}
+                                    className={navButtonClass(item.key)}
+                                    aria-current={item.key === activePage ? 'page' : undefined}
+                                >
+                                    {item.label}
+                                </button>
+                            )
                         ))}
                     </nav>
                     <button
@@ -103,15 +116,27 @@ const PublicPageHeader: React.FC<PublicPageHeaderProps> = ({ activePage, onBack 
                 <div id="public-mobile-menu" className="border-t border-blue-100 bg-white px-4 py-4 md:hidden">
                     <nav className="mx-auto flex max-w-7xl flex-col gap-2" aria-label="Điều hướng di động">
                         {navItems.map((item) => (
-                            <button
-                                key={item.key}
-                                type="button"
-                                onClick={() => goTo(item.path)}
-                                className={`${navButtonClass(item.key)} w-full justify-start rounded-xl`}
-                                aria-current={item.key === activePage ? 'page' : undefined}
-                            >
-                                {item.label}
-                            </button>
+                            'external' in item && item.external ? (
+                                <a
+                                    key={item.key}
+                                    href={item.path}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${navButtonClass(item.key)} w-full justify-start rounded-xl`}
+                                >
+                                    {item.label}
+                                </a>
+                            ) : (
+                                <button
+                                    key={item.key}
+                                    type="button"
+                                    onClick={() => goTo(item.path)}
+                                    className={`${navButtonClass(item.key)} w-full justify-start rounded-xl`}
+                                    aria-current={item.key === activePage ? 'page' : undefined}
+                                >
+                                    {item.label}
+                                </button>
+                            )
                         ))}
                         <button
                             type="button"
