@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
+import { expectConsoleError } from './helpers/expectedConsole';
 
 vi.mock('../workers/src/middleware/jwtAuth', () => ({
   verifyJWTMiddleware: vi.fn(async () => ({
@@ -44,6 +44,18 @@ describe('AI Tutor internal error handling', () => {
     expect(payload.message).toBe('Internal server error');
     expect(payload.requestId).toBe('req-ai-tutor-1');
     expect(JSON.stringify(payload)).not.toContain('questions_private');
-    expectConsoleMessage(errorSpy, 'questions_private');
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    const logged = JSON.parse(String(errorSpy.mock.calls[0][0]));
+    expect(logged).toEqual(expect.objectContaining({
+      event: 'worker_request_failed',
+      requestId: 'req-ai-tutor-1',
+      route: '/api/ai-tutor/diagnose',
+      method: 'POST',
+      status: 500,
+      errorCode: 'INTERNAL_ERROR',
+      context: 'POST /api/ai-tutor/diagnose',
+      errorName: 'Error',
+    }));
+    expect(JSON.stringify(logged)).not.toContain('questions_private');
   });
 });

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 import { ClassroomDatabase, classroomEnv, classroomRequest } from './fixtures/classroomWorkerFixture';
-import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
+import { expectConsoleError } from './helpers/expectedConsole';
 
 const { authState, verifyJWTMiddleware } = vi.hoisted(() => ({
     authState: { currentUser: null as JWTPayload | null },
@@ -141,7 +141,7 @@ describe('Classroom route contracts', () => {
             headers: { 'x-request-id': 'req-classroom-1' },
             body: JSON.stringify({
                 students: [{
-                    fullName: 'Nguyễn Văn A', username: 'student-new', password: 'secret12345',
+                    fullName: 'Nguyá»…n VÄƒn A', username: 'student-new', password: 'secret12345',
                     classId: 'class-a', parentPhone: '',
                 }],
             }),
@@ -158,6 +158,19 @@ describe('Classroom route contracts', () => {
         expect(payload.message).toBe('Internal server error');
         expect(payload.requestId).toBe('req-classroom-1');
         expect(JSON.stringify(payload)).not.toContain('UNIQUE constraint');
-        expectConsoleMessage(errorSpy, 'UNIQUE constraint failed');
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        const logged = JSON.parse(String(errorSpy.mock.calls[0][0]));
+        expect(logged).toEqual(expect.objectContaining({
+            event: 'worker_request_failed',
+            requestId: 'req-classroom-1',
+            route: '/api/students/batch',
+            method: 'POST',
+            status: 500,
+            errorCode: 'INTERNAL_ERROR',
+            context: 'POST /api/students/batch',
+            errorName: 'Error',
+        }));
+        expect(JSON.stringify(logged)).not.toContain('UNIQUE constraint');
+        expect(JSON.stringify(logged)).not.toContain('students.username');
     });
 });

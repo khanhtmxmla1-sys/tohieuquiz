@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { recoverFromStaleChunk } from '../../utils/chunkRecovery';
+import { isStaleChunkError, recoverFromStaleChunk } from '../../utils/chunkRecovery';
+import { reportClientError } from '../../services/observability/clientErrorReporter';
 
 interface Props {
     children: ReactNode;
@@ -35,6 +36,11 @@ class ErrorBoundary extends Component<Props, State> {
     componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
         this.setState({ errorInfo });
 
+        const staleChunk = isStaleChunkError(error);
+        reportClientError(error, {
+            event: staleChunk ? 'stale_chunk_error' : 'react_error_boundary',
+            componentStack: errorInfo.componentStack || undefined,
+        });
         // A tab opened before a deployment can still reference removed hashed chunks.
         // Reload once to fetch the current HTML/module graph instead of showing a fatal error.
         if (recoverFromStaleChunk(error)) return;

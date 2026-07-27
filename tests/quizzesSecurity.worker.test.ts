@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
+import { expectConsoleError } from './helpers/expectedConsole';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 
 let currentUser: JWTPayload | null = null;
@@ -29,21 +29,21 @@ class Database {
   executed: Statement[] = [];
   batchError: Error | null = null;
   question = {
-    id: 'q-1', quiz_id: 'quiz-a', type: 'TRUE_FALSE', question: 'Chọn đúng sai',
-    options: '', correct_answer: 'B', items: JSON.stringify([{ id: 'i-1', statement: 'Mệnh đề', isCorrect: true }]),
-    text_field: '', blanks: JSON.stringify([{ id: 'b-1', correctAnswer: 'bí mật', options: ['bí mật', 'khác'] }]),
+    id: 'q-1', quiz_id: 'quiz-a', type: 'TRUE_FALSE', question: 'Chá»n Ä‘Ãºng sai',
+    options: '', correct_answer: 'B', items: JSON.stringify([{ id: 'i-1', statement: 'Má»‡nh Ä‘á»', isCorrect: true }]),
+    text_field: '', blanks: JSON.stringify([{ id: 'b-1', correctAnswer: 'bÃ­ máº­t', options: ['bÃ­ máº­t', 'khÃ¡c'] }]),
     distractors: '', sentence: '', words: '', correct_word_indexes: '[1]', image: '', tags: '',
   };
   prepare(sql: string) { return new Statement(sql, this); }
   first(sql: string, bindings: unknown[]) {
     if (sql.includes('FROM teachers t')) {
-      return { username: 'teacher-a', full_name: 'Cô A', full_name_count: 1 };
+      return { username: 'teacher-a', full_name: 'CÃ´ A', full_name_count: 1 };
     }
     if (sql.includes('SELECT created_by FROM quizzes')) {
       return { created_by: bindings[0] === 'quiz-b' ? 'teacher-b' : 'teacher-a' };
     }
     if (sql.includes('SELECT * FROM quizzes WHERE id')) {
-      return { id: bindings[0], title: 'Đề', created_by: bindings[0] === 'quiz-b' ? 'teacher-b' : 'teacher-a', class_level: '4', time_limit: 15 };
+      return { id: bindings[0], title: 'Äá»', created_by: bindings[0] === 'quiz-b' ? 'teacher-b' : 'teacher-a', class_level: '4', time_limit: 15 };
     }
     if (sql.includes('COUNT(*) as cnt')) return { cnt: 0 };
     return null;
@@ -120,7 +120,7 @@ describe('quiz answer confidentiality and ownership', () => {
   });
 
   it('loads full question data for a uniquely matched legacy display-name owner', async () => {
-    currentUser = { username: 'teacher-a', fullName: 'Cô A', role: 'teacher' };
+    currentUser = { username: 'teacher-a', fullName: 'CÃ´ A', role: 'teacher' };
     const db = new Database();
 
     const response = await handleQuizRoutes(
@@ -134,24 +134,24 @@ describe('quiz answer confidentiality and ownership', () => {
     expect(response.status).toBe(200);
     expect(rows[0].correct_answer).toBe('B');
     const scopedQuery = db.executed.find((statement) => statement.sql.includes('LOWER(TRIM(z.created_by))'));
-    expect(scopedQuery?.bindings).toEqual(['teacher-a', 'Cô A', 'Cô A']);
+    expect(scopedQuery?.bindings).toEqual(['teacher-a', 'CÃ´ A', 'CÃ´ A']);
   });
 
   it('hides drag-drop order while preserving a shuffled choice pool', () => {
     const safe = sanitizeQuestionForStudent({
       id: 'drag-1',
       type: 'DRAG_DROP',
-      text_field: 'Bầu trời [xanh] và mây [trắng].',
-      blanks: JSON.stringify(['xanh', 'trắng']),
-      distractors: JSON.stringify(['đỏ']),
+      text_field: 'Báº§u trá»i [xanh] vÃ  mÃ¢y [tráº¯ng].',
+      blanks: JSON.stringify(['xanh', 'tráº¯ng']),
+      distractors: JSON.stringify(['Ä‘á»']),
       correct_answer: '',
     });
-    expect(safe.text_field).toBe('Bầu trời [1] và mây [2].');
+    expect(safe.text_field).toBe('Báº§u trá»i [1] vÃ  mÃ¢y [2].');
     expect(JSON.parse(safe.blanks)).toEqual([]);
     const pool = JSON.parse(safe.distractors);
-    expect(pool.sort()).toEqual(['xanh', 'trắng', 'đỏ'].sort());
+    expect(pool.sort()).toEqual(['xanh', 'tráº¯ng', 'Ä‘á»'].sort());
     expect(safe.text_field).not.toContain('xanh');
-    expect(safe.text_field).not.toContain('trắng');
+    expect(safe.text_field).not.toContain('tráº¯ng');
   });
 
   it('does not return correctAnswer in student validation details', async () => {
@@ -169,7 +169,7 @@ describe('quiz answer confidentiality and ownership', () => {
     currentUser = { username: 'teacher-a', role: 'teacher' };
     const db = new Database();
     const response = await handleQuizRoutes(authRequest('https://test/api/quizzes/quiz-a', {
-      method: 'PUT', body: JSON.stringify({ id: 'quiz-b', title: 'Tấn công', classLevel: '4', questions: [] }),
+      method: 'PUT', body: JSON.stringify({ id: 'quiz-b', title: 'Táº¥n cÃ´ng', classLevel: '4', questions: [] }),
     }), env(db), '/api/quizzes/quiz-a', 'PUT');
     expect(response.status).toBe(400);
     expect(db.executed.some(statement => statement.bindings.includes('quiz-b'))).toBe(false);
@@ -191,7 +191,7 @@ describe('quiz answer confidentiality and ownership', () => {
       method: 'POST',
       headers: { 'x-request-id': 'req-quiz-1' },
       body: JSON.stringify({
-        id: 'quiz-a', title: 'Đề', classLevel: '4', timeLimit: 15,
+        id: 'quiz-a', title: 'Äá»', classLevel: '4', timeLimit: 15,
         createdAt: '2026-07-20T00:00:00.000Z', questions: [],
       }),
     }), env(db), '/api/quizzes', 'POST');
@@ -201,6 +201,18 @@ describe('quiz answer confidentiality and ownership', () => {
     expect(payload.message).toBe('Internal server error');
     expect(payload.requestId).toBe('req-quiz-1');
     expect(JSON.stringify(payload)).not.toContain('secret_quizzes');
-    expectConsoleMessage(errorSpy, 'secret_quizzes');
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    const logged = JSON.parse(String(errorSpy.mock.calls[0][0]));
+    expect(logged).toEqual(expect.objectContaining({
+      event: 'worker_request_failed',
+      requestId: 'req-quiz-1',
+      route: '/api/quizzes',
+      method: 'POST',
+      status: 500,
+      errorCode: 'INTERNAL_ERROR',
+      context: 'POST /api/quizzes',
+      errorName: 'Error',
+    }));
+    expect(JSON.stringify(logged)).not.toContain('secret_quizzes');
   });
 });

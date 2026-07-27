@@ -1,0 +1,147 @@
+name: Release readiness (no deployment)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: Git reference used to compare migrations and release changes
+        required: true
+        default: origin/main
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-readiness-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: 22.22.0
+
+jobs:
+  core-gate:
+    name: Core readiness gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SITEMAP_SITE_URL: https://www.thtohieu.com
+      VITE_FEATURE_GIFT_SHOP_V2: 'false'
+      VITE_FEATURE_AI_QUIZ_V2: 'false'
+      VITE_FEATURE_AI_BLUEPRINT_V3: 'false'
+      VITE_FEATURE_PARENT_PORTAL_V1: 'false'
+      VITE_GIFT_SHOP_MODE: api
+    steps:
+      - name: Checkout candidate commit
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked frontend dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install locked Worker dependencies
+        run: npm ci --prefix workers --ignore-scripts
+
+      - name: Run full verification
+        run: npm run verify
+
+      - name: Run release-readiness policy
+        env:
+          RELEASE_BASE_REF: ${{ inputs.base_ref }}
+        run: npm run release:readiness -- --base="$RELEASE_BASE_REF"
+
+  e2e-stubbed:
+    name: Cypress stubbed readiness
+    needs: core-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout candidate commit
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run stubbed Cypress specs
+        uses: cypress-io/github-action@v6
+        with:
+          install: false
+          start: npm run dev
+          wait-on: http://localhost:3001
+          wait-on-timeout: 120
+          command: npm run cypress:run:stubbed
+        env:
+          VITE_FEATURE_GIFT_SHOP_V2: 'true'
+          VITE_FEATURE_AI_QUIZ_V2: 'true'
+          VITE_FEATURE_AI_BLUEPRINT_V3: 'false'
+          VITE_FEATURE_PARENT_PORTAL_V1: 'true'
+          VITE_GIFT_SHOP_MODE: api
+
+      - name: Upload stubbed failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-readiness-cypress-stubbed-${{ github.run_id }}
+          path: cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e-blueprint-v3:
+    name: Cypress Blueprint V3 readiness
+    needs: core-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout candidate commit
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run Blueprint V3 Cypress spec
+        uses: cypress-io/github-action@v6
+        with:
+          install: false
+          start: npm run dev
+          wait-on: http://localhost:3001
+          wait-on-timeout: 120
+          command: npm run cypress:run:blueprint-v3
+        env:
+          VITE_FEATURE_GIFT_SHOP_V2: 'true'
+          VITE_FEATURE_AI_QUIZ_V2: 'true'
+          VITE_FEATURE_AI_BLUEPRINT_V3: 'true'
+          VITE_FEATURE_PARENT_PORTAL_V1: 'true'
+          VITE_GIFT_SHOP_MODE: api
+
+      - name: Upload Blueprint V3 failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-readiness-cypress-blueprint-v3-${{ github.run_id }}
+          path: cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 7

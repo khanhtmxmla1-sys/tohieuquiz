@@ -1,3 +1,8 @@
+import {
+  reportClientError,
+  type ClientErrorEventName,
+} from '../services/observability/clientErrorReporter';
+
 const CHUNK_RELOAD_MARKER = 'tohieuquiz:stale-chunk-reload-at';
 const DEFAULT_COOLDOWN_MS = 60_000;
 
@@ -16,6 +21,17 @@ interface ChunkRecoveryOptions {
   reload?: () => void;
   now?: () => number;
   cooldownMs?: number;
+}
+
+type RecoveryHandler = (error: unknown) => boolean;
+type ErrorReporter = (
+  error: unknown,
+  options: { event: ClientErrorEventName },
+) => void;
+
+interface ChunkRecoveryInstallationOptions {
+  recover?: RecoveryHandler;
+  report?: ErrorReporter;
 }
 
 const errorMessage = (error: unknown): string => {
@@ -63,16 +79,30 @@ export const recoverFromStaleChunk = (
   }
 };
 
-export const installChunkRecovery = (): (() => void) => {
+export const installChunkRecovery = (
+  options: ChunkRecoveryInstallationOptions = {},
+): (() => void) => {
   if (typeof window === 'undefined') return () => undefined;
+
+  const recover = options.recover ?? recoverFromStaleChunk;
+  const report = options.report ?? reportClientError;
+
+  const reportFailure = (error: unknown, event: ClientErrorEventName) => {
+    report(error, { event });
+  };
 
   const onPreloadError = (event: Event) => {
     const payload = (event as Event & { payload?: unknown }).payload;
-    if (recoverFromStaleChunk(payload)) event.preventDefault();
+    reportFailure(payload, 'stale_chunk_error');
+    if (recover(payload)) event.preventDefault();
   };
 
   const onUnhandledRejection = (event: PromiseRejectionEvent) => {
-    if (recoverFromStaleChunk(event.reason)) event.preventDefault();
+    reportFailure(
+      event.reason,
+      isStaleChunkError(event.reason) ? 'stale_chunk_error' : 'unhandled_rejection',
+    );
+    if (recover(event.reason)) event.preventDefault();
   };
 
   window.addEventListener('vite:preloadError', onPreloadError);

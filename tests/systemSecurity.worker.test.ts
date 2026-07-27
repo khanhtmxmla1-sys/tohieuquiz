@@ -121,10 +121,19 @@ describe('system security password storage', () => {
             requestId: 'req-security-1',
         });
         expect(JSON.stringify(payload)).not.toContain('teachers');
-        expect(logger.error).toHaveBeenCalledWith(
-            expect.stringContaining('requestId=req-security-1'),
-            expect.any(Error),
-        );
+        expect(logger.error).toHaveBeenCalledTimes(1);
+        const logged = JSON.parse(String(logger.error.mock.calls[0][0]));
+        expect(logged).toEqual(expect.objectContaining({
+            event: 'worker_request_failed',
+            requestId: 'req-security-1',
+            route: '/api/failing',
+            method: 'GET',
+            status: 500,
+            errorCode: 'INTERNAL_ERROR',
+            context: 'system-security-test',
+            errorName: 'Error',
+        }));
+        expect(JSON.stringify(logged)).not.toContain('teachers');
     });
 
     it('keeps explicit 4xx business messages unchanged', async () => {
@@ -168,6 +177,7 @@ describe('system security password storage', () => {
         });
 
         expect(corsHeaders(official, production)['Access-Control-Allow-Origin']).toBe('https://www.thtohieu.com');
+        expect(corsHeaders(official, production)['Access-Control-Expose-Headers']).toContain('x-request-id');
         expect(corsHeaders(preview, production)['Access-Control-Allow-Origin']).toBe(preview.headers.get('Origin'));
         expect(corsHeaders(productionAlias, production)['Access-Control-Allow-Origin']).toBe(productionAlias.headers.get('Origin'));
         expect(corsHeaders(apiOrigin, production)['Access-Control-Allow-Origin']).toBe('https://api.thtohieu.com');

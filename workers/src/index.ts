@@ -42,6 +42,7 @@ import { handlePhieuSubdomain, handlePublicPhieuApi, handlePhieuRoutes } from '.
 import { handleResultReportRoutes } from './routes/resultReports';
 import { handleParentPortalRoutes } from './routes/parentPortal';
 import { handleNotificationRoutes } from './routes/notifications/route';
+import { handleClientErrorRoute } from './routes/clientErrors';
 import { Env } from './types';
 import { createWorkerFetch } from './router/createWorkerFetch';
 import { purgeExpiredRateLimits, rateLimit } from './middleware/rateLimit';
@@ -84,6 +85,7 @@ const fetch = createWorkerFetch({
     handleCertificateRoutes,
     handleAdminCertificateRoutes,
     handleMathObservabilityRoutes,
+    handleClientErrorRoute,
     handlePhieuSubdomain,
     handlePublicPhieuApi,
     handleParentPortalRoutes,

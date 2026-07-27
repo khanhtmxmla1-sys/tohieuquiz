@@ -1,18 +1,13 @@
+import { getRequestId, logStructured, type StructuredLogSink } from './logger';
 import { jsonResponse } from './response';
-
-type ErrorLogger = Pick<Console, 'error'>;
 
 export interface InternalErrorOptions {
     context: string;
     clientMessage?: string;
-    logger?: ErrorLogger;
+    logger?: StructuredLogSink;
 }
 
-export function getRequestId(request: Request): string {
-    const supplied = request.headers.get('x-request-id') || request.headers.get('cf-ray') || '';
-    const normalized = supplied.trim().slice(0, 128);
-    return normalized || crypto.randomUUID();
-}
+export { getRequestId } from './logger';
 
 export function internalErrorResponse(
     error: unknown,
@@ -20,8 +15,17 @@ export function internalErrorResponse(
     options: InternalErrorOptions,
 ): Response {
     const requestId = getRequestId(request);
-    const logger = options.logger || console;
-    logger.error(`[${options.context}] requestId=${requestId}`, error);
+    const normalized = error instanceof Error ? error : new Error(String(error));
+    logStructured('error', {
+        event: 'worker_request_failed',
+        requestId,
+        route: new URL(request.url).pathname,
+        method: request.method,
+        status: 500,
+        errorCode: 'INTERNAL_ERROR',
+        context: options.context,
+        errorName: normalized.name,
+    }, options.logger);
     return jsonResponse({
         status: 'error',
         message: options.clientMessage || 'Internal server error',
