@@ -64,6 +64,9 @@ jobs:
       - name: Type check frontend
         run: npm run typecheck
 
+      - name: Type check strict schema and utility lane
+        run: npm run typecheck:strict
+
       - name: Type check workers
         run: npm run typecheck:workers
 

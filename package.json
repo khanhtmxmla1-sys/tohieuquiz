@@ -30,7 +30,8 @@
     "security:scan": "node scripts/security-scan.mjs",
     "security:check": "npm run security:scan && npm run audit:dependencies:production",
     "lint": "eslint . --max-warnings=0",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "typecheck:strict": "tsc -p tsconfig.strict.json --noEmit"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
