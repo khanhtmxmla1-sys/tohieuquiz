@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
+import { expectConsoleError } from './helpers/expectedConsole';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 
 let currentUser: JWTPayload;
@@ -41,9 +41,9 @@ class FakeDB {
 
 const activeSessionRow = (overrides: Record<string, unknown> = {}) => ({
   id: 'live-1',
-  title: 'Kiểm tra trực tiếp',
+  title: 'KiÃ¡Â»Æ’m tra trÃ¡Â»Â±c tiÃ¡ÂºÂ¿p',
   quiz_id: 'quiz-1',
-  quiz_title: 'Toán 4',
+  quiz_title: 'ToÃƒÂ¡n 4',
   teacher_id: 'teacher-a',
   class_id: 'class-a',
   class_name: '4A',
@@ -63,7 +63,7 @@ const activeSessionRow = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const createParams = (overrides: Partial<LiveExamService.CreateLiveExamParams> = {}): LiveExamService.CreateLiveExamParams => ({
-  title: 'Kiểm tra Toán',
+  title: 'KiÃ¡Â»Æ’m tra ToÃƒÂ¡n',
   quizId: 'quiz-1',
   teacherId: 'teacher-a',
   classId: 'class-a',
@@ -88,10 +88,10 @@ describe('live exam P0 authorization and integrity', () => {
     const db = new FakeDB();
     db.first = (sql) => {
       if (sql.includes('FROM teachers t')) {
-        return { username: 'teacher-a', full_name: 'Cô A', full_name_count: 1 };
+        return { username: 'teacher-a', full_name: 'CÃƒÂ´ A', full_name_count: 1 };
       }
       if (sql.includes('SELECT id, title, created_by FROM quizzes')) {
-        return { id: 'quiz-1', title: 'Đề người khác', created_by: 'teacher-b' };
+        return { id: 'quiz-1', title: 'Ã„ÂÃ¡Â»Â ngÃ†Â°Ã¡Â»Âi khÃƒÂ¡c', created_by: 'teacher-b' };
       }
       return null;
     };
@@ -106,8 +106,8 @@ describe('live exam P0 authorization and integrity', () => {
   it('rejects creating a session for another teacher class', async () => {
     const db = new FakeDB();
     db.first = (sql) => {
-      if (sql.includes('FROM teachers t')) return { username: 'teacher-a', full_name: 'Cô A', full_name_count: 1 };
-      if (sql.includes('SELECT id, title, created_by FROM quizzes')) return { id: 'quiz-1', title: 'Toán', created_by: 'teacher-a' };
+      if (sql.includes('FROM teachers t')) return { username: 'teacher-a', full_name: 'CÃƒÂ´ A', full_name_count: 1 };
+      if (sql.includes('SELECT id, title, created_by FROM quizzes')) return { id: 'quiz-1', title: 'ToÃƒÂ¡n', created_by: 'teacher-a' };
       if (sql.includes('SELECT id, name, teacher_username FROM classes')) return { id: 'class-a', name: '4A', teacher_username: 'teacher-b' };
       return null;
     };
@@ -121,8 +121,8 @@ describe('live exam P0 authorization and integrity', () => {
   it('creates a session from a uniquely matched legacy display-name owner', async () => {
     const db = new FakeDB();
     db.first = (sql) => {
-      if (sql.includes('FROM teachers t')) return { username: 'teacher-a', full_name: 'Cô A', full_name_count: 1 };
-      if (sql.includes('SELECT id, title, created_by FROM quizzes')) return { id: 'quiz-1', title: 'Toán', created_by: 'Cô A' };
+      if (sql.includes('FROM teachers t')) return { username: 'teacher-a', full_name: 'CÃƒÂ´ A', full_name_count: 1 };
+      if (sql.includes('SELECT id, title, created_by FROM quizzes')) return { id: 'quiz-1', title: 'ToÃƒÂ¡n', created_by: 'CÃƒÂ´ A' };
       if (sql.includes('SELECT id, name, teacher_username FROM classes')) return { id: 'class-a', name: '4A', teacher_username: 'teacher-a' };
       return null;
     };
@@ -188,7 +188,7 @@ describe('live exam P0 authorization and integrity', () => {
     db.first = (sql) => {
       if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow();
       if (sql.includes('SELECT id, submitted_at FROM live_exam_participants')) return { id: 'participant-a', submitted_at: null };
-      if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'Toán 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
+      if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'ToÃƒÂ¡n 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
       return null;
     };
     db.all = (sql) => sql.includes('FROM questions')
@@ -211,7 +211,7 @@ describe('live exam P0 authorization and integrity', () => {
     db.first = (sql) => {
       if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow();
       if (sql.includes('SELECT id, submitted_at FROM live_exam_participants')) return { id: 'participant-a', submitted_at: null };
-      if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'Toán 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
+      if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'ToÃƒÂ¡n 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
       return null;
     };
     db.all = (sql) => sql.includes('FROM questions')
@@ -290,8 +290,8 @@ describe('live exam analytics route', () => {
     const db = new FakeDB();
     db.first = (sql) => {
       if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow({ status: 'closed', closed_at: '2026-07-15T00:30:00.000Z' });
-      if (sql.includes('SELECT id, title, status, quiz_id')) return { id: 'live-1', title: 'Kiểm tra', status: 'closed', quiz_id: 'quiz-1' };
-      if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'Toán', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
+      if (sql.includes('SELECT id, title, status, quiz_id')) return { id: 'live-1', title: 'KiÃ¡Â»Æ’m tra', status: 'closed', quiz_id: 'quiz-1' };
+      if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'ToÃƒÂ¡n', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
       return null;
     };
     db.all = (sql) => {
@@ -354,7 +354,19 @@ describe('live exam analytics route', () => {
     expect(payload.message).toBe('Failed to get session');
     expect(payload.requestId).toBe('req-live-1');
     expect(JSON.stringify(payload)).not.toContain('live_exam_sessions');
-    expectConsoleMessage(errorSpy, 'live_exam_sessions');
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    const logged = JSON.parse(String(errorSpy.mock.calls[0][0]));
+    expect(logged).toEqual(expect.objectContaining({
+      event: 'worker_request_failed',
+      requestId: 'req-live-1',
+      route: '/api/live-exam/live-1',
+      method: 'GET',
+      status: 500,
+      errorCode: 'INTERNAL_ERROR',
+      context: 'live-exam /api/live-exam/live-1',
+      errorName: 'Error',
+    }));
+    expect(JSON.stringify(logged)).not.toContain('live_exam_sessions');
   });
 
   it('does not expose raw errors from the teacher sessions route', async () => {
@@ -375,6 +387,18 @@ describe('live exam analytics route', () => {
     expect(payload.message).toBe('Failed to get sessions');
     expect(payload.requestId).toBe('req-live-list-1');
     expect(JSON.stringify(payload)).not.toContain('secret_score');
-    expectConsoleMessage(errorSpy, 'secret_score');
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    const logged = JSON.parse(String(errorSpy.mock.calls[0][0]));
+    expect(logged).toEqual(expect.objectContaining({
+      event: 'worker_request_failed',
+      requestId: 'req-live-list-1',
+      route: '/api/live-exam/teacher/teacher-a/sessions',
+      method: 'GET',
+      status: 500,
+      errorCode: 'INTERNAL_ERROR',
+      context: 'live-exam /api/live-exam/teacher/teacher-a/sessions',
+      errorName: 'Error',
+    }));
+    expect(JSON.stringify(logged)).not.toContain('secret_score');
   });
 });
