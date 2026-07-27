@@ -6,6 +6,6 @@ export const useLoadQuizzes = () => {
 
     useEffect(() => {
         void loadQuizzes();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, []);
 };

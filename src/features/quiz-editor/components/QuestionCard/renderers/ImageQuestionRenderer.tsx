@@ -31,7 +31,7 @@ const ImageRenderer: React.FC<{ question: ImageQuestionWithLegacy }> = ({ questi
         }
         // Cast via unknown: GeometryPreview accepts GeometryData objects only.
         // string TikZ already handled above, so if we reach here geometry is an object.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         return <GeometryPreview data={geometry as any} />;
     }
 

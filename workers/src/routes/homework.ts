@@ -333,7 +333,9 @@ async function callHomeworkAi(env: Env, media: string | string[], prompt: string
                 const error = new Error(`AI service returned ${response.status}`);
                 if (attempt === 0 && (response.status === 429 || response.status >= 500)) {
                     lastError = error;
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    await new Promise<void>((resolve) => {
+                        setTimeout(resolve, 500);
+                    });
                     continue;
                 }
                 throw error;
@@ -344,7 +346,9 @@ async function callHomeworkAi(env: Env, media: string | string[], prompt: string
         } catch (error) {
             lastError = error;
             if (attempt === 1 || (error instanceof DOMException && error.name === 'AbortError')) throw error;
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise<void>((resolve) => {
+                setTimeout(resolve, 500);
+            });
         } finally {
             clearTimeout(timeout);
         }

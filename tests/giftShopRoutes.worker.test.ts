@@ -343,8 +343,7 @@ describe('Gift Shop worker route contracts', () => {
 
     it('creates a purchase atomically with wallet, voucher, ledger, and two events', async () => {
         currentUser = { id: 'student-1', username: 'student01', role: 'student', classId: 'class-3a' };
-        let db: FakeDatabase;
-        db = new FakeDatabase((sql, bindings) => {
+        const db = new FakeDatabase((sql, bindings) => {
             if (sql.includes('WHERE o.idempotency_key = ?')) return null;
             if (sql.includes('FROM gift_catalog_items') && sql.includes('is_active = 1')) return catalogRow();
             if (sql.includes('FROM students s')) {
@@ -383,8 +382,7 @@ describe('Gift Shop worker route contracts', () => {
 
     it('delivers an issued order with teacher class access and updates voucher and audit event', async () => {
         currentUser = { username: 'teacher-3a', role: 'teacher', classId: '3A' };
-        let db: FakeDatabase;
-        db = new FakeDatabase((sql) => {
+        const db = new FakeDatabase((sql) => {
             if (sql.includes('FROM gift_orders o') && sql.includes('WHERE o.id = ?')) {
                 return db.batches.length === 0
                     ? orderRow()
@@ -411,8 +409,7 @@ describe('Gift Shop worker route contracts', () => {
 
     it('cancels and refunds an issued order in one batch with ledger and two events', async () => {
         currentUser = { username: 'admin-1', role: 'admin' };
-        let db: FakeDatabase;
-        db = new FakeDatabase((sql) => {
+        const db = new FakeDatabase((sql) => {
             if (sql.includes('FROM gift_orders o') && sql.includes('WHERE o.id = ?')) {
                 return db.batches.length === 0
                     ? orderRow()

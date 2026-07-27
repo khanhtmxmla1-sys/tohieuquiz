@@ -52,7 +52,9 @@ const readJson = async (request: Request): Promise<Record<string, unknown> | nul
 
 const defaultInvalidDelay = async (): Promise<void> => {
   const delayMs = 75 + Math.floor(Math.random() * 51);
-  await new Promise(resolve => setTimeout(resolve, delayMs));
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
 };
 
 const makeRuntime = (env: Env): ParentAuthRouteRuntime => ({

@@ -21,7 +21,9 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
 /**
  * Sleep utility for retry delays
  */
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => {
+    setTimeout(resolve, ms);
+});
 
 /**
  * Check if error is retryable (network errors, 5xx, rate limits)

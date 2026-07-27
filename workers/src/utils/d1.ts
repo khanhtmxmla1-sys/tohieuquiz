@@ -5,7 +5,9 @@ const TRANSIENT_D1_PATTERNS = [
     'database is locked',
 ];
 
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => {
+    setTimeout(resolve, ms);
+});
 
 export const isTransientD1Error = (error: unknown): boolean => {
     const message = error instanceof Error ? error.message : String(error || '');
