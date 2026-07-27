@@ -13,7 +13,10 @@ import { useLocation, useNavigationType } from 'react-router';
 
 const STORAGE_KEY = 'quizpro:scroll-positions';
 const MAX_ENTRIES = 50;
-const MAX_RESTORE_FRAMES = 20;
+// Measured on 2026-07-27: both dev and production normally become scrollable in ~35 ms and
+// settle near 66 ms. Keep a generous wall-clock deadline for cold lazy chunks without tying the
+// behavior to refresh rate or an arbitrary number of paints. User input still cancels immediately.
+const MAX_RESTORE_DURATION_MS = 2_000;
 /** `scroll` is deliberately absent: our own window.scrollTo() fires it and would self-cancel. */
 const USER_SCROLL_EVENTS = ['wheel', 'touchstart', 'keydown'] as const;
 
@@ -50,7 +53,7 @@ const writeStoredPositions = (positions: PositionMap) => {
  * soon as the user scrolls themselves, so we never fight them for control of the page.
  */
 const restoreScrollTo = (target: number, onSettled: () => void) => {
-    let frames = 0;
+    let startedAt: number | null = null;
     let rafId = 0;
     let settled = false;
 
@@ -62,11 +65,16 @@ const restoreScrollTo = (target: number, onSettled: () => void) => {
         onSettled();
     };
 
-    const step = () => {
+    const step = (timestamp: number) => {
         if (settled) return;
+        if (startedAt === null) startedAt = timestamp;
+
+        // Browsers clamp this call while the lazy route is shorter than `target`. Retrying until the
+        // observed scroll position reaches the saved offset makes document growth the success signal.
         window.scrollTo(0, target);
-        frames += 1;
-        if (window.scrollY >= target - 1 || frames >= MAX_RESTORE_FRAMES) {
+        const restored = window.scrollY >= target - 1;
+        const expired = timestamp - startedAt >= MAX_RESTORE_DURATION_MS;
+        if (restored || expired) {
             stop();
             return;
         }

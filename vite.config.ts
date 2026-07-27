@@ -1,7 +1,6 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import { cloudflare } from '@cloudflare/vite-plugin';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -19,7 +18,10 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    plugins: [react(), cloudflare()],
+    // The frontend is deployed by Vercel. During local development `/api` is proxied to the
+    // separately running Cloudflare Worker, so page requests must stay in Vite rather than pass
+    // through workerd's assets layer. That layer produced intermittent empty 500 responses on Windows.
+    plugins: [react()],
     resolve: {
       alias: { '@': path.resolve(__dirname, '.') },
     },

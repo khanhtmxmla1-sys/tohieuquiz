@@ -32,8 +32,10 @@ beforeEach(() => {
     window.sessionStorage.clear();
     setScrollY(0);
     scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    let frameTimestamp = 0;
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-        callback(0);
+        frameTimestamp += 16;
+        callback(frameTimestamp);
         return 1;
     });
     vi.stubGlobal('cancelAnimationFrame', () => {});
@@ -119,19 +121,62 @@ describe('useScrollReset', () => {
         expect(scrollTo).toHaveBeenCalledWith(0, 1371);
     });
 
-    it('gives up restoring after a bounded number of frames', () => {
+    it('keeps restoring when a lazy page grows after the twentieth frame', () => {
+        const frameQueue: FrameRequestCallback[] = [];
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+            frameQueue.push(callback);
+            return frameQueue.length;
+        });
         renderProbe();
 
         setScrollY(1371);
         act(() => { window.dispatchEvent(new Event('scroll')); });
         act(() => { navigate('/student/practice/toan'); });
         scrollTo.mockClear();
-        // scrollY stays at 0 because jsdom never scrolls, so the loop can only end by hitting its cap.
         setScrollY(0);
 
         act(() => { navigate(-1); });
 
-        expect(scrollTo).toHaveBeenCalledTimes(20);
+        for (let frame = 1; frame <= 20; frame += 1) {
+            const callback = frameQueue.shift();
+            expect(callback, `restore frame ${frame}`).toBeDefined();
+            act(() => { callback!(frame * 16); });
+        }
+
+        // A cold lazy route may still be one viewport tall here. The restore must remain alive until
+        // the route has enough content rather than expiring solely because twenty paints elapsed.
+        expect(frameQueue).toHaveLength(1);
+        setScrollY(1371);
+        const callback = frameQueue.shift();
+        act(() => { callback!(21 * 16); });
+
+        expect(scrollTo).toHaveBeenCalledTimes(21);
+    });
+
+    it('stops an unreachable restore at its time deadline', () => {
+        const frameQueue: FrameRequestCallback[] = [];
+        vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+            frameQueue.push(callback);
+            return frameQueue.length;
+        });
+        renderProbe();
+
+        setScrollY(1371);
+        act(() => { window.dispatchEvent(new Event('scroll')); });
+        act(() => { navigate('/student/practice/toan'); });
+        scrollTo.mockClear();
+        setScrollY(0);
+
+        act(() => { navigate(-1); });
+
+        for (const timestamp of [0, 500, 1000, 1500, 2000]) {
+            const callback = frameQueue.shift();
+            expect(callback).toBeDefined();
+            act(() => { callback!(timestamp); });
+        }
+
+        expect(frameQueue).toHaveLength(0);
+        expect(scrollTo).toHaveBeenCalledTimes(5);
     });
 
     it('stops restoring as soon as the user scrolls themselves', () => {
