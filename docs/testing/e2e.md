@@ -13,6 +13,7 @@ dev server on `http://localhost:3001`.
 |---|---|
 | `ai-question-blueprint-v3.cy.ts` | `VITE_FEATURE_AI_BLUEPRINT_V3=true` |
 | `ai-quiz-generation-v2.cy.ts` | `VITE_FEATURE_AI_QUIZ_V2=true` and **`VITE_FEATURE_AI_BLUEPRINT_V3=false`** |
+| `gift-shop.cy.ts` | `VITE_FEATURE_GIFT_SHOP_V2=true` |
 | `manual-quiz-workspace.cy.ts` | default flags |
 | `mobile-responsive.cy.ts` | default flags |
 | `parent-portal.cy.ts` | `VITE_FEATURE_PARENT_PORTAL_V1=true` |
@@ -42,6 +43,34 @@ server running, so the second step finds port 3001 occupied, Vite silently moves
 another port, and Cypress keeps talking to the *previous* server — built with the
 wrong flag — until it dies with `ECONNREFUSED`. Separate runners make the isolation
 real.
+
+### Gift Shop: stubbing at the HTTP layer, and proving the stub still tests something
+
+`gift-shop.cy.ts` covers the flag's whole reason to exist — student spends coins,
+gets a voucher, teacher delivers it or cancels and refunds — without a backend.
+`VITE_GIFT_SHOP_MODE=api` in both CI and production, so the real path runs over
+HTTP to `/api/gift-shop/*`; stubbing there keeps `giftShopService → apiAdapter →
+fetch` intact and pins the request/response shapes that unit tests never touch.
+
+Two traps for whoever edits it next:
+
+- **The two endpoint families use different response envelopes.**
+  `/api/student-profile` goes through `callWorkerApi` and must be wrapped as
+  `{ status: 'success', data }`; `/api/gift-shop/*` goes straight through
+  `executeApiAction`, which returns `response.json()` verbatim. Wrapping the
+  latter breaks it.
+- **Fixtures must be copied per test, not just the array.** The deliver and cancel
+  handlers mutate `status` on the order object, so a shallow `[...seedOrders]`
+  lets one test leave the next one with no pending order. This was caught by the
+  suite itself, not by review.
+
+A fully stubbed spec can easily end up testing only its own stubs, so the
+discrimination was measured rather than assumed:
+
+| what was broken | result |
+|---|---|
+| `VITE_FEATURE_GIFT_SHOP_V2=false` | 3 of 3 fail |
+| `idempotencyKey` dropped from the purchase payload in `apiGiftShop.ts` | test 1 fails |
 
 ## 2. Live-environment specs — need a real backend, a real student, **and practice content**
 
