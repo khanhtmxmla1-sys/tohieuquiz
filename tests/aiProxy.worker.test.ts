@@ -109,6 +109,14 @@ class FakeAiDb {
       return { used_count: this.usedCount };
     }
 
+    if (
+      normalized.startsWith('UPDATE AI_GENERATION_ACTIONS')
+      && normalized.includes("STATUS = 'RESERVED'")
+      && normalized.includes('FAILURE_CODE = NULL')
+    ) {
+      return this.reactivate(values);
+    }
+
     if (normalized.startsWith('UPDATE AI_GENERATION_ACTIONS') && normalized.includes("STATUS = 'SUCCEEDED'")) {
       return this.transition(values, 'SUCCEEDED', null);
     }
@@ -193,6 +201,26 @@ class FakeAiDb {
     }
 
     return 0;
+  }
+
+  private reactivate(values: unknown[]): ActionRow | null {
+    const [usageDate, timestamp, actionId, username, workflow] = values.map(String);
+    const action = this.actions.get(actionId);
+    if (
+      !action
+      || action.username !== username
+      || action.workflow !== workflow
+      || (action.status !== 'FAILED' && action.status !== 'EXPIRED')
+    ) {
+      return null;
+    }
+
+    action.status = 'RESERVED';
+    action.usage_date = usageDate;
+    action.failure_code = null;
+    action.updated_at = timestamp;
+    action.completed_at = null;
+    return { ...action };
   }
 
   private transition(
@@ -332,6 +360,33 @@ describe('/api/ai/chat', () => {
     expect(response?.status).toBe(503);
     expect(fakeDb.actions.get(actionId)?.status).toBe('FAILED');
     expect(fakeDb.usedCount).toBe(0);
+  });
+
+  it('reopens a failed action so a transient upstream failure can retry with the same action id', async () => {
+    gatewayFetch
+      .mockResolvedValueOnce(new Response('temporary tunnel failure', { status: 522 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }));
+    const body = {
+      model: 'gemini-2.5-flash',
+      messages: [{}],
+      _meta: { actionId, workflow: 'QUIZ_CREATE', stage: 'GENERATE' },
+    };
+
+    const failed = await handleAiProxy(request(body), env, '/api/ai/chat', 'POST');
+    const retried = await handleAiProxy(request(body), env, '/api/ai/chat', 'POST');
+
+    expect(failed?.status).toBe(522);
+    expect(retried?.status).toBe(200);
+    expect(gatewayFetch).toHaveBeenCalledTimes(2);
+    expect(fakeDb.actions.get(actionId)).toMatchObject({
+      status: 'SUCCEEDED',
+      generate_calls: 1,
+      failure_code: null,
+    });
+    expect(globalFetchSpy).not.toHaveBeenCalled();
   });
 
   it('applies the closed AI rate limit after authentication without using the username in its key', async () => {

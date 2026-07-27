@@ -68,6 +68,14 @@ class FakeQuotaDb {
       return { used_count: this.usedCount };
     }
 
+    if (
+      normalized.startsWith('UPDATE AI_GENERATION_ACTIONS')
+      && normalized.includes("STATUS = 'RESERVED'")
+      && normalized.includes('FAILURE_CODE = NULL')
+    ) {
+      return this.reactivateAction(values);
+    }
+
     if (normalized.startsWith('UPDATE AI_GENERATION_ACTIONS') && normalized.includes("STATUS = 'SUCCEEDED'")) {
       return this.transitionAction(values, 'SUCCEEDED', null);
     }
@@ -137,6 +145,26 @@ class FakeQuotaDb {
     return 0;
   }
 
+  private reactivateAction(values: unknown[]): ActionRow | null {
+    const [usageDate, timestamp, actionId, username, workflow] = values.map(String);
+    const action = this.actions.get(actionId);
+    if (
+      !action
+      || action.username !== username
+      || action.workflow !== workflow
+      || (action.status !== 'FAILED' && action.status !== 'EXPIRED')
+    ) {
+      return null;
+    }
+
+    action.status = 'RESERVED';
+    action.usage_date = usageDate;
+    action.failure_code = null;
+    action.updated_at = timestamp;
+    action.completed_at = null;
+    return { ...action };
+  }
+
   private transitionAction(
     values: unknown[],
     status: ActionRow['status'],
@@ -190,6 +218,36 @@ describe('teacher AI quota ledger', () => {
 
     expect(fakeDb.usedCount).toBe(0);
     expect(fakeDb.actions.get(teacherInput.actionId)?.status).toBe('FAILED');
+  });
+
+  it('reactivates a failed teacher action and reacquires exactly one slot', async () => {
+    await reserveAiAction(db, teacherInput);
+    await failAiAction(db, teacherInput.actionId, teacherInput.username, 'UPSTREAM_522', now);
+
+    const retried = await reserveAiAction(db, teacherInput);
+    const repeated = await reserveAiAction(db, teacherInput);
+
+    expect(retried.wasCreated).toBe(false);
+    expect(retried.status).toBe('RESERVED');
+    expect(repeated.status).toBe('RESERVED');
+    expect(fakeDb.usedCount).toBe(1);
+    expect(fakeDb.actions.get(teacherInput.actionId)).toMatchObject({
+      status: 'RESERVED',
+      failure_code: null,
+      completed_at: null,
+    });
+  });
+
+  it('reactivates a failed admin action without consuming teacher quota', async () => {
+    const adminInput = { ...teacherInput, role: 'admin' as const };
+    await reserveAiAction(db, adminInput);
+    await failAiAction(db, adminInput.actionId, adminInput.username, 'UPSTREAM_522', now);
+
+    const retried = await reserveAiAction(db, adminInput);
+
+    expect(retried.status).toBe('RESERVED');
+    expect(retried.dailyLimit).toBeNull();
+    expect(fakeDb.usedCount).toBe(0);
   });
 
   it('keeps the slot consumed after success', async () => {

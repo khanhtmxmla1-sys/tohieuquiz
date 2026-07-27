@@ -79,6 +79,33 @@ const releaseUsageSlot = async (db: D1Database, username: string, usageDate: str
   `).bind(nowIso, username, usageDate).run();
 };
 
+const acquireUsageSlot = async (
+  db: D1Database,
+  username: string,
+  usageDate: string,
+  nowIso: string,
+): Promise<void> => {
+  await db.prepare(`
+    INSERT INTO teacher_ai_daily_usage (
+      username, usage_date, used_count, created_at, updated_at
+    ) VALUES (?, ?, 0, ?, ?)
+    ON CONFLICT(username, usage_date) DO NOTHING
+  `).bind(username, usageDate, nowIso, nowIso).run();
+
+  const acquired = await db.prepare(`
+    UPDATE teacher_ai_daily_usage
+    SET used_count = used_count + 1,
+        updated_at = ?
+    WHERE username = ?
+      AND usage_date = ?
+      AND used_count < ?
+  `).bind(nowIso, username, usageDate, TEACHER_DAILY_AI_LIMIT).run();
+
+  if (getChanges(acquired) === 0) {
+    throw new AiQuotaError('AI_DAILY_LIMIT_REACHED');
+  }
+};
+
 const validateExistingAction = (
   action: AiActionRow,
   username: string,
@@ -102,6 +129,59 @@ const toReservation = async (
   dailyLimit: role === 'admin' ? null : TEACHER_DAILY_AI_LIMIT,
   wasCreated,
 });
+
+const reactivateAiAction = async (
+  db: D1Database,
+  action: AiActionRow,
+  role: 'teacher' | 'admin',
+  now: Date,
+): Promise<AiActionReservation> => {
+  const nowIso = now.toISOString();
+  const usageDate = getBangkokDateKey(now);
+  const needsQuota = role === 'teacher';
+
+  if (needsQuota) {
+    await acquireUsageSlot(db, action.username, usageDate, nowIso);
+  }
+
+  const reactivated = await db.prepare(`
+    UPDATE ai_generation_actions
+    SET status = 'RESERVED',
+        usage_date = ?,
+        failure_code = NULL,
+        updated_at = ?,
+        completed_at = NULL
+    WHERE action_id = ?
+      AND username = ?
+      AND workflow = ?
+      AND status IN ('FAILED', 'EXPIRED')
+    RETURNING action_id, username, workflow, status, usage_date
+  `).bind(
+    usageDate,
+    nowIso,
+    action.action_id,
+    action.username,
+    action.workflow,
+  ).first<AiActionRow>();
+
+  if (reactivated) {
+    return toReservation(db, reactivated, role, false);
+  }
+
+  if (needsQuota) {
+    await releaseUsageSlot(db, action.username, usageDate, nowIso);
+  }
+
+  const racedAction = await findAction(db, action.action_id);
+  if (!racedAction) {
+    throw new AiQuotaError('AI_ACTION_CONFLICT');
+  }
+  validateExistingAction(racedAction, action.username, action.workflow);
+  if (racedAction.status !== 'RESERVED' && racedAction.status !== 'SUCCEEDED') {
+    throw new AiQuotaError('AI_ACTION_CONFLICT');
+  }
+  return toReservation(db, racedAction, role, false);
+};
 
 export async function expireStaleAiActions(
   db: D1Database,
@@ -159,6 +239,9 @@ export async function reserveAiAction(
   const existing = await findAction(db, input.actionId);
   if (existing) {
     validateExistingAction(existing, input.username, input.workflow);
+    if (existing.status === 'FAILED' || existing.status === 'EXPIRED') {
+      return reactivateAiAction(db, existing, input.role, now);
+    }
     return toReservation(db, existing, input.role, false);
   }
 
@@ -194,25 +277,7 @@ export async function reserveAiAction(
     };
   }
 
-  await db.prepare(`
-    INSERT INTO teacher_ai_daily_usage (
-      username, usage_date, used_count, created_at, updated_at
-    ) VALUES (?, ?, 0, ?, ?)
-    ON CONFLICT(username, usage_date) DO NOTHING
-  `).bind(input.username, usageDate, nowIso, nowIso).run();
-
-  const acquired = await db.prepare(`
-    UPDATE teacher_ai_daily_usage
-    SET used_count = used_count + 1,
-        updated_at = ?
-    WHERE username = ?
-      AND usage_date = ?
-      AND used_count < ?
-  `).bind(nowIso, input.username, usageDate, TEACHER_DAILY_AI_LIMIT).run();
-
-  if (getChanges(acquired) === 0) {
-    throw new AiQuotaError('AI_DAILY_LIMIT_REACHED');
-  }
+  await acquireUsageSlot(db, input.username, usageDate, nowIso);
 
   let inserted: D1Result<unknown>;
   try {
