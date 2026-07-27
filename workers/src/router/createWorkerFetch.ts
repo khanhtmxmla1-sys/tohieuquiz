@@ -1,4 +1,5 @@
 import type { Env } from '../types';
+import { getRequestId, logStructured, withRequestId, type StructuredLogSink } from '../utils/logger';
 
 interface RateLimitOptions {
   windowMs: number;
@@ -35,6 +36,8 @@ export interface WorkerFetchDependencies {
     env: Env,
     options: RateLimitOptions,
   ) => Promise<Response | null>;
+  logger?: StructuredLogSink;
+  now?: () => number;
   handleTeacherRoutes: RouteHandler;
   handleLogoutRoute: SimpleRouteHandler;
   handleQuizDraftRoutes: RouteHandler;
@@ -61,6 +64,7 @@ export interface WorkerFetchDependencies {
   handleCertificateRoutes: RouteHandler;
   handleAdminCertificateRoutes: RouteHandler;
   handleMathObservabilityRoutes: RouteHandler;
+  handleClientErrorRoute: RouteHandler;
   handlePhieuSubdomain: SimpleRouteHandler;
   handlePublicPhieuApi: (
     db: Env['DB'],
@@ -85,6 +89,8 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     errorResponse,
     internalErrorResponse,
     rateLimit,
+    logger = console,
+    now = Date.now,
     handleTeacherRoutes,
     handleLogoutRoute,
     handleQuizDraftRoutes,
@@ -111,6 +117,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     handleCertificateRoutes,
     handleAdminCertificateRoutes,
     handleMathObservabilityRoutes,
+    handleClientErrorRoute,
     handlePhieuSubdomain,
     handlePublicPhieuApi,
     handleParentPortalRoutes,
@@ -132,7 +139,10 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
+    const requestId = getRequestId(request);
+    const startedAt = now();
 
+    const dispatch = async (): Promise<Response> => {
     const corsResponse = handleCors(request, env);
     if (corsResponse) return corsResponse;
 
@@ -146,6 +156,17 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
 
     const originError = enforceOriginGuard(request, env);
     if (originError) return addCors(originError, request, env);
+
+    if (path === '/api/client-errors') {
+      const rateLimitResponse = await rateLimit(request, env, {
+        windowMs: 60 * 1000,
+        maxRequests: 30,
+        failureMode: 'closed',
+      });
+      if (rateLimitResponse) return addCors(rateLimitResponse, request, env);
+      const clientErrorResponse = await handleClientErrorRoute(request, env, path, method);
+      if (clientErrorResponse) return addCors(clientErrorResponse, request, env);
+    }
 
     const isUnsafeMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
     const isLoginAttempt = method === 'POST'
@@ -328,5 +349,18 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
         env,
       );
     }
+    };
+
+    const response = await dispatch();
+    const correlatedResponse = withRequestId(response, requestId);
+    logStructured('info', {
+      event: 'worker_request_completed',
+      requestId,
+      route: path,
+      method,
+      status: response.status,
+      durationMs: now() - startedAt,
+    }, logger);
+    return correlatedResponse;
   };
 }

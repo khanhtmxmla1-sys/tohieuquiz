@@ -38,6 +38,7 @@ const routeMocks = {
   handleCertificateRoutes: vi.fn(async () => null as Response | null),
   handleAdminCertificateRoutes: vi.fn(async () => null as Response | null),
   handleMathObservabilityRoutes: vi.fn(async () => null as Response | null),
+  handleClientErrorRoute: vi.fn(async () => null as Response | null),
   handlePhieuSubdomain: vi.fn(async () => null as Response | null),
   handlePublicPhieuApi: vi.fn(async () => null as Response | null),
   handleParentPortalRoutes: vi.fn(async () => unauthorized()),
@@ -79,9 +80,13 @@ const unavailable = () => new Response(JSON.stringify({ status: 'error', message
   headers: { 'Content-Type': 'application/json' },
 });
 
+const structuredLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 let workerFetch: ReturnType<typeof createWorkerFetch>;
 
 beforeEach(() => {
+  structuredLogger.info.mockReset();
+  structuredLogger.warn.mockReset();
+  structuredLogger.error.mockReset();
   rateLimitMock.mockReset();
   rateLimitMock.mockResolvedValue(null);
   verifyTokenMock.mockReset();
@@ -101,6 +106,10 @@ beforeEach(() => {
     errorResponse,
     internalErrorResponse,
     rateLimit: rateLimitMock,
+    logger: structuredLogger,
+    now: vi.fn()
+      .mockReturnValueOnce(1_000)
+      .mockReturnValue(1_025),
     ...routeMocks,
   };
 
@@ -108,6 +117,38 @@ beforeEach(() => {
 });
 
 describe('Worker root route dispatch', () => {
+  it('adds request correlation and a structured completion event', async () => {
+    const response = await workerFetch(new Request('https://api.thtohieu.com/api/health', {
+      headers: { 'x-request-id': 'req-health-1' },
+    }), env);
+
+    expect(response.headers.get('x-request-id')).toBe('req-health-1');
+    expect(structuredLogger.info).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(structuredLogger.info.mock.calls[0][0]))).toEqual({
+      event: 'worker_request_completed',
+      requestId: 'req-health-1',
+      route: '/api/health',
+      method: 'GET',
+      status: 200,
+      durationMs: 25,
+    });
+  });
+
+  it('accepts client error reports before shared authentication with a fail-closed limiter', async () => {
+    routeMocks.handleClientErrorRoute.mockResolvedValueOnce(new Response('{}', { status: 202 }));
+
+    const response = await workerFetch(request('/api/client-errors', 'POST'), env);
+
+    expect(response.status).toBe(202);
+    expect(rateLimitMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      env,
+      expect.objectContaining({ failureMode: 'closed', maxRequests: 30 }),
+    );
+    expect(routeMocks.handleClientErrorRoute).toHaveBeenCalledOnce();
+    expect(verifyTokenMock).not.toHaveBeenCalled();
+  });
+
   it('dispatches parent portal routes before the shared authentication fallback', async () => {
     routeMocks.handleParentPortalRoutes.mockResolvedValueOnce(unauthorized());
 
