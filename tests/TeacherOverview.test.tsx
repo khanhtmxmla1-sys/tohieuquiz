@@ -146,9 +146,10 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(heroSection?.className).toContain('rounded-[14px]');
         expect(heroSection?.className).not.toContain('gradient');
         expect(heroSection?.className).not.toContain('shadow');
+        expect(screen.getByText('Theo dõi tiến độ học tập của lớp, tạo và giao bài, đồng thời xem nhanh kết quả của học sinh ngay tại đây.')).toBeTruthy();
     });
 
-    it('uses restrained flat cards without hover lift', () => {
+    it('gives quick actions subtle depth, icon surfaces and a highlighted primary action', () => {
         renderOverview();
 
         const quickActionsHeading = screen.getByRole('heading', { name: 'Bạn muốn làm gì?' });
@@ -157,12 +158,29 @@ describe('TeacherDashboard OverviewTab', () => {
         const quizMetric = screen.getByText('Đề kiểm tra').closest('article');
 
         expect(quickActionsSection?.className).toContain('rounded-[14px]');
-        expect(createAction.className).toContain('rounded-[12px]');
-        expect(createAction.className).not.toContain('translate-y');
-        expect(createAction.className).not.toContain('gradient');
+        expect(createAction.className).toContain('rounded-[16px]');
+        expect(createAction.className).toContain('hover:-translate-y-0.5');
+        expect(createAction.className).toContain('shadow-[0_2px_10px_rgba(15,23,42,0.05)]');
+        expect(createAction.className).toContain('bg-gradient-to-br');
+        expect(createAction.querySelector('.bg-\\[\\#F0F9FF\\]')).toBeTruthy();
         expect(quizMetric?.className).toContain('rounded-[14px]');
         expect(quizMetric?.className).not.toContain('translate-y');
         expect(quizMetric?.className).not.toContain('gradient');
+    });
+
+    it('uses administrator-specific overview copy for school-wide accounts', () => {
+        useAuthStore.setState({
+            isLoggedIn: true,
+            username: 'admin',
+            teacherName: 'Quản trị hệ thống',
+            isAdmin: true,
+            teacherClass: null,
+        });
+
+        renderOverview();
+
+        expect(screen.getByText('Theo dõi hoạt động toàn trường, nắm nhanh số liệu quan trọng và xử lý các công việc cần thiết ngay tại đây.')).toBeTruthy();
+        expect(screen.queryByText('Theo dõi tiến độ học tập của lớp, tạo và giao bài, đồng thời xem nhanh kết quả của học sinh ngay tại đây.')).toBeNull();
     });
 
     it('uses flat bordered analysis and activity panels', () => {
