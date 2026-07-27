@@ -9,6 +9,15 @@ export interface Env {
 const V1_PATH = /^\/v1(?:\/.*)?$/;
 const ALLOWED_METHODS = new Set(['GET', 'HEAD', 'POST', 'OPTIONS']);
 const DEFAULT_MAX_REQUEST_BODY_BYTES = 10 * 1024 * 1024;
+const MAX_UPSTREAM_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 250;
+const RETRYABLE_UPSTREAM_STATUSES = new Set([
+  502, 503, 504, 522, 523, 524, 525, 526, 530,
+]);
+
+const sleep = (milliseconds: number): Promise<void> => new Promise(
+  (resolve) => setTimeout(resolve, milliseconds),
+);
 
 const jsonError = (
   status: number,
@@ -177,30 +186,64 @@ export const handleAiGatewayRequest = async (
   }
 
   const upstreamUrl = new URL(`${requestUrl.pathname}${requestUrl.search}`, upstreamBaseUrl);
-  const init: RequestInit = {
+  let requestBody: ArrayBuffer | undefined;
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    try {
+      requestBody = await request.arrayBuffer();
+    } catch {
+      return withCors(jsonError(400, 'Request body could not be read.', 'invalid_request_body'), request, env);
+    }
+    if (requestBody.byteLength > getMaxRequestBodyBytes(env)) {
+      return withCors(jsonError(413, 'Request body is too large.', 'request_body_too_large'), request, env);
+    }
+  }
+
+  const createUpstreamInit = (): RequestInit => ({
     method: request.method,
     headers: buildUpstreamHeaders(request, env),
     redirect: 'manual',
-  };
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    init.body = request.body;
+    ...(requestBody ? { body: requestBody.slice(0) } : {}),
+  });
+
+  let upstreamResponse: Response | null = null;
+  let attempts = 0;
+  for (attempts = 1; attempts <= MAX_UPSTREAM_ATTEMPTS; attempts += 1) {
+    try {
+      upstreamResponse = await upstreamFetch(upstreamUrl, createUpstreamInit());
+    } catch {
+      if (attempts < MAX_UPSTREAM_ATTEMPTS) {
+        await sleep(RETRY_DELAY_MS);
+        continue;
+      }
+      return withCors(jsonError(502, 'AI upstream is unavailable.', 'upstream_unavailable'), request, env);
+    }
+
+    if (
+      RETRYABLE_UPSTREAM_STATUSES.has(upstreamResponse.status)
+      && attempts < MAX_UPSTREAM_ATTEMPTS
+    ) {
+      await upstreamResponse.body?.cancel().catch(() => undefined);
+      await sleep(RETRY_DELAY_MS);
+      continue;
+    }
+    break;
   }
 
-  try {
-    const upstreamResponse = await upstreamFetch(upstreamUrl, init);
-    const headers = new Headers(upstreamResponse.headers);
-    headers.set('Cache-Control', 'no-store');
-    headers.delete('Set-Cookie');
-    addCorsHeaders(headers, request, env);
-
-    return new Response(upstreamResponse.body, {
-      status: upstreamResponse.status,
-      statusText: upstreamResponse.statusText,
-      headers,
-    });
-  } catch {
+  if (!upstreamResponse) {
     return withCors(jsonError(502, 'AI upstream is unavailable.', 'upstream_unavailable'), request, env);
   }
+
+  const headers = new Headers(upstreamResponse.headers);
+  headers.set('Cache-Control', 'no-store');
+  headers.set('X-AI-Gateway-Attempts', String(attempts));
+  headers.delete('Set-Cookie');
+  addCorsHeaders(headers, request, env);
+
+  return new Response(upstreamResponse.body, {
+    status: upstreamResponse.status,
+    statusText: upstreamResponse.statusText,
+    headers,
+  });
 };
 
 export default {

@@ -69,7 +69,7 @@ describe('AI gateway Worker', () => {
     });
     const upstreamFetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       expect(init?.method).toBe('POST');
-      expect(init?.body).toBeInstanceOf(ReadableStream);
+      expect(init?.body).toBeInstanceOf(ArrayBuffer);
       return new Response(stream, {
         status: 200,
         headers: { 'Content-Type': 'text/event-stream' },
@@ -88,6 +88,33 @@ describe('AI gateway Worker', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toContain('text/event-stream');
     expect(await response.text()).toContain('"content":"OK"');
+  });
+
+  it('retries one transient tunnel failure and preserves the POST body', async () => {
+    const bodies: string[] = [];
+    const upstreamFetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.body).toBeInstanceOf(ArrayBuffer);
+      bodies.push(new TextDecoder().decode(init?.body as ArrayBuffer));
+      if (bodies.length === 1) return new Response('temporary tunnel error', { status: 522 });
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'OK' } }] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+
+    const response = await handleAiGatewayRequest(request('/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer new-primary-token',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model: 'gemini-2.5-flash', messages: [{ role: 'user', content: 'test' }] }),
+    }), env, upstreamFetch as typeof fetch);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('X-AI-Gateway-Attempts')).toBe('2');
+    expect(upstreamFetch).toHaveBeenCalledTimes(2);
+    expect(bodies[0]).toBe(bodies[1]);
   });
 
   it('handles approved CORS preflight and rejects unknown origins', async () => {
@@ -116,11 +143,13 @@ describe('AI gateway Worker', () => {
       },
       body: 'x',
     }), env, vi.fn());
+    const upstreamFetch = vi.fn(async () => { throw new Error('offline'); });
     const unavailable = await handleAiGatewayRequest(request('/v1/models', {
       headers: { Authorization: 'Bearer new-primary-token' },
-    }), env, vi.fn(async () => { throw new Error('offline'); }) as typeof fetch);
+    }), env, upstreamFetch as typeof fetch);
 
     expect(oversized.status).toBe(413);
     expect(unavailable.status).toBe(502);
+    expect(upstreamFetch).toHaveBeenCalledTimes(2);
   });
 });
