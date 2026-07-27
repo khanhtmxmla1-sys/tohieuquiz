@@ -2,11 +2,40 @@ import { describe, expect, it } from 'vitest';
 import { parseGeneratedQuiz } from '../src/services/ai/schemas/quizGenerationSchema';
 
 const common = {
-  explanation: 'Giải thích đầy đủ.',
   difficultyLevel: 2,
 };
 
 describe('generated quiz schema', () => {
+  it('accepts a valid generated question without explanation', () => {
+    const parsed = parseGeneratedQuiz({
+      title: 'Đề mới',
+      questions: [{
+        type: 'MCQ',
+        question: '1 + 1 = ?',
+        options: ['1', '2'],
+        correctAnswer: 'B',
+        difficultyLevel: 1,
+      }],
+    });
+
+    expect(parsed.questions[0]).not.toHaveProperty('explanation');
+  });
+
+  it('accepts legacy explanations when they are still present', () => {
+    const parsed = parseGeneratedQuiz({
+      title: 'Đề cũ',
+      questions: [{
+        type: 'MCQ',
+        question: '1 + 1 = ?',
+        options: ['1', '2'],
+        correctAnswer: 'B',
+        difficultyLevel: 1,
+        explanation: 'Một cộng một bằng hai.',
+      }],
+    });
+
+    expect(parsed.questions[0].explanation).toBe('Một cộng một bằng hai.');
+  });
   it('rejects MCQ when correctAnswer is outside the option range', () => {
     expect(() => parseGeneratedQuiz({
       title: 'Đề',
@@ -105,8 +134,7 @@ describe('generated quiz schema', () => {
           { id: 'item-1', content: 'Mục hợp lệ', categoryId: 'nhom-1' },
           { id: 'item-2', content: 'Mục lỗi', categoryId: '' },
         ],
-        explanation: 'Giải thích đầy đủ.',
-        difficultyLevel: 2,
+              difficultyLevel: 2,
       }],
     })).toThrow();
   });

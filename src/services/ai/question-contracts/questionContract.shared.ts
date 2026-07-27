@@ -13,7 +13,7 @@ export const OptionalImage = z.string().trim().min(1).max(2_000_000).optional();
 export const CommonGeneratedQuestionFields = {
   slotId: z.string().trim().regex(/^slot-\d+$/),
   difficulty: DifficultySchema,
-  explanation: ExplanationText,
+  explanation: ExplanationText.optional(),
   subject: z.enum(['math', 'vietnamese']).optional(),
   skillCode: z.string().trim().min(1).max(160).optional(),
   subskillCode: z.string().trim().min(1).max(160).optional(),

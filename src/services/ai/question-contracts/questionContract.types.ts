@@ -34,7 +34,7 @@ export interface QuestionContractIssue {
 export interface GeneratedQuestionCommonV3 {
   slotId: string;
   difficulty: BlueprintDifficulty;
-  explanation: string;
+  explanation?: string;
   subject?: SupportedSkillSubject;
   skillCode?: string;
   subskillCode?: string;

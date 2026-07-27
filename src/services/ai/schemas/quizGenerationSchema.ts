@@ -14,7 +14,7 @@ const OptionalImage = z.string().trim().min(1).max(2_000_000).optional();
 
 const CommonMetadataFields = {
   id: z.string().trim().min(1).max(160).optional(),
-  explanation: ExplanationText,
+  explanation: ExplanationText.optional(),
   difficultyLevel: DifficultyLevel,
 };
 

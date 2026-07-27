@@ -6,12 +6,17 @@ import {
   GeneratedQuizV3Schema,
 } from '../src/services/ai/schemas/quizGenerationSchema';
 
+const omitExplanation = (value: Record<string, unknown>): Record<string, unknown> => {
+  const copy = { ...value };
+  delete copy.explanation;
+  return copy;
+};
 const makeAllTypeQuiz = () => ({
   promptVersion: 'ai-blueprint-v3' as const,
   blueprintVersion: 3 as const,
   title: 'Đề 13 dạng',
   questions: AI_SELECTABLE_QUESTION_TYPES.map((type, index) => ({
-    ...getAiQuestionContract(type).validFixture,
+    ...omitExplanation(getAiQuestionContract(type).validFixture as Record<string, unknown>),
     slotId: `slot-${index + 1}`,
     type,
     difficulty: ((index % 3) + 1) as 1 | 2 | 3,
@@ -25,6 +30,15 @@ describe('generated quiz V3 schema', () => {
     expect(parsed.questions.map((question) => question.type)).toEqual(AI_SELECTABLE_QUESTION_TYPES);
   });
 
+  it('still accepts an optional legacy explanation', () => {
+    const quiz = makeAllTypeQuiz();
+    quiz.questions[0] = {
+      ...quiz.questions[0],
+      explanation: 'Lời giải cũ vẫn hợp lệ.',
+    };
+
+    expect(parseGeneratedQuizV3(quiz).questions[0].explanation).toBe('Lời giải cũ vẫn hợp lệ.');
+  });
   it('rejects duplicate slot ids at root', () => {
     const quiz = makeAllTypeQuiz();
     quiz.questions[1] = { ...quiz.questions[1], slotId: 'slot-1' };
