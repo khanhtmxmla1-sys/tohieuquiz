@@ -1,4 +1,9 @@
+export interface AiOriginBinding {
+  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+}
+
 export interface Env {
+  AI_ORIGIN: AiOriginBinding;
   AI_GATEWAY_TOKEN: string;
   UPSTREAM_API_TOKEN: string;
   UPSTREAM_BASE_URL: string;
@@ -41,8 +46,8 @@ const jsonError = (
 
 const normalizeBaseUrl = (value: string): URL => {
   const base = new URL(value);
-  if (base.protocol !== 'https:') {
-    throw new Error('UPSTREAM_BASE_URL must use HTTPS');
+  if (base.protocol !== 'http:') {
+    throw new Error('UPSTREAM_BASE_URL must use HTTP through the VPC binding');
   }
   base.pathname = '/';
   base.search = '';
@@ -134,10 +139,15 @@ const buildUpstreamHeaders = (request: Request, env: Env): Headers => {
   return headers;
 };
 
+export type UpstreamFetch = (
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) => Promise<Response>;
+
 export const handleAiGatewayRequest = async (
   request: Request,
   env: Env,
-  upstreamFetch: typeof fetch = fetch,
+  upstreamFetch: UpstreamFetch,
 ): Promise<Response> => {
   const requestUrl = new URL(request.url);
 
@@ -248,6 +258,7 @@ export const handleAiGatewayRequest = async (
 
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
-    return handleAiGatewayRequest(request, env);
+    const vpcFetch: UpstreamFetch = (input, init) => env.AI_ORIGIN.fetch(input, init);
+    return handleAiGatewayRequest(request, env, vpcFetch);
   },
 } satisfies ExportedHandler<Env>;

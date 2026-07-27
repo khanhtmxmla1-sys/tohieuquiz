@@ -20,7 +20,10 @@ describe('TôHiệuQuiz production domain contract', () => {
 
     const aiGateway = read('workers/ai-gateway/wrangler.toml');
     expect(aiGateway).toContain('{ pattern = "ai.thtohieu.com/*", zone_name = "thtohieu.com" }');
-    expect(aiGateway).toContain('UPSTREAM_BASE_URL = "https://ai.thitong.site"');
+    expect(aiGateway).toContain('[[vpc_services]]');
+    expect(aiGateway).toContain('binding = "AI_ORIGIN"');
+    expect(aiGateway).toContain('service_id = "019fa1e4-5f22-7ba1-87ac-4bfba673e261"');
+    expect(aiGateway).toContain('UPSTREAM_BASE_URL = "http://ai.thitong.site"');
     expect(aiGateway).toContain('workers_dev = false');
     expect(aiGateway).toContain('preview_urls = false');
     for (const origin of [

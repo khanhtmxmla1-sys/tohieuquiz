@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
+import worker, {
   handleAiGatewayRequest,
   type Env,
 } from '../workers/ai-gateway/src/index';
 
 const env: Env = {
+  AI_ORIGIN: { fetch: vi.fn() },
   AI_GATEWAY_TOKEN: 'new-primary-token',
   UPSTREAM_API_TOKEN: 'upstream-token',
-  UPSTREAM_BASE_URL: 'https://ai.thitong.site',
+  UPSTREAM_BASE_URL: 'http://ai.thitong.site',
   ALLOWED_ORIGINS: 'https://www.thtohieu.com,https://app.thtohieu.com',
   MAX_REQUEST_BODY_BYTES: '1024',
 };
@@ -37,7 +38,7 @@ describe('AI gateway Worker', () => {
 
   it('proxies path and query while replacing the upstream token', async () => {
     const upstreamFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      expect(String(input)).toBe('https://ai.thitong.site/v1/models?provider=gemini');
+      expect(String(input)).toBe('http://ai.thitong.site/v1/models?provider=gemini');
       const headers = new Headers(init?.headers);
       expect(headers.get('Authorization')).toBe('Bearer upstream-token');
       expect(headers.get('CF-Connecting-IP')).toBeNull();
@@ -57,6 +58,29 @@ describe('AI gateway Worker', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ data: [{ id: 'gemini-2.5-flash' }] });
     expect(upstreamFetch).toHaveBeenCalledOnce();
+  });
+
+  it('uses the VPC service binding instead of global fetch', async () => {
+    const globalFetch = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('public fetch must not run'));
+    const vpcFetch = vi.fn(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe('http://ai.thitong.site/v1/models');
+      return new Response(JSON.stringify({ data: [{ id: 'gemini-2.5-flash' }] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+
+    const response = await worker.fetch(request('/v1/models', {
+      headers: { Authorization: 'Bearer new-primary-token' },
+    }), {
+      ...env,
+      AI_ORIGIN: { fetch: vpcFetch },
+    });
+
+    expect(response.status).toBe(200);
+    expect(vpcFetch).toHaveBeenCalledOnce();
+    expect(globalFetch).not.toHaveBeenCalled();
+    globalFetch.mockRestore();
   });
 
   it('passes POST and streaming responses through without buffering', async () => {

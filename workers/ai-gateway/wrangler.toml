@@ -9,7 +9,12 @@ routes = [
   { pattern = "ai.thtohieu.com/*", zone_name = "thtohieu.com" }
 ]
 
+[[vpc_services]]
+binding = "AI_ORIGIN"
+service_id = "019fa1e4-5f22-7ba1-87ac-4bfba673e261"
+remote = true
+
 [vars]
-UPSTREAM_BASE_URL = "https://ai.thitong.site"
+UPSTREAM_BASE_URL = "http://ai.thitong.site"
 ALLOWED_ORIGINS = "https://thtohieu.com,https://www.thtohieu.com,https://app.thtohieu.com,https://phuhuynh.thtohieu.com"
 MAX_REQUEST_BODY_BYTES = "10485760"
