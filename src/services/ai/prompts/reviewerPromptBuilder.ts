@@ -9,6 +9,7 @@ export function buildReviewerSystemPromptV3(): string {
     'Không được đổi type.',
     'Không được đổi difficulty.',
     'Không được thêm, xóa hoặc sắp xếp lại câu hỏi.',
+    'Không được thêm trường explanation hoặc lời giải vào câu hỏi.',
     'Chỉ trả về JSON hợp lệ, không giải thích và không xuất suy luận nội bộ.',
   ].join('\n');
 }

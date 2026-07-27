@@ -16,12 +16,14 @@ describe('AI question contract registry', () => {
     for (const type of AI_SELECTABLE_QUESTION_TYPES) {
       const contract = getAiQuestionContract(type);
       expect(contract.schema.safeParse(contract.validFixture).success, type).toBe(true);
-      expect(contract.promptFragment({
+      const promptFragment = contract.promptFragment({
         classLevel: '4',
         intent: 'PRACTICE',
         sourceMode: 'TOPIC',
         hasImageLibrary: true,
-      })).toContain(`[CONTRACT: ${type}]`);
+      });
+      expect(promptFragment).toContain(`[CONTRACT: ${type}]`);
+      expect(promptFragment).not.toContain('"explanation"');
     }
   });
 

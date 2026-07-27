@@ -64,7 +64,7 @@ export const SHORT_ANSWER_CONTRACT: AiQuestionTypeContract<ShortAnswerQuestionV3
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: ShortAnswerSchema,
-  promptFragment: () => `[CONTRACT: SHORT_ANSWER]\n- Đáp án là một từ, số hoặc cụm từ ngắn, tối đa 120 ký tự.\n- Không đưa nhiều đáp án thay thế bằng dấu / hoặc từ “hoặc”.\n- JSON: {"slotId":"slot-1","type":"SHORT_ANSWER","difficulty":2,"question":"...","correctAnswer":"...","explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: SHORT_ANSWER]\n- Đáp án là một từ, số hoặc cụm từ ngắn, tối đa 120 ký tự.\n- Không đưa nhiều đáp án thay thế bằng dấu / hoặc từ “hoặc”.\n- JSON: {"slotId":"slot-1","type":"SHORT_ANSWER","difficulty":2,"question":"...","correctAnswer":"..."}`,
   validateSemantics: (question) => /\s+(?:hoặc|hay)\s+|\//iu.test(question.correctAnswer)
     ? [issue('SHORT_ANSWER_AMBIGUOUS', ['correctAnswer'], 'Đáp án ngắn không được chứa nhiều phương án thay thế.')]
     : [],
@@ -74,7 +74,6 @@ export const SHORT_ANSWER_CONTRACT: AiQuestionTypeContract<ShortAnswerQuestionV3
     difficulty: 2,
     question: 'Thủ đô của Việt Nam là thành phố nào?',
     correctAnswer: 'Hà Nội',
-    explanation: 'Hà Nội là thủ đô của nước Việt Nam.',
   },
 };
 
@@ -86,7 +85,7 @@ export const DRAG_DROP_CONTRACT: AiQuestionTypeContract<DragDropQuestionV3> = {
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: DragDropSchema,
-  promptFragment: () => `[CONTRACT: DRAG_DROP]\n- text dùng marker tuần tự [1], [2], ...; đáp án nằm trong blanks, không đặt trong marker.\n- JSON: {"slotId":"slot-1","type":"DRAG_DROP","difficulty":2,"question":"...","text":"... [1] ...","blanks":["..."],"distractors":["..."],"explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: DRAG_DROP]\n- text dùng marker tuần tự [1], [2], ...; đáp án nằm trong blanks, không đặt trong marker.\n- JSON: {"slotId":"slot-1","type":"DRAG_DROP","difficulty":2,"question":"...","text":"... [1] ...","blanks":["..."],"distractors":["..."]}`,
   validateSemantics: (question) => {
     const issues: QuestionContractIssue[] = [];
     const markers = extractSequentialMarkers(question.text);
@@ -111,7 +110,6 @@ export const DRAG_DROP_CONTRACT: AiQuestionTypeContract<DragDropQuestionV3> = {
     text: 'Bầu trời thường có màu [1].',
     blanks: ['xanh'],
     distractors: ['đỏ', 'đen'],
-    explanation: 'Trong ngày quang đãng, bầu trời thường có màu xanh.',
   },
 };
 
@@ -123,7 +121,7 @@ export const DROPDOWN_CONTRACT: AiQuestionTypeContract<DropdownQuestionV3> = {
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: DropdownSchema,
-  promptFragment: () => `[CONTRACT: DROPDOWN]\n- text dùng marker [1], [2], ...; blank.id phải đúng số marker.\n- Mỗi blank có 2 đến 5 lựa chọn và correctAnswer thuộc options.\n- JSON: {"slotId":"slot-1","type":"DROPDOWN","difficulty":2,"question":"...","text":"... [1] ...","blanks":[{"id":"1","options":["...","..."],"correctAnswer":"..."}],"explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: DROPDOWN]\n- text dùng marker [1], [2], ...; blank.id phải đúng số marker.\n- Mỗi blank có 2 đến 5 lựa chọn và correctAnswer thuộc options.\n- JSON: {"slotId":"slot-1","type":"DROPDOWN","difficulty":2,"question":"...","text":"... [1] ...","blanks":[{"id":"1","options":["...","..."],"correctAnswer":"..."}]}`,
   validateSemantics: (question) => {
     const issues: QuestionContractIssue[] = [];
     const markers = extractSequentialMarkers(question.text);
@@ -151,6 +149,5 @@ export const DROPDOWN_CONTRACT: AiQuestionTypeContract<DropdownQuestionV3> = {
     question: 'Chọn từ đúng cho ô trống.',
     text: 'Thủ đô Việt Nam là [1].',
     blanks: [{ id: '1', options: ['Hà Nội', 'Huế', 'Đà Nẵng'], correctAnswer: 'Hà Nội' }],
-    explanation: 'Hà Nội là thủ đô của Việt Nam.',
   },
 };

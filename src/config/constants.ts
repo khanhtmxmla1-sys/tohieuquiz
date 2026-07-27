@@ -100,8 +100,7 @@ The output must be a valid JSON object with this structure:
       "question": "Điền từ thích hợp vào chỗ trống:",
       "text": "Con mèo [trèo] cây cau. Con chó [nằm] trước nhà.",
       "blanks": ["trèo", "nằm"],
-      "distractors": ["bơi", "bay"],
-      "explanation": "Mèo có khả năng leo trèo giỏi nên dùng từ 'trèo'. Chó thường nằm canh nhà nên dùng từ 'nằm'."
+      "distractors": ["bơi", "bay"]
     },
     {
       "type": "CATEGORIZATION",
@@ -117,15 +116,13 @@ The output must be a valid JSON object with this structure:
         { "id": "item4", "content": "Bàn chải đánh răng", "categoryId": "ca_nhan" },
         { "id": "item5", "content": "Khăn mặt", "categoryId": "ca_nhan" },
         { "id": "item6", "content": "Lược chải tóc", "categoryId": "ca_nhan" }
-      ],
-      "explanation": "Đồ dùng học tập dùng để học ở trường. Đồ dùng cá nhân dùng để vệ sinh cơ thể."
+      ]
     },
     {
       "type": "WORD_SCRAMBLE",
       "question": "Sắp xếp các chữ sau thành một tính từ.",
       "letters": ["k", "i", "ê", "n", "t", "r", "i"],
-      "correctWord": "kiên trì",
-      "explanation": "Kiên trì là tính từ chỉ sự bền bỉ, không bỏ cuộc."
+      "correctWord": "kiên trì"
     },
     {
       "type": "RIDDLE",
@@ -136,8 +133,7 @@ The output must be a valid JSON object with this structure:
         "Tôi là từ gì?"
       ],
       "correctAnswer": "bàn",
-      "hint": "Một vật dụng trong nhà",
-      "explanation": "Từ 'bạn' (người bạn) khi thêm dấu huyền thành 'bàn' (cái bàn - vật có 4 chân)."
+      "hint": "Một vật dụng trong nhà"
     }
   ]
 }
@@ -213,8 +209,7 @@ The output must be a valid JSON object with this structure:
        { "id": "item2", "content": "Cây tre như cái cần câu\\nMặt trời là cá, biển: bầu trời xanh.", "categoryId": "so_sanh" },
        { "id": "item3", "content": "Bão giằng giằng mặt biển\\nĐảo ơi mình khát mưa.", "categoryId": "nhan_hoa" },
        { "id": "item4", "content": "Dòng sông thở dài tiếng sóng\\nĐập lên tấm chăn trắng vàng.", "categoryId": "nhan_hoa" }
-     ],
-     "explanation": "So sánh dùng từ 'như', 'là'. Nhân hoá cho vật vô tri tính cách con người."
+     ]
    }
 
    📋 VÍ DỤ - TOÁN (Phân số):
@@ -233,8 +228,7 @@ The output must be a valid JSON object with this structure:
        { "id": "item4", "content": "1/4 + 2/4", "categoryId": "cat2" },
        { "id": "item5", "content": "1/2 + 1/2", "categoryId": "cat3" },
        { "id": "item6", "content": "3/4 + 1/4", "categoryId": "cat3" }
-     ],
-     "explanation": "Rút gọn kết quả để so sánh với các nhóm."
+     ]
    }
 
    📋 VÍ DỤ - TIẾNG VIỆT (Từ loại):
@@ -253,8 +247,7 @@ The output must be a valid JSON object with this structure:
        { "id": "i4", "content": "con mèo", "categoryId": "danh_tu" },
        { "id": "i5", "content": "nhảy", "categoryId": "dong_tu" },
        { "id": "i6", "content": "to lớn", "categoryId": "tinh_tu" }
-     ],
-     "explanation": "Danh từ chỉ sự vật, động từ chỉ hành động, tính từ chỉ đặc điểm."
+     ]
    }
    
    ⚠️ LƯU Ý QUAN TRỌNG CHO CATEGORIZATION:
@@ -283,7 +276,7 @@ Rules:
 4. MULTIPLE_SELECT: PHẢI có 2-3 đáp án đúng, KHÔNG phải 1 đáp án.
 5. DRAG_DROP: text PHẢI chứa các từ trong ngoặc vuông [] đúng với thứ tự trong blanks.
 6. Ensure valid JSON. No markdown code blocks.
-7. EXPLANATION: Mỗi câu hỏi BẮT BUỘC phải có trường "explanation". Đây là hướng dẫn giải chi tiết, giải thích tại sao đáp án đó đúng, hoặc cách tính toán để ra kết quả. Viết giọng văn khuyến khích, dễ hiểu cho học sinh tiểu học.
+7. OUTPUT SIZE: Không tạo trường \"explanation\" trong câu hỏi. Chỉ trả nội dung câu hỏi, dữ liệu tương tác, đáp án đúng và metadata cần thiết.
 8. QUY TẮC VỀ CA DAO, TỤC NGỮ, THÀNH NGỮ:
    - BẮT BUỘC phải chính xác tuyệt đối từng từ theo nguyên tác.
    - KHÔNG ĐƯỢC tự bịa ra hoặc thay đổi câu chữ.
@@ -302,7 +295,7 @@ Hệ thống phục vụ cho giáo viên và học sinh từ Lớp 1 đến Lớ
 🛑 NHIỆM VỤ QUAN TRỌNG NHẤT: BẠN PHẢI ĐỌC KỸ JSON ĐẦU VÀO, PHỐI HỢP CÁC QUY TẮC SAU ĐỂ TỰ ĐỘNG SỬA LỖI VÀ TRẢ VỀ JSON MỚI ĐÃ HOÀN THIỆN.
 
 1. KIỂM TRA TOÁN HỌC (Logic & Phép tính):
-- TỰ MÌNH GIẢI LẠI 100% các phép toán có trong đề. Nếu AI Generator tính sai kết quả, BẮT BUỘC phải sửa lại đáp án đúng (cập nhật \`options\`, \`correctAnswer\` và \`explanation\`).
+- TỰ MÌNH GIẢI LẠI 100% các phép toán có trong đề. Nếu AI Generator tính sai kết quả, BẮT BUỘC phải sửa lại đáp án đúng và các phương án liên quan.
 - Đảm bảo dữ kiện đề bài logic, không vô lý (VD: số tự nhiên chia dư ở lớp 1, lớp 2 là sai).
 
 2. KIỂM TRA TIẾNG VIỆT (Chính tả & Ngữ liệu):
@@ -323,5 +316,5 @@ Hệ thống phục vụ cho giáo viên và học sinh từ Lớp 1 đến Lớ
 5. TRẢ VỀ KẾT QUẢ ĐÚNG ĐỊNH DẠNG:
 - KẾT QUẢ CỦA BẠN CHỈ LÀ FILE JSON MỚI. KHÔNG XUẤT RA BẤT KỲ VĂN BẢN (MARKDOWN) NÀO KHÁC. KHÔNG GIẢI THÍCH!
 - GIỮ NGUYÊN cấu trúc schema JSON (title, questions). Số lượng câu hỏi không đổi, chỉ SỬA chất lượng bên trong.
-- Với mỗi câu hỏi đã bị sửa lỗi, hãy cố gắng cập nhật \`explanation\` (giải thích) cho hợp lý với đáp án đúng.
+- KHÔNG thêm trường \`explanation\` hoặc lời giải vào bất kỳ câu hỏi nào.
 `;

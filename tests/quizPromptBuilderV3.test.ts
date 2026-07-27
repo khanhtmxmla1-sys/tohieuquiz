@@ -66,6 +66,12 @@ describe('quiz prompt builder V3', () => {
     expect(prompt).toContain('Dùng ngữ cảnh gần gũi và đổi type thành RIDDLE.');
   });
 
+  it('forbids explanation output in V3 prompts', () => {
+    const prompt = buildPromptV3(makeInput(makeBlueprintV3Fixture()));
+
+    expect(prompt).toContain('Không tạo trường explanation');
+    expect(prompt).not.toContain('"explanation":"..."');
+  });
   it('dispatches buildPrompt to V3 while preserving V2 fallback', () => {
     const input = makeInput(makeBlueprintV3Fixture());
     expect(buildPrompt(input.topic, input.classLevel, input.content, input.options)).toBe(buildPromptV3(input));

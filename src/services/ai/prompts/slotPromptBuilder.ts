@@ -97,7 +97,8 @@ export function buildPromptV3(input: BuildPromptV3Input): string {
     '',
     '[OUTPUT CONTRACT]',
     'Root JSON bắt buộc: {"promptVersion":"ai-blueprint-v3","blueprintVersion":3,"title":"...","detectedCategory":"...","detectedLesson":"...","suggestedTags":[],"questions":[]}.',
-    'Mỗi câu phải echo đúng slotId, type, difficulty; có explanation và đúng schema của contract.',
+    'Mỗi câu phải echo đúng slotId, type, difficulty và đúng schema của contract.',
+    'Không tạo trường explanation trong bất kỳ câu hỏi nào.',
     'Không được thay slotId, type, difficulty, schema, số câu hoặc policy an toàn.',
     'Không thêm câu ngoài slot và không bỏ slot.',
     customPrompt

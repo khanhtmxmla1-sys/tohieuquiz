@@ -15,15 +15,6 @@ const SCIENTIFIC_GROUNDING_PROMPT = `
     3. Tim cac tinh huong doi thuong gan gui de long ghep vao cau hoi, giup bai thi khong bi kho khan.
 `;
 
-const PEDAGOGICAL_EXPLANATION_PROMPT = `
-    [EXPLANATION GENERATOR RULE]:
-    Truong "explanation" phai la mot bai giang mini 2-4 cau theo cau truc:
-    - Khang dinh dap an dung va ly do chon.
-    - Giai thich buoc di tu duy hoac quy tac ap dung.
-    - Dua ra mot meo nho hoac lien he thuc te de hoc sinh nho lau hon.
-    - Tuyet doi khong viet kieu "Dap an A la dung" mot cach don dieu.
-`;
-
 const THONG_TU_27_PROMPT = `
     [PEDAGOGICAL POLICY PROFILE - THONG TU 27]:
     - Bam yeu cau can dat cua chuong trinh tieu hoc va dung lua tuoi hoc sinh lop {CLASS_LEVEL}.
@@ -54,17 +45,21 @@ const INTENT_PROMPTS = {
     [INTENT: EXAM]
     - Câu hỏi ngắn gọn, trung lập. Không đưa gợi ý trong nội dung câu hỏi.
     - Không lặp cùng một kỹ năng bằng cách đổi số đơn giản.
-    - Phương án nhiễu phải hợp lý nhưng chỉ có đúng số đáp án theo schema.
-    - explanation vẫn phải đầy đủ để giáo viên duyệt, nhưng không xuất hiện khi học sinh đang làm bài.`,
+    - Phương án nhiễu phải hợp lý nhưng chỉ có đúng số đáp án theo schema.`,
   PRACTICE: `
     [INTENT: PRACTICE]
     - Sắp xếp từ kiến thức cốt lõi đến vận dụng.
-    - Lời giải phải hướng dẫn từng bước, nêu lỗi sai thường gặp và một mẹo nhớ ngắn.
-    - Ngôn ngữ khuyến khích, không gây áp lực.`,
+    - Câu dẫn rõ ràng, thân thiện và không gây áp lực.
+    - Phương án nhiễu phản ánh lỗi sai phổ biến nhưng không đánh đố.`,
 } as const;
 
+const NO_EXPLANATION_OUTPUT_PROMPT = `
+    [OUTPUT SIZE POLICY]
+    - Không tạo trường "explanation" trong bất kỳ câu hỏi nào.
+    - Chỉ trả dữ liệu cần thiết để hiển thị câu hỏi, chấm điểm và phân loại độ khó.
+`;
 const buildTypeDescriptions = (options?: QuizGenerationOptions): Record<string, string> => ({
-  MCQ: 'MCQ (Trac nghiem chon 1 dap an dung. Format: {"type":"MCQ","question":"Noi dung cau hoi 1 dong","options":["A...","B...","C...","D..."],"correctAnswer":"A","explanation":"..."} )',
+  MCQ: 'MCQ (Trac nghiem chon 1 dap an dung. Format: {"type":"MCQ","question":"Noi dung cau hoi 1 dong","options":["A...","B...","C...","D..."],"correctAnswer":"A"} )',
   TRUE_FALSE: 'TRUE_FALSE (Dung sai. Format: {"type":"TRUE_FALSE","mainQuestion":"Cau hoi chinh","items":[{"statement":"Y 1","isCorrect":true},{"statement":"Y 2","isCorrect":false}]})',
   SHORT_ANSWER: 'SHORT_ANSWER (Dien dap an ngan. Format: {"type":"SHORT_ANSWER","question":"Cau hoi","correctAnswer":"Dap an"} )',
   MATCHING: 'MATCHING (Noi cot. Format: {"type":"MATCHING","question":"Cau hoi","pairs":[{"left":"A","right":"1"},{"left":"B","right":"2"}]})',
@@ -75,7 +70,7 @@ const buildTypeDescriptions = (options?: QuizGenerationOptions): Record<string, 
   DROPDOWN: [
     'DROPDOWN (Điền vào chỗ trống bằng danh sách chọn.)',
     'Format bắt buộc:',
-    '{"type":"DROPDOWN","question":"Chọn đáp án đúng","text":"Thủ đô Việt Nam là [1].","blanks":[{"id":"1","options":["lựa chọn 1","lựa chọn 2"],"correctAnswer":"lựa chọn 1"}],"explanation":"Giải thích đầy đủ.","difficultyLevel":2}',
+    '{"type":"DROPDOWN","question":"Chọn đáp án đúng","text":"Thủ đô Việt Nam là [1].","blanks":[{"id":"1","options":["lựa chọn 1","lựa chọn 2"],"correctAnswer":"lựa chọn 1"}],"difficultyLevel":2}',
     'Mỗi [id] trong text phải có đúng một object cùng id trong blanks.',
     'correctAnswer phải thuộc options của chính blank đó.',
   ].join(' '),
@@ -83,7 +78,7 @@ const buildTypeDescriptions = (options?: QuizGenerationOptions): Record<string, 
   CATEGORIZATION: [
     'CATEGORIZATION (Kéo thả từng mục vào nhóm.)',
     'Format bắt buộc:',
-    '{"type":"CATEGORIZATION","question":"Phân loại các mục","categories":[{"id":"nhom-1","name":"Tên nhóm 1"},{"id":"nhom-2","name":"Tên nhóm 2"}],"items":[{"id":"item-1","content":"Nội dung cần phân loại","categoryId":"nhom-1"}],"explanation":"Giải thích đầy đủ.","difficultyLevel":2}',
+    '{"type":"CATEGORIZATION","question":"Phân loại các mục","categories":[{"id":"nhom-1","name":"Tên nhóm 1"},{"id":"nhom-2","name":"Tên nhóm 2"}],"items":[{"id":"item-1","content":"Nội dung cần phân loại","categoryId":"nhom-1"}],"difficultyLevel":2}',
     'Mỗi categories[].id và items[].id phải khác nhau, không được rỗng.',
     'Mỗi items[].categoryId phải trùng chính xác với một categories[].id đã khai báo.',
   ].join(' '),
@@ -194,7 +189,7 @@ export const buildPrompt = (
     ${customPromptSection}
 
     ${SCIENTIFIC_GROUNDING_PROMPT}
-    ${PEDAGOGICAL_EXPLANATION_PROMPT}
+    ${NO_EXPLANATION_OUTPUT_PROMPT}
     ${intentSection}
     ${pedagogicalPolicySection}
     ${learnerProfileSection}

@@ -90,7 +90,7 @@ export const MCQ_CONTRACT: AiQuestionTypeContract<McqQuestionV3> = {
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: McqSchema,
-  promptFragment: () => `[CONTRACT: MCQ]\n- Tạo đúng 4 phương án không có tiền tố A/B/C/D.\n- Chỉ một đáp án đúng.\n- JSON: {"slotId":"slot-1","type":"MCQ","difficulty":2,"question":"...","options":["...","...","...","..."],"correctAnswer":"A","explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: MCQ]\n- Tạo đúng 4 phương án không có tiền tố A/B/C/D.\n- Chỉ một đáp án đúng.\n- JSON: {"slotId":"slot-1","type":"MCQ","difficulty":2,"question":"...","options":["...","...","...","..."],"correctAnswer":"A"}`,
   validateSemantics: noIssues,
   validFixture: {
     slotId: 'slot-1',
@@ -99,7 +99,6 @@ export const MCQ_CONTRACT: AiQuestionTypeContract<McqQuestionV3> = {
     question: 'Phân số nào bằng một phần hai?',
     options: ['2/4', '1/3', '3/4', '2/3'],
     correctAnswer: 'A',
-    explanation: 'Hai phần tư rút gọn được một phần hai.',
   },
 };
 
@@ -111,7 +110,7 @@ export const TRUE_FALSE_CONTRACT: AiQuestionTypeContract<TrueFalseQuestionV3> = 
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: TrueFalseSchema,
-  promptFragment: () => `[CONTRACT: TRUE_FALSE]\n- Có 2 đến 4 mệnh đề độc lập, gồm ít nhất một Đúng và một Sai.\n- JSON: {"slotId":"slot-1","type":"TRUE_FALSE","difficulty":2,"mainQuestion":"...","items":[{"statement":"...","isCorrect":true},{"statement":"...","isCorrect":false}],"explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: TRUE_FALSE]\n- Có 2 đến 4 mệnh đề độc lập, gồm ít nhất một Đúng và một Sai.\n- JSON: {"slotId":"slot-1","type":"TRUE_FALSE","difficulty":2,"mainQuestion":"...","items":[{"statement":"...","isCorrect":true},{"statement":"...","isCorrect":false}]}`,
   validateSemantics: (question) => {
     const values = new Set(question.items.map((item) => item.isCorrect));
     return values.size === 2 ? [] : [{
@@ -130,7 +129,6 @@ export const TRUE_FALSE_CONTRACT: AiQuestionTypeContract<TrueFalseQuestionV3> = 
       { statement: 'Hai phần tư bằng một phần hai.', isCorrect: true },
       { statement: 'Một phần ba lớn hơn một phần hai.', isCorrect: false },
     ],
-    explanation: 'Rút gọn và so sánh các phân số để xác định từng nhận định.',
   },
 };
 
@@ -142,7 +140,7 @@ export const MULTIPLE_SELECT_CONTRACT: AiQuestionTypeContract<MultipleSelectQues
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: MultipleSelectSchema,
-  promptFragment: () => `[CONTRACT: MULTIPLE_SELECT]\n- Câu dẫn yêu cầu chọn tất cả đáp án đúng.\n- Có đúng 4 phương án và 2 đến 3 đáp án đúng.\n- JSON: {"slotId":"slot-1","type":"MULTIPLE_SELECT","difficulty":2,"question":"Chọn tất cả...","options":["...","...","...","..."],"correctAnswers":["A","C"],"explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: MULTIPLE_SELECT]\n- Câu dẫn yêu cầu chọn tất cả đáp án đúng.\n- Có đúng 4 phương án và 2 đến 3 đáp án đúng.\n- JSON: {"slotId":"slot-1","type":"MULTIPLE_SELECT","difficulty":2,"question":"Chọn tất cả...","options":["...","...","...","..."],"correctAnswers":["A","C"]}`,
   validateSemantics: noIssues,
   validFixture: {
     slotId: 'slot-1',
@@ -151,6 +149,5 @@ export const MULTIPLE_SELECT_CONTRACT: AiQuestionTypeContract<MultipleSelectQues
     question: 'Chọn tất cả phân số bằng một phần hai.',
     options: ['2/4', '3/6', '2/3', '4/5'],
     correctAnswers: ['A', 'B'],
-    explanation: 'Hai phần tư và ba phần sáu đều rút gọn thành một phần hai.',
   },
 };

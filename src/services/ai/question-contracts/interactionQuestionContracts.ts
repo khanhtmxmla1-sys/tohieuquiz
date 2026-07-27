@@ -100,7 +100,7 @@ export const MATCHING_CONTRACT: AiQuestionTypeContract<MatchingQuestionV3> = {
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: MatchingSchema,
-  promptFragment: () => `[CONTRACT: MATCHING]\n- Tạo 3 đến 5 cặp một-một; mỗi vế là duy nhất.\n- JSON: {"slotId":"slot-1","type":"MATCHING","difficulty":2,"question":"...","pairs":[{"left":"...","right":"..."},{"left":"...","right":"..."},{"left":"...","right":"..."}],"explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: MATCHING]\n- Tạo 3 đến 5 cặp một-một; mỗi vế là duy nhất.\n- JSON: {"slotId":"slot-1","type":"MATCHING","difficulty":2,"question":"...","pairs":[{"left":"...","right":"..."},{"left":"...","right":"..."},{"left":"...","right":"..."}]}`,
   validateSemantics: () => [],
   validFixture: {
     slotId: 'slot-1',
@@ -112,7 +112,6 @@ export const MATCHING_CONTRACT: AiQuestionTypeContract<MatchingQuestionV3> = {
       { left: '2 + 2', right: '4' },
       { left: '3 + 3', right: '6' },
     ],
-    explanation: 'Thực hiện từng phép cộng rồi nối với kết quả tương ứng.',
   },
 };
 
@@ -124,7 +123,7 @@ export const ORDERING_CONTRACT: AiQuestionTypeContract<OrderingQuestionV3> = {
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: OrderingSchema,
-  promptFragment: () => `[CONTRACT: ORDERING]\n- Có 3 đến 8 mục đã xáo trộn; correctOrder là hoán vị chỉ số 0..n-1.\n- JSON: {"slotId":"slot-1","type":"ORDERING","difficulty":2,"question":"...","items":["...","...","..."],"correctOrder":[1,0,2],"explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: ORDERING]\n- Có 3 đến 8 mục đã xáo trộn; correctOrder là hoán vị chỉ số 0..n-1.\n- JSON: {"slotId":"slot-1","type":"ORDERING","difficulty":2,"question":"...","items":["...","...","..."],"correctOrder":[1,0,2]}`,
   validateSemantics: () => [],
   validFixture: {
     slotId: 'slot-1',
@@ -133,7 +132,6 @@ export const ORDERING_CONTRACT: AiQuestionTypeContract<OrderingQuestionV3> = {
     question: 'Sắp xếp các bước trồng cây theo thứ tự hợp lý.',
     items: ['Tưới nước', 'Đặt cây vào hố', 'Đào hố'],
     correctOrder: [2, 1, 0],
-    explanation: 'Cần đào hố, đặt cây rồi mới tưới nước.',
   },
 };
 
@@ -145,7 +143,7 @@ export const CATEGORIZATION_CONTRACT: AiQuestionTypeContract<CategorizationQuest
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: CategorizationSchema,
-  promptFragment: () => `[CONTRACT: CATEGORIZATION]\n- Có 2 đến 4 nhóm, 4 đến 10 mục; mọi nhóm phải có ít nhất một mục.\n- JSON: {"slotId":"slot-1","type":"CATEGORIZATION","difficulty":2,"question":"...","categories":[{"id":"a","name":"..."},{"id":"b","name":"..."}],"items":[{"id":"i1","content":"...","categoryId":"a"}],"explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: CATEGORIZATION]\n- Có 2 đến 4 nhóm, 4 đến 10 mục; mọi nhóm phải có ít nhất một mục.\n- JSON: {"slotId":"slot-1","type":"CATEGORIZATION","difficulty":2,"question":"...","categories":[{"id":"a","name":"..."},{"id":"b","name":"..."}],"items":[{"id":"i1","content":"...","categoryId":"a"}]}`,
   validateSemantics: (question) => {
     const used = new Set(question.items.map((item) => item.categoryId));
     const empty = question.categories.filter((category) => !used.has(category.id));
@@ -167,6 +165,5 @@ export const CATEGORIZATION_CONTRACT: AiQuestionTypeContract<CategorizationQuest
       { id: 'i-3', content: '4', categoryId: 'chan' },
       { id: 'i-4', content: '5', categoryId: 'le' },
     ],
-    explanation: 'Số chẵn chia hết cho 2, số lẻ không chia hết cho 2.',
   },
 };

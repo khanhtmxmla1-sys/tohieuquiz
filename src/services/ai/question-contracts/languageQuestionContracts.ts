@@ -96,7 +96,7 @@ export const UNDERLINE_CONTRACT: AiQuestionTypeContract<UnderlineQuestionV3> = {
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: UnderlineSchema,
-  promptFragment: () => `[CONTRACT: UNDERLINE]\n- Trả targetWords, không tự tính chỉ số. Mỗi từ mục tiêu phải xuất hiện đúng một lần trong sentence.\n- JSON: {"slotId":"slot-1","type":"UNDERLINE","difficulty":2,"question":"...","sentence":"...","targetWords":["..."],"explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: UNDERLINE]\n- Trả targetWords, không tự tính chỉ số. Mỗi từ mục tiêu phải xuất hiện đúng một lần trong sentence.\n- JSON: {"slotId":"slot-1","type":"UNDERLINE","difficulty":2,"question":"...","sentence":"...","targetWords":["..."]}`,
   validateSemantics: (question) => {
     if (!uniqueNormalizedValues(question.targetWords)) {
       return [issue('UNDERLINE_TARGET_DUPLICATE', ['targetWords'], 'Các từ mục tiêu không được trùng nhau.')];
@@ -115,7 +115,6 @@ export const UNDERLINE_CONTRACT: AiQuestionTypeContract<UnderlineQuestionV3> = {
     question: 'Gạch chân các tính từ trong câu.',
     sentence: 'Bầu trời xanh và cao.',
     targetWords: ['xanh', 'cao'],
-    explanation: '“Xanh” và “cao” là các từ miêu tả đặc điểm.',
   },
 };
 
@@ -127,7 +126,7 @@ export const WORD_SCRAMBLE_CONTRACT: AiQuestionTypeContract<WordScrambleQuestion
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: WordScrambleSchema,
-  promptFragment: () => `[CONTRACT: WORD_SCRAMBLE]\n- letters phải ghép chính xác thành correctWord và giữ nguyên dấu tiếng Việt.\n- JSON: {"slotId":"slot-1","type":"WORD_SCRAMBLE","difficulty":2,"question":"...","letters":["h","o","a"],"correctWord":"hoa","explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: WORD_SCRAMBLE]\n- letters phải ghép chính xác thành correctWord và giữ nguyên dấu tiếng Việt.\n- JSON: {"slotId":"slot-1","type":"WORD_SCRAMBLE","difficulty":2,"question":"...","letters":["h","o","a"],"correctWord":"hoa"}`,
   validateSemantics: (question) => sameCharacterMultiset(question.letters.join(''), question.correctWord)
     ? []
     : [issue('WORD_SCRAMBLE_LETTERS_MISMATCH', ['letters'], 'Các chữ cái không ghép chính xác thành đáp án.')],
@@ -139,7 +138,6 @@ export const WORD_SCRAMBLE_CONTRACT: AiQuestionTypeContract<WordScrambleQuestion
     letters: ['h', 'o', 'a'],
     correctWord: 'hoa',
     hint: 'Loài cây thường có màu sắc đẹp.',
-    explanation: 'Sắp xếp h, o, a được từ “hoa”.',
   },
 };
 
@@ -151,7 +149,7 @@ export const RIDDLE_CONTRACT: AiQuestionTypeContract<RiddleQuestionV3> = {
   availability: 'aiSelectable',
   requiresPrimaryImage: false,
   schema: RiddleSchema,
-  promptFragment: () => `[CONTRACT: RIDDLE]\n- Có 2 đến 6 dòng, một đáp án ngắn duy nhất, phù hợp học sinh tiểu học.\n- Không tự nhận nguồn dân gian khi không có dữ liệu nguồn.\n- JSON: {"slotId":"slot-1","type":"RIDDLE","difficulty":2,"question":"...","riddleLines":["...","..."],"correctAnswer":"...","answerType":"original","answerLabel":"...","explanation":"..."}`,
+  promptFragment: () => `[CONTRACT: RIDDLE]\n- Có 2 đến 6 dòng, một đáp án ngắn duy nhất, phù hợp học sinh tiểu học.\n- Không tự nhận nguồn dân gian khi không có dữ liệu nguồn.\n- JSON: {"slotId":"slot-1","type":"RIDDLE","difficulty":2,"question":"...","riddleLines":["...","..."],"correctAnswer":"...","answerType":"original","answerLabel":"..."}`,
   validateSemantics: () => [],
   validFixture: {
     slotId: 'slot-1',
@@ -162,6 +160,5 @@ export const RIDDLE_CONTRACT: AiQuestionTypeContract<RiddleQuestionV3> = {
     correctAnswer: 'cây mía',
     answerType: 'original',
     answerLabel: 'Đáp án',
-    explanation: 'Cây mía có thân chia nhiều đốt, vỏ xanh và ruột trắng.',
   },
 };

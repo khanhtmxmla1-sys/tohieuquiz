@@ -44,7 +44,7 @@ export const IMAGE_QUESTION_CONTRACT: AiQuestionTypeContract<ImageQuestionV3> = 
   availability: 'aiSelectable',
   requiresPrimaryImage: true,
   schema: ImageQuestionSchema,
-  promptFragment: (context) => `[CONTRACT: IMAGE_QUESTION]\n- Bắt buộc có image và imageAlt; câu hỏi phải phụ thuộc trực tiếp vào hình.\n- ${context.hasImageLibrary ? 'Chỉ dùng ID ảnh có trong thư viện được cung cấp.' : 'Dùng image token theo pipeline tạo ảnh hiện có; không dùng URL placeholder.'}\n- Có đúng 4 phương án và một đáp án đúng.\n- JSON: {"slotId":"slot-1","type":"IMAGE_QUESTION","difficulty":2,"question":"...","image":"image-id","imageAlt":"...","options":["...","...","...","..."],"correctAnswer":"A","explanation":"..."}`,
+  promptFragment: (context) => `[CONTRACT: IMAGE_QUESTION]\n- Bắt buộc có image và imageAlt; câu hỏi phải phụ thuộc trực tiếp vào hình.\n- ${context.hasImageLibrary ? 'Chỉ dùng ID ảnh có trong thư viện được cung cấp.' : 'Dùng image token theo pipeline tạo ảnh hiện có; không dùng URL placeholder.'}\n- Có đúng 4 phương án và một đáp án đúng.\n- JSON: {"slotId":"slot-1","type":"IMAGE_QUESTION","difficulty":2,"question":"...","image":"image-id","imageAlt":"...","options":["...","...","...","..."],"correctAnswer":"A"}`,
   validateSemantics: (question, slot) => {
     const issues: QuestionContractIssue[] = [];
     if (slot.imagePolicy !== 'required') {
@@ -64,6 +64,5 @@ export const IMAGE_QUESTION_CONTRACT: AiQuestionTypeContract<ImageQuestionV3> = 
     imageAlt: 'Bốn hình cơ bản gồm hình vuông, tròn, tam giác và chữ nhật.',
     options: ['Hình thứ nhất', 'Hình thứ hai', 'Hình thứ ba', 'Hình thứ tư'],
     correctAnswer: 'A',
-    explanation: 'Hình thứ nhất có bốn cạnh bằng nhau và bốn góc vuông.',
   },
 };

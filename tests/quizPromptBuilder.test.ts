@@ -54,20 +54,22 @@ describe('quiz prompt builder blueprint contract', () => {
     expect(prompt).toContain('MATCHING: 2 câu');
   });
 
-  it('uses exam rules without hints', () => {
+  it('does not request explanations for exam generation', () => {
     const prompt = buildPrompt('Phân số', '4', '', makeOptions('EXAM'));
 
     expect(prompt).toContain('[INTENT: EXAM]');
-    expect(prompt).toContain('Không đưa gợi ý trong nội dung câu hỏi');
-    expect(prompt).not.toContain('Lời giải phải hướng dẫn từng bước');
+    expect(prompt).toContain('Không tạo trường "explanation"');
+    expect(prompt).not.toContain('[EXPLANATION GENERATOR RULE]');
+    expect(prompt).not.toContain('"explanation":"..."');
   });
 
-  it('uses practice rules with learning feedback', () => {
+  it('does not request explanations for practice generation', () => {
     const prompt = buildPrompt('Phân số', '4', '', makeOptions('PRACTICE'));
 
     expect(prompt).toContain('[INTENT: PRACTICE]');
-    expect(prompt).toContain('Lời giải phải hướng dẫn từng bước');
-    expect(prompt).not.toContain('Không đưa gợi ý trong nội dung câu hỏi');
+    expect(prompt).toContain('Không tạo trường "explanation"');
+    expect(prompt).not.toContain('Lời giải phải hướng dẫn từng bước');
+    expect(prompt).not.toContain('"explanation":"..."');
   });
 
   it('includes exact dropdown and categorization JSON contracts', () => {
@@ -85,5 +87,6 @@ describe('quiz prompt builder blueprint contract', () => {
     expect(prompt).toContain(
       'Mỗi items[].categoryId phải trùng chính xác với một categories[].id đã khai báo',
     );
+    expect(prompt).not.toContain('"explanation":"Giải thích đầy đủ."');
   });
 });
