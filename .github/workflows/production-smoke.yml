@@ -1,0 +1,70 @@
+name: Production smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: Public TôHiệuQuiz URL
+        required: true
+        default: https://www.thtohieu.com
+      api_url:
+        description: Cloudflare Worker API URL
+        required: true
+        default: https://api.thtohieu.com
+      parent_url:
+        description: Parent portal URL
+        required: true
+        default: https://phuhuynh.thtohieu.com
+  deployment_status:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'deployment_status' &&
+       github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NODE_VERSION: 22.22.0
+      SITE_URL: ${{ github.event.inputs.site_url || 'https://www.thtohieu.com' }}
+      API_URL: ${{ github.event.inputs.api_url || 'https://api.thtohieu.com' }}
+      PARENT_URL: ${{ github.event.inputs.parent_url || 'https://phuhuynh.thtohieu.com' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run read-only production smoke
+        run: >-
+          node scripts/run-production-smoke.mjs
+          --site "$SITE_URL"
+          --api "$API_URL"
+          --parent "$PARENT_URL"
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-smoke-screenshots
+          path: cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 7
