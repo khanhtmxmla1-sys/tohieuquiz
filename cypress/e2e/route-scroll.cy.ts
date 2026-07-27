@@ -26,11 +26,11 @@
 const DESKTOP = { width: 1280, height: 720 } as const;
 
 /**
- * Bấm link trong FOOTER chứ không phải header: `cy.click()` tự cuộn phần tử vào tầm nhìn, nên bấm
- * một link ở đầu trang sẽ kéo trang về gần đỉnh và vị trí cuộn lúc điều hướng không còn là vị trí
- * spec vừa dựng.
+ * Click footer links without Cypress auto-scrolling them again. Each test has already brought the
+ * footer into view, so another synthetic scroll would change the offset immediately before the
+ * navigation and make the assertion observe Cypress behavior instead of reader behavior.
  */
-const footerLink = (label: string) => cy.get('footer button').contains(label);
+const clickFooterLink = (label: string) => cy.get('footer button').contains(label).click({ scrollBehavior: false });
 
 const visitScrolledToBottom = (path: string) => {
   cy.viewport(DESKTOP.width, DESKTOP.height);
@@ -45,7 +45,7 @@ describe('Scroll position across client-side navigation', () => {
   it('opens the next lazy page at the top instead of inheriting the previous offset', () => {
     visitScrolledToBottom('/about');
 
-    footerLink('Liên hệ').click();
+    clickFooterLink('Liên hệ');
 
     cy.location('pathname').should('equal', '/contact');
     cy.window().its('scrollY').should('equal', 0);
@@ -57,7 +57,7 @@ describe('Scroll position across client-side navigation', () => {
   it('still lands at the top on the first hop out of the landing page', () => {
     visitScrolledToBottom('/');
 
-    footerLink('Giới thiệu').click();
+    clickFooterLink('Giới thiệu');
 
     cy.location('pathname').should('equal', '/about');
     cy.window().its('scrollY').should('equal', 0);
@@ -69,7 +69,7 @@ describe('Scroll position across client-side navigation', () => {
     visitScrolledToBottom('/');
 
     cy.window().then((win) => win.scrollY).then((offsetBeforeLeaving) => {
-      footerLink('Chính sách bảo mật').click();
+      clickFooterLink('Chính sách bảo mật');
       cy.location('pathname').should('equal', '/privacy');
 
       // Nút này nằm cuối trang; `cy.click()` tự cuộn nó vào tầm nhìn, không ảnh hưởng gì vì ta đang rời trang.
@@ -91,7 +91,7 @@ describe('Scroll position across client-side navigation', () => {
     cy.window().then((win) => win.scrollY).then((offsetBeforeLeaving) => {
       expect(offsetBeforeLeaving, 'trang chủ đã cuộn trước khi điều hướng').to.be.greaterThan(0);
 
-      footerLink('Giới thiệu').click();
+      clickFooterLink('Giới thiệu');
       cy.location('pathname').should('equal', '/about');
       cy.window().its('scrollY').should('equal', 0);
 

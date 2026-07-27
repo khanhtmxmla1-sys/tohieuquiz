@@ -113,7 +113,25 @@ export const useScrollReset = (view?: string) => {
         // Recorded on every scroll rather than read at navigation time: by the time the location
         // effect runs the new screen has rendered and the browser may already have clamped scrollY
         // to a shorter document, losing the offset we wanted to remember.
-        const handleScroll = () => positions.set(activeKeyRef.current, window.scrollY);
+        const handleScroll = () => {
+            const key = activeKeyRef.current;
+            const nextPosition = window.scrollY;
+            const savedPosition = positions.get(key);
+            const documentHeight = Math.max(
+                document.documentElement.scrollHeight,
+                document.body?.scrollHeight ?? 0,
+            );
+            const maxReachablePosition = Math.max(0, documentHeight - window.innerHeight);
+            const clampedByShortDocument = typeof savedPosition === 'number'
+                && nextPosition < savedPosition
+                && maxReachablePosition < savedPosition - 1;
+
+            // A lazy fallback can collapse the outgoing document before React commits the new
+            // location. Browsers clamp scrollY and emit `scroll` while activeKeyRef still points at
+            // the page being left. Preserve its last reachable offset instead of replacing it with
+            // that synthetic clamp; real upward scrolling remains recordable while the page is tall.
+            if (!clampedByShortDocument) positions.set(key, nextPosition);
+        };
         const handlePageHide = () => writeStoredPositions(positions);
 
         window.addEventListener('scroll', handleScroll, { passive: true });
