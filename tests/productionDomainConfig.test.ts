@@ -89,6 +89,15 @@ describe('TôHiệuQuiz production domain contract', () => {
     );
   });
 
+  it('keeps frontend telemetry and API example variables on independent lines', () => {
+    const envExample = read('.env.example');
+
+    expect(envExample).toMatch(/^VITE_APP_RELEASE=local$/m);
+    expect(envExample).toMatch(/^VITE_CLIENT_ERROR_REPORT_URL=\/api\/client-errors$/m);
+    expect(envExample).toMatch(/^VITE_WORKERS_API_URL=$/m);
+    expect(envExample).not.toContain('/api/client-errorshttps://');
+  });
+
   it('contains no placeholder or legacy production domains in deployment-critical files', () => {
     const deploymentCritical = [
       '.env.example',
