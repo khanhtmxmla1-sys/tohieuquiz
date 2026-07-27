@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { isStaleChunkError, recoverFromStaleChunk } from '../src/utils/chunkRecovery';
+import {
+  installChunkRecovery,
+  isStaleChunkError,
+  recoverFromStaleChunk,
+} from '../src/utils/chunkRecovery';
 
 const createStorage = () => {
   const values = new Map<string, string>();
@@ -51,5 +55,21 @@ describe('chunk recovery', () => {
     expect(recoverFromStaleChunk(error, { storage, reload, now: () => 1_000 })).toBe(true);
     expect(recoverFromStaleChunk(error, { storage, reload, now: () => 62_000 })).toBe(true);
     expect(reload).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports a preload failure before recovering the stale chunk', () => {
+    const recover = vi.fn(() => true);
+    const report = vi.fn();
+    const cleanup = installChunkRecovery({ recover, report });
+    const error = new TypeError('Failed to fetch dynamically imported module');
+    const event = new Event('vite:preloadError', { cancelable: true }) as Event & { payload?: unknown };
+    event.payload = error;
+
+    window.dispatchEvent(event);
+
+    expect(report).toHaveBeenCalledWith(error, { event: 'stale_chunk_error' });
+    expect(recover).toHaveBeenCalledWith(error);
+    expect(event.defaultPrevented).toBe(true);
+    cleanup();
   });
 });
