@@ -17,6 +17,26 @@ vi.mock('../src/pages/PhieuPublicPage', () => ({ default: () => <div>phieu</div>
 vi.mock('../src/components/legal/PrivacyPolicy', () => ({ default: () => <div>privacy</div> }));
 vi.mock('../src/components/legal/TermsOfService', () => ({ default: () => <div>tos</div> }));
 vi.mock('../src/app/PublicPageLayout', () => ({ PublicPageLayout: ({ children }: any) => <>{children}</> }));
+vi.mock('../src/app/lazyViews', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../src/app/lazyViews')>();
+    const { Navigate, useParams } = await import('react-router');
+    const { useAuthStore: useAuthStoreInStub } = await import('../stores/authStore');
+    return {
+        ...actual,
+        ManualQuizWorkspacePage: () => {
+            const isLoggedIn = useAuthStoreInStub(state => state.isLoggedIn);
+            const { quizId } = useParams();
+            if (!isLoggedIn) return <Navigate to="/" replace />;
+            return (
+                <div
+                    data-testid="manual-quiz-workspace"
+                    data-mode={quizId ? 'edit' : 'new'}
+                    data-quiz-id={quizId || undefined}
+                />
+            );
+        },
+    };
+});
 
 const originalAuth = useAuthStore.getState();
 const originalQuiz = useQuizStore.getState();
