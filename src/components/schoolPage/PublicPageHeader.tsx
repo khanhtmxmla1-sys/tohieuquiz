@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ArrowRight, Menu, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
-type PublicPage = 'about' | 'contact';
+type PublicPage = 'about' | 'contact' | 'privacy' | 'tos';
 
 interface PublicPageHeaderProps {
     activePage: PublicPage;
+    onBack?: () => void;
 }
 
 const navItems = [
@@ -14,7 +15,7 @@ const navItems = [
     { label: 'Liên hệ', path: '/contact', key: 'contact' },
 ] as const;
 
-const PublicPageHeader: React.FC<PublicPageHeaderProps> = ({ activePage }) => {
+const PublicPageHeader: React.FC<PublicPageHeaderProps> = ({ activePage, onBack }) => {
     const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -37,6 +38,17 @@ const PublicPageHeader: React.FC<PublicPageHeaderProps> = ({ activePage }) => {
     return (
         <header className="sticky top-0 z-40 border-b border-blue-100/80 bg-white/90 backdrop-blur-xl">
             <div className="mx-auto flex min-h-[72px] max-w-7xl items-center justify-between gap-4 px-4 md:px-8">
+                <div className="flex min-w-0 items-center gap-2">
+                    {onBack ? (
+                        <button
+                            type="button"
+                            onClick={onBack}
+                            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                            title="Quay lại"
+                        >
+                            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+                        </button>
+                    ) : null}
                 <button
                     type="button"
                     onClick={() => goTo('/')}
@@ -49,6 +61,7 @@ const PublicPageHeader: React.FC<PublicPageHeaderProps> = ({ activePage }) => {
                         <span className="text-[#EAB308]">Quiz</span>
                     </span>
                 </button>
+                </div>
 
                 <div className="hidden items-center gap-3 md:flex">
                     <nav className="flex items-center gap-1" aria-label="Điều hướng trang công khai">
