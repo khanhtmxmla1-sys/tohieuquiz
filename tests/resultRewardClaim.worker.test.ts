@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 
 let currentUser: JWTPayload | null = null;
@@ -117,6 +118,10 @@ const claim = (db: RewardDatabase, resultId = '42') => handleGamificationRoutes(
 );
 
 describe('result reward claim', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     currentUser = { id: 'student-a', username: 'student-a', role: 'student', classId: 'class-a' };
   });
@@ -160,6 +165,7 @@ describe('result reward claim', () => {
   });
 
   it('rolls back a partial batch so retry can safely award later', async () => {
+    const errorSpy = expectConsoleError();
     const db = new RewardDatabase();
     db.failBatchAtIndex = 1;
 
@@ -174,6 +180,7 @@ describe('result reward claim', () => {
     expect(retryResponse.status).toBe(200);
     expect(db.coins).toBe(115);
     expect(db.pet.exp).toBe(60);
+    expectConsoleMessage(errorSpy, 'Simulated transactional failure');
   });
 
   it('creates a default pet inside the same transaction when needed', async () => {

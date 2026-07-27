@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationSurfaceStack } from '../src/features/notifications/components';
 import { useUnifiedNotificationsFeatureFlag } from '../src/features/notifications/useUnifiedNotificationsFeatureFlag';
+import { expectConsoleMessage, expectConsoleWarn } from './helpers/expectedConsole';
 
 const getSystemSettingsMock = vi.hoisted(() => vi.fn());
 const getAnnouncementsMock = vi.hoisted(() => vi.fn());
@@ -34,6 +35,7 @@ function FlaggedLayout() {
 
 describe('unified notification rollout flag', () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 
@@ -83,6 +85,7 @@ describe('unified notification rollout flag', () => {
   });
 
   it('keeps the layout usable when the unified collection API fails', async () => {
+    const warnSpy = expectConsoleWarn();
     getSystemSettingsMock.mockResolvedValue({
       aiAssistantEnabled: true,
       unifiedNotificationsEnabled: true,
@@ -94,5 +97,6 @@ describe('unified notification rollout flag', () => {
     await act(async () => undefined);
     await waitFor(() => expect(getAnnouncementsMock).toHaveBeenCalledTimes(1));
     expect(screen.getByTestId('layout-shell')).toHaveTextContent('Trang vẫn hoạt động');
+    expectConsoleMessage(warnSpy, 'announcement collection unavailable');
   });
 });

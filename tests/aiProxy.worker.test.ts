@@ -7,6 +7,7 @@ import {
   type AiRequestMeta,
 } from '../workers/src/services/aiRequestPolicy';
 import { handleAiProxy } from '../workers/src/routes/aiProxy';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 
 const authState = vi.hoisted(() => ({
   user: { username: 'teacher-a', role: 'teacher' },
@@ -344,6 +345,7 @@ describe('/api/ai/chat', () => {
   });
 
   it('releases the reservation on upstream 503 during GENERATE', async () => {
+    const errorSpy = expectConsoleError();
     gatewayFetch.mockResolvedValueOnce(new Response('down', { status: 503 }));
 
     const response = await handleAiProxy(
@@ -360,9 +362,11 @@ describe('/api/ai/chat', () => {
     expect(response?.status).toBe(503);
     expect(fakeDb.actions.get(actionId)?.status).toBe('FAILED');
     expect(fakeDb.usedCount).toBe(0);
+    expectConsoleMessage(errorSpy, 'Downstream error (503)');
   });
 
   it('reopens a failed action so a transient upstream failure can retry with the same action id', async () => {
+    const errorSpy = expectConsoleError();
     gatewayFetch
       .mockResolvedValueOnce(new Response('temporary tunnel failure', { status: 522 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), {
@@ -387,6 +391,7 @@ describe('/api/ai/chat', () => {
       failure_code: null,
     });
     expect(globalFetchSpy).not.toHaveBeenCalled();
+    expectConsoleMessage(errorSpy, 'Downstream error (522)');
   });
 
   it('applies the closed AI rate limit after authentication without using the username in its key', async () => {

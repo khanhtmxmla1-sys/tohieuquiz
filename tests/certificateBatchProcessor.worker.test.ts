@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 
 const renderCertificateMock = vi.hoisted(() => vi.fn());
 
@@ -42,9 +43,14 @@ class ProcessorDB {
 }
 
 describe('certificate batch processor', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => renderCertificateMock.mockReset());
 
   it('preserves Vietnamese and score zero, produces partial, and notifies successes only', async () => {
+    const errorSpy = expectConsoleError();
     const db = new ProcessorDB();
     const renderInputs: any[] = [];
     renderCertificateMock.mockImplementation(async (params: any) => {
@@ -89,5 +95,6 @@ describe('certificate batch processor', () => {
       .toBe('student-1');
     expect(notifications.find((statement) => statement.bindings[3] === 'certificate_batch_completed')?.bindings[1])
       .toBe('teacher-1');
+    expectConsoleMessage(errorSpy, 'render failed certificate=cert-fail');
   });
 });

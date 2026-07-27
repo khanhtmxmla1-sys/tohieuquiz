@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { CacheService, CacheTTL, CacheKeys } from '../src/services/CacheService';
+import { expectConsoleMessage, expectConsoleWarn } from './helpers/expectedConsole';
 
 describe('CacheService', () => {
     let cacheService: CacheService;
@@ -17,6 +18,7 @@ describe('CacheService', () => {
 
     afterEach(() => {
         localStorage.clear();
+        vi.restoreAllMocks();
     });
 
     describe('Memory Cache', () => {
@@ -115,6 +117,7 @@ describe('CacheService', () => {
         });
 
         it('should return stale data when force refresh fails', async () => {
+            const warnSpy = expectConsoleWarn();
             // First, set valid cached data
             cacheService.set('stale-key', ['cached data'], CacheTTL.QUIZZES);
 
@@ -131,6 +134,7 @@ describe('CacheService', () => {
 
             expect(result).toEqual(['cached data']);
             expect(mockFetcher).toHaveBeenCalledOnce();
+            expectConsoleMessage(warnSpy, 'Fetch failed, returning stale data: stale-key');
         });
     });
 
