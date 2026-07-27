@@ -88,3 +88,6 @@ workers/data/*
 workers/dump*.json
 workers/*query*.txt
 workers/fix_*.ps1
+ 
+# Local git worktrees 
+.worktrees/ 
