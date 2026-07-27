@@ -25,6 +25,7 @@ export function normalizeGeneratedQuizV3Compatibility(
     if (!isRecord(question)) return question;
 
     const nextQuestion = { ...question };
+    delete nextQuestion.explanation;
     if (options.allowV2DifficultyAlias
       && nextQuestion.difficulty === undefined
       && nextQuestion.difficultyLevel !== undefined) {

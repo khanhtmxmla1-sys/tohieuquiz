@@ -403,7 +403,6 @@ export const useQuizGeneration = ({
                         slotId: slot.slotId,
                         type: slot.type,
                         difficulty: slot.difficulty,
-                        explanation: question.explanation || 'C?u hi?n t?i ch?a c? l?i gi?i.',
                     } as GeneratedQuestionV3,
                     otherQuestionSummaries: (form.generatedQuiz?.questions ?? [])
                         .filter((candidate) => candidate.id !== question.id)

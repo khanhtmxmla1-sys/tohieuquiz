@@ -45,6 +45,7 @@ export function buildQuizSchemaRepairPrompt(input: QuizSchemaRepairRequest): str
     'Không tự giảm số câu và không thêm dạng câu ngoài bản nháp.',
     'Mọi items[].categoryId phải trùng với một categories[].id.',
     'Mọi DROPDOWN.blanks[] phải là object gồm id, options và correctAnswer.',
+    'Không tạo trường explanation trong câu hỏi.',
   ].join('\n');
 }
 
@@ -115,7 +116,8 @@ CÁC LỖI CẦN KHẮC PHỤC:
 ${issueSummary}
 
 Không viết lại các câu hợp lệ. Không trả lại toàn bộ đề gốc.
-JSON trả về phải có dạng {"title":"Phần sửa","questions":[...]} và mỗi câu phải có explanation cùng difficultyLevel.
+JSON trả về phải có dạng {"title":"Phần sửa","questions":[...]} và mỗi câu phải có difficultyLevel.
+Không tạo trường explanation trong câu hỏi.
 `;
 }
 
@@ -239,6 +241,7 @@ export function buildQuizSlotRepairPrompt(input: {
     validQuestionSummaries || 'Không có.',
     '[OUTPUT]',
     'Trả {"promptVersion":"ai-blueprint-v3","blueprintVersion":3,"title":"Phần sửa","questions":[...]}.',
+    'Không tạo trường explanation trong các slot sửa.',
     'Chỉ trả các slot được yêu cầu. Không được đổi slotId, type hoặc difficulty.',
   ].join('\n');
 }

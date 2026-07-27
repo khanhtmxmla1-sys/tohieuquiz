@@ -12,6 +12,18 @@ const blueprint = makeBlueprintV3Fixture();
 const validQuiz = makeGeneratedQuizV3Fixture(blueprint);
 
 describe('generated quiz V3 slot audit', () => {
+  it('accepts valid slots without explanations', () => {
+    const quiz = {
+      ...validQuiz,
+      questions: validQuiz.questions.map((question) => {
+        const copy = { ...question } as Record<string, unknown>;
+        delete copy.explanation;
+        return copy;
+      }),
+    } as GeneratedQuizV3;
+
+    expect(auditGeneratedQuizV3(quiz, blueprint)).toEqual([]);
+  });
   it('reports missing, duplicate and unexpected slots independently', () => {
     const quiz: GeneratedQuizV3 = {
       ...validQuiz,

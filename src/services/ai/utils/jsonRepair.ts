@@ -165,7 +165,11 @@ export const validateAndFixQuiz = (quiz: unknown, maxQuestions?: number): unknow
     q.questions = (q.questions as unknown[]).slice(0, maxQuestions);
   }
 
-  q.questions = (q.questions as Record<string, unknown>[]).map((item) => fixQuestionLatex(item));
+  q.questions = (q.questions as Record<string, unknown>[]).map((item) => {
+    const normalized = fixQuestionLatex(item);
+    delete normalized.explanation;
+    return normalized;
+  });
 
   if ((q.questions as Record<string, unknown>[]).some((item) => item.difficultyLevel)) {
     (q.questions as Record<string, unknown>[]).sort((a, b) => {

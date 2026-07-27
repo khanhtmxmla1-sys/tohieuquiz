@@ -15,6 +15,7 @@ const mapQuestion = (question: GeneratedQuestionV3): Question => {
     ...payload
   } = question;
   const record = { ...payload } as Record<string, unknown>;
+  delete record.explanation;
 
   if (question.type === QuestionType.TRUE_FALSE && Array.isArray(record.items)) {
     record.items = record.items.map((item, index) => {

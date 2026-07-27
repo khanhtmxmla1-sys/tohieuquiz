@@ -9,7 +9,6 @@ const makeMcq = (question: string, difficultyLevel = 2) => ({
   question,
   options: ['A', 'B', 'C', 'D'],
   correctAnswer: 'A',
-  explanation: 'Giải thích đầy đủ.',
   difficultyLevel,
 });
 
@@ -54,6 +53,15 @@ describe('generated quiz audit', () => {
     }));
   });
 
+  it('does not report missing explanations', () => {
+    const quiz = parseGeneratedQuiz({
+      title: 'Đề không lời giải',
+      questions: [makeMcq('Câu hợp lệ không có lời giải')],
+    });
+
+    expect(auditGeneratedQuiz(quiz, blueprintFor(1)).map((issue) => issue.code))
+      .not.toContain('MISSING_EXPLANATION');
+  });
   it('reports type and difficulty allocation mismatches', () => {
     const quiz = parseGeneratedQuiz({
       title: 'Đề lệch blueprint',

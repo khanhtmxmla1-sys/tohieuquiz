@@ -40,4 +40,15 @@ describe('single question V3 regeneration prompt', () => {
     expect(prompt).toContain('[CONTRACT: MATCHING]');
     expect(prompt).toContain('so sánh hai phân số');
   });
-});
+
+  it('does not include the old explanation in regeneration prompts', () => {
+    const prompt = buildQuestionRegenerationPrompt({
+      slot,
+      currentQuestion,
+      otherQuestionSummaries: [],
+    });
+
+    expect(prompt).toContain('Không tạo trường explanation');
+    expect(prompt).not.toContain('Lời giải hiện tại.');
+    expect(prompt).not.toContain('"explanation"');
+  });});

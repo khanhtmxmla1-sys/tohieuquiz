@@ -47,6 +47,8 @@ describe('targeted quiz repair', () => {
 
     expect(prompt).toContain('Tạo đúng 2 câu thay thế');
     expect(prompt).not.toContain(JSON.stringify(eightQuestionQuiz.questions));
+    expect(prompt).toContain('Không tạo trường explanation');
+    expect(prompt).not.toContain('mỗi câu phải có explanation');
   });
 
   it('replaces only invalid indexes and keeps valid question ids', () => {

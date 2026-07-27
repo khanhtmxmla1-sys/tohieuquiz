@@ -24,6 +24,8 @@ export function buildQuestionRegenerationPrompt(input: {
     subskillCode: input.slot.subskillCode,
     imagePolicy: input.slot.imagePolicy,
   };
+  const currentQuestion = { ...input.currentQuestion } as Record<string, unknown>;
+  delete currentQuestion.explanation;
 
   return [
     'Sinh lại đúng một câu cho slot sau.',
@@ -31,13 +33,14 @@ export function buildQuestionRegenerationPrompt(input: {
     'Không được đổi slotId, type hoặc difficulty.',
     contract,
     '[CÂU HIỆN TẠI]',
-    JSON.stringify(input.currentQuestion),
+    JSON.stringify(currentQuestion),
     '[CÁC CÂU KHÁC ĐỂ TRÁNH TRÙNG]',
     input.otherQuestionSummaries
       .map((summary) => `${summary.slotId}: ${summary.normalizedPrompt}`)
       .join('\n') || 'Không có.',
     '[YÊU CẦU GIÁO VIÊN]',
     input.teacherInstruction?.trim() || 'Đổi nội dung nhưng giữ nguyên mục tiêu học tập.',
+    'Không tạo trường explanation trong câu mới.',
     'Chỉ trả JSON root V3 chứa đúng một câu trong questions.',
   ].join('\n');
 }

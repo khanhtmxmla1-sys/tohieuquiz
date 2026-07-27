@@ -19,8 +19,7 @@ export type QuizAuditCode =
   | 'TYPE_COUNT_MISMATCH'
   | 'DIFFICULTY_COUNT_MISMATCH'
   | 'DUPLICATE_QUESTION'
-  | 'INVALID_ANSWER'
-  | 'MISSING_EXPLANATION';
+  | 'INVALID_ANSWER';
 
 export interface QuizAuditIssue {
   code: QuizAuditCode;
@@ -156,14 +155,6 @@ export function auditGeneratedQuiz(
   }
 
   questions.forEach((question, index) => {
-    if (!question.explanation.trim()) {
-      issues.push({
-        code: 'MISSING_EXPLANATION',
-        questionIndexes: [index],
-        message: `Câu ${index + 1} thiếu lời giải.`,
-        repairable: true,
-      });
-    }
     if (hasInvalidAnswer(question)) {
       issues.push({
         code: 'INVALID_ANSWER',
@@ -188,8 +179,7 @@ export type QuizSlotAuditCode =
   | 'QUESTION_SCHEMA_INVALID'
   | 'QUESTION_SEMANTIC_INVALID'
   | 'DUPLICATE_QUESTION_CONTENT'
-  | 'MATH_FORMAT_INVALID'
-  | 'MISSING_EXPLANATION';
+  | 'MATH_FORMAT_INVALID';
 
 export interface QuizSlotAuditIssue {
   code: QuizSlotAuditCode;
@@ -304,14 +294,6 @@ export function auditGeneratedQuizV3(
         semanticIssue.path,
       ));
     });
-    if (!question.explanation?.trim()) {
-      issues.push(slotIssue(
-        'MISSING_EXPLANATION',
-        [slot.slotId],
-        `${slot.slotId} thiếu lời giải.`,
-        ['explanation'],
-      ));
-    }
     const mathIssues = validateQuestionMath(question);
     if (mathIssues.length > 0) {
       issues.push(slotIssue(

@@ -64,6 +64,8 @@ describe('V3 targeted slot repair', () => {
     expect(prompt).toContain(`[CONTRACT: ${replacementSlot.type}]`);
     expect(prompt).not.toContain('"slotId":"slot-1","type"');
     expect(prompt).not.toContain(JSON.stringify(original.questions));
+    expect(prompt).toContain('Không tạo trường explanation');
+    expect(prompt).not.toContain('"explanation"');
   });
 
   it('merges by slot id and preserves valid object references', () => {
