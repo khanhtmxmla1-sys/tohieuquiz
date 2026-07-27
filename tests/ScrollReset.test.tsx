@@ -121,6 +121,57 @@ describe('useScrollReset', () => {
         expect(scrollTo).toHaveBeenCalledWith(0, 1371);
     });
 
+    it('does not overwrite the page being left when a lazy route clamps scroll before commit', () => {
+        renderProbe();
+
+        setScrollY(1371);
+        act(() => { window.dispatchEvent(new Event('scroll')); });
+
+        act(() => {
+            navigate('/about');
+            // A lazy fallback can collapse the document before React commits the new location.
+            // The browser then emits a scroll event while activeKeyRef still points at the page
+            // being left; that clamp must not replace its last meaningful offset with zero.
+            setScrollY(0);
+            window.dispatchEvent(new Event('scroll'));
+        });
+
+        scrollTo.mockClear();
+        act(() => { navigate(-1); });
+
+        expect(scrollTo).toHaveBeenCalledWith(0, 1371);
+    });
+
+    it('records deliberate upward scrolling while the document remains tall enough', () => {
+        const scrollHeightDescriptor = Object.getOwnPropertyDescriptor(document.documentElement, 'scrollHeight');
+        const innerHeightDescriptor = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+        Object.defineProperty(document.documentElement, 'scrollHeight', { value: 4_000, configurable: true });
+        Object.defineProperty(window, 'innerHeight', { value: 720, configurable: true });
+
+        try {
+            renderProbe();
+
+            setScrollY(1371);
+            act(() => { window.dispatchEvent(new Event('scroll')); });
+            setScrollY(457);
+            act(() => { window.dispatchEvent(new Event('scroll')); });
+            act(() => { navigate('/about'); });
+            scrollTo.mockClear();
+            setScrollY(0);
+
+            act(() => { navigate(-1); });
+
+            expect(scrollTo).toHaveBeenCalledWith(0, 457);
+        } finally {
+            if (scrollHeightDescriptor) {
+                Object.defineProperty(document.documentElement, 'scrollHeight', scrollHeightDescriptor);
+            } else {
+                delete (document.documentElement as HTMLElement & { scrollHeight?: number }).scrollHeight;
+            }
+            if (innerHeightDescriptor) Object.defineProperty(window, 'innerHeight', innerHeightDescriptor);
+        }
+    });
+
     it('keeps restoring when a lazy page grows after the twentieth frame', () => {
         const frameQueue: FrameRequestCallback[] = [];
         vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
