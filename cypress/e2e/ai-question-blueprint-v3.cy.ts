@@ -21,6 +21,47 @@ const aiResponse = (payload: unknown) => ({
   choices: [{ message: { content: JSON.stringify(payload) } }],
 });
 
+const trialQuiz = {
+  promptVersion: 'ai-blueprint-v3',
+  blueprintVersion: 3,
+  title: 'Bản thử ôn tập lớp 4',
+  detectedCategory: 'toan',
+  detectedLesson: 'Ôn tập thử',
+  suggestedTags: ['ban_thu', 'lop_4'],
+  timeLimit: 10,
+  questions: [
+    {
+      slotId: 'slot-1',
+      type: 'MCQ',
+      difficulty: 1,
+      question: 'Kết quả của 3 cộng 4 là bao nhiêu?',
+      options: ['7', '6', '8', '9'],
+      correctAnswer: 'A',
+      explanation: 'Ba cộng bốn bằng bảy.',
+    },
+    {
+      slotId: 'slot-2',
+      type: 'MATCHING',
+      difficulty: 2,
+      question: 'Nối phép tính với kết quả đúng.',
+      pairs: [
+        { left: '2 + 2', right: '4' },
+        { left: '3 + 2', right: '5' },
+        { left: '4 + 2', right: '6' },
+      ],
+      explanation: 'Tính từng phép cộng rồi nối với kết quả.',
+    },
+    {
+      slotId: 'slot-3',
+      type: 'SHORT_ANSWER',
+      difficulty: 2,
+      question: 'Số liền sau của 19 là số nào?',
+      correctAnswer: '20',
+      explanation: 'Số liền sau của 19 là 20.',
+    },
+  ],
+};
+
 const installSession = (win: Window) => {
   win.localStorage.setItem('auth-storage', authStorageValue);
   win.localStorage.setItem('tohieuquiz_teacher_dashboard_ui', dashboardStorageValue);
@@ -115,6 +156,29 @@ const clickGenerate = () => {
 };
 
 describe('AI Question Blueprint V3', () => {
+  it('creates a representative three-question trial and blocks saving it', () => {
+    cy.intercept('POST', '**/api/ai/chat', (request) => {
+      expect(request.body._meta.promptVersion).to.equal('ai-blueprint-v3');
+      expect(request.body._meta.blueprintVersion).to.equal(3);
+      expect(request.body._meta.slotCount).to.equal(3);
+      request.reply({ statusCode: 200, body: aiResponse(trialQuiz) });
+    }).as('aiTrial');
+
+    visitCreateTab();
+    cy.get('input[placeholder*="Động vật rừng xanh"]').clear().type('Ôn tập thử lớp 4');
+    cy.contains('Cấu hình trước khi tạo').should('be.visible');
+    cy.contains('10 câu · 4 dạng · Dễ 3, Trung bình 5, Khó 2').should('be.visible');
+    cy.contains('5/5 lượt còn lại').should('be.visible');
+
+    cy.contains('button', 'Tạo thử 3 câu').click();
+
+    cy.wait('@aiTrial').its('request.body._meta.stage').should('equal', 'GENERATE');
+    cy.contains('Bản tạo thử 3 câu', { timeout: 20_000 }).should('be.visible');
+    cy.contains('button', 'Lưu đề')
+      .should('be.disabled')
+      .and('have.attr', 'title', 'Đây là bản tạo thử 3 câu. Hãy tạo đề đầy đủ trước khi lưu.');
+  });
+
   it('generates and renders all thirteen contract types', () => {
     cy.fixture('ai-blueprint-v3-13-types.json').then((validQuiz) => {
       cy.intercept('POST', '**/api/ai/chat', (request) => {
@@ -207,7 +271,12 @@ describe('AI Question Blueprint V3', () => {
 
       cy.get('button[title="Sinh lại câu hỏi này (AI)"]').first().scrollIntoView().click();
       cy.contains('Kết quả mới của 7 cộng 5', { timeout: 20_000 }).should('be.visible');
+      cy.contains('AI đã thay đổi một câu hỏi').should('be.visible');
       cy.then(() => expect(sawRegenerate).to.equal(true));
+
+      cy.contains('button', 'Hoàn tác lần sinh lại này').click();
+      cy.contains('Kết quả của 6 cộng 4', { timeout: 10_000 }).should('be.visible');
+      cy.contains('AI đã thay đổi một câu hỏi').should('not.exist');
     });
   });
 });

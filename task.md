@@ -95,7 +95,12 @@
   - [x] Mỗi item có severity, explanation, count, generatedAt và CTA nội bộ; phản hồi giới hạn tối đa 8 item.
   - [x] Dashboard hiển thị trạng thái loading/error/empty và điều hướng giữ nguyên route/filter cho Assignment, Gift Shop, Live Exam và Manual Quiz draft.
   - [x] Targeted regression 8 file/43 test; Cypress Electron 2/2 với Gift Shop API flag; full verify 327 file/1.546 test, coverage, build và security audit đạt.
-- [ ] Task 21 — AI question quality gate
+- [x] Task 21 — AI question quality gate
+  - [x] Shared deterministic quality contract kiểm tra đáp án ngoài options, câu/phương án trùng, stem trống, lệch khối lớp và rủi ro parse toán.
+  - [x] Màn hình tạo đề hiển thị blueprint/quota trước generate, hỗ trợ bản thử 3 câu không thể lưu và giữ đúng slot V3 đại diện.
+  - [x] Review hiển thị blocking/warning theo câu; blocking khóa save ở UI và persistence, warning bắt buộc giáo viên xác nhận.
+  - [x] Sinh lại từng câu có so sánh trước/sau và hoàn tác; metadata chỉ lưu prompt/blueprint version cùng quality summary/acknowledgement.
+  - [x] Targeted regression 7 file/37 test; Cypress AI V2 6/6 và Blueprint V3 3/3; full verify 330 file/1.561 test, coverage, build và security audit đạt.
 - [ ] Task 22 — Live Exam reconnect/autosave/connection monitoring
 - [ ] Task 23 — Results Intervention Center
 - [ ] Task 24 — Parent digest/preferences/account recovery

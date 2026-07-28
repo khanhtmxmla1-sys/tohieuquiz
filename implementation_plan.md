@@ -563,11 +563,11 @@ interface AuthState {
 - Create: `QuestionQualityReview.tsx`
 - Test: `tests/aiQuestionQuality.test.ts` và AI Cypress specs.
 
-- [ ] Deterministic checks: answer ngoài options, duplicate question/options, empty stem, grade mismatch, math parse risk.
-- [ ] Preview blueprint/quota trước generate.
-- [ ] “Tạo thử 3 câu”, regenerate từng câu, diff và undo.
-- [ ] Blocking issue không được publish; warning cần acknowledge.
-- [ ] Lưu prompt/blueprint version và quality summary, không chain-of-thought.
+- [x] Deterministic checks: answer ngoài options, duplicate question/options, empty stem, grade mismatch, math parse risk.
+- [x] Preview blueprint/quota trước generate.
+- [x] “Tạo thử 3 câu”, regenerate từng câu, diff và undo.
+- [x] Blocking issue không được publish; warning cần acknowledge.
+- [x] Lưu prompt/blueprint version và quality summary, không chain-of-thought.
 
 **Acceptance:** Không publish được MCQ có đáp án không thuộc options.
 

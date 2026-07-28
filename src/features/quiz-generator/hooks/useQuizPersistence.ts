@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Quiz } from '../../../types';
+import type { AiQuestionQualitySummary } from '../../../../shared/ai-question-quality.contract';
 import { showError } from '../../../utils/toast';
 import type { useQuizFormState } from './useQuizFormState';
 import type { useQuizShareState } from './useQuizShareState';
@@ -12,6 +13,10 @@ interface UseQuizPersistenceOptions {
     onUpdateQuiz: (quiz: Quiz) => Promise<void>;
     onSuccess: () => void;
     addAssignment: (payload: unknown) => Promise<unknown>;
+    qualitySummary: AiQuestionQualitySummary | null;
+    acknowledgedWarningIds: ReadonlySet<string>;
+    canSave: boolean;
+    saveBlockReason: string | null;
 }
 
 export const useQuizPersistence = ({
@@ -22,31 +27,60 @@ export const useQuizPersistence = ({
     onUpdateQuiz,
     onSuccess,
     addAssignment,
+    qualitySummary,
+    acknowledgedWarningIds,
+    canSave,
+    saveBlockReason,
 }: UseQuizPersistenceOptions) => {
     const [isSaving, setIsSaving] = useState(false);
 
     const handleSaveQuiz = async () => {
         if (!form.generatedQuiz || isSaving) return;
+        if (!canSave) {
+            showError(saveBlockReason || 'Đề chưa vượt qua kiểm tra chất lượng.');
+            return;
+        }
         if (!form.classLevel || !form.classLevel.trim()) {
             showError('Vui lòng chọn Khối lớp trước khi lưu đề thi');
             return;
         }
 
+        const quizToSave: Quiz = qualitySummary
+            ? {
+                ...form.generatedQuiz,
+                aiGeneration: {
+                    ...form.generatedQuiz.aiGeneration,
+                    qualitySummary: {
+                        version: qualitySummary.version,
+                        checkedAt: qualitySummary.checkedAt,
+                        blockingCount: qualitySummary.blockingCount,
+                        warningCount: qualitySummary.warningCount,
+                        acknowledgedWarningIds: qualitySummary.issues
+                            .filter((issue) => (
+                                issue.severity === 'warning'
+                                && acknowledgedWarningIds.has(issue.id)
+                            ))
+                            .map((issue) => issue.id),
+                    },
+                },
+            }
+            : form.generatedQuiz;
+
         setIsSaving(true);
         try {
-            if (editingQuiz) await onUpdateQuiz(form.generatedQuiz);
-            else await onSaveQuiz(form.generatedQuiz);
+            if (editingQuiz) await onUpdateQuiz(quizToSave);
+            else await onSaveQuiz(quizToSave);
 
             if (form.assignToClass && form.selectedClassId) {
                 try {
                     await addAssignment({
                         classId: form.selectedClassId,
-                        quizId: form.generatedQuiz.id,
-                        quizTitle: form.generatedQuiz.title,
+                        quizId: quizToSave.id,
+                        quizTitle: quizToSave.title,
                         dueDate: new Date(form.deadline).toISOString(),
                         type: 'quiz',
                         settings: {
-                            duration: form.generatedQuiz.timeLimit,
+                            duration: quizToSave.timeLimit,
                             maxAttempts: form.maxAttempts,
                             viewAnswers: true,
                             shuffleQuestions: true,
@@ -57,7 +91,7 @@ export const useQuizPersistence = ({
                 }
             }
 
-            share.openSavedQuizLink(form.generatedQuiz.id);
+            share.openSavedQuizLink(quizToSave.id);
             form.resetAfterSave();
             onSuccess();
         } catch (error: unknown) {

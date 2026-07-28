@@ -63,6 +63,102 @@ const buildBlueprint = (input: BuildQuizGenerationOptionsInput): QuizBlueprint =
     return blueprint;
 };
 
+const pickRepresentativeItems = <T>(items: T[], count: number): T[] => {
+    if (count >= items.length) return [...items];
+    return Array.from({ length: count }, (_, index) => (
+        items[Math.floor((index * items.length) / count)]
+    ));
+};
+
+const summarizeTrialSlots = (slots: QuizBlueprintV3['slots']) => {
+    const typeCounts = new Map<QuestionType, number>();
+    const difficultyLevels = { level1: 0, level2: 0, level3: 0 };
+    slots.forEach((slot) => {
+        typeCounts.set(slot.type, (typeCounts.get(slot.type) ?? 0) + 1);
+        difficultyLevels[`level${slot.difficulty}` as keyof typeof difficultyLevels] += 1;
+    });
+    return {
+        typeAllocations: [...typeCounts].map(([type, count]) => ({ type, count })),
+        difficultyLevels,
+    };
+};
+
+export const buildTrialQuizGenerationOptions = (
+    options: QuizGenerationOptions,
+    requestedCount = 3,
+): QuizGenerationOptions => {
+    const fullCount = options.blueprintV3?.totalQuestions
+        ?? options.blueprint?.totalQuestions
+        ?? options.questionCount;
+    const trialCount = Math.max(1, Math.min(requestedCount, fullCount));
+    if (trialCount >= fullCount) return options;
+
+    if (options.blueprintV3) {
+        const slots = pickRepresentativeItems(options.blueprintV3.slots, trialCount)
+            .map((slot, index) => ({
+                ...slot,
+                slotId: `slot-${index + 1}` as const,
+                ordinal: index + 1,
+            }));
+        const summary = summarizeTrialSlots(slots);
+        return {
+            ...options,
+            questionCount: trialCount,
+            questionTypes: summary.typeAllocations.map(({ type }) => type),
+            difficultyLevels: summary.difficultyLevels,
+            blueprint: options.blueprint ? {
+                ...options.blueprint,
+                totalQuestions: trialCount,
+                typeAllocations: summary.typeAllocations,
+                difficultyLevels: summary.difficultyLevels,
+            } : undefined,
+            blueprintV3: {
+                ...options.blueprintV3,
+                totalQuestions: trialCount,
+                slots,
+            },
+        };
+    }
+
+    if (options.blueprint) {
+        const expandedTypes = options.blueprint.typeAllocations.flatMap(({ type, count }) => (
+            Array.from({ length: count }, () => type)
+        ));
+        const selectedTypes = pickRepresentativeItems(expandedTypes, trialCount);
+        const typeCounts = new Map<QuestionType, number>();
+        selectedTypes.forEach((type) => typeCounts.set(type, (typeCounts.get(type) ?? 0) + 1));
+        const difficultySequence = [
+            ...Array.from({ length: options.blueprint.difficultyLevels.level1 }, () => 1 as const),
+            ...Array.from({ length: options.blueprint.difficultyLevels.level2 }, () => 2 as const),
+            ...Array.from({ length: options.blueprint.difficultyLevels.level3 }, () => 3 as const),
+        ];
+        const selectedDifficulties = pickRepresentativeItems(difficultySequence, trialCount);
+        const difficultyLevels = {
+            level1: selectedDifficulties.filter((level) => level === 1).length,
+            level2: selectedDifficulties.filter((level) => level === 2).length,
+            level3: selectedDifficulties.filter((level) => level === 3).length,
+        };
+        const typeAllocations = [...typeCounts].map(([type, count]) => ({ type, count }));
+        return {
+            ...options,
+            questionCount: trialCount,
+            questionTypes: typeAllocations.map(({ type }) => type),
+            difficultyLevels,
+            blueprint: {
+                ...options.blueprint,
+                totalQuestions: trialCount,
+                typeAllocations,
+                difficultyLevels,
+            },
+        };
+    }
+
+    return {
+        ...options,
+        questionCount: trialCount,
+    };
+};
+
 export const buildQuizGenerationOptions = (
     input: BuildQuizGenerationOptionsInput,
     config: BuildQuizGenerationOptionsConfig = {},

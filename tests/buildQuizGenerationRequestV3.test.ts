@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { QuestionType } from '../src/types';
-import { buildQuizGenerationOptions } from '../src/features/quiz-generator/domain/buildQuizGenerationRequest';
+import {
+  buildQuizGenerationOptions,
+  buildTrialQuizGenerationOptions,
+} from '../src/features/quiz-generator/domain/buildQuizGenerationRequest';
 
 const input = {
   title: 'Đề phân số',
@@ -42,6 +45,33 @@ describe('buildQuizGenerationOptions V3 adapter', () => {
     expect(options.blueprint).toBeDefined();
     expect(options.blueprintV3).toBeUndefined();
     expect(options.promptVersion).toBeUndefined();
+  });
+
+  it('builds a representative three-question trial without mutating the full blueprint', () => {
+    const fullOptions = buildQuizGenerationOptions({
+      ...input,
+      questionCount: 8,
+      typeAllocations: [
+        { type: QuestionType.MCQ, count: 4 },
+        { type: QuestionType.MATCHING, count: 4 },
+      ],
+      difficultyLevels: { level1: 3, level2: 3, level3: 2 },
+    }, { enableBlueprintV3: true });
+
+    const trialOptions = buildTrialQuizGenerationOptions(fullOptions);
+
+    expect(fullOptions.blueprintV3?.slots).toHaveLength(8);
+    expect(trialOptions.questionCount).toBe(3);
+    expect(trialOptions.blueprint?.totalQuestions).toBe(3);
+    expect(trialOptions.blueprintV3?.totalQuestions).toBe(3);
+    expect(trialOptions.blueprintV3?.slots).toHaveLength(3);
+    expect(trialOptions.blueprintV3?.slots.map((slot) => slot.slotId)).toEqual([
+      'slot-1',
+      'slot-2',
+      'slot-3',
+    ]);
+    expect(trialOptions.blueprint?.typeAllocations.reduce((sum, item) => sum + item.count, 0)).toBe(3);
+    expect(Object.values(trialOptions.blueprint?.difficultyLevels ?? {}).reduce((sum, count) => sum + count, 0)).toBe(3);
   });
 
   it('keeps selected OCR page markers as source references', () => {

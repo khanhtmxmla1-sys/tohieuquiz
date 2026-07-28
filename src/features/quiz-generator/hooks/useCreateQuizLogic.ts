@@ -11,6 +11,7 @@ import { useQuizFormState } from './useQuizFormState';
 import { useQuizGeneration } from './useQuizGeneration';
 import { useQuizPersistence } from './useQuizPersistence';
 import { useQuizShareState } from './useQuizShareState';
+import { useQuestionQualityReview } from './useQuestionQualityReview';
 
 export const useCreateQuizLogic = ({
     editingQuiz,
@@ -35,6 +36,10 @@ export const useCreateQuizLogic = ({
         teacherName: authStore.teacherName,
     });
     const share = useQuizShareState();
+    const quality = useQuestionQualityReview({
+        quiz: form.generatedQuiz,
+        classLevel: form.classLevel,
+    });
     const generation = useQuizGeneration({
         form,
         editingQuiz,
@@ -52,6 +57,10 @@ export const useCreateQuizLogic = ({
         onUpdateQuiz,
         onSuccess,
         addAssignment: assignmentStore.addAssignment,
+        qualitySummary: quality.summary,
+        acknowledgedWarningIds: quality.acknowledgedWarningIds,
+        canSave: quality.canSave,
+        saveBlockReason: quality.saveBlockReason,
     });
 
     useEffect(() => {
@@ -87,6 +96,12 @@ export const useCreateQuizLogic = ({
         error: form.error,
         setError: form.setError,
         isSaving: persistence.isSaving,
+        questionQualitySummary: quality.summary,
+        acknowledgedQualityWarningIds: quality.acknowledgedWarningIds,
+        isTrialPreview: quality.isTrialPreview,
+        canSaveQuiz: quality.canSave,
+        saveQuizBlockReason: quality.saveBlockReason,
+        toggleQualityWarningAcknowledgement: quality.toggleWarningAcknowledgement,
         customPrompt: form.customPrompt,
         setCustomPrompt: form.setCustomPrompt,
         promptProfile: form.promptProfile,
@@ -154,6 +169,7 @@ export const useCreateQuizLogic = ({
         handleApplyAiCategory: form.handleApplyAiCategory,
         handleApplyAiTitleSuggestion: form.handleApplyAiTitleSuggestion,
         handleGenerate: generation.handleGenerate,
+        handleGenerateTrial: generation.handleGenerateTrial,
         handleRegenerateSingle: generation.handleRegenerateSingle,
         cancelGeneration: generation.cancelGeneration,
         handleSaveQuiz: persistence.handleSaveQuiz,

@@ -31,6 +31,11 @@ import { useCreateQuizLogic } from '../src/features/quiz-generator/hooks/useCrea
 
 const expectedPublicKeys = [
     'accessCode',
+    'acknowledgedQualityWarningIds',
+    'canSaveQuiz',
+    'questionQualitySummary',
+    'saveQuizBlockReason',
+    'toggleQualityWarningAcknowledgement',
     'addTagToState',
     'aiDetectedCategory',
     'aiDetectedLesson',
@@ -58,6 +63,7 @@ const expectedPublicKeys = [
     'handleApplyAiTitleSuggestion',
     'handleCopyLink',
     'handleGenerate',
+    'handleGenerateTrial',
     'handleRegenerateSingle',
     'handleSaveQuiz',
     'handleSelectLearnerMode',
@@ -67,6 +73,7 @@ const expectedPublicKeys = [
     'isGenerating',
     'isSaving',
     'isTeacherAccount',
+    'isTrialPreview',
     'linkCopied',
     'lockedClass',
     'manualTimeLimit',

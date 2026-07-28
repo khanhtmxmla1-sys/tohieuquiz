@@ -148,6 +148,15 @@ const malformedTenQuestionQuiz = {
   )),
 };
 
+const warningTenQuestionQuiz = {
+  ...validTenQuestionQuiz,
+  questions: validTenQuestionQuiz.questions.map((question, index) => (
+    index === 0
+      ? { ...question, question: 'Bài toán lớp 5: phân số nào biểu diễn một phần hai?' }
+      : question
+  )),
+};
+
 const SCHEMA_ERROR_MESSAGE =
   'AI tạo một số câu chưa đúng cấu trúc. Vui lòng thử tạo lại đề hoặc giảm số dạng câu trong một lần.';
 
@@ -156,7 +165,8 @@ type AiMode =
   | 'failure'
   | 'cancel'
   | 'schema-repair-success'
-  | 'schema-repair-failure';
+  | 'schema-repair-failure'
+  | 'quality-warning';
 
 const aiResponse = (payload: unknown) => ({
   choices: [{ message: { content: JSON.stringify(payload) } }],
@@ -253,7 +263,7 @@ const interceptAi = (mode: AiMode) => {
     request.reply({
       statusCode: 200,
       delay: stage === 'REVIEW' ? 700 : 450,
-      body: aiResponse(validTenQuestionQuiz),
+      body: aiResponse(mode === 'quality-warning' ? warningTenQuestionQuiz : validTenQuestionQuiz),
     });
   }).as('aiChat');
 };
@@ -264,7 +274,7 @@ const visitCreateTab = (mode: AiMode) => {
   cy.visit('/', { onBeforeLoad: installSession });
   cy.contains('Tạo đề kiểm tra mới', { timeout: 15_000 }).should('be.visible');
   cy.contains(/^Dạng câu hỏi(?: & ma trận)?$/).should('be.visible');
-  cy.contains('Lượt tạo đề AI hôm nay:').should('contain.text', '5/5');
+  cy.contains('5/5 lượt còn lại').should('be.visible');
 };
 
 const enterTopicAndUploadPdf = () => {
@@ -342,7 +352,19 @@ describe('AI quiz generation V2', () => {
     cy.contains('button', 'TẠO ĐỀ TỪ 2 TRANG ĐÃ CHỌN').click();
     cy.contains('Dịch vụ AI tạm thời không khả dụng.', { timeout: 10_000 }).should('be.visible');
     cy.get('input[placeholder*="Động vật rừng xanh"]').should('have.value', 'Phân số lớp 4');
-    cy.contains('Lượt tạo đề AI hôm nay:').should('contain.text', '5/5');
+    cy.contains('5/5 lượt còn lại').should('be.visible');
+  });
+
+  it('requires acknowledgement before saving a quiz with a quality warning', () => {
+    visitCreateTab('quality-warning');
+    cy.get('input[placeholder*="Động vật rừng xanh"]').clear().type('Phân số lớp 4');
+
+    cy.contains('button', '📚 Ra đề ÔN TẬP').click();
+
+    cy.contains('Cần xác nhận', { timeout: 15_000 }).should('be.visible');
+    cy.contains('button', 'Lưu đề').should('be.disabled');
+    cy.get('input[aria-label^="Xác nhận:"]').check();
+    cy.contains('button', 'Lưu đề').should('be.enabled');
   });
 
   it('cancels a pending request and preserves the form', () => {
@@ -355,6 +377,6 @@ describe('AI quiz generation V2', () => {
     cy.contains('button', 'Hủy tạo đề').click();
     cy.contains('Đã hủy yêu cầu').should('be.visible');
     cy.get('input[placeholder*="Động vật rừng xanh"]').should('have.value', 'Phân số lớp 4');
-    cy.contains('Lượt tạo đề AI hôm nay:').should('contain.text', '5/5');
+    cy.contains('5/5 lượt còn lại').should('be.visible');
   });
 });
