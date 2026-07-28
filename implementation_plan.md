@@ -61,9 +61,9 @@
 - Create: `docs/audits/2026-07-28-modernization-baseline.md`
 - Worktree: `.worktrees/security-ui-modernization-20260728/` (không commit thư mục worktree)
 
-- [ ] Tạo nhánh `feat/security-ui-modernization` từ `origin/main` trong worktree riêng.
-- [ ] Ghi commit SHA nguồn và `git status --short` của root chính/worktree.
-- [ ] Chạy baseline:
+- [x] Dùng worktree tích hợp cô lập `C:\quizpro\.worktrees\modernization-integration` trên nhánh `feat/modernization-integration`; ghi rõ sai khác có chủ đích so với tên worktree dự kiến.
+- [x] Ghi commit SHA nguồn và `git status --short` của root chính/worktree.
+- [x] Chạy baseline:
 
 ```bash
 npm ci
@@ -75,8 +75,8 @@ npm run security:check
 npm run build
 ```
 
-- [ ] Ghi số test, thời gian build, mọi chunk >100 KB, CSS tổng, warning và trạng thái feature flags.
-- [ ] Không thay đổi các file đang sửa dở ở working tree chính.
+- [x] Ghi số test, thời gian build, mọi chunk >100 KB, CSS tổng, warning và trạng thái feature flags.
+- [x] Không thay đổi các file đang sửa dở ở working tree chính.
 
 **Acceptance:** Báo cáo tái lập được, không chứa secret và worktree sạch.
 
@@ -1132,6 +1132,17 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - Production build and bundle budget.
 - Security scan, history scan, policy gates, root/Workers dependency audit.
 - MCP diff review and `git diff --check`.
+
+## Batch 3 Execution Record — 2026-07-28
+
+### Task 1 — Baseline locked
+
+- Provenance locked at integration commit `828d8c1223aa3d448fed029feb114394fb502b1d`, with merge base `4b561e898f997cb1ae10a63a2f5a595e7e645cd8`.
+- Root and integration-worktree status were captured without modifying the pre-existing root changes.
+- Root/Workers install, lint, both typechecks, security gates and production build passed.
+- Full Vitest baseline: 304/307 files and 1,432/1,436 tests passed; four stale assertions were recorded in the baseline report for alignment before the Batch 3 final gate.
+- Build baseline: 4,447 modules, 36.36-second Vite build, 261,135 B CSS minified/41,649 B gzip and 12 JavaScript chunks over 100 KB minified; no chunk exceeded 500 KB.
+- Report: `docs/audits/2026-07-28-modernization-baseline.md`.
 
 ## Batch 2 Execution Record — 2026-07-28
 

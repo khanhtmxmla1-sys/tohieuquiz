@@ -8,7 +8,7 @@
 
 | Stream | Phạm vi | Branch/worktree | Trạng thái |
 |---|---|---|---|
-| A — Baseline & Governance | Task 1–3 | `feat/modernization-integration` | Task 2 hoàn tất |
+| A — Baseline & Governance | Task 1–3 | `feat/modernization-integration` | Tasks 1–2 hoàn tất; Task 3 kế tiếp |
 | B — Security/API/Privacy | Task 4–9, 11 | `feat/modernization-integration` | Tasks 4–9 và 11 hoàn tất trong phạm vi đã mở |
 | C — UI Foundation | Task 13–16 | `feat/modernization-integration` | Tasks 13–16 hoàn tất trong phạm vi đã mở |
 | D — Database/Operations | Task 12, 30–31 | `feat/modernization-db-ops` | Chưa mở trong batch này |
@@ -18,7 +18,10 @@
 
 ## Wave 0 — Baseline và quản trị phạm vi
 
-- [ ] Task 1 — Tạo worktree và khóa baseline
+- [x] Task 1 — Tạo worktree và khóa baseline
+  - [x] Khóa provenance tại `828d8c1`, ghi trạng thái root/worktree và không chạm thay đổi riêng trên `main`.
+  - [x] Ghi đầy đủ install, lint, typecheck, full Vitest, security, build, bundle/CSS, warning và feature flags trong `docs/audits/2026-07-28-modernization-baseline.md`.
+  - [x] Baseline trung thực: 1.432/1.436 test đạt; bốn assertion drift đã được liệt kê để xử lý trước gate cuối Batch 3.
 - [x] Task 2 — Ma trận dữ liệu nhạy cảm và browser storage policy
 - [ ] Task 3 — Ma trận route–vai trò–ownership
 
