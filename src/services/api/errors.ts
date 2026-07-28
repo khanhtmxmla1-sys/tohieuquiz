@@ -19,6 +19,7 @@ const fallbackMessage = (status: number): string => {
 };
 
 const safeMessage = (value: unknown, status: number): string => {
+  if (status === 401 || status === 403) return fallbackMessage(status);
   if (typeof value !== 'string') return fallbackMessage(status);
   const message = value.trim();
   if (!message || message.length > 300 || /<\/?(?:html|script|body)/i.test(message)) return fallbackMessage(status);

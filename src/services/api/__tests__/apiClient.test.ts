@@ -110,7 +110,7 @@ describe('executeApiAction — error handling', () => {
         expect(error).toBeInstanceOf(ApiError);
         expect(error).toMatchObject({
             status: 401,
-            message: 'Không có quyền truy cập API (Authentication failed)',
+            message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
         });
     });
 
@@ -122,7 +122,7 @@ describe('executeApiAction — error handling', () => {
     it('throws network error on Failed to fetch', async () => {
         mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
         await expect(executeApiAction('get_quizzes')).rejects.toThrow(
-            'Không thể kết nối mạng hoặc lỗi CORS',
+            'Không thể kết nối mạng. Vui lòng kiểm tra kết nối rồi thử lại.',
         );
     });
 

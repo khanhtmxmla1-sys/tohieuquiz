@@ -9,12 +9,15 @@ const studentQuizViewSource = readSource('src/app/StudentQuizView.tsx');
 const waitingRoomChatSource = readSource('src/components/LiveExam/WaitingRoomChatPanel.tsx');
 const studentDashboardSource = readSource('src/components/HomePage/StudentDashboardUI.tsx');
 const errorBoundarySource = readSource('src/components/common/ErrorBoundary.tsx');
+const supportErrorSource = readSource('src/components/common/SupportError.tsx');
+const apiErrorsSource = readSource('src/services/api/errors.ts');
+const sharedErrorSource = [errorBoundarySource, supportErrorSource, apiErrorsSource].join('\n');
 const stylesSource = readSource('styles.css');
 const studentCopySource = [
   homePageSource,
   studentQuizViewSource,
   waitingRoomChatSource,
-  errorBoundarySource,
+  sharedErrorSource,
 ].join('\n');
 
 describe('student dashboard Vietnamese copy', () => {
@@ -41,15 +44,16 @@ describe('student dashboard Vietnamese copy', () => {
 
   it('uses valid UTF-8 copy in the shared error screen', () => {
     for (const copy of [
-      'Đã xảy ra lỗi',
-      'Rất tiếc, ứng dụng gặp sự cố không mong muốn',
-      'Chi tiết lỗi',
+      'Thông báo lỗi ứng dụng',
+      'Ứng dụng gặp sự cố',
+      'Ứng dụng gặp sự cố. Vui lòng thử lại.',
+      'Mã hỗ trợ',
       'Thử lại',
       'Về trang chủ',
       'Tải lại trang',
-      'Nếu lỗi vẫn tiếp tục, vui lòng liên hệ quản trị viên',
+      'Chi tiết dành cho phát triển',
     ]) {
-      expect(errorBoundarySource).toContain(copy);
+      expect(sharedErrorSource).toContain(copy);
     }
   });
 

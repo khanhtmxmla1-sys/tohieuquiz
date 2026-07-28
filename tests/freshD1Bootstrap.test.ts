@@ -31,6 +31,8 @@ describe('fresh D1 bootstrap contract', () => {
       'parent_activation_tokens',
       'parent_class_announcements',
       'parent_notifications',
+      'ai_tutor_daily_usage',
+      'ai_tutor_reservations',
       // Thiếu bảng này thì mọi endpoint đăng nhập trả 503 (limiter chạy failureMode 'closed').
       'rate_limits',
     ]) {
@@ -76,7 +78,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(42);
+    expect(migrationNames).toHaveLength(43);
+    expect(migrationNames.at(-1)).toBe('0044_create_ai_tutor_usage.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);
