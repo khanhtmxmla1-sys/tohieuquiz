@@ -207,6 +207,10 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                                                             <StopCircle size={14} />
                                                             Đã nộp
                                                         </span>
+                                                    ) : participant.connectionState === 'reconnecting' ? (
+                                                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm" title={`Lần cuối: ${new Date(participant.lastSeen).toLocaleTimeString('vi-VN')}`}>
+                                                            Đang kết nối lại
+                                                        </span>
                                                     ) : participant.isOnline ? (
                                                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
                                                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>
@@ -214,7 +218,7 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                                                         </span>
                                                     ) : (
                                                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                                                            Offline
+                                                            <span title={`Lần cuối: ${new Date(participant.lastSeen).toLocaleTimeString('vi-VN')}`}>Offline</span>
                                                         </span>
                                                     )}
                                                 </td>

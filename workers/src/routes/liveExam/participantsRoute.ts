@@ -25,6 +25,7 @@ export const handleParticipantsRoute: LiveExamRouteHandler = async (context) => 
         currentQuestion: row.current_question,
         answeredCount: row.answered_count,
         isOnline: Boolean(row.is_online),
+        lastSeen: row.last_activity,
       }]),
     );
     const combined = participants.map((participant) => ({
@@ -35,6 +36,8 @@ export const handleParticipantsRoute: LiveExamRouteHandler = async (context) => 
       currentQuestion: activityMap.get(participant.studentId)?.currentQuestion,
       answeredCount: activityMap.get(participant.studentId)?.answeredCount || 0,
       isOnline: activityMap.get(participant.studentId)?.isOnline || false,
+      connectionState: activityMap.get(participant.studentId)?.isOnline ? 'online' : 'offline',
+      lastSeen: activityMap.get(participant.studentId)?.lastSeen || participant.joinedAt,
     }));
     return jsonResponse({
       success: true,

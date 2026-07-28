@@ -70,7 +70,15 @@ export const UpdateActivityRequestSchema = z.object({
     liveExamId: z.string().min(1, 'Live exam ID is required'),
     studentId: z.string().min(1, 'Student ID is required'),
     currentQuestion: z.number().int().positive().optional(),
-    answeredCount: z.number().int().min(0)
+    answeredCount: z.number().int().min(0),
+    connectionState: z.enum(['online', 'reconnecting', 'offline']).optional()
+});
+
+export const LiveExamAutosaveRequestSchema = z.object({
+    liveExamId: z.string().min(1, 'Live exam ID is required'),
+    attemptVersion: z.number().int().positive(),
+    idempotencyKey: z.string().min(16).max(160).regex(/^[A-Za-z0-9:_-]+$/),
+    answers: StudentAnswersSchema
 });
 
 // ===============================

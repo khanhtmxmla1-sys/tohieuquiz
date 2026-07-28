@@ -252,6 +252,30 @@ export async function submitAnswers(
  * Update activity (progress tracking)
  * Called with every status poll
  */
+export interface LiveExamAnswerSnapshot {
+    attemptVersion: number;
+    answers: StudentAnswers;
+    updatedAt: string;
+}
+
+export async function getAnswerSnapshot(sessionId: string): Promise<LiveExamAnswerSnapshot | null> {
+    const result = await apiCall<{ success: boolean; snapshot: LiveExamAnswerSnapshot | null }>(
+        `/api/live-exam/${sessionId}/autosave`,
+    );
+    return result.snapshot;
+}
+
+export async function saveAnswerSnapshot(
+    sessionId: string,
+    snapshot: { attemptVersion: number; idempotencyKey: string; answers: StudentAnswers },
+): Promise<LiveExamAnswerSnapshot> {
+    const result = await apiCall<{ success: boolean; snapshot: LiveExamAnswerSnapshot }>(
+        `/api/live-exam/${sessionId}/autosave`,
+        { method: 'PUT', body: JSON.stringify(snapshot), headers: { 'Idempotency-Key': snapshot.idempotencyKey } },
+    );
+    return result.snapshot;
+}
+
 export async function updateActivity(
     sessionId: string,
     data: {

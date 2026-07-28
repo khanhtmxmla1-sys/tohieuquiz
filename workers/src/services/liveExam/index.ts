@@ -10,6 +10,7 @@ export {
 } from './chatService';
 export { joinSession, getParticipants } from './participantService';
 export { updateActivity, markInactiveParticipants } from './activityService';
+export { getAnswerSnapshot, saveAnswerSnapshot, recordConnectionEvent } from './connectionEventService';
 export { calculateScoresAndClose, checkAndAutoCloseExpiredExams } from './scoringService';
 export { submitAnswers } from './submissionService';
 export { deleteLiveExam } from './sessionArchiveService';

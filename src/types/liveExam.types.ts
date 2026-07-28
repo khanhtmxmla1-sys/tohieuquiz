@@ -192,6 +192,8 @@ export interface LiveExamParticipantsResponse {
     currentQuestion?: number;
     answeredCount: number;
     isOnline: boolean;
+    connectionState: 'online' | 'reconnecting' | 'offline';
+    lastSeen: string;
   }>;
   totalCount: number;
   submittedCount: number;

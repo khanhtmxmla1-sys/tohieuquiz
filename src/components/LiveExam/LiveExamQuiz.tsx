@@ -8,7 +8,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useLiveExamTimer, useLiveExamActivity } from '../../hooks';
-import { submitAnswers } from '../../services/liveExamService';
+import { getAnswerSnapshot, saveAnswerSnapshot, submitAnswers } from '../../services/liveExamService';
 import type { LiveExamSubmissionResponse, StudentAnswers } from '../../types/liveExam.types';
 import type { Question, Quiz } from '../../types';
 import QuestionRenderer from '../student/QuestionRenderer';
@@ -55,6 +55,8 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const submissionAttemptRef = useRef<LiveExamSubmissionAttempt | null>(null);
+    const autosaveVersionRef = useRef(0);
+    const wasOnlineRef = useRef(true);
     const { isOnline } = useOnlineStatus();
 
     const { timeRemaining, isExpired } = useLiveExamTimer({
@@ -69,6 +71,7 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
     useEffect(() => {
         setAnswers(loadLiveExamAnswerDraft(sessionId) as Record<string, any>);
         submissionAttemptRef.current = null;
+        autosaveVersionRef.current = 0;
     }, [sessionId]);
 
     useEffect(() => {
@@ -76,13 +79,39 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
         const timer = window.setTimeout(() => {
             try {
                 saveLiveExamAnswerDraft(sessionId, answers);
-                setAnswerSaveStatus(isOnline ? 'saved' : 'offline');
+                if (isOnline) {
+                    const attemptVersion = autosaveVersionRef.current + 1;
+                    const idempotencyKey = `autosave:${sessionId}:${attemptVersion}:${crypto.randomUUID()}`;
+                    void saveAnswerSnapshot(sessionId, { attemptVersion, idempotencyKey, answers: answers as StudentAnswers })
+                        .then((snapshot) => {
+                            autosaveVersionRef.current = snapshot.attemptVersion;
+                            setAnswerSaveStatus('saved');
+                        })
+                        .catch(() => setAnswerSaveStatus('error'));
+                } else {
+                    setAnswerSaveStatus('offline');
+                }
             } catch {
                 setAnswerSaveStatus('error');
             }
         }, 250);
         return () => window.clearTimeout(timer);
     }, [answers, isOnline, sessionId]);
+
+    useEffect(() => {
+        if (isOnline && !wasOnlineRef.current) {
+            setAnswerSaveStatus('saving');
+            void getAnswerSnapshot(sessionId).then((snapshot) => {
+                if (snapshot && snapshot.attemptVersion >= autosaveVersionRef.current) {
+                    autosaveVersionRef.current = snapshot.attemptVersion;
+                    setAnswers(snapshot.answers as Record<string, any>);
+                    saveLiveExamAnswerDraft(sessionId, snapshot.answers);
+                }
+                setAnswerSaveStatus('saved');
+            }).catch(() => setAnswerSaveStatus('error'));
+        }
+        wasOnlineRef.current = isOnline;
+    }, [isOnline, sessionId]);
 
     const QUESTIONS_PER_PAGE = 10;
     const totalQuestions = questions.length;
