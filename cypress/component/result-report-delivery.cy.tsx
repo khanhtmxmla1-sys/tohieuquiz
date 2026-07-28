@@ -1,6 +1,6 @@
 import React from 'react';
 import { ResultReportDeliveryWizard } from '../../src/features/results/components/result-report-delivery';
-import { useAuthStore } from '../../src/stores/useAuthStore';
+import { useAuthStore } from '../../stores/authStore';
 import type {
   ResultReportBatchDetail,
   ResultReportCohortResponse,

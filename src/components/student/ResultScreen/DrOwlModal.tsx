@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Loader2, Stethoscope, BookOpen, CheckCircle2, XCircle, Sparkles, ArrowRight } from 'lucide-react';
-import { callApi } from '../../../services/apiAdapter';
+import { diagnoseResultWithAiTutor } from '../../../services/aiTutorService';
 import { motion, AnimatePresence } from 'framer-motion';
 import MathSpan from '../../common/MathSpan';
 import ExplanationContent from '../../common/ExplanationContent';
@@ -19,22 +19,20 @@ interface DiagnosisData {
     diagnosis: string;
     explanation: string;
     practiceQuestions: PracticeQuestion[];
-    wrongQuestionIds: string[];
+    wrongQuestionCount: number;
 }
 
 interface DrOwlModalProps {
     isOpen: boolean;
     onClose: () => void;
-    quizId: string;
-    wrongQuestionIds: string[];
-    studentUsername?: string;
+    resultId: string;
     onRewardCoins?: (coins: number) => void;
 }
 
 type ModalStep = 'loading' | 'diagnosis' | 'practice' | 'result';
 
 const DrOwlModal: React.FC<DrOwlModalProps> = ({
-    isOpen, onClose, quizId, wrongQuestionIds, studentUsername, onRewardCoins
+    isOpen, onClose, resultId, onRewardCoins
 }) => {
     const [step, setStep] = useState<ModalStep>('loading');
     const [data, setData] = useState<DiagnosisData | null>(null);
@@ -55,24 +53,15 @@ const DrOwlModal: React.FC<DrOwlModalProps> = ({
         setShowAnswerFeedback(false);
 
         try {
-            const res = await callApi<any>('ai_tutor_diagnose', {
-                quizId,
-                wrongQuestionIds: wrongQuestionIds.slice(0, 3),
-            });
-
-            if (res?.status === 'success' && res.data) {
-                setData(res.data);
-                setStep('diagnosis');
-            } else {
-                setError(res?.message || 'Bác sĩ Cú tạm thời bận. Thử lại sau nhé!');
-                setStep('diagnosis');
-            }
+            const diagnosis = await diagnoseResultWithAiTutor(resultId);
+            setData(diagnosis);
+            setStep('diagnosis');
         } catch (err: unknown) {
             console.error('[DrOwl] API error:', err);
             setError('Không kết nối được với Bác sĩ Cú. Kiểm tra lại mạng nhé!');
             setStep('diagnosis');
         }
-    }, [quizId, wrongQuestionIds]);
+    }, [resultId]);
 
     useEffect(() => {
         if (isOpen) {

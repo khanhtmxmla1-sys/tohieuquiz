@@ -49,4 +49,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0040_scope_results_to_assignments.sql'),
   ('0041_certificate_layout_and_name_fonts.sql'),
   ('0042_unified_notifications.sql'),
-  ('0043_create_rate_limits.sql');
+  ('0043_create_rate_limits.sql'),
+  ('0044_create_ai_tutor_usage.sql');

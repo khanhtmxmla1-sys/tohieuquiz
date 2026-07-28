@@ -196,7 +196,7 @@ describe('math rendering on secondary web surfaces', () => {
       data: {
         diagnosis: `Em cần ôn ${formula}`,
         explanation: `1. Ta có ${formula}`,
-        wrongQuestionIds: ['q1'],
+        wrongQuestionCount: 1,
         practiceQuestions: [{
           id: 'practice-1', question: `Tính ${formula}`,
           options: ['$\\frac{7}{4}$', '$\\frac{3}{2}$'], correctAnswer: '$\\frac{7}{4}$',
@@ -206,7 +206,7 @@ describe('math rendering on secondary web surfaces', () => {
 
     render(
       <DrOwlModal
-        isOpen onClose={vi.fn()} quizId="quiz-1" wrongQuestionIds={['q1']}
+        isOpen onClose={vi.fn()} resultId="result-1"
       />,
     );
 

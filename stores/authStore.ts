@@ -1,115 +1,107 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { callApi } from '../src/services/apiAdapter';
 
-interface AuthState {
-    // State
-    isLoggedIn: boolean;
-    username: string | null; // Add username
-    teacherName: string | null;
-    isAdmin: boolean;
-    teacherClass: string | null; // Class this teacher is responsible for
-    isLoggingIn: boolean;
-    loginError: boolean;
+export type AuthSessionStatus = 'anonymous' | 'checking' | 'authenticated';
 
-    // Actions
-    loginStart: () => void;
-    loginSuccess: (username: string, name: string, isAdmin: boolean, teacherClass?: string | null) => void;
-    loginFailure: () => void;
-    loginPendingPasswordChange: () => void;
-    logout: () => void;
-    restoreSession: () => Promise<void>;
-    resetError: () => void;
+interface AuthProfileResponse {
+  data?: {
+    username: string;
+    fullName?: string;
+    role?: string;
+    teacherClass?: string | null;
+    classes?: Array<{ id: string; name: string }>;
+  };
 }
 
-export const useAuthStore = create<AuthState>()(
-    persist(
-        (set, get) => ({
-            // Initial state
-            isLoggedIn: false,
-            username: null,
-            teacherName: null,
-            isAdmin: false,
-            teacherClass: null,
-            isLoggingIn: false,
-            loginError: false,
+interface AuthState {
+  status: AuthSessionStatus;
+  isLoggedIn: boolean;
+  username: string | null;
+  teacherName: string | null;
+  isAdmin: boolean;
+  teacherClass: string | null;
+  isLoggingIn: boolean;
+  loginError: boolean;
+  loginStart: () => void;
+  loginSuccess: (username: string, name: string, isAdmin: boolean, teacherClass?: string | null) => void;
+  loginFailure: () => void;
+  loginPendingPasswordChange: () => void;
+  logoutLocal: () => void;
+  logout: () => Promise<void>;
+  restoreSession: () => Promise<void>;
+  resetError: () => void;
+}
 
-            // Actions
-            loginStart: () => set({ isLoggingIn: true, loginError: false }),
+const anonymousState = {
+  status: 'anonymous' as const,
+  isLoggedIn: false,
+  username: null,
+  teacherName: null,
+  isAdmin: false,
+  teacherClass: null,
+  isLoggingIn: false,
+  loginError: false,
+};
 
-            loginSuccess: (username, name, isAdmin, teacherClass) => set({
-                isLoggedIn: true,
-                username,
-                teacherName: name,
-                isAdmin,
-                teacherClass: teacherClass || null,
-                isLoggingIn: false,
-                loginError: false
-            }),
+export const useAuthStore = create<AuthState>((set) => ({
+  ...anonymousState,
 
-            loginFailure: () => set({
-                isLoggingIn: false,
-                loginError: true
-            }),
+  loginStart: () => set({ status: 'checking', isLoggingIn: true, loginError: false }),
 
-            loginPendingPasswordChange: () => set({ isLoggingIn: false, loginError: false }),
+  loginSuccess: (username, name, isAdmin, teacherClass) => set({
+    status: 'authenticated',
+    isLoggedIn: true,
+    username,
+    teacherName: name,
+    isAdmin,
+    teacherClass: teacherClass || null,
+    isLoggingIn: false,
+    loginError: false,
+  }),
 
-            logout: () => {
-                void callApi('logout').catch(() => undefined);
-                set({
-                isLoggedIn: false,
-                username: null,
-                teacherName: null,
-                isAdmin: false,
-                teacherClass: null,
-                isLoggingIn: false,
-                loginError: false
-                });
-            },
+  loginFailure: () => set({ ...anonymousState, loginError: true }),
 
-            restoreSession: async () => {
-                if (!get().isLoggedIn) return;
-                try {
-                    const response = await callApi<{ data?: {
-                        username: string;
-                        fullName: string;
-                        role: string;
-                        classes?: Array<{ id: string; name: string }>;
-                    } }>('get_account_profile');
-                    const profile = response.data;
-                    if (!profile?.username) throw new Error('Invalid account profile');
-                    set({
-                        isLoggedIn: true,
-                        username: profile.username,
-                        teacherName: profile.fullName || profile.username,
-                        isAdmin: profile.role === 'admin',
-                        isLoggingIn: false,
-                        loginError: false,
-                    });
-                } catch {
-                    set({
-                        isLoggedIn: false,
-                        username: null,
-                        teacherName: null,
-                        isAdmin: false,
-                        teacherClass: null,
-                        isLoggingIn: false,
-                        loginError: false,
-                    });
-                }
-            },
+  loginPendingPasswordChange: () => set({ status: 'anonymous', isLoggingIn: false, loginError: false }),
 
-            resetError: () => set({ loginError: false })
-        }),
-        {
-            name: 'auth-storage', // localStorage key
-            partialize: (state) => ({
-                isLoggedIn: state.isLoggedIn,
-                username: state.username,
-                teacherName: state.teacherName,
-                isAdmin: state.isAdmin,
-                teacherClass: state.teacherClass
-            })
-        }
-    )
-);
+  logoutLocal: () => {
+    localStorage.removeItem('auth-storage');
+    localStorage.removeItem('auth_session');
+    set(anonymousState);
+  },
+
+  logout: async () => {
+    localStorage.removeItem('auth-storage');
+    localStorage.removeItem('auth_session');
+    set(anonymousState);
+    try {
+      await callApi('logout');
+    } catch {
+      // Client state is already cleared. Server cookie expiry can be retried by the next request.
+    }
+  },
+
+  restoreSession: async () => {
+    localStorage.removeItem('auth-storage');
+    localStorage.removeItem('auth_session');
+    set({ ...anonymousState, status: 'checking' });
+    try {
+      const response = await callApi<AuthProfileResponse>('get_account_profile');
+      const profile = response.data;
+      if (!profile?.username) throw new Error('INVALID_ACCOUNT_PROFILE');
+      set({
+        status: 'authenticated',
+        isLoggedIn: true,
+        username: profile.username,
+        teacherName: profile.fullName || profile.username,
+        isAdmin: profile.role === 'admin',
+        teacherClass: profile.teacherClass || profile.classes?.[0]?.name || null,
+        isLoggingIn: false,
+        loginError: false,
+      });
+    } catch {
+      set(anonymousState);
+    }
+  },
+
+  resetError: () => set({ loginError: false }),
+}));

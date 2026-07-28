@@ -1,187 +1,125 @@
-// AI Tutor (Dr. Owl) - Emergency Tutoring Route Handler
-// Analyzes wrong answers and generates practice questions via Gemini AI
-
-import { Env } from '../types';
-import { jsonResponse, errorResponse } from '../utils/response';
+import { AiTutorDiagnoseRequestSchema, AiTutorProviderOutputSchema } from '../../../shared/ai-tutor.contract';
+import type { Env } from '../types';
 import { verifyJWTMiddleware } from '../middleware/jwtAuth';
-import { internalErrorResponse } from '../utils/internalError';
+import { jsonResponse } from '../utils/response';
+import { loadAuthorizedAiTutorResult } from '../services/aiTutorAuthorization';
+import { loadAiTutorWrongQuestionContext, type AiTutorQuestionContext } from '../services/aiTutorContextService';
+import { completeAiTutorQuota, releaseAiTutorQuota, reserveAiTutorQuota } from '../services/aiTutorQuota';
 
-// Prompt template for Gemini AI
-const buildPrompt = (wrongQuestions: any[]): string => {
-    const questionsText = wrongQuestions.map((q, i) => {
-        let detail = `Câu ${i + 1}: "${q.question}"`;
-        if (q.options) {
-            try {
-                const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
-                if (Array.isArray(opts)) {
-                    detail += `\nĐáp án: ${opts.join(' | ')}`;
-                }
-            } catch { /* ignore parse errors */ }
-        }
-        if (q.correct_answer) {
-            detail += `\nĐáp án đúng: ${q.correct_answer}`;
-        }
-        return detail;
-    }).join('\n\n');
+const MODEL = 'gemini-2.0-flash';
 
-    return `Bạn là một giáo viên tiểu học tận tâm tên "Bác sĩ Cú Mèo". Một học sinh vừa làm sai các câu hỏi sau:
+const error = (code: string, message: string, status: number, requestId: string): Response => jsonResponse({
+  status: 'error',
+  error: { code, message, requestId },
+}, status);
 
-${questionsText}
+const buildPrompt = (questions: AiTutorQuestionContext[]): string => {
+  const context = questions.map((item, index) => ({
+    number: index + 1,
+    question: item.question,
+    options: item.options,
+    correctAnswer: item.correctAnswer,
+  }));
+  return [
+    'Bạn là Bác sĩ Cú Mèo, gia sư tiểu học tiếng Việt.',
+    'Phân tích lỗ hổng kiến thức ngắn gọn, giải thích dễ hiểu và tạo 2 hoặc 3 câu trắc nghiệm mới.',
+    'Mỗi câu thực hành phải có đúng 4 lựa chọn và correctAnswer phải trùng chính xác một lựa chọn.',
+    'Chỉ trả về JSON gồm diagnosis, explanation, practiceQuestions. Không thêm markdown.',
+    `Ngữ cảnh câu sai: ${JSON.stringify(context)}`,
+  ].join('\n');
+};
 
-Hãy thực hiện 3 việc sau (trả lời bằng tiếng Việt, ngôn ngữ dễ hiểu cho học sinh tiểu học):
-
-1. **diagnosis**: Phân tích ngắn gọn (1-2 câu) lỗ hổng kiến thức của em học sinh dựa trên các câu sai. Ví dụ: "Em đang gặp khó khăn với phép chia có dư."
-
-2. **explanation**: Giải thích lại cách giải câu đầu tiên một cách đơn giản, thân thiện (3-4 câu). Dùng emoji và ngôn ngữ khích lệ.
-
-3. **practiceQuestions**: Tạo CHÍNH XÁC 3 câu hỏi trắc nghiệm mới cùng dạng với các câu sai, nhưng đổi số liệu/ngữ cảnh. Mỗi câu gồm: question, options (mảng 4 lựa chọn), correctAnswer (đáp án đúng, phải nằm trong options).
-
-Trả lời ĐÚNG format JSON sau, KHÔNG thêm text nào khác:
-{
-  "diagnosis": "...",
-  "explanation": "...",
-  "practiceQuestions": [
-    { "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": "A" },
-    { "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": "B" },
-    { "question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": "C" }
-  ]
-}`;
+const parseProviderJson = (value: string): unknown => {
+  const cleaned = value.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '');
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const object = cleaned.match(/\{[\s\S]*\}/)?.[0];
+    if (!object) return null;
+    try { return JSON.parse(object); } catch { return null; }
+  }
 };
 
 export async function handleAiTutorRoutes(
-    request: Request,
-    env: Env,
-    path: string,
-    method: string
+  request: Request,
+  env: Env,
+  path: string,
+  method: string,
 ): Promise<Response | null> {
+  if (path !== '/api/ai-tutor/diagnose' || method !== 'POST') return null;
 
-    // POST /api/ai-tutor/diagnose
-    if (path === '/api/ai-tutor/diagnose' && method === 'POST') {
-        const authResult = await verifyJWTMiddleware(request, env);
-        if (authResult instanceof Response) return authResult;
+  const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
+  const startedAt = Date.now();
+  const authResult = await verifyJWTMiddleware(request, env);
+  if (authResult instanceof Response) return authResult;
+  const user = authResult.user;
+  let reserved = false;
 
-        try {
-            const body = await request.json() as any;
-            const { quizId, wrongQuestionIds } = body;
+  try {
+    const parsedRequest = AiTutorDiagnoseRequestSchema.safeParse(await request.json());
+    if (!parsedRequest.success) return error('INVALID_REQUEST', 'Yêu cầu chẩn đoán không hợp lệ.', 400, requestId);
 
-            if (!quizId || !wrongQuestionIds || !Array.isArray(wrongQuestionIds) || wrongQuestionIds.length === 0) {
-                return errorResponse('Missing quizId or wrongQuestionIds', 400);
-            }
+    const result = await loadAuthorizedAiTutorResult(env.DB, user, parsedRequest.data.resultId);
+    if (!result) return error('RESULT_NOT_FOUND', 'Không tìm thấy bài làm.', 404, requestId);
 
-            // Limit to max 3 wrong questions to control token usage
-            const limitedIds = wrongQuestionIds.slice(0, 3);
+    const quota = await reserveAiTutorQuota(env.DB, {
+      requestId,
+      username: user.username,
+      role: user.role,
+      resultId: parsedRequest.data.resultId,
+    });
+    if (!quota.allowed) return error('AI_TUTOR_QUOTA_EXCEEDED', 'Đã hết lượt trợ giúp AI hôm nay.', 429, requestId);
+    reserved = !quota.reused;
 
-            // Fetch the actual question content from DB
-            const placeholders = limitedIds.map(() => '?').join(',');
-            const questionsResult = await env.DB.prepare(
-                `SELECT id, type, question, options, correct_answer FROM questions WHERE id IN (${placeholders}) AND quiz_id = ?`
-            ).bind(...limitedIds, quizId).all();
-
-            if (!questionsResult.results || questionsResult.results.length === 0) {
-                return errorResponse('No questions found for the given IDs', 404);
-            }
-
-            // Build the AI prompt
-            const prompt = buildPrompt(questionsResult.results);
-
-            // Call CLIProxy (Gemini) via OpenAI-compatible API
-            const aiResponse = await fetch(`${env.CLIPROXY_API}/chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${env.CLIPROXY_TOKEN}`,
-                },
-                body: JSON.stringify({
-                    model: 'gemini-2.0-flash',
-                    messages: [
-                        { role: 'user', content: prompt + '\nLƯU Ý QUAN TRỌNG: CÂU TRẢ LỜI PHẢI RẤT NGẮN GỌN (dưới 150 chữ tổng cộng) ĐỂ TRÁNH BỊ CẮT ĐỨT. Tối đa 2 câu hỏi thực hành thôi.' }
-                    ],
-                    temperature: 0.7,
-                    max_tokens: 4096,
-                    max_completion_tokens: 4096,
-                    maxOutputTokens: 4096,
-                    response_format: { type: 'json_object' },
-                }),
-            });
-
-            if (!aiResponse.ok) {
-                const errText = await aiResponse.text();
-                console.error('[AI Tutor] CLIProxy error:', aiResponse.status, errText);
-                return errorResponse('AI service temporarily unavailable. Status: ' + aiResponse.status, 503);
-            }
-
-            const aiData = await aiResponse.json() as any;
-            const rawContent = aiData?.choices?.[0]?.message?.content || '';
-            console.log('[AI Tutor] Raw AI response length:', rawContent.length, 'first 200 chars:', rawContent.substring(0, 200));
-
-            // Robust JSON extraction - multiple strategies
-            let parsed: any = null;
-
-            // Strategy 1: Direct JSON parse
-            try {
-                parsed = JSON.parse(rawContent.trim());
-            } catch { /* not direct JSON */ }
-
-            // Strategy 2: Strip markdown code fences
-            if (!parsed) {
-                try {
-                    let cleaned = rawContent.trim();
-                    // Remove ```json ... ``` or ``` ... ```
-                    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
-                    parsed = JSON.parse(cleaned.trim());
-                } catch { /* not code-fenced JSON */ }
-            }
-
-            // Strategy 3: Find first { ... } block via regex
-            if (!parsed) {
-                try {
-                    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-                    if (jsonMatch) {
-                        parsed = JSON.parse(jsonMatch[0]);
-                    }
-                } catch { /* no valid JSON object found */ }
-            }
-
-            if (!parsed) {
-                console.error('[AI Tutor] All parse strategies failed. Raw:', rawContent.substring(0, 500));
-                return jsonResponse({
-                    status: 'error',
-                    message: 'JSON_PARSE_ERROR',
-                    raw: rawContent
-                });
-            }
-
-            // Validate the parsed response structure
-            if (!parsed.diagnosis || !parsed.practiceQuestions || !Array.isArray(parsed.practiceQuestions)) {
-                console.error('[AI Tutor] Invalid AI response structure:', JSON.stringify(parsed).substring(0, 300));
-                return jsonResponse({
-                    status: 'error',
-                    message: 'INVALID_JSON_STRUCTURE',
-                    raw: parsed
-                });
-            }
-
-            return jsonResponse({
-                status: 'success',
-                data: {
-                    diagnosis: parsed.diagnosis,
-                    explanation: parsed.explanation || '',
-                    practiceQuestions: parsed.practiceQuestions.slice(0, 3).map((q: any, i: number) => ({
-                        id: `ai-practice-${Date.now()}-${i}`,
-                        question: q.question,
-                        options: q.options,
-                        correctAnswer: q.correctAnswer,
-                    })),
-                    wrongQuestionIds: limitedIds,
-                }
-            });
-
-        } catch (error: unknown) {
-            return internalErrorResponse(error, request, {
-                context: 'POST /api/ai-tutor/diagnose',
-            });
-        }
+    const wrongQuestions = await loadAiTutorWrongQuestionContext(env.DB, result);
+    if (wrongQuestions.length === 0) {
+      if (reserved) await releaseAiTutorQuota(env.DB, requestId);
+      return error('NO_WRONG_QUESTIONS', 'Bài làm không có câu sai phù hợp để chẩn đoán.', 422, requestId);
     }
 
-    return null;
+    const upstream = await env.AI_GATEWAY.fetch(`${env.CLIPROXY_API}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.CLIPROXY_TOKEN}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{ role: 'user', content: buildPrompt(wrongQuestions) }],
+        temperature: 0.5,
+        max_tokens: 1800,
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!upstream.ok) {
+      if (reserved) await releaseAiTutorQuota(env.DB, requestId);
+      console.error(JSON.stringify({ event: 'ai_tutor_failed', requestId, role: user.role, model: MODEL, status: upstream.status, latencyMs: Date.now() - startedAt }));
+      return error('AI_SERVICE_UNAVAILABLE', 'Dịch vụ trợ giảng tạm thời chưa sẵn sàng.', 503, requestId);
+    }
+
+    const providerEnvelope = await upstream.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const providerOutput = AiTutorProviderOutputSchema.safeParse(parseProviderJson(providerEnvelope.choices?.[0]?.message?.content || ''));
+    if (!providerOutput.success) {
+      if (reserved) await releaseAiTutorQuota(env.DB, requestId);
+      console.error(JSON.stringify({ event: 'ai_tutor_invalid_output', requestId, role: user.role, model: MODEL, status: 502, latencyMs: Date.now() - startedAt }));
+      return error('AI_INVALID_OUTPUT', 'Dịch vụ trợ giảng trả về nội dung chưa hợp lệ.', 502, requestId);
+    }
+
+    await completeAiTutorQuota(env.DB, requestId);
+    const data = {
+      diagnosis: providerOutput.data.diagnosis,
+      explanation: providerOutput.data.explanation,
+      practiceQuestions: providerOutput.data.practiceQuestions.map((question, index) => ({
+        id: `ai-practice-${requestId}-${index + 1}`,
+        ...question,
+      })),
+      wrongQuestionCount: wrongQuestions.length,
+    };
+    console.info(JSON.stringify({ event: 'ai_tutor_succeeded', requestId, role: user.role, model: MODEL, status: 200, latencyMs: Date.now() - startedAt }));
+    return jsonResponse({ status: 'success', data });
+  } catch {
+    if (reserved) await releaseAiTutorQuota(env.DB, requestId).catch(() => undefined);
+    console.error(JSON.stringify({ event: 'ai_tutor_exception', requestId, role: user.role, model: MODEL, status: 500, latencyMs: Date.now() - startedAt }));
+    return error('AI_TUTOR_FAILED', 'Không thể hoàn tất chẩn đoán lúc này.', 500, requestId);
+  }
 }

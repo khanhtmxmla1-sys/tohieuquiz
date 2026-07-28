@@ -3,6 +3,7 @@ import { getWorkersApiBaseUrl } from './config';
 import { buildAuthHeaders } from './auth';
 import { toApiError, normalizeNetworkError } from './errors';
 import { resolveApiRoute } from './routeResolver';
+import { cacheService } from '../CacheService';
 
 function buildUrl(base: string, path: string, query?: URLSearchParams): string {
     const qs = query?.toString();
@@ -40,6 +41,7 @@ export async function executeApiAction<T = any>(
         const response = await fetch(url, requestInit);
 
         if (!response.ok) {
+            if (response.status === 401 || response.status === 403) cacheService.clear();
             throw await toApiError(response);
         }
 

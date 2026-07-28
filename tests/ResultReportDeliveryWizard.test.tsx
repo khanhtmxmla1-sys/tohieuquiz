@@ -27,9 +27,9 @@ vi.mock('../src/features/results/services/resultReportDeliveryService', async ()
   };
 });
 
-vi.mock('../src/stores/useAuthStore', () => ({
+vi.mock('../stores/authStore', () => ({
   useAuthStore: (selector?: any) => {
-    const state = { username: 'teacher-a', fullName: 'Cô Khánh' };
+    const state = { username: 'teacher-a', teacherName: 'Cô Khánh' };
     return selector ? selector(state) : state;
   },
 }));

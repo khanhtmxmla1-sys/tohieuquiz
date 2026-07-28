@@ -8,8 +8,16 @@
  */
 
 import { Question } from '../types';
+import type { AiTutorDiagnosis } from '../../shared/ai-tutor.contract';
+import { callApi } from './apiAdapter';
 import { requestWorkerAiText } from './ai/workerAiClient';
 import { isSkippedAnswer } from '../features/results/studentResultSummary';
+
+export async function diagnoseResultWithAiTutor(resultId: string): Promise<AiTutorDiagnosis> {
+    const response = await callApi<{ status: 'success'; data: AiTutorDiagnosis }>('ai_tutor_diagnose', { resultId });
+    if (response?.status !== 'success' || !response.data) throw new Error('AI_TUTOR_DIAGNOSIS_UNAVAILABLE');
+    return response.data;
+}
 
 // Call AI via the JWT-authenticated Worker proxy.
 async function callLLM(prompt: string): Promise<string> {
