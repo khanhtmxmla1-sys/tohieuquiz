@@ -69,6 +69,7 @@ export const authenticateStudent = async (
     const token = await signJWT({
         id: student.id, username: student.username, role: 'student',
         fullName: student.full_name, classId: student.class_id,
+        tokenVersion: 0,
     }, env.JWT_SECRET, '7d');
     const response = jsonResponse({
         status: 'success',

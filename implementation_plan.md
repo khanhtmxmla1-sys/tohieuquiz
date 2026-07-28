@@ -308,11 +308,11 @@ interface AuthState {
 - Test: `tests/cookieAuthClients.test.ts`, `tests/legacyJwtMigration.worker.test.ts`
 - Create: `docs/deployment/auth-cookie-enforcement.md`
 
-- [ ] Ghi metric legacy Bearer/JWT usage mà không log token.
-- [ ] Điều kiện chuyển: 0 request legacy hợp lệ trong 72 giờ liên tục.
-- [ ] Đổi `AUTH_MIGRATION_MODE="enforce"` bằng PR config riêng.
-- [ ] Sau 48 giờ ổn định, xóa legacy/browser Bearer fallback.
-- [ ] Rollback duy nhất: đổi env về `compat`.
+- [x] Ghi metric legacy Bearer/JWT usage mà không log token hoặc username.
+- [ ] Điều kiện chuyển: 0 request legacy hợp lệ trong 72 giờ production liên tục; cần bằng chứng log thực tế.
+- [x] Đổi checked-in `AUTH_MIGRATION_MODE="enforce"` bằng commit config riêng; chưa deploy production.
+- [ ] Sau 48 giờ enforce production ổn định, xóa legacy/browser Bearer fallback bằng commit riêng.
+- [x] Rollback auth-validation duy nhất: đổi env về `compat`; cookie transport vẫn giữ nguyên.
 
 **Acceptance:** JWT thiếu issuer/audience/tokenVersion bị từ chối; UI vẫn login/refresh/logout bằng cookie.
 
@@ -1134,6 +1134,16 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - MCP diff review and `git diff --check`.
 
 ## Batch 3 Execution Record — 2026-07-28
+
+### Task 10 — Cookie enforcement implementation complete; production observation pending
+
+- Checked-in Worker defaults now use `AUTH_MIGRATION_MODE="enforce"` and cookie transport; no deployment or secret change was performed.
+- Enforce mode rejects Bearer transport and JWTs missing issuer, audience or `tokenVersion`; student login now issues `tokenVersion: 0`.
+- Compat mode remains behind the explicit rollback flag and emits `auth_legacy_session_accepted` metadata without token, username, payload, body or query string.
+- TDD evidence: the migration suite first failed 5 assertions for config, Bearer enforcement, student token version and telemetry, then all 5 files/22 tests passed.
+- Workers typecheck and targeted lint passed. Runbook: `docs/deployment/auth-cookie-enforcement.md`.
+- MCP review's console heuristic was accepted for the required structured migration metric; its exact schema is tested to exclude token and username values.
+- Still open: 72-hour zero-legacy production evidence and the later 48-hour stable-window removal of the compat code path.
 
 ### Task 3 — Authorization matrix enforced
 

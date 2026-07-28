@@ -4,7 +4,7 @@ import { clearJWTCookie, createJWTCookie } from './jwt';
 type AuthTransportEnv = Pick<Env, 'AUTH_TOKEN_TRANSPORT_MODE'>;
 
 export function getAuthTokenTransportMode(env: AuthTransportEnv): 'compat' | 'cookie' {
-    return env.AUTH_TOKEN_TRANSPORT_MODE === 'cookie' ? 'cookie' : 'compat';
+    return env.AUTH_TOKEN_TRANSPORT_MODE === 'compat' ? 'compat' : 'cookie';
 }
 
 export function buildAuthSessionData<T extends Record<string, unknown>>(
