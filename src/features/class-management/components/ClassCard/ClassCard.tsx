@@ -8,9 +8,10 @@ interface ClassCardProps {
     onClick: () => void;
     onTransfer: () => void;
     onDelete: () => void;
+    serverActionsDisabled?: boolean;
 }
 
-export const ClassCard: React.FC<ClassCardProps> = ({ classroom, isAdmin, onClick, onTransfer, onDelete }) => {
+export const ClassCard: React.FC<ClassCardProps> = ({ classroom, isAdmin, onClick, onTransfer, onDelete, serverActionsDisabled = false }) => {
     return (
         <div
             className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-orange-200 transition-all cursor-pointer group"
@@ -26,23 +27,28 @@ export const ClassCard: React.FC<ClassCardProps> = ({ classroom, isAdmin, onClic
                 <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
                     {isAdmin && (
                         <button
+                            type="button"
+                            aria-label="Chuyển giáo viên phụ trách"
+                            disabled={serverActionsDisabled}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onTransfer();
                             }}
-                            className="p-1.5 text-blue-900 hover:text-blue-600 hover:bg-indigo-50 rounded-lg"
-                            title="Chuyển giáo viên phụ trách"
+                            className="p-1.5 text-blue-900 hover:text-blue-600 hover:bg-indigo-50 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+                            title={serverActionsDisabled ? 'Cần kết nối mạng để chuyển giáo viên.' : 'Chuyển giáo viên phụ trách'}
                         >
                             <RefreshCw className="w-4 h-4" />
                         </button>
                     )}
                     {isAdmin && <button
+                        type="button"
+                        disabled={serverActionsDisabled}
                         onClick={(e) => {
                             e.stopPropagation();
                             onDelete();
                         }}
-                        className="p-1.5 text-amber-950 hover:text-amber-600 hover:bg-amber-50 rounded-lg"
-                        title="Lưu trữ lớp học"
+                        className="p-1.5 text-amber-950 hover:text-amber-600 hover:bg-amber-50 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+                        title={serverActionsDisabled ? 'Cần kết nối mạng để lưu trữ lớp.' : 'Lưu trữ lớp học'}
                         aria-label={`Lưu trữ lớp ${classroom.name}`}
                     >
                         <Archive className="w-4 h-4" />

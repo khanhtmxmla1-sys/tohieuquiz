@@ -12,6 +12,8 @@ export interface StudentDashboardContentProps {
   activeSection: StudentDashboardSection;
   selectedResultReportId: string | null;
   giftShopEnabled: boolean;
+  isOnline: boolean;
+  dashboardUpdatedAt: number | null;
   assignments: StudentAssignmentsController;
   attendance: StudentAttendanceController;
   practice: StudentPracticeCatalogController;

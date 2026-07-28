@@ -67,7 +67,13 @@
   - [x] Teacher Overview dùng primitives; Axe trên jsdom và Electron thật không có serious/critical violation.
 - [x] Task 15 — Modal/Dialog accessible
 - [x] Task 16 — Lỗi có requestId và retry
-- [ ] Task 17 — Loading/empty/stale/offline states
+- [x] Task 17 — Loading/empty/stale/offline states
+  - [x] Hook online/offline dùng browser events, SSR-safe; banner toàn ứng dụng có `role=status` và `aria-live=polite`.
+  - [x] Mở rộng `AsyncState` cho initial skeleton, empty reason/CTA, stale timestamp, retry disabled và giữ dữ liệu khi lỗi mạng tạm thời.
+  - [x] Áp dụng cho 5 pilot: Teacher Overview, Results, Classes, Student Dashboard và Parent Portal.
+  - [x] Offline vẫn cho xem dữ liệu đã tải và export local; khóa refresh, mutation, làm bài, luyện tập, nhận thưởng, live exam và điều hướng tuần cần server.
+  - [x] Classes/Results/Parent Portal xóa dữ liệu bảo vệ sau 401/403; lỗi mạng thường không làm mất cache hợp lệ.
+  - [x] Targeted regression: 10 file, 79 test đạt; security-focused group 21/21; Cypress Electron offline/reconnect 1/1 đạt.
 - [ ] Task 18 — Điều hướng chính bằng URL
 - [ ] Task 19 — Trải nghiệm mạng yếu/thiết bị yếu
 
@@ -112,6 +118,16 @@
 - [x] Cypress component/E2E liên quan
 - [x] Playwright/browser smoke frontend local: HTTP 200, không `pageerror`, không tràn ngang
 - [x] Review diff và secret scan
+
+## Batch 5 — Async/offline UX verification
+
+- [x] TDD RED xác nhận thiếu hook/banner/props; GREEN với `tests/AsyncStates.test.tsx` gồm 9 contract tests.
+- [x] Năm pilot có skeleton/empty/stale/offline states; không thay nội dung bằng màn hình trắng khi còn cache hợp lệ.
+- [x] Offline banner được kiểm chứng trên Electron thật; tự biến mất sau sự kiện reconnect.
+- [x] 401/403 xóa stale protected data ở Classes, Results và Parent Portal, gồm cả class mutations.
+- [x] GitNexus indexed diff: risk medium do ResultsTab tham gia 4 execution flows; 79 targeted tests bao phủ các flow liên quan.
+- [x] Full lint, frontend/strict/Workers typecheck, production build, bundle budget, security/history/policy gates và root/Workers audit đạt; 0 lỗ hổng.
+- [x] Full Vitest: 311/311 file, 1.479/1.479 test; 416,49 giây theo Vitest, 418,52 giây wrapper.
 
 ## Batch 4 — D1 backup/restore verification
 

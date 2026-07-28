@@ -44,6 +44,7 @@ export interface AssignedWorkSectionProps {
   page: number;
   totalPages: number;
   reviewingAssignmentId?: string | null;
+  isOffline?: boolean;
   onRetry: () => void;
   onPageChange: (page: number) => void;
   onStartQuiz: (quiz: AssignedQuiz) => void;
@@ -56,6 +57,7 @@ export interface LearningProgressPanelProps {
   errorMessage?: string | null;
   expanded: boolean;
   claimingMissionId?: GameLoopMission['id'] | null;
+  isOffline?: boolean;
   onToggle: () => void;
   onRetry: () => void;
   onClaimMission: (missionId: GameLoopMission['id']) => void;
@@ -78,6 +80,7 @@ export interface WeeklyQuestsPanelProps {
   isLoading: boolean;
   errorMessage?: string | null;
   claimingQuestId?: string | null;
+  isOffline?: boolean;
   onRetry: () => void;
   onClaim: (questId: string) => void;
 }
@@ -86,6 +89,7 @@ export interface RewardSidebarProps {
   dashboard: GameLoopDashboard | null;
   giftShopEnabled: boolean;
   isProcessing: boolean;
+  isOffline?: boolean;
   onOpenChest: () => void;
   onOpenGiftShop: () => void;
   onOpenBadges: () => void;
@@ -126,6 +130,7 @@ export interface SubjectPracticeGridProps {
   comingSoonSubjects: SubjectCardViewModel[];
   isLoading: boolean;
   errorMessage?: string | null;
+  isOffline?: boolean;
   onRetry: () => void;
   onSelectSubject: (subjectId: PracticeSubjectId) => void;
 }

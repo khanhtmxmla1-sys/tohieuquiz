@@ -19,8 +19,10 @@ export { Skeleton } from './Skeleton';
 export type { SkeletonProps } from './Skeleton';
 export { EmptyState } from './EmptyState';
 export type { EmptyStateProps } from './EmptyState';
-export { AsyncState } from './AsyncState';
-export type { AsyncStateProps } from './AsyncState';
+export { AsyncState, DataFreshnessNotice } from './AsyncState';
+export type { AsyncStateProps, DataFreshnessNoticeProps } from './AsyncState';
+export { OfflineBanner } from './OfflineBanner';
+export type { OfflineBannerProps } from './OfflineBanner';
 export { SupportError } from './SupportError';
 export type { SupportErrorProps } from './SupportError';
 

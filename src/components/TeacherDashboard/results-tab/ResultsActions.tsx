@@ -10,6 +10,7 @@ interface ResultsActionsProps {
   phieuDisabled: boolean;
   onExportCsv: () => void;
   onExportSummary: () => void;
+  serverActionsDisabled?: boolean;
 }
 
 export const ResultsActions = ({
@@ -20,6 +21,7 @@ export const ResultsActions = ({
   phieuDisabled,
   onExportCsv,
   onExportSummary,
+  serverActionsDisabled = false,
 }: ResultsActionsProps) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const runExport = (exporter: () => void) => {
@@ -34,6 +36,8 @@ export const ResultsActions = ({
         loading={isRefreshing}
         variant="secondary"
         icon={<RefreshCw className="w-4 h-4" />}
+        disabled={serverActionsDisabled}
+        title={serverActionsDisabled ? 'Cần kết nối mạng để làm mới kết quả.' : undefined}
       >
         Làm mới
       </Button>
@@ -41,8 +45,12 @@ export const ResultsActions = ({
         onClick={onOpenPhieuPanel}
         variant="primary"
         icon={<ClipboardList className="w-4 h-4" />}
-        disabled={phieuDisabled}
-        title={phieuDisabled ? 'Hãy chọn một lớp và một bài kiểm tra trước khi tạo phiếu.' : undefined}
+        disabled={phieuDisabled || serverActionsDisabled}
+        title={serverActionsDisabled
+          ? 'Cần kết nối mạng để tạo và gửi phiếu.'
+          : phieuDisabled
+            ? 'Hãy chọn một lớp và một bài kiểm tra trước khi tạo phiếu.'
+            : undefined}
         className="bg-sky-600 hover:bg-sky-700"
       >
         Tạo và gửi phiếu

@@ -1133,6 +1133,20 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - Security scan, history scan, policy gates, root/Workers dependency audit.
 - MCP diff review and `git diff --check`.
 
+## Batch 5 Execution Record — 2026-07-28
+
+### Task 17 — Standardized async, stale and offline states
+
+- Added `src/hooks/useOnlineStatus.ts`, global `OfflineBanner`, `DataFreshnessNotice`, expanded `AsyncState`, `tests/AsyncStates.test.tsx` and `cypress/e2e/offline-states.cy.ts`.
+- `AsyncState` distinguishes initial loading from refresh-with-data, supports purpose-specific empty states, keeps valid cached content visible during transient failures and announces stale/offline state through accessible status regions.
+- Five pilot screens were integrated: Teacher Overview, Results, Classes, Student Dashboard and Parent Portal. Skeletons reserve layout space and use reduced-motion fallbacks; empty states explain the cause and provide an action when one is valid.
+- Offline mode keeps downloaded data and local Results exports usable while disabling server-backed actions such as refresh, report delivery, row detail/delete, class mutation, quiz start/review, practice navigation, rewards, live exam, attendance and parent week navigation.
+- Protected stale data is discarded after 401/403 in Classes, Results and Parent Portal. Class fetch and mutation paths share the same fail-closed behavior; transient network errors preserve previously authorized cached data.
+- TDD evidence: the new async-state suite initially failed because the hook/banner/contracts did not exist, then passed 9/9. Related regression passed 10 files and 79 tests; a focused Classes/Results/security group passed 21/21.
+- Cypress Electron passed 1/1 for offline announcement and reconnect removal. GitNexus classified the indexed UI change as medium risk because ResultsTab participates in four result-normalization execution flows; related regression tests covered those flows and MCP diff review returned no findings.
+- Full Vitest passed: **311/311 files and 1,479/1,479 tests**, 416.49 seconds reported by Vitest and 418.52 seconds wrapper time.
+- Full lint, frontend typecheck, strict typecheck, Workers typecheck, production build, bundle budget, security/history/policy gates and root/Workers production audits passed with zero vulnerabilities. No push, merge, deployment, production migration, secret change or cloud resource operation was performed.
+
 ## Batch 4 Execution Record — 2026-07-28
 
 ### Task 12 — Local D1 backup and restore rehearsal complete; remote staging pending

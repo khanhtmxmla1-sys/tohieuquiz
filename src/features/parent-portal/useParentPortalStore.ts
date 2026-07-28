@@ -10,6 +10,7 @@ import * as parentPortalService from './parentPortalService';
 export interface ParentPortalState {
   session: ParentStudentProfile | null;
   dashboard: ParentDashboardPayload | null;
+  dashboardUpdatedAt: number | null;
   accessCodeMasked: string | null;
   notifications: ParentNotificationItem[];
   unreadCount: number;
@@ -28,6 +29,7 @@ export interface ParentPortalState {
 const clearedProtectedState = {
   session: null,
   dashboard: null,
+  dashboardUpdatedAt: null,
   accessCodeMasked: null,
   notifications: [] as ParentNotificationItem[],
   unreadCount: 0,
@@ -36,7 +38,9 @@ const clearedProtectedState = {
 const messageOf = (error: unknown): string => (
   error instanceof Error ? error.message : 'Đã xảy ra lỗi. Vui lòng thử lại.'
 );
-const isUnauthorized = (error: unknown): boolean => error instanceof ApiError && error.status === 401;
+const isUnauthorized = (error: unknown): boolean => (
+  error instanceof ApiError && (error.status === 401 || error.status === 403)
+);
 
 export const useParentPortalStore = create<ParentPortalState>((set) => ({
   ...clearedProtectedState,
@@ -92,7 +96,7 @@ export const useParentPortalStore = create<ParentPortalState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const dashboard = await parentPortalService.getDashboard(weekStart);
-      set({ dashboard, isLoading: false });
+      set({ dashboard, dashboardUpdatedAt: Date.now(), isLoading: false });
     } catch (error) {
       if (isUnauthorized(error)) {
         set({ ...clearedProtectedState, isLoading: false, error: null });

@@ -48,6 +48,7 @@ vi.mock('../src/utils/question/scoring.util', () => ({
 
 vi.mock('../src/components/common', () => ({
   Card: ({ children }: { children: React.ReactNode }) => <section>{children}</section>,
+  AsyncState: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Button: ({ children, onClick, disabled, loading, title }: any) => (
     <button onClick={onClick} disabled={disabled || loading} title={title}>{children}</button>
   ),
@@ -65,9 +66,9 @@ vi.mock('../src/components/teacher/ResultsView', () => ({
           <span data-testid={`override-${result.id}`}>
             {JSON.stringify(resultOverrides?.[String(result.id)] ?? null)}
           </span>
-          <button onClick={() => onRowClick?.(result)}>Chi tiết {result.studentName}</button>
-          <button onClick={() => onPhieuClick?.(result)}>Phiếu {result.studentName}</button>
-          <button onClick={() => onDeleteClick?.(result)}>Xóa {result.studentName}</button>
+          {onRowClick && <button onClick={() => onRowClick(result)}>Chi tiết {result.studentName}</button>}
+          {onPhieuClick && <button onClick={() => onPhieuClick(result)}>Phiếu {result.studentName}</button>}
+          {onDeleteClick && <button onClick={() => onDeleteClick(result)}>Xóa {result.studentName}</button>}
         </article>
       ))}
     </div>
@@ -161,6 +162,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
   });
 
   beforeEach(() => {
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true });
     mocks.navigate.mockReset();
     mocks.fetchResultAnswers.mockReset().mockResolvedValue({});
     mocks.fetchResultAnswersBulk.mockReset().mockResolvedValue({});
@@ -282,6 +284,16 @@ describe('TeacherDashboard ResultsTab contracts', () => {
 
     expect(downloads).toContain('ket-qua-2026-07-19.csv');
     expect(downloads).toContain('bao-cao-tong-hop-2026-07-19.txt');
+  });
+
+  it('hides server-backed row actions offline while keeping local export available', () => {
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: false });
+    render(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
+
+    expect(screen.queryByRole('button', { name: 'Chi tiết An' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Phiếu An' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xóa An' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Xuất/ })).toBeEnabled();
   });
 
   it('recalculates visible result display values from fetched answer snapshots', async () => {

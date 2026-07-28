@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
+import { DataFreshnessNotice } from '../../../components/common';
+import { useOnlineStatus } from '../../../hooks/useOnlineStatus';
 import ParentMetricGrid from '../components/ParentMetricGrid';
 import ParentProgressPanel from '../components/ParentProgressPanel';
 import ParentRecentActivity from '../components/ParentRecentActivity';
@@ -13,25 +15,27 @@ const addDays = (date: string, days: number) => {
 };
 
 export default function ParentDashboardPage() {
+  const { isOnline } = useOnlineStatus();
   const session = useParentPortalStore(state => state.session);
   const dashboard = useParentPortalStore(state => state.dashboard);
+  const dashboardUpdatedAt = useParentPortalStore(state => state.dashboardUpdatedAt);
   const isLoading = useParentPortalStore(state => state.isLoading);
   const error = useParentPortalStore(state => state.error);
   const loadDashboard = useParentPortalStore(state => state.loadDashboard);
   const [weekStart, setWeekStart] = useState<string | undefined>(dashboard?.period.weekStart);
 
   useEffect(() => {
-    if (!dashboard) void loadDashboard(weekStart);
-  }, [dashboard, loadDashboard, weekStart]);
+    if (!dashboard && isOnline) void loadDashboard(weekStart);
+  }, [dashboard, isOnline, loadDashboard, weekStart]);
 
   if (isLoading && !dashboard) {
     return (
       <div role="status" aria-label="Đang tải tổng quan" className="space-y-4">
         <h1 className="text-2xl font-bold text-slate-900">Tổng quan tuần</h1>
-        <div className="h-28 animate-pulse rounded-3xl bg-slate-200" />
+        <div className="h-28 animate-pulse rounded-3xl bg-slate-200 motion-reduce:animate-none" />
         <div className="grid grid-cols-2 gap-3">
           {Array.from({ length: 6 }, (_, index) => (
-            <div key={index} className="h-32 animate-pulse rounded-2xl bg-slate-200" />
+            <div key={index} className="h-32 animate-pulse rounded-2xl bg-slate-200 motion-reduce:animate-none" />
           ))}
         </div>
       </div>
@@ -45,8 +49,12 @@ export default function ParentDashboardPage() {
           <p className="font-semibold text-red-700">{error}</p>
           <button
             type="button"
-            onClick={() => loadDashboard(weekStart)}
-            className="mt-4 min-h-11 rounded-xl bg-indigo-600 px-5 font-bold text-white"
+            onClick={() => {
+              if (isOnline) void loadDashboard(weekStart);
+            }}
+            disabled={!isOnline}
+            title={!isOnline ? 'Cần kết nối mạng để thử lại.' : undefined}
+            className="mt-4 min-h-11 rounded-xl bg-indigo-600 px-5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             Thử lại
           </button>
@@ -59,13 +67,14 @@ export default function ParentDashboardPage() {
       <div className="space-y-4">
         <h1 className="text-2xl font-bold text-slate-900">Tổng quan tuần</h1>
         <p role="status" className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-500">
-          Đang tải dữ liệu tổng quan…
+          {isOnline ? 'Đang tải dữ liệu tổng quan…' : 'Chưa có dữ liệu đã tải để xem ngoại tuyến.'}
         </p>
       </div>
     );
   }
 
   const changeWeek = (days: number) => {
+    if (!isOnline) return;
     const next = addDays(dashboard.period.weekStart, days);
     setWeekStart(next);
     void loadDashboard(next);
@@ -74,13 +83,15 @@ export default function ParentDashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-slate-900">Tổng quan tuần</h1>
+      {error ? <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">{error}</p> : null}
+      <DataFreshnessNotice staleAt={dashboardUpdatedAt} isOffline={!isOnline} isRefreshing={isLoading} />
       <section className="rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-600 p-6 text-white shadow-lg shadow-indigo-200">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
           <div><p className="text-sm text-indigo-100">Xin chào gia đình của</p><h2 className="mt-1 text-2xl font-bold">{session?.fullName}</h2><p className="mt-1 text-sm text-indigo-100">Lớp {session?.className}</p></div>
           <div className="flex items-center gap-2 rounded-2xl bg-white/10 p-2">
-            <button type="button" aria-label="Tuần trước" onClick={() => changeWeek(-7)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl hover:bg-white/10"><ChevronLeft /></button>
+            <button type="button" aria-label="Tuần trước" disabled={!isOnline || isLoading} title={!isOnline ? 'Cần kết nối mạng để đổi tuần.' : undefined} onClick={() => changeWeek(-7)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"><ChevronLeft /></button>
             <div className="min-w-36 text-center text-sm font-semibold"><CalendarDays className="mr-1 inline h-4 w-4" />{new Date(`${dashboard.period.weekStart}T00:00:00`).toLocaleDateString('vi-VN')} – {new Date(`${dashboard.period.weekEnd}T00:00:00`).toLocaleDateString('vi-VN')}</div>
-            <button type="button" aria-label="Tuần sau" onClick={() => changeWeek(7)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl hover:bg-white/10"><ChevronRight /></button>
+            <button type="button" aria-label="Tuần sau" disabled={!isOnline || isLoading} title={!isOnline ? 'Cần kết nối mạng để đổi tuần.' : undefined} onClick={() => changeWeek(7)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"><ChevronRight /></button>
           </div>
         </div>
       </section>

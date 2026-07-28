@@ -5,7 +5,9 @@
  * Extracts state management from TeacherDashboard.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { ApiError } from '../services/api/errors';
+import { useOnlineStatus } from './useOnlineStatus';
 import { StudentResult } from '../types';
 
 export interface UseResultsProps {
@@ -30,6 +32,10 @@ export interface UseResultsReturn {
     // Refresh
     isRefreshing: boolean;
     handleRefresh: () => Promise<void>;
+    refreshError: string | null;
+    isOnline: boolean;
+    lastUpdatedAt: number | null;
+    discardStaleData: boolean;
 
     // Stats
     stats: {
@@ -46,20 +52,30 @@ export interface UseResultsReturn {
 }
 
 export const useResults = ({ results, onRefresh }: UseResultsProps): UseResultsReturn => {
+    const { isOnline } = useOnlineStatus();
     const [filterClass, setFilterClass] = useState<string>('All');
     const [sortField, setSortField] = useState<'score' | 'submittedAt'>('submittedAt');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [refreshError, setRefreshError] = useState<string | null>(null);
+    const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(() => (results.length > 0 ? Date.now() : null));
+    const [discardStaleData, setDiscardStaleData] = useState(false);
+
+    useEffect(() => {
+        if (results.length > 0 && !discardStaleData) setLastUpdatedAt(Date.now());
+    }, [results, discardStaleData]);
+
+    const safeResults = discardStaleData ? [] : results;
 
     // Get unique classes
     const availableClasses = useMemo(() => {
-        const classes = new Set(results.map(r => r.studentClass));
+        const classes = new Set(safeResults.map(r => r.studentClass));
         return Array.from(classes).sort();
-    }, [results]);
+    }, [safeResults]);
 
     // Filter and sort results
     const filteredResults = useMemo(() => {
-        let filtered = [...results];
+        let filtered = [...safeResults];
 
         // Apply class filter
         if (filterClass !== 'All') {
@@ -80,7 +96,7 @@ export const useResults = ({ results, onRefresh }: UseResultsProps): UseResultsR
         });
 
         return filtered;
-    }, [results, filterClass, sortField, sortOrder]);
+    }, [safeResults, filterClass, sortField, sortOrder]);
 
     // Calculate stats
     const stats = useMemo(() => {
@@ -114,16 +130,28 @@ export const useResults = ({ results, onRefresh }: UseResultsProps): UseResultsR
     // Handle refresh
     const handleRefresh = useCallback(async () => {
         if (!onRefresh) return;
+        if (!isOnline) {
+            setRefreshError('Bạn đang ngoại tuyến. Kết quả gần nhất vẫn được giữ để xem.');
+            return;
+        }
 
         setIsRefreshing(true);
+        setRefreshError(null);
         try {
             await onRefresh();
+            setDiscardStaleData(false);
+            setLastUpdatedAt(Date.now());
         } catch (error) {
-            console.error('Failed to refresh results:', error);
+            const accessDenied = error instanceof ApiError && (error.status === 401 || error.status === 403);
+            if (accessDenied) {
+                setDiscardStaleData(true);
+                setLastUpdatedAt(null);
+            }
+            setRefreshError(error instanceof Error ? error.message : 'Không thể cập nhật kết quả. Vui lòng thử lại.');
         } finally {
             setIsRefreshing(false);
         }
-    }, [onRefresh]);
+    }, [isOnline, onRefresh]);
 
     return {
         filteredResults,
@@ -135,6 +163,10 @@ export const useResults = ({ results, onRefresh }: UseResultsProps): UseResultsR
         setSortOrder,
         isRefreshing,
         handleRefresh,
+        refreshError,
+        isOnline,
+        lastUpdatedAt,
+        discardStaleData,
         stats,
         availableClasses,
     };

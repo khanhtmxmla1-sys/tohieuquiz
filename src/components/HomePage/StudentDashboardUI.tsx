@@ -50,6 +50,8 @@ const StudentDashboardUI = () => {
         activeSection={activeSection}
         selectedResultReportId={controller.selectedResultReportId}
         giftShopEnabled={giftShopEnabled}
+        isOnline={controller.isOnline}
+        dashboardUpdatedAt={controller.dashboardUpdatedAt}
         assignments={assignments}
         attendance={attendance}
         practice={practice}
@@ -57,7 +59,9 @@ const StudentDashboardUI = () => {
         onSelectSection={controller.setActiveSection}
         onOpenResultReport={controller.openResultReport}
         onOpenGiftShop={controller.openGiftShop}
-        onOpenLiveExam={liveExam.openJoinModal}
+        onOpenLiveExam={() => {
+          if (controller.isOnline) liveExam.openJoinModal();
+        }}
         onOpenAvatar={controller.openAvatar}
         onOpenChangePassword={account.open}
         onClearDeviceData={account.clearDeviceData}

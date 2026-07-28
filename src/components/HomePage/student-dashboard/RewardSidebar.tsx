@@ -4,6 +4,7 @@ export function RewardSidebar({
   dashboard,
   giftShopEnabled,
   isProcessing,
+  isOffline = false,
   onOpenChest,
   onOpenGiftShop,
   onOpenBadges,
@@ -17,7 +18,7 @@ export function RewardSidebar({
       : chestAvailable
         ? 'Mở rương thưởng'
         : 'Chưa mở khóa';
-  const chestDisabled = chestClaimed || isProcessing || !chestAvailable;
+  const chestDisabled = chestClaimed || isProcessing || !chestAvailable || isOffline;
 
   const completedDays = Math.max(0, dashboard?.weekly.completedDays || 0);
   const targetDays = Math.max(1, dashboard?.weekly.targetDays || 5);
@@ -53,6 +54,8 @@ export function RewardSidebar({
           <button
             type="button"
             onClick={onOpenGiftShop}
+            disabled={isOffline}
+            title={isOffline ? 'Cần kết nối mạng để mở cửa hàng.' : undefined}
             className="mt-3 inline-flex min-h-10 items-center justify-center rounded-[10px] border border-slate-200 bg-white px-3 text-sm font-semibold text-sky-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             Xem mục tiêu quà tặng

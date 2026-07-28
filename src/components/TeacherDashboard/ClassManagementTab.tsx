@@ -1,4 +1,5 @@
 import React, { useEffect, memo } from 'react';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { 
     useClassManagement, 
     ClassListView, 
@@ -13,6 +14,7 @@ interface ClassManagementTabProps {
 }
 
 const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, username }) => {
+    const { isOnline } = useOnlineStatus();
     const {
         selectedClass,
         setSelectedClass,
@@ -37,13 +39,13 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
 
     // Load classes initially
     useEffect(() => {
-        if (username) fetchClasses(isAdmin ? undefined : username);
-    }, [username, isAdmin, fetchClasses]);
+        if (username && isOnline) fetchClasses(isAdmin ? undefined : username);
+    }, [username, isAdmin, fetchClasses, isOnline]);
 
     // Refresh the roster whenever a class is opened so cached data cannot masquerade as current data.
     useEffect(() => {
-        if (selectedClass) void fetchStudents(selectedClass.id);
-    }, [selectedClass?.id, fetchStudents]);
+        if (selectedClass && isOnline) void fetchStudents(selectedClass.id);
+    }, [selectedClass?.id, fetchStudents, isOnline]);
 
     return (
         <div className="animate-fade-in relative min-h-[500px]">
@@ -52,12 +54,20 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
                     classes={classes}
                     isAdmin={isAdmin}
                     onSelectClass={setSelectedClass}
-                    onCreateClick={() => setShowCreateModal(true)}
-                    onTransferClick={openTransferModal}
-                    onDeleteClick={handleDeleteClass}
+                    onCreateClick={() => {
+                        if (isOnline) setShowCreateModal(true);
+                    }}
+                    onTransferClick={(classroom) => {
+                        if (isOnline) void openTransferModal(classroom);
+                    }}
+                    onDeleteClick={(classroom) => {
+                        if (isOnline) handleDeleteClass(classroom);
+                    }}
                     isLoading={store.isLoading}
                     error={store.error}
-                    onRetry={() => username && fetchClasses(isAdmin ? undefined : username)}
+                    onRetry={() => username && isOnline && fetchClasses(isAdmin ? undefined : username)}
+                    isOnline={isOnline}
+                    lastUpdatedAt={store.lastUpdatedAt}
                 />
             ) : (
                 <ClassDetailView
@@ -69,7 +79,7 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
                 />
             )}
 
-            {showCreateModal && (
+            {showCreateModal && isOnline && (
                 <CreateClassModal
                     onClose={() => setShowCreateModal(false)}
                     onCreate={handleCreateClass}
@@ -77,7 +87,7 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
                 />
             )}
 
-            {transferClassroom && (
+            {transferClassroom && isOnline && (
                 <TransferTeacherModal
                     classroom={transferClassroom}
                     teachers={teachers}

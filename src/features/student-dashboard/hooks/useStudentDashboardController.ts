@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useOnlineStatus } from '../../../hooks/useOnlineStatus';
 import { useClassroomStore } from '@/src/stores/useClassroomStore';
 import { useHomeworkStore } from '@/src/features/homework/stores/useHomeworkStore';
 import type { HomeworkAssignment } from '@/src/features/homework/types';
@@ -12,6 +13,7 @@ import { useStudentPracticeCatalog } from './useStudentPracticeCatalog';
 import { useStudentRewards } from './useStudentRewards';
 
 export const useStudentDashboardController = () => {
+  const { isOnline } = useOnlineStatus();
   const studentSession = useClassroomStore((state) => state.studentSession);
   const homeworkSubmissions = useHomeworkStore((state) => state.submissions);
   const setView = useQuizStore((state) => state.setView);
@@ -30,6 +32,18 @@ export const useStudentDashboardController = () => {
   const rewards = useStudentRewards(studentSession?.username);
   const account = useStudentAccount(studentSession);
   const liveExam = useStudentLiveExam();
+  const dashboardUpdatedAt = useMemo(() => {
+    const hasDashboardData = assignments.pagedQuizzes.length > 0
+      || practice.subjects.length > 0
+      || Boolean(rewards.dashboard)
+      || rewards.weeklyQuests.length > 0;
+    return hasDashboardData ? Date.now() : null;
+  }, [
+    assignments.pagedQuizzes,
+    practice.subjects,
+    rewards.dashboard,
+    rewards.weeklyQuests,
+  ]);
   const homeworkSubmission = selectedHomework
     ? homeworkSubmissions.find((submission) => submission.assignment_id === selectedHomework.id)
     : undefined;
@@ -58,8 +72,10 @@ export const useStudentDashboardController = () => {
     openBadgeGallery: () => setIsBadgeGalleryOpen(true),
     closeBadgeGallery: () => setIsBadgeGalleryOpen(false),
     giftShopEnabled,
+    isOnline,
+    dashboardUpdatedAt,
     openGiftShop: () => {
-      if (giftShopEnabled) setView('shop');
+      if (giftShopEnabled && isOnline) setView('shop');
     },
     practice,
     assignments,

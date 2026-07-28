@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { ResultDashboardSummary, ResultSummaryStatistics } from '../../../shared/result-summary.contract';
 import {
     Award,
@@ -12,7 +12,8 @@ import {
     UsersRound,
 } from 'lucide-react';
 import { useQuizStore } from '../../../stores/quizStore';
-import { Alert, Button } from '../common';
+import { Alert, Button, DataFreshnessNotice } from '../common';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useAuthStore } from '../../../stores/authStore';
 import { areClassNamesEqual } from '../../utils/classMatching';
 import { useTeacherDashboardUIStore } from '../../stores/useTeacherDashboardUIStore';
@@ -94,9 +95,17 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     summaryLoadState,
     summaryError,
 }) => {
+    const { isOnline } = useOnlineStatus();
+    const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
     const authStore = useAuthStore();
     const quizStore = useQuizStore();
     const setActiveTab = useTeacherDashboardUIStore((state) => state.setActiveTab);
+
+    useEffect(() => {
+        if (resultsLoadState === 'success' || summaryLoadState === 'success') {
+            setLastUpdatedAt(Date.now());
+        }
+    }, [resultsLoadState, summaryLoadState, resultSummary]);
 
     const filteredResults = useMemo(() => (
         authStore.isAdmin || !authStore.teacherClass
@@ -270,10 +279,24 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 <Alert tone="danger" title={alertTitle} className="flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm text-orange-700">{alertMessage}</p>
-                        <Button variant="secondary" size="sm" onClick={() => void onRetryResults()}>Thử lại</Button>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => void onRetryResults()}
+                            disabled={!isOnline}
+                            title={!isOnline ? 'Cần kết nối mạng để thử lại.' : undefined}
+                        >
+                            Thử lại
+                        </Button>
                     </div>
                 </Alert>
             )}
+
+            <DataFreshnessNotice
+                staleAt={lastUpdatedAt}
+                isOffline={!isOnline}
+                isRefreshing={resultsLoadState === 'loading' || summaryLoadState === 'loading'}
+            />
 
             <QuickActionGrid actions={quickActions} onSelect={setActiveTab} />
             <MetricGrid metrics={metrics} isLoadingResults={isSummaryLoading} />

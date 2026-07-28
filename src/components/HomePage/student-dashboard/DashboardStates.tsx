@@ -108,9 +108,10 @@ export function DashboardEmptyState({
 interface DashboardSectionErrorProps {
   message: string;
   onRetry?: () => void;
+  retryDisabled?: boolean;
 }
 
-export function DashboardSectionError({ message, onRetry }: DashboardSectionErrorProps) {
+export function DashboardSectionError({ message, onRetry, retryDisabled = false }: DashboardSectionErrorProps) {
   return (
     <div
       role="alert"
@@ -121,7 +122,9 @@ export function DashboardSectionError({ message, onRetry }: DashboardSectionErro
         <button
           type="button"
           onClick={onRetry}
-          className="mt-3 inline-flex min-h-11 items-center justify-center rounded-[10px] border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-800 transition-colors hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+          disabled={retryDisabled}
+          title={retryDisabled ? 'Cần kết nối mạng để thử lại.' : undefined}
+          className="mt-3 inline-flex min-h-11 items-center justify-center rounded-[10px] border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-800 transition-colors hover:bg-rose-100 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
         >
           Thử lại
         </button>

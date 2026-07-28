@@ -3,19 +3,21 @@ import {
   AssignedWorkSection, LearningProgressPanel, RewardSidebar, StudentDashboardHero,
   SubjectPracticeGrid, WeeklyQuestsPanel,
 } from '@/src/components/HomePage/student-dashboard';
+import { DataFreshnessNotice } from '@/src/components/common';
 import type { StudentDashboardContentProps } from './content.types';
 
 export const StudentDashboardBody = ({
   studentSession, assignments, attendance, practice, rewards,
-  giftShopEnabled, onOpenGiftShop, onOpenBadges, onSelectHomework,
+  giftShopEnabled, isOnline, dashboardUpdatedAt, onOpenGiftShop, onOpenBadges, onSelectHomework,
 }: StudentDashboardContentProps) => (
   <div className="flex flex-col gap-8 md:gap-10">
+    <DataFreshnessNotice staleAt={dashboardUpdatedAt} isOffline={!isOnline} />
     <StudentDashboardHero
       firstName={studentSession.fullName.split(' ').pop() || studentSession.fullName}
       hasReadyAssignment={assignments.hasReadyAssignment}
       attendanceClaimed={attendance.claimedToday}
       attendanceLabel={attendance.badgeText}
-      attendanceAvailable={attendance.isAvailable}
+      attendanceAvailable={attendance.isAvailable && isOnline}
       onPrimaryAction={assignments.scrollToPrimaryTarget}
       onAttendance={attendance.open}
     />
@@ -28,6 +30,7 @@ export const StudentDashboardBody = ({
           page={assignments.page}
           totalPages={assignments.totalPages}
           reviewingAssignmentId={assignments.reviewingAssignmentId}
+          isOffline={!isOnline}
           onRetry={() => void assignments.retry()}
           onPageChange={assignments.setPage}
           onStartQuiz={assignments.startQuiz}
@@ -43,6 +46,7 @@ export const StudentDashboardBody = ({
           isLoading={rewards.isWeeklyQuestsLoading}
           errorMessage={rewards.weeklyQuestsError}
           claimingQuestId={rewards.claimingWeeklyQuestId}
+          isOffline={!isOnline}
           onRetry={() => void rewards.retryWeeklyQuests()}
           onClaim={rewards.claimWeeklyQuest}
         />
@@ -51,6 +55,7 @@ export const StudentDashboardBody = ({
           comingSoonSubjects={practice.comingSoonSubjects}
           isLoading={practice.isLoading}
           errorMessage={practice.errorMessage}
+          isOffline={!isOnline}
           onRetry={() => void practice.retry()}
           onSelectSubject={practice.selectSubject}
         />
@@ -65,6 +70,7 @@ export const StudentDashboardBody = ({
           errorMessage={rewards.errorMessage}
           expanded={rewards.isJourneyExpanded}
           claimingMissionId={rewards.claimingMissionId}
+          isOffline={!isOnline}
           onToggle={rewards.toggleJourney}
           onRetry={() => void rewards.retryDashboard()}
           onClaimMission={rewards.claimMission}
@@ -73,6 +79,7 @@ export const StudentDashboardBody = ({
           dashboard={rewards.dashboard}
           giftShopEnabled={giftShopEnabled}
           isProcessing={rewards.isLoading}
+          isOffline={!isOnline}
           onOpenChest={rewards.claimChest}
           onOpenGiftShop={onOpenGiftShop}
           onOpenBadges={onOpenBadges}

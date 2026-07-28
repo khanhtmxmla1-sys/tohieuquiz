@@ -10,6 +10,7 @@ export function AssignedWorkSection({
   page,
   totalPages,
   reviewingAssignmentId,
+  isOffline = false,
   onRetry,
   onPageChange,
   onStartQuiz,
@@ -32,7 +33,7 @@ export function AssignedWorkSection({
       {isLoading ? <AssignedWorkSkeleton /> : null}
 
       {!isLoading && errorMessage ? (
-        <DashboardSectionError message={errorMessage} onRetry={onRetry} />
+        <DashboardSectionError message={errorMessage} onRetry={onRetry} retryDisabled={isOffline} />
       ) : null}
 
       {!isLoading && !errorMessage && quizzes.length === 0 ? (
@@ -42,7 +43,13 @@ export function AssignedWorkSection({
         />
       ) : null}
 
-      {!isLoading && !errorMessage && quizzes.length > 0 ? (
+      {!isLoading && quizzes.length > 0 && isOffline ? (
+        <p role="status" aria-live="polite" className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+          Em cần kết nối mạng để bắt đầu hoặc xem lại bài làm.
+        </p>
+      ) : null}
+
+      {!isLoading && quizzes.length > 0 ? (
         <div className="overflow-hidden rounded-[14px] border border-[#E5E7EB] bg-white">
           {quizzes.map((quiz) => {
             const assignment = quiz._assignmentData;
@@ -112,7 +119,7 @@ export function AssignedWorkSection({
                       if (isReady) onStartQuiz(quiz);
                       else if (isCompleted) onReviewQuiz(quiz);
                     }}
-                    disabled={visualState === 'closed' || isReviewing}
+                    disabled={visualState === 'closed' || isReviewing || isOffline}
                     aria-busy={isReviewing}
                     className={`inline-flex min-h-11 w-full items-center justify-center rounded-[10px] px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:w-auto sm:min-w-36 ${
                       isReady
