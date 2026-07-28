@@ -16,6 +16,12 @@ describe('resolveApiRoute', () => {
         expect(r.query?.({ quizId: 'a b' })?.toString()).toBe('quizId=a+b');
     });
 
+    it('resolves teacher action center as a protected GET', () => {
+        const route = resolveApiRoute('get_teacher_action_center');
+        expect(route).toMatchObject({ method: 'GET', auth: 'session' });
+        expect(route.path({})).toBe('/api/teacher/action-center');
+    });
+
     it('resolves result dashboard summary as a protected GET', () => {
         const route = resolveApiRoute('get_results_summary');
         expect(route).toMatchObject({ method: 'GET', auth: 'session' });

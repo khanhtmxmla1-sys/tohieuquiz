@@ -1,3 +1,4 @@
+export { default as ActionCenterPanel } from './ActionCenterPanel';
 export { default as DashboardHero } from './DashboardHero';
 export { default as MetricGrid } from './MetricGrid';
 export { default as PerformancePanel } from './PerformancePanel';

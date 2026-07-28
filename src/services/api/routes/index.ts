@@ -13,6 +13,7 @@ import { resultReportRoutes } from './resultReports';
 import { systemRoutes } from './system';
 import { homeworkRoutes } from './homework';
 import { parentRoutes } from './parents';
+import { actionCenterRoutes } from './actionCenter';
 
 export const routes: RouteRegistry = {
     ...teacherRoutes,
@@ -29,4 +30,5 @@ export const routes: RouteRegistry = {
     ...systemRoutes,
     ...homeworkRoutes,
     ...parentRoutes,
+    ...actionCenterRoutes,
 };

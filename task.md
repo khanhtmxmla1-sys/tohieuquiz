@@ -90,7 +90,11 @@
 
 ## Wave 3 — Cải tiến tính năng
 
-- [ ] Task 20 — Teacher Action Center
+- [x] Task 20 — Teacher Action Center
+  - [x] Worker tổng hợp assignment at risk, bản nháp chưa hoàn tất, đơn đổi quà chờ trao và phiên thi sắp diễn ra theo đúng teacher/admin scope.
+  - [x] Mỗi item có severity, explanation, count, generatedAt và CTA nội bộ; phản hồi giới hạn tối đa 8 item.
+  - [x] Dashboard hiển thị trạng thái loading/error/empty và điều hướng giữ nguyên route/filter cho Assignment, Gift Shop, Live Exam và Manual Quiz draft.
+  - [x] Targeted regression 8 file/43 test; Cypress Electron 2/2 với Gift Shop API flag; full verify 327 file/1.546 test, coverage, build và security audit đạt.
 - [ ] Task 21 — AI question quality gate
 - [ ] Task 22 — Live Exam reconnect/autosave/connection monitoring
 - [ ] Task 23 — Results Intervention Center

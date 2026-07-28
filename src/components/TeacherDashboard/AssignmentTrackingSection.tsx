@@ -8,6 +8,7 @@ import {
 } from '../../utils/dateTime';
 import { ResponsiveDataView } from '../common';
 import { showConfirm } from '../../utils/toast';
+import { useBrowserSearchParams } from '../../hooks/useBrowserSearchParams';
 
 const AssignmentTrackingSection: React.FC<{
     assignments: Assignment[];
@@ -17,13 +18,28 @@ const AssignmentTrackingSection: React.FC<{
     isLoading: boolean;
 }> = ({ assignments, onDelete, onUpdateDeadline, onUpdateStatus, isLoading }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
+    const [searchParams, setSearchParams] = useBrowserSearchParams();
+    const rawStatus = searchParams.get('status');
+    const statusFilter: 'ALL' | 'OPEN' | 'CLOSED' = rawStatus === 'OPEN' || rawStatus === 'CLOSED' ? rawStatus : 'ALL';
+    const rawDueHours = Number(searchParams.get('due'));
+    const dueHours = Number.isFinite(rawDueHours) && rawDueHours > 0 && rawDueHours <= 168 ? rawDueHours : null;
+    const updateStatusFilter = (status: 'ALL' | 'OPEN' | 'CLOSED') => {
+        const next = new URLSearchParams(searchParams);
+        if (status === 'ALL') next.delete('status');
+        else next.set('status', status);
+        setSearchParams(next);
+    };
 
     // Sort: OPEN first, then by deadline
     const sorted = useMemo(() => {
         const search = searchTerm.trim().toLocaleLowerCase('vi');
         return assignments.filter(assignment => {
             if (statusFilter !== 'ALL' && assignment.status !== statusFilter) return false;
+            if (dueHours !== null) {
+                const deadline = Date.parse(assignment.deadline);
+                const now = Date.now();
+                if (!Number.isFinite(deadline) || deadline <= now || deadline > now + dueHours * 3_600_000) return false;
+            }
             if (!search) return true;
             return [
                 assignment.quizTitle,
@@ -40,7 +56,7 @@ const AssignmentTrackingSection: React.FC<{
             if (!Number.isFinite(rightDeadline)) return -1;
             return leftDeadline - rightDeadline;
         });
-    }, [assignments, searchTerm, statusFilter]);
+    }, [assignments, dueHours, searchTerm, statusFilter]);
 
     return (
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -70,7 +86,7 @@ const AssignmentTrackingSection: React.FC<{
                 <select
                     aria-label="Lọc trạng thái bài giao"
                     value={statusFilter}
-                    onChange={event => setStatusFilter(event.target.value as 'ALL' | 'OPEN' | 'CLOSED')}
+                    onChange={event => updateStatusFilter(event.target.value as 'ALL' | 'OPEN' | 'CLOSED')}
                     className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
                 >
                     <option value="ALL">Tất cả trạng thái</option>

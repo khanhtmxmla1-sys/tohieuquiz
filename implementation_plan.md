@@ -542,10 +542,10 @@ interface AuthState {
 - Create: `src/components/TeacherDashboard/overview/ActionCenterPanel.tsx`
 - Test: `tests/actionCenterService.test.ts`, `cypress/e2e/teacher-action-center.cy.ts`
 
-- [ ] Bắt đầu với: assignment at risk, draft unpublished, gift order pending, live exam upcoming.
-- [ ] Mỗi item có severity, explanation, count, generatedAt và internal CTA.
-- [ ] Chỉ dữ liệu thuộc teacher/admin scope.
-- [ ] Tối đa 8 item có thể hành động.
+- [x] Bắt đầu với: assignment at risk, draft unpublished, gift order pending, live exam upcoming.
+- [x] Mỗi item có severity, explanation, count, generatedAt và internal CTA.
+- [x] Chỉ dữ liệu thuộc teacher/admin scope.
+- [x] Tối đa 8 item có thể hành động.
 
 **Acceptance:** CTA dẫn đúng route/filter; không lộ lớp khác.
 

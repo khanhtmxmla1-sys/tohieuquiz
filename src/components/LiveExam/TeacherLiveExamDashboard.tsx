@@ -3,6 +3,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import {
     Archive,
     BarChart3,
@@ -85,12 +86,35 @@ export const TeacherLiveExamDashboard: React.FC<TeacherLiveExamDashboardProps> =
     waitingRoomChat = null,
 }) => {
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [statusFilter, setStatusFilter] = useState<LiveExamFilter>('all');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const rawStatus = searchParams.get('status');
+    const statusFilter: LiveExamFilter = filters.some((filter) => filter.value === rawStatus)
+        ? rawStatus as LiveExamFilter
+        : 'all';
+    const rawWindowHours = Number(searchParams.get('window'));
+    const windowHours = Number.isFinite(rawWindowHours) && rawWindowHours > 0 && rawWindowHours <= 168
+        ? rawWindowHours
+        : null;
+    const setStatusFilter = (status: LiveExamFilter) => {
+        setSearchParams((current) => {
+            const next = new URLSearchParams(current);
+            if (status === 'all') next.delete('status');
+            else next.set('status', status);
+            return next;
+        }, { replace: true });
+    };
 
-    const filteredSessions = useMemo(
-        () => statusFilter === 'all' ? sessions : sessions.filter((session) => session.status === statusFilter),
-        [sessions, statusFilter],
-    );
+    const filteredSessions = useMemo(() => {
+        const now = Date.now();
+        return sessions.filter((session) => {
+            if (statusFilter !== 'all' && session.status !== statusFilter) return false;
+            if (windowHours !== null) {
+                const scheduledAt = Date.parse(session.scheduledAt || '');
+                if (!Number.isFinite(scheduledAt) || scheduledAt < now || scheduledAt > now + windowHours * 3_600_000) return false;
+            }
+            return true;
+        });
+    }, [sessions, statusFilter, windowHours]);
 
     const statusCounts = useMemo(() => ({
         all: sessions.length,

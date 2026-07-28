@@ -74,6 +74,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('logout', '/api/logout', 'authenticated', ['session'], 'logout session handler', { match: 'exact', methods: ['POST'] }),
   policy('teachers', '/api/teachers', 'authenticated', ['session', 'route-handler'], 'teacher JWT and role checks'),
   policy('account', '/api/account', 'authenticated', ['session'], 'account JWT checks'),
+  policy('teacher-action-center', '/api/teacher/action-center', 'teacher-owned', ['session', 'classId'], 'teacher/admin role and scoped aggregate queries', { match: 'exact', methods: ['GET'] }),
   policy('classes', '/api/classes', 'teacher-owned', ['classId'], 'classroom teacher/admin ownership checks'),
   policy('students', '/api/students', 'teacher-owned', ['studentId', 'classId'], 'classroom teacher/admin ownership checks'),
   policy('student-profile', '/api/student-profile', 'student-owned', ['session', 'studentId'], 'authenticated student identity', { match: 'exact' }),

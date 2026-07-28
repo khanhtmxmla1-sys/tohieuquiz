@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getResultsMock = vi.hoisted(() => vi.fn());
 const createLiveExamMock = vi.hoisted(() => vi.fn());
@@ -27,6 +28,7 @@ const session = (status: LiveExamStatus, overrides: Partial<LiveExamSession> = {
   classId: 'class-a',
   className: '4A',
   duration: 30,
+  scheduledAt: status === LiveExamStatus.SCHEDULED ? '2026-07-28T12:00:00.000Z' : undefined,
   settings: { randomizeAnswers: false, showLeaderboard: true, allowLateJoin: false },
   status,
   accessCode: 'ABC123',
@@ -54,15 +56,28 @@ const baseProps = () => ({
   onRefresh: vi.fn(),
 });
 
+const renderDashboard = (
+  props = baseProps(),
+  initialEntry = '/teacher/live-exams',
+) => render(
+  <MemoryRouter initialEntries={[initialEntry]}>
+    <TeacherLiveExamDashboard {...props} />
+  </MemoryRouter>,
+);
+
 describe('live exam teacher dashboard', () => {
   beforeEach(() => {
     getResultsMock.mockReset();
     createLiveExamMock.mockReset();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('shows all lifecycle states and opens a closed session through Xem kết quả', () => {
     const props = baseProps();
-    render(<TeacherLiveExamDashboard {...props} />);
+    renderDashboard(props);
 
     expect(screen.getAllByText('Đã lên lịch').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Đang chờ').length).toBeGreaterThan(0);
@@ -75,12 +90,12 @@ describe('live exam teacher dashboard', () => {
   });
 
   it('only offers archive for safe scheduled or closed states', () => {
-    render(<TeacherLiveExamDashboard {...baseProps()} />);
+    renderDashboard();
     expect(screen.getAllByRole('button', { name: /Lưu trữ/i })).toHaveLength(2);
   });
 
   it('requires selecting a class before enabling session creation', () => {
-    render(<TeacherLiveExamDashboard {...baseProps()} />);
+    renderDashboard();
     fireEvent.click(screen.getByRole('button', { name: /Tạo phiên thi mới/i }));
 
     const submit = screen.getByRole('button', { name: /^Tạo phiên thi$/i });
@@ -90,6 +105,32 @@ describe('live exam teacher dashboard', () => {
 
     fireEvent.change(screen.getByLabelText(/Lớp học/i), { target: { value: 'class-a' } });
     expect(submit).toBeEnabled();
+  });
+
+  it('applies the upcoming scheduled window from the Action Center URL', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-28T08:00:00.000Z'));
+    const props = {
+      ...baseProps(),
+      sessions: [
+        session(LiveExamStatus.SCHEDULED, {
+          id: 'near',
+          title: 'Phiên trong hôm nay',
+          scheduledAt: '2026-07-28T16:00:00.000Z',
+        }),
+        session(LiveExamStatus.SCHEDULED, {
+          id: 'far',
+          title: 'Phiên tuần sau',
+          scheduledAt: '2026-08-04T08:00:00.000Z',
+        }),
+      ],
+    };
+
+    renderDashboard(props, '/teacher/live-exams?status=scheduled&window=24');
+
+    expect(screen.getByText('Phiên trong hôm nay')).toBeInTheDocument();
+    expect(screen.queryByText('Phiên tuần sau')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Đã lên lịch' })).toHaveClass('bg-blue-600');
   });
 });
 

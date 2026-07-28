@@ -18,6 +18,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import { areClassNamesEqual } from '../../utils/classMatching';
 import { useTeacherDashboardUIStore } from '../../stores/useTeacherDashboardUIStore';
 import {
+    ActionCenterPanel,
     DashboardHero,
     MetricGrid,
     PerformancePanel,
@@ -298,6 +299,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 isRefreshing={resultsLoadState === 'loading' || summaryLoadState === 'loading'}
             />
 
+            <ActionCenterPanel />
             <QuickActionGrid actions={quickActions} onSelect={setActiveTab} />
             <MetricGrid metrics={metrics} isLoadingResults={isSummaryLoading} />
 
