@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import { WaitingRoomStudent } from '@/src/components/LiveExam/WaitingRoomStudent';
 import { LiveExamQuiz } from '@/src/components/LiveExam/LiveExamQuiz';
 import { ResultsRoom } from '@/src/components/LiveExam/ResultsRoom';
+import { LiveExamPreflightGate } from '@/src/features/live-exam/LiveExamPreflightGate';
 import { LiveExamSubmittedScreen } from './LiveExamSubmittedScreen';
 import type { StudentLiveExamController } from '../hooks/useStudentLiveExam';
 
@@ -25,9 +26,11 @@ export const StudentLiveExamScreen = ({ controller }: {
     </div>
   );
   if (stage === 'active' && joinedQuiz && status?.session?.endsAt) return (
-    <LiveExamQuiz sessionId={joinedExam.sessionId} questions={questions}
-      quizTitle={joinedExam.sessionTitle} duration={status.session.duration}
-      endsAt={status.session.endsAt} onComplete={controller.complete} />
+    <LiveExamPreflightGate>
+      <LiveExamQuiz sessionId={joinedExam.sessionId} questions={questions}
+        quizTitle={joinedExam.sessionTitle} duration={status.session.duration}
+        endsAt={status.session.endsAt} onComplete={controller.complete} />
+    </LiveExamPreflightGate>
   );
   if (stage === 'submitted') return <LiveExamSubmittedScreen submission={controller.submission} />;
   if (stage === 'results') return <ResultsRoom sessionId={joinedExam.sessionId}

@@ -516,11 +516,11 @@ interface AuthState {
 - Modify: animation/gamification và quiz autosave UI.
 - Test: `tests/reducedExperience.test.tsx`, `cypress/e2e/low-bandwidth.cy.ts`
 
-- [ ] Tôn trọng reduced-motion/saveData.
-- [ ] Không tải confetti/3D ở reduced mode.
-- [ ] Hiển thị đã lưu/đang đồng bộ/mất kết nối.
-- [ ] Retry bounded exponential backoff + idempotency key.
-- [ ] Preflight Live Exam: API health, clock drift, cookies, viewport, online.
+- [x] Tôn trọng reduced-motion/saveData.
+- [x] Không tải confetti/3D ở reduced mode.
+- [x] Hiển thị đã lưu/đang đồng bộ/mất kết nối.
+- [x] Retry bounded exponential backoff + idempotency key.
+- [x] Preflight Live Exam: API health, clock drift, cookies, viewport, online.
 
 **Acceptance:** Slow 3G/offline không làm freeze, mất answer hoặc submit trùng.
 
@@ -1132,6 +1132,20 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - Production build and bundle budget.
 - Security scan, history scan, policy gates, root/Workers dependency audit.
 - MCP diff review and `git diff --check`.
+
+## Batch 7 Execution Record — 2026-07-28
+
+### Task 19 — Low-bandwidth and weak-device resilience
+
+- Added `deviceCapabilities`, `useReducedExperience`, global `ReducedExperienceBanner` and bounded retry primitives. Reduced experience activates for reduced-motion, Save-Data, slow-2g/2g/3g, low device memory, low CPU concurrency or offline state.
+- Home dashboard, Quiz List, Gift Shop/Shop Modal, PetDisplay and Dr. Owl avoid mounting remote 3D images or CSS-3D content in reduced mode. CSS-3D pet code is lazy-loaded, visual interaction timers are disabled, and major modal transitions respect reduced-motion.
+- Live Exam now restores and debounces answer drafts into session-scoped `sessionStorage`, announces saving/saved/offline/error states through an accessible status region, blocks submission while offline and clears the local draft only after an acknowledged server result.
+- Live Exam submit uses a stable idempotency key per unchanged answer snapshot and bounded exponential retry for network, 408, 425, 429 and 5xx failures only. The Worker safely replays an already committed submission when the canonical answer snapshot matches, rejects changed replays with 409 and recovers update races without creating a duplicate. Missing keys remain accepted for one cached-client compatibility release; the new frontend always sends a validated key.
+- Added a fail-closed Live Exam preflight for online state, cookies, minimum viewport, `/api/health` and maximum 30-second clock drift. Failed checks are visible and retryable before the quiz component mounts.
+- TDD/targeted regression passed **16 files and 106 tests**. Cypress Electron passed **1/1** while simulating Save-Data, 3G, reduced-motion, 1 GB memory and two CPU cores; the student shell remained usable, no `/3D/` element mounted and Resource Timing recorded zero `/3D/` requests.
+- Full Vitest passed: **323/323 files and 1,527/1,527 tests**, 504.56 seconds reported by Vitest and 507.15 seconds wrapper time.
+- Full lint, frontend typecheck, strict typecheck, Workers typecheck, production build, performance budget, security/history/policy gates and root/Workers production audits passed with zero vulnerabilities. Build transformed 4,459 modules; initial JS gzip 184,160 B, CSS gzip 41,200 B, largest lazy gzip 125,537 B and largest minified chunk 404,881 B.
+- MCP diff review returned PASS with no P1/P2/P3 findings. UTF-8 and suspicious-question-mark scans found no encoding regression. No push, merge, deployment, production migration, secret change, production database operation or cloud resource change was performed.
 
 ## Batch 6 Execution Record — 2026-07-28
 

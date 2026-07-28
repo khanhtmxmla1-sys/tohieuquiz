@@ -6,7 +6,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import { useQuizStore } from '../../../stores/quizStore';
 import { useAssignmentStore } from '../../stores/useAssignmentStore';
 import { useClassroomStore } from '../../stores/useClassroomStore';
-import { Lock, Search, Clock, ChevronRight } from 'lucide-react';
+import { BookOpen, Lock, Rocket, Search, Clock, ChevronRight } from 'lucide-react';
 import Modal from '../common/Modal';
 import LoginModal from '../common/LoginModal';
 import AnnouncementMarquee from '../common/AnnouncementMarquee';
@@ -22,6 +22,7 @@ import { DashboardHero } from './components/DashboardHero';
 import { DashboardDecoration } from './components/DashboardDecoration';
 import { SubjectGrid } from './components/SubjectGrid';
 import { getTeacherRoute } from '../../app/navigationRoutes';
+import { useReducedExperience } from '../../hooks/useReducedExperience';
 
 // --- Constants ---
 import { 
@@ -46,6 +47,7 @@ const HomePage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [assignments, setAssignments] = useState<Assignment[]>([]);
     const [showComingSoon, setShowComingSoon] = useState(false);
+    const { reduceVisuals } = useReducedExperience();
 
     // --- Stores ---
     const navigate = useNavigate();
@@ -362,11 +364,15 @@ const HomePage: React.FC = () => {
                     {activeTab !== 'all' && !COMING_SOON_CATEGORIES.includes(activeTab) && (
                         <section className="sticker-quiz-list">
                             <h2 className="sticker-quiz-list__title">
-                                <img
-                                    src={SUBJECT_CONFIG[activeTab]?.icon || `${FLUENT_CDN}/Books/3D/books_3d.png`}
-                                    alt=""
-                                    className="sticker-quiz-list__title-icon"
-                                />
+                                {reduceVisuals ? (
+                                    <BookOpen className="sticker-quiz-list__title-icon" aria-hidden="true" />
+                                ) : (
+                                    <img
+                                        src={SUBJECT_CONFIG[activeTab]?.icon || `${FLUENT_CDN}/Books/3D/books_3d.png`}
+                                        alt=""
+                                        className="sticker-quiz-list__title-icon"
+                                    />
+                                )}
                                 {SUBJECT_CONFIG[activeTab]?.title || 'Bài ôn tập'}
                                 <span className="sticker-quiz-list__count">{filteredQuizzes.length} bài</span>
                             </h2>
@@ -386,7 +392,11 @@ const HomePage: React.FC = () => {
                                                     style={{ background: catConfig.color }}
                                                 />
                                                 <div className="sticker-quiz-item__header">
-                                                    <img src={catConfig.icon} alt="" className="sticker-quiz-item__emoji" />
+                                                    {reduceVisuals ? (
+                                                        <BookOpen className="sticker-quiz-item__emoji" aria-hidden="true" />
+                                                    ) : (
+                                                        <img src={catConfig.icon} alt="" className="sticker-quiz-item__emoji" />
+                                                    )}
                                                     {quiz.requireCode && (
                                                         <Lock className="sticker-quiz-item__lock" />
                                                     )}
@@ -404,11 +414,15 @@ const HomePage: React.FC = () => {
                                     })
                                 ) : (
                                     <div className="sticker-empty">
-                                        <img
-                                            src={`${FLUENT_CDN}/See-no-evil%20monkey/3D/see-no-evil_monkey_3d.png`}
-                                            alt=""
-                                            className="sticker-empty__img"
-                                        />
+                                        {reduceVisuals ? (
+                                            <BookOpen className="sticker-empty__img" aria-hidden="true" />
+                                        ) : (
+                                            <img
+                                                src={`${FLUENT_CDN}/See-no-evil%20monkey/3D/see-no-evil_monkey_3d.png`}
+                                                alt=""
+                                                className="sticker-empty__img"
+                                            />
+                                        )}
                                         <h3 className="sticker-empty__title">Không tìm thấy bài nào!</h3>
                                         <p className="sticker-empty__text">Thử tìm từ khóa khác xem sao?</p>
                                     </div>
@@ -429,11 +443,15 @@ const HomePage: React.FC = () => {
             >
                 <div className="text-center p-4">
                     <div className="mb-4 flex justify-center">
-                        <img
-                            src={`${FLUENT_CDN}/Rocket/3D/rocket_3d.png`}
-                            alt="Rocket"
-                            className="w-24 h-24 object-contain motion-safe:animate-pulse"
-                        />
+                        {reduceVisuals ? (
+                            <Rocket className="h-20 w-20 text-blue-500" aria-hidden="true" />
+                        ) : (
+                            <img
+                                src={`${FLUENT_CDN}/Rocket/3D/rocket_3d.png`}
+                                alt="Rocket"
+                                className="w-24 h-24 object-contain motion-safe:animate-pulse"
+                            />
+                        )}
                     </div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">
                         Sắp ra mắt!

@@ -76,7 +76,19 @@ describe('live exam request schemas', () => {
       liveExamId: 'exam-1',
       studentId: 'student-1',
       answers: { q1: 'A', q2: ['B', 'C'] },
+      idempotencyKey: 'live-exam-submit:attempt-1',
     }).success).toBe(true);
+    expect(SubmitAnswersRequestSchema.safeParse({
+      liveExamId: 'exam-1',
+      studentId: 'student-1',
+      answers: { q1: 'A' },
+    }).success).toBe(true);
+    expect(SubmitAnswersRequestSchema.safeParse({
+      liveExamId: 'exam-1',
+      studentId: 'student-1',
+      answers: { q1: 'A' },
+      idempotencyKey: 'short',
+    }).success).toBe(false);
     expect(UpdateActivityRequestSchema.safeParse({
       liveExamId: 'exam-1',
       studentId: 'student-1',

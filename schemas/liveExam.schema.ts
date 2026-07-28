@@ -55,7 +55,12 @@ export const StudentAnswersSchema = z.record(
 export const SubmitAnswersRequestSchema = z.object({
     liveExamId: z.string().min(1, 'Live exam ID is required'),
     studentId: z.string().min(1, 'Student ID is required'),
-    answers: StudentAnswersSchema
+    answers: StudentAnswersSchema,
+    idempotencyKey: z.string()
+        .min(16, 'Idempotency key is too short')
+        .max(160, 'Idempotency key is too long')
+        .regex(/^[A-Za-z0-9:_-]+$/, 'Idempotency key contains invalid characters')
+        .optional(),
 });
 
 // ===============================

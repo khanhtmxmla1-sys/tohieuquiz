@@ -23,6 +23,7 @@ export { AsyncState, DataFreshnessNotice } from './AsyncState';
 export type { AsyncStateProps, DataFreshnessNoticeProps } from './AsyncState';
 export { OfflineBanner } from './OfflineBanner';
 export type { OfflineBannerProps } from './OfflineBanner';
+export { ReducedExperienceBanner } from './ReducedExperienceBanner';
 export { SupportError } from './SupportError';
 export type { SupportErrorProps } from './SupportError';
 

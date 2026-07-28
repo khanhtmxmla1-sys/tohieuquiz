@@ -4,6 +4,7 @@ import { diagnoseResultWithAiTutor } from '../../../services/aiTutorService';
 import { motion, AnimatePresence } from 'framer-motion';
 import MathSpan from '../../common/MathSpan';
 import ExplanationContent from '../../common/ExplanationContent';
+import { useReducedExperience } from '../../../hooks/useReducedExperience';
 
 // Fluent Emoji CDN
 const FLUENT_CDN = 'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets';
@@ -41,6 +42,7 @@ const DrOwlModal: React.FC<DrOwlModalProps> = ({
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [answeredQuestions, setAnsweredQuestions] = useState<Record<number, { answer: string; correct: boolean }>>({});
     const [showAnswerFeedback, setShowAnswerFeedback] = useState(false);
+    const { reduceMotion, reduceVisuals } = useReducedExperience();
 
     // Call AI Tutor API when modal opens
     const fetchDiagnosis = useCallback(async () => {
@@ -111,18 +113,18 @@ const DrOwlModal: React.FC<DrOwlModalProps> = ({
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div
-                initial={{ opacity: 0 }}
+                initial={reduceMotion ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0 }}
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                 onClick={onClose}
             />
 
             {/* Modal */}
             <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                initial={reduceMotion ? false : { opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                exit={reduceMotion ? undefined : { opacity: 0, scale: 0.9, y: 20 }}
                 className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
             >
                 {/* Header */}
@@ -130,11 +132,15 @@ const DrOwlModal: React.FC<DrOwlModalProps> = ({
                     <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full" />
                     <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full" />
                     <div className="flex items-center gap-3 relative z-10">
-                        <img
-                            src={`${FLUENT_CDN}/Owl/3D/owl_3d.png`}
-                            alt="Dr. Owl"
-                            className="w-14 h-14 drop-shadow-lg"
-                        />
+                        {reduceVisuals ? (
+                            <Stethoscope className="h-14 w-14" aria-hidden="true" />
+                        ) : (
+                            <img
+                                src={`${FLUENT_CDN}/Owl/3D/owl_3d.png`}
+                                alt="Dr. Owl"
+                                className="w-14 h-14 drop-shadow-lg"
+                            />
+                        )}
                         <div>
                             <h2 className="text-xl font-black">Bác sĩ Cú Mèo</h2>
                             <p className="text-amber-100 text-sm font-medium">
@@ -324,11 +330,15 @@ const DrOwlModal: React.FC<DrOwlModalProps> = ({
                                             animate={{ scale: 1 }}
                                             transition={{ type: "spring", stiffness: 200 }}
                                         >
-                                            <img
-                                                src={`${FLUENT_CDN}/Party%20popper/3D/party_popper_3d.png`}
-                                                alt="Party"
-                                                className="w-24 h-24"
-                                            />
+                                            {reduceVisuals ? (
+                                                <Sparkles className="h-24 w-24 text-emerald-500" aria-hidden="true" />
+                                            ) : (
+                                                <img
+                                                    src={`${FLUENT_CDN}/Party%20popper/3D/party_popper_3d.png`}
+                                                    alt="Party"
+                                                    className="w-24 h-24"
+                                                />
+                                            )}
                                         </motion.div>
                                         <h3 className="text-2xl font-black text-emerald-600">Khỏi bệnh rồi! 🎉</h3>
                                         <p className="text-slate-600 text-center font-medium">
@@ -347,11 +357,15 @@ const DrOwlModal: React.FC<DrOwlModalProps> = ({
                                             animate={{ scale: 1 }}
                                             transition={{ type: "spring", stiffness: 200 }}
                                         >
-                                            <img
-                                                src={`${FLUENT_CDN}/Seedling/3D/seedling_3d.png`}
-                                                alt="Seedling"
-                                                className="w-24 h-24"
-                                            />
+                                            {reduceVisuals ? (
+                                                <BookOpen className="h-24 w-24 text-blue-500" aria-hidden="true" />
+                                            ) : (
+                                                <img
+                                                    src={`${FLUENT_CDN}/Seedling/3D/seedling_3d.png`}
+                                                    alt="Seedling"
+                                                    className="w-24 h-24"
+                                                />
+                                            )}
                                         </motion.div>
                                         <h3 className="text-2xl font-black text-blue-600">Đang tiến bộ!</h3>
                                         <p className="text-slate-600 text-center font-medium">

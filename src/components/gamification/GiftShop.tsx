@@ -19,6 +19,7 @@ import { getStudentRoute } from '../../app/navigationRoutes';
 import { useClassroomStore } from '../../stores/useClassroomStore';
 import { useGamificationStore } from '../../stores/useGamificationStore';
 import { useGiftShopStore } from '../../stores/useGiftShopStore';
+import { useReducedExperience } from '../../hooks/useReducedExperience';
 import type { GiftCatalogItem, GiftCategory, GiftOrder, GiftOrderStatus } from '../../types/giftShop.types';
 
 const CATEGORY_META: Record<GiftCategory, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -43,10 +44,11 @@ const randomKey = () => {
 
 const GiftImage = ({ item, className = '' }: { item: GiftCatalogItem; className?: string }) => {
     const [failed, setFailed] = useState(false);
+    const { reduceVisuals } = useReducedExperience();
     return (
         <div className={`relative flex items-center justify-center overflow-hidden bg-slate-50 text-slate-300 ${className}`}>
             <Gift className="h-10 w-10" aria-hidden="true" />
-            {!failed && item.imageUrl && (
+            {!reduceVisuals && !failed && item.imageUrl && (
                 <img
                     src={item.imageUrl}
                     alt={item.name}

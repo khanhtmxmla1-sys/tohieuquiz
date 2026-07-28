@@ -25,7 +25,18 @@ import type {
     UpdateWaitingRoomChatSettingsRequest,
 } from '../types/liveExam.types';
 import { fetchWithJWTInterceptor } from '../utils/jwtInterceptor';
+import { retryWithBackoff, type RetryOptions } from '../utils/boundedRetry';
 import { getWorkersApiBaseUrl } from './api/config';
+
+export class LiveExamApiError extends Error {
+    readonly status: number;
+
+    constructor(message: string, status: number) {
+        super(message);
+        this.name = 'LiveExamApiError';
+        this.status = status;
+    }
+}
 
 /**
  * Generic API call helper
@@ -55,7 +66,7 @@ async function apiCall<T>(
         } catch (e) {
             // Ignore JSON parse errors for HTML responses
         }
-        throw new Error(errorMessage);
+        throw new LiveExamApiError(errorMessage, response.status);
     }
 
     // Check if response is JSON before parsing
@@ -196,15 +207,39 @@ export async function getSessionStatus(
 /**
  * Submit answers
  */
+export interface SubmitAnswersOptions {
+    idempotencyKey: string;
+    retry?: RetryOptions;
+}
+
+const isTransientSubmitError = (error: unknown): boolean => {
+    if (!(error instanceof LiveExamApiError)) return true;
+    return error.status === 408
+        || error.status === 425
+        || error.status === 429
+        || error.status >= 500;
+};
+
 export async function submitAnswers(
     sessionId: string,
-    answers: StudentAnswers
+    answers: StudentAnswers,
+    options: SubmitAnswersOptions,
 ): Promise<LiveExamSubmissionResponse> {
-    const result = await apiCall<{ success: boolean; participant: LiveExamSubmissionResponse['participant'] }>(
-        `/api/live-exam/${sessionId}/submit`,
+    const result = await retryWithBackoff(
+        () => apiCall<{ success: boolean; participant: LiveExamSubmissionResponse['participant'] }>(
+            `/api/live-exam/${sessionId}/submit`,
+            {
+                method: 'POST',
+                body: JSON.stringify({ answers, idempotencyKey: options.idempotencyKey }),
+                headers: { 'Idempotency-Key': options.idempotencyKey },
+            },
+        ),
         {
-            method: 'POST',
-            body: JSON.stringify({ answers }),
+            maxAttempts: 3,
+            baseDelayMs: 300,
+            maxDelayMs: 1_500,
+            shouldRetry: isTransientSubmitError,
+            ...options.retry,
         },
     );
 

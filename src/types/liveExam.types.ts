@@ -263,6 +263,7 @@ export interface SubmitAnswersRequest {
   liveExamId: string;
   studentId: string;
   answers: StudentAnswers;
+  idempotencyKey?: string;
 }
 
 /**

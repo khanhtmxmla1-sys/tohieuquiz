@@ -15,7 +15,7 @@ import { resolveHostContext } from './hostContext';
 import { isParentPortalEnabled } from '../config/featureFlags';
 import { ParentPortalApp } from './lazyViews';
 import { ParentPortalFallback } from '../features/parent-portal/layout/ParentPortalLayout';
-import { OfflineBanner } from '../components/common';
+import { OfflineBanner, ReducedExperienceBanner } from '../components/common';
 
 const MainApp: React.FC = () => {
     const quizStore = useQuizStore();
@@ -64,6 +64,7 @@ const App: React.FC = () => {
     return (
         <>
             <OfflineBanner />
+            <ReducedExperienceBanner />
             {content}
         </>
     );

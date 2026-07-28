@@ -80,7 +80,13 @@
   - [x] Results filters/sort/date/pagination và Student assignment pagination dùng search params; Back/Forward và refresh giữ đúng trạng thái.
   - [x] Gift Shop, Live Exam, Result Detail và Manual Quiz Workspace dùng URL canonical; giữ compatibility mapping một release.
   - [x] Targeted regression 12 file/95 test; Cypress Electron 2/2; full Vitest 314/314 file và 1.498/1.498 test.
-- [ ] Task 19 — Trải nghiệm mạng yếu/thiết bị yếu
+- [x] Task 19 — Trải nghiệm mạng yếu/thiết bị yếu
+  - [x] Tự động bật reduced experience theo reduced-motion, saveData, slow-2g/2g/3g, RAM/CPU thấp hoặc offline; có banner `aria-live` toàn ứng dụng.
+  - [x] Không mount/tải ảnh 3D, CSS-3D pet và animation nặng ở reduced mode trên Home, Quiz List, Gift Shop, Pet và Dr. Owl.
+  - [x] Live Exam lưu đáp án cục bộ theo session, hiển thị đang lưu/đã lưu/mất kết nối và chỉ xóa draft sau submit thành công.
+  - [x] Submit Live Exam dùng bounded exponential retry, stable idempotency key và Worker replay an toàn cho duplicate cùng snapshot; request legacy vẫn tương thích một release.
+  - [x] Preflight kiểm tra online, cookies, viewport, `/api/health` và clock drift trước khi hiển thị đề.
+  - [x] Targeted regression 16 file/106 test; Cypress Electron saveData + 3G + reduced-motion 1/1; full Vitest 323/323 file và 1.527/1.527 test.
 
 ## Wave 3 — Cải tiến tính năng
 
@@ -123,6 +129,19 @@
 - [x] Cypress component/E2E liên quan
 - [x] Playwright/browser smoke frontend local: HTTP 200, không `pageerror`, không tràn ngang
 - [x] Review diff và secret scan
+
+## Batch 7 — Low-bandwidth resilience verification
+
+- [x] Capability policy bao phủ reduced-motion, saveData, slow-2g/2g/3g, RAM thấp, CPU thấp và offline; banner reduced experience có `role=status`/`aria-live=polite`.
+- [x] Home, Quiz List, Gift Shop/Shop Modal, PetDisplay và Dr. Owl không mount 3D/rich media trong reduced mode; CSS-3D pet được lazy-load.
+- [x] Live Exam autosave đáp án vào `sessionStorage` với trạng thái đang lưu/đã lưu/mất kết nối; offline chặn submit nhưng không xóa draft.
+- [x] Client retry tối đa 3 lần với exponential backoff; cùng snapshot dùng cùng idempotency key; Worker replay duplicate giống nhau và từ chối snapshot khác.
+- [x] Live Exam preflight fail-closed cho mạng, cookie, viewport, API health và clock drift; có retry accessible.
+- [x] Targeted regression: 16 file, 106 test đạt; Cypress Electron low-bandwidth: 1/1 đạt và Resource Timing có 0 request `/3D/`.
+- [x] Full Vitest: 323/323 file, 1.527/1.527 test; 504,56 giây theo Vitest, 507,15 giây wrapper.
+- [x] Full lint, frontend/strict/Workers typecheck, production build, performance budget, security/history/policy gates và root/Workers audits đạt; 0 lỗ hổng.
+- [x] Build 4.459 modules; initial JS gzip 184.160 B, CSS gzip 41.200 B, largest lazy gzip 125.537 B, largest minified chunk 404.881 B.
+- [x] MCP diff review PASS, không P1/P2/P3; UTF-8 và suspicious-question-mark scans không có finding.
 
 ## Batch 6 — URL-first navigation verification
 

@@ -1,7 +1,11 @@
 import React from 'react';
+import { useReducedExperience } from '../../../hooks/useReducedExperience';
 import { FLUENT_CDN } from '../constants/dashboard.constants';
 
 export const DashboardDecoration: React.FC = () => {
+    const { reduceVisuals } = useReducedExperience();
+    if (reduceVisuals) return null;
+
     return (
         <>
             {/* Sun Decoration */}
