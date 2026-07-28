@@ -1,0 +1,135 @@
+# TôHiệuQuiz Modernization — Parallel Execution Progress
+
+**Plan nguồn:** `implementation_plan.md`
+**Chiến lược:** thực thi theo wave phụ thuộc, dùng worktree/branch riêng và chỉ đánh dấu `[x]` sau khi code + test đạt.
+**Quy tắc:** không deploy production; không sửa/xóa thay đổi riêng đang có trên `main`.
+
+## Luồng thực thi song song
+
+| Stream | Phạm vi | Branch/worktree | Trạng thái |
+|---|---|---|---|
+| A — Baseline & Governance | Task 1–3 | `feat/modernization-integration` | Task 2 hoàn tất |
+| B — Security/API/Privacy | Task 4–9, 11 | `feat/modernization-integration` | Tasks 4–9 và 11 hoàn tất trong phạm vi đã mở |
+| C — UI Foundation | Task 13–16 | `feat/modernization-integration` | Tasks 13–16 hoàn tất trong phạm vi đã mở |
+| D — Database/Operations | Task 12, 30–31 | `feat/modernization-db-ops` | Chưa mở trong batch này |
+| E — Performance/CI/Test | Task 27–28 | `feat/modernization-integration` | Tasks 27–28 hoàn tất |
+| F — Product Features | Task 18–26, 32–35 | Chỉ mở sau khi dependency merge | Bị chặn bởi dependency |
+| G — Production Release | Task 38 | Chỉ chạy sau owner approval | Không thực thi tự động |
+
+## Wave 0 — Baseline và quản trị phạm vi
+
+- [ ] Task 1 — Tạo worktree và khóa baseline
+- [x] Task 2 — Ma trận dữ liệu nhạy cảm và browser storage policy
+- [ ] Task 3 — Ma trận route–vai trò–ownership
+
+## Wave 1 — Bảo mật và quyền riêng tư
+
+- [x] Task 4 — Contract nghiêm ngặt cho AI Tutor
+- [x] Task 5 — AI Tutor ownership và server-derived wrong questions
+- [x] Task 6 — AI Tutor service binding, quota và safe logging
+- [x] Task 7 — Loại StudentSession khỏi localStorage
+- [x] Task 8 — Thu hẹp CacheService
+- [x] Task 9 — Hợp nhất teacher auth store
+- [ ] Task 10 — Chuyển auth compat → enforce
+- [x] Task 11 — Security gate cho root và Workers
+  - [x] Audit production dependencies root + Workers, cài Worker lockfile trong CI và Dependabot hàng tuần.
+  - [x] Git-history secret scan, CSP/CORS/browser-auth và migration rollback gates chạy fail-closed.
+- [ ] Task 12 — Backup D1 và restore rehearsal
+
+## Wave 2 — Nền tảng UI/UX
+
+- [x] Task 13 — Design tokens và design system
+  - [x] Token semantic, 4px spacing, radius/elevation, reduced-motion, tài liệu, contrast/raw-hex tests.
+  - [x] Teacher Overview pilot, desktop/mobile visual smoke và không tràn ngang.
+- [x] Task 14 — Chuẩn hóa UI primitives
+  - [x] Button/Card/Input/Alert/Skeleton/AsyncState/EmptyState và unit/Cypress component tests.
+  - [x] Teacher Overview dùng primitives; Axe trên jsdom và Electron thật không có serious/critical violation.
+- [x] Task 15 — Modal/Dialog accessible
+- [x] Task 16 — Lỗi có requestId và retry
+- [ ] Task 17 — Loading/empty/stale/offline states
+- [ ] Task 18 — Điều hướng chính bằng URL
+- [ ] Task 19 — Trải nghiệm mạng yếu/thiết bị yếu
+
+## Wave 3 — Cải tiến tính năng
+
+- [ ] Task 20 — Teacher Action Center
+- [ ] Task 21 — AI question quality gate
+- [ ] Task 22 — Live Exam reconnect/autosave/connection monitoring
+- [ ] Task 23 — Results Intervention Center
+- [ ] Task 24 — Parent digest/preferences/account recovery
+- [ ] Task 25 — Gift Shop governance
+- [ ] Task 26 — Notification preference/dedupe/quiet hours
+
+## Wave 4 — Hiệu năng và observability
+
+- [x] Task 27 — Bundle analyzer và performance budget CI
+- [x] Task 28 — Lazy-load DOCX/PDF/worksheet/chart
+- [ ] Task 29 — Pagination, virtualization và indexes
+- [ ] Task 30 — Web Vitals, API latency và alerting
+
+## Wave 5 — Vận hành và bảo mật nâng cao
+
+- [ ] Task 31 — Operations Center backend
+- [ ] Task 32 — Operations Center UI
+- [ ] Task 33 — Security Center/session management
+- [ ] Task 34 — Passkey/WebAuthn cho staff
+- [ ] Task 35 — Runtime feature rollout control plane
+
+## Wave 6 — Release
+
+- [ ] Task 36 — Branch protection và release-readiness gate
+- [ ] Task 37 — Production smoke và staged rollout automation
+- [ ] Task 38 — Cleanup production, release notes và maintenance calendar
+
+## Verification bắt buộc
+
+- [x] Frontend typecheck
+- [x] Workers typecheck
+- [x] Unit/integration tests
+- [x] Security scan + dependency audit root/workers
+- [x] Production build + bundle budget
+- [x] Cypress component/E2E liên quan
+- [x] Playwright/browser smoke frontend local: HTTP 200, không `pageerror`, không tràn ngang
+- [x] Review diff và secret scan
+
+## File matrix của batch hiện tại
+
+- AI Tutor: strict contract, ownership/context services, quota/service binding, migration/rollback và 4 nhóm test.
+- Auth/Security: canonical teacher auth store, xóa duplicate stores, auth E2E, Git-history secret scan và CSP/CORS/JWT/migration gates.
+- UI/Error UX: Teacher Overview pilot dùng tokens/primitives, accessibility audit, SupportError/requestId/retry.
+- Performance: dynamic imports cho DOCX/PDF/html2canvas/chart boundaries và lazy-loading tests.
+
+## Nhật ký hoàn thành
+
+### Batch 2 hoàn tất ngày 2026-07-28
+
+- [x] Stream A — AI Tutor Tasks 4–6: code + tests + migration.
+- [x] Stream B — Auth/Security Tasks 9, 11: code + tests + CI gates.
+- [x] Stream C — UI/Error Tasks 13, 14, 16: pilot + accessibility + error UX.
+- [x] Stream D — Performance Task 28: dynamic imports + budget verification.
+- Vitest: **21 files, 81 tests passed**.
+- Cypress component + Axe real browser: **2 specs, 3 tests passed**, desktop/mobile screenshots, không serious/critical violation.
+- Lint, frontend typecheck, Workers typecheck, production build và `git diff --check`: **PASS**.
+- Performance: initial JS gzip **173,959 B**, CSS gzip **41,649 B**, largest lazy gzip **125,536 B**, largest minified chunk **404,881 B**; allowlist **rỗng**.
+- `docxQuestionImporter`: giảm từ khoảng **504,897 B** xuống **3,029 B**; `jszip` tách riêng **97,116 B**.
+- Security scan: **1,728 files**, Git history scan, CSP/CORS/browser-auth/rollback gates: **PASS**.
+- Dependency audit root + Workers production: **0 vulnerabilities**.
+- Quét mojibake trên toàn bộ file thay đổi: **0 findings**.
+- MCP diff review: không có P1; một cảnh báo heuristic về `console.info` đã được xác minh là structured metadata an toàn, không chứa prompt/output/PII.
+- Playwright frontend smoke: HTTP 200, không JavaScript `pageerror`, không horizontal overflow. Worker local trên Windows bị `workerd` dừng ở runtime (`std::terminate`); Worker tests và typecheck vẫn đạt.
+- Không commit, merge hoặc deploy production.
+
+### Batch xác minh trước đó ngày 2026-07-28
+
+- Hoàn tất đầy đủ: **Task 2, 7, 8, 15, 27**.
+- Hoàn tất một phần có code/test: **Task 11, 13, 14**; giữ `[ ]` vì chưa đủ acceptance toàn task.
+- Privacy/Cache tests: **8 files, 30 tests passed**.
+- UI/Design/Performance/Security config tests: **5 files, 18 tests passed**.
+- Cypress component: **2 specs, 2 tests passed**.
+- Lint: PASS; Frontend typecheck: PASS; Workers typecheck: PASS; production build: PASS.
+- Security scan: **1,710 files checked, 0 findings**.
+- Dependency audit: root **0 vulnerabilities**, Workers **0 vulnerabilities**.
+- Performance: initial JS gzip **173,661 B**, CSS gzip **41,885 B**, largest lazy gzip **132,320 B** — đạt budget.
+- Legacy `docxQuestionImporter` minified **504,897 B** có ngoại lệ hết hạn **2026-08-15**, bắt buộc xử lý ở Task 28.
+- MCP diff review: **PASS, 0 findings**; `git diff --check`: PASS.
+- Không deploy, không thay đổi secret, không truy vấn/xóa dữ liệu production và không chạy D1 production migration.
