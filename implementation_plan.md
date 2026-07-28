@@ -131,10 +131,10 @@ export function classifyStorageKey(key: string): StoragePolicyEntry;
 - Create: `tests/apiAuthorizationMatrix.test.ts`
 - Modify: `workers/src/middleware/auth.ts`
 
-- [ ] Phân loại từng route: public, authenticated, student-owned, teacher-owned, admin-only, internal-only.
-- [ ] Test phát hiện route trong `workers/src/index.ts` nhưng thiếu policy.
-- [ ] Thêm abuse tests cho IDOR/BOLA bằng cách đổi `studentId`, `quizId`, `resultId`, `classId`, `batchId`.
-- [ ] Giữ fail-closed cho route chưa phân loại.
+- [x] Phân loại từng route: public, authenticated, student-owned, teacher-owned, admin-only, internal-only.
+- [x] Test phát hiện literal route trong `workers/src/router/createWorkerFetch.ts` nhưng thiếu policy.
+- [x] Thêm abuse-test contract cho IDOR/BOLA bằng cách đổi `studentId`, `quizId`, `resultId`, `classId`, `batchId` và chạy trực tiếp các suite ownership liên quan.
+- [x] Giữ fail-closed cho route chưa phân loại.
 
 **Acceptance:** Mọi route dispatch có policy và route mới thiếu policy làm CI đỏ.
 
@@ -1134,6 +1134,14 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - MCP diff review and `git diff --check`.
 
 ## Batch 3 Execution Record — 2026-07-28
+
+### Task 3 — Authorization matrix enforced
+
+- Added the executable route registry in `workers/src/security/apiAuthorizationPolicy.ts` and kept `workers/src/middleware/auth.ts` fail-closed.
+- Added `docs/security/api-authorization-matrix.md` covering route class, role boundary, ownership keys and enforcement owner.
+- TDD evidence: the new matrix suite first failed 16/18 assertions before the registry existed, then passed 18/18.
+- Authorization/IDOR verification: 6 files and 59 tests passed for matrix plus `studentId`, `quizId`, `resultId`, `classId` and `batchId` abuse coverage.
+- Middleware/router regression verification: 3 files and 36 tests passed; Workers typecheck and targeted lint passed.
 
 ### Task 1 — Baseline locked
 
