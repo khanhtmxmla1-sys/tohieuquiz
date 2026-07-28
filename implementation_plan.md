@@ -1133,6 +1133,22 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - Security scan, history scan, policy gates, root/Workers dependency audit.
 - MCP diff review and `git diff --check`.
 
+## Batch 4 Execution Record — 2026-07-28
+
+### Task 12 — Local D1 backup and restore rehearsal complete; remote staging pending
+
+- Added `workers/scripts/list-backup-tables.cjs`, `export-d1-tablewise.cjs`, `verify-d1-restore.cjs`, `tests/d1BackupScripts.test.ts` and `docs/operations/d1-backup-restore.md`.
+- Table discovery reads `sqlite_master`; regular data export excludes Cloudflare/SQLite system tables, the `rag_chunks_fts` virtual table and all five FTS shadow tables.
+- Local isolated persistence is exported directly with streaming `node:sqlite` because Wrangler 4.111 does not support `d1 export --persist-to`. Remote export remains Wrangler-based and requires the explicit pair `--remote --confirm-remote <database>`.
+- Backup output is rejected when it resolves inside the repository. The data-only SQL is gzip-compressed, encrypted with AES-256-GCM using an scrypt-derived key, SHA-256 recorded, and plaintext deleted. Passphrases are environment-only and rejected on the command line.
+- Restore verification starts from a new isolated persistence directory, applies canonical `schema.sql`, imports regular table data, rebuilds FTS and verifies table/index/trigger fingerprint, all row counts, auth/API database contracts and FTS parity.
+- Final rehearsal used linked sample records for teacher, class, student, quiz, question, result and RAG data. It verified 59 regular tables with zero missing tables and zero row-count mismatches; schema, snapshot, FTS and smoke checks all passed.
+- Observed local rehearsal: backup **2.135 seconds**, restore **13.57 seconds**, controlled snapshot RPO **0 seconds**. The encrypted archive contained no plaintext SQL marker and the backup directory contained no `.sql` file. All rehearsal artifacts were removed from `%TEMP%` after evidence capture.
+- TDD evidence: initial 6/6 failures because the scripts did not exist; final backup suite 10/10 passed. D1 backup/migration/rollback/fresh-bootstrap group passed 4 files and 23 tests.
+- Full Vitest passed: **310/310 files and 1,469/1,469 tests**, 398.28 seconds reported by Vitest and 400.18 seconds wrapper time.
+- Full lint, frontend typecheck, strict typecheck, Workers typecheck, security/history/policy gates, root/Workers dependency audits, production build and performance budget passed.
+- Still open by design: create a separate remote staging D1 database, capture a Time Travel bookmark/restore, run authenticated HTTP smoke and record staging RPO/RTO. No remote D1, production database, secret, deployment or cloud resource was changed in this batch.
+
 ## Batch 3 Execution Record — 2026-07-28
 
 ### Final verification

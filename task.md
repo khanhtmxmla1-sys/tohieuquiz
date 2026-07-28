@@ -11,7 +11,7 @@
 | A — Baseline & Governance | Task 1–3 | `feat/modernization-integration` | Tasks 1–3 hoàn tất |
 | B — Security/API/Privacy | Task 4–11 | `feat/modernization-integration` | Tasks 4–9 và 11 hoàn tất; Task 10 code/config đạt, observation production còn mở |
 | C — UI Foundation | Task 13–16 | `feat/modernization-integration` | Tasks 13–16 hoàn tất trong phạm vi đã mở |
-| D — Database/Operations | Task 12, 30–31 | `feat/modernization-db-ops` | Chưa mở trong batch này |
+| D — Database/Operations | Task 12, 30–31 | `feat/modernization-integration` | Task 12 local implementation/rehearsal đạt; remote staging Time Travel còn mở |
 | E — Performance/CI/Test | Task 27–28 | `feat/modernization-integration` | Tasks 27–28 hoàn tất |
 | F — Product Features | Task 18–26, 32–35 | Chỉ mở sau khi dependency merge | Bị chặn bởi dependency |
 | G — Production Release | Task 38 | Chỉ chạy sau owner approval | Không thực thi tự động |
@@ -47,7 +47,15 @@
 - [x] Task 11 — Security gate cho root và Workers
   - [x] Audit production dependencies root + Workers, cài Worker lockfile trong CI và Dependabot hàng tuần.
   - [x] Git-history secret scan, CSP/CORS/browser-auth và migration rollback gates chạy fail-closed.
-- [ ] Task 12 — Backup D1 và restore rehearsal
+- [ ] Task 12 — Backup D1 và restore rehearsal *(local-isolated complete; remote staging evidence pending)*
+  - [x] Liệt kê table từ `sqlite_master`; loại `_cf_*`, `sqlite_*`, FTS virtual và toàn bộ FTS shadow tables.
+  - [x] Chặn output/archive/manifest/report trong repository; thêm ignore defense-in-depth.
+  - [x] Export data-only: local state dùng streaming `node:sqlite`, remote chỉ chạy khi có `--remote --confirm-remote <database>`.
+  - [x] Gzip + AES-256-GCM, scrypt, SHA-256; passphrase chỉ nhận qua environment; plaintext SQL luôn bị xóa.
+  - [x] Restore sang D1 local state hoàn toàn mới; canonical schema + data import + FTS rebuild.
+  - [x] Kiểm tra schema gồm table/index/trigger, row count 59 bảng, auth/API DB-contract smoke và FTS source/index parity.
+  - [x] Rehearsal cuối: backup 2,135 giây; restore 13,57 giây; controlled RPO 0 giây; 0 missing table và 0 row-count mismatch.
+  - [ ] Tạo database staging remote riêng, chạy D1 Time Travel và authenticated HTTP smoke bằng owner-approved cloud operation.
 
 ## Wave 2 — Nền tảng UI/UX
 
@@ -104,6 +112,17 @@
 - [x] Cypress component/E2E liên quan
 - [x] Playwright/browser smoke frontend local: HTTP 200, không `pageerror`, không tràn ngang
 - [x] Review diff và secret scan
+
+## Batch 4 — D1 backup/restore verification
+
+- [x] TDD RED 6/6 do script chưa tồn tại; GREEN cuối 10/10 test backup safety/encryption/schema/verification.
+- [x] D1 regression group: 4 files, 23 tests đạt.
+- [x] Local-isolated rehearsal với dữ liệu liên kết teacher/class/student/quiz/question/result/RAG đạt.
+- [x] 59 regular tables; loại 1 FTS virtual, 5 FTS shadow và 2 system tables.
+- [x] Encrypted archive không chứa `CREATE TABLE`, không có plaintext `.sql` trong backup directory và không có artifact D1 trong repository.
+- [x] Full Vitest: 310/310 file và 1.469/1.469 test; 398,28 giây theo Vitest, 400,18 giây wrapper.
+- [x] Full lint, frontend/strict/Workers typecheck, security gates, audits, build và performance budget đạt.
+- [ ] Remote staging Time Travel, authenticated HTTP smoke và staging RPO/RTO còn chờ cloud resource/owner approval.
 
 ## Batch 3 — Final verification
 
