@@ -30,6 +30,7 @@ export const StudentDashboardContent = (props: StudentDashboardContentProps) => 
       onOpenLiveExam={props.onOpenLiveExam}
       onOpenAvatar={props.onOpenAvatar}
       onOpenChangePassword={props.onOpenChangePassword}
+      onClearDeviceData={props.onClearDeviceData}
       onLogout={props.onLogout}
     />
     {notificationFlag.ready && (

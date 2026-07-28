@@ -25,6 +25,7 @@ export function StudentDashboardHeader({
   onOpenLiveExam,
   onOpenAvatar,
   onOpenChangePassword,
+  onClearDeviceData,
   onLogout,
 }: StudentDashboardHeaderProps) {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
@@ -216,6 +217,14 @@ export function StudentDashboardHeader({
                   className="flex min-h-11 w-full items-center rounded-[10px] px-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 >
                   Đổi mật khẩu
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => runAccountAction(onClearDeviceData)}
+                  className="flex min-h-11 w-full items-center rounded-[10px] px-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                >
+                  Xóa dữ liệu trên thiết bị này
                 </button>
                 <button
                   type="button"

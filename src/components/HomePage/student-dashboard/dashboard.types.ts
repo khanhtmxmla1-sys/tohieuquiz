@@ -23,6 +23,7 @@ export interface StudentDashboardHeaderProps {
   onOpenLiveExam: () => void;
   onOpenAvatar: () => void;
   onOpenChangePassword: () => void;
+  onClearDeviceData: () => void;
   onLogout: () => void;
 }
 

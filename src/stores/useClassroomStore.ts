@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { StudentLoginPayload, StudentSession } from '../types/classroom.types';
 import type { PetData, ShopItem } from '../types/gamification.types';
 import { StorageKeys } from '../constants/storageKeys';
+import { clearUserBrowserData } from '../security/clearUserBrowserData';
+import { cacheService } from '../services/CacheService';
 import * as classroomService from '../services/classroomService';
 import { useHomeworkStore } from '../features/homework/stores/useHomeworkStore';
 import { useAssignmentStore } from './useAssignmentStore';
@@ -30,7 +32,9 @@ export const useClassroomStore = create<ClassroomStore>((set, get) => ({
         try {
             const session = await classroomService.studentLogin(payload);
             if (session) {
-                localStorage.setItem(StorageKeys.STUDENT_SESSION, JSON.stringify(session));
+                localStorage.removeItem(StorageKeys.STUDENT_SESSION);
+                localStorage.setItem(StorageKeys.STUDENT_SESSION_RESTORE_HINT, '1');
+                cacheService.setNamespace(`student:${session.studentId}`);
                 set({ studentSession: session, isLoading: false });
 
                 if (session.pet || session.coins !== undefined) {
@@ -53,7 +57,8 @@ export const useClassroomStore = create<ClassroomStore>((set, get) => ({
 
     logoutStudent: () => {
         void classroomService.logoutSession().catch(() => undefined);
-        localStorage.removeItem(StorageKeys.STUDENT_SESSION);
+        clearUserBrowserData();
+        cacheService.setNamespace('anonymous');
         set({ studentSession: null });
         useAssignmentStore.getState().resetAssignments();
         useGamificationStore.getState().clearGamification();
@@ -61,13 +66,16 @@ export const useClassroomStore = create<ClassroomStore>((set, get) => ({
     },
 
     restoreStudentSession: async () => {
-        const saved = localStorage.getItem(StorageKeys.STUDENT_SESSION);
-        if (!saved) return;
+        const shouldRestore = localStorage.getItem(StorageKeys.STUDENT_SESSION_RESTORE_HINT) === '1'
+            || localStorage.getItem(StorageKeys.STUDENT_SESSION) !== null;
+        localStorage.removeItem(StorageKeys.STUDENT_SESSION);
+        if (!shouldRestore) return;
         set({ isLoading: true, error: null });
         try {
             const session = await classroomService.getStudentProfile();
             if (!session) throw new Error('Student session is unavailable');
-            localStorage.setItem(StorageKeys.STUDENT_SESSION, JSON.stringify(session));
+            localStorage.setItem(StorageKeys.STUDENT_SESSION_RESTORE_HINT, '1');
+            cacheService.setNamespace(`student:${session.studentId}`);
             set({ studentSession: session, isLoading: false });
             useGamificationStore.getState().initFromLoginData(
                 session.pet as PetData | null,
@@ -75,7 +83,8 @@ export const useClassroomStore = create<ClassroomStore>((set, get) => ({
                 (session.shopItems || []) as ShopItem[],
             );
         } catch {
-            localStorage.removeItem(StorageKeys.STUDENT_SESSION);
+            clearUserBrowserData();
+            cacheService.setNamespace('anonymous');
             set({ studentSession: null, isLoading: false });
         }
     },
@@ -104,7 +113,6 @@ export const useClassroomStore = create<ClassroomStore>((set, get) => ({
                 const session = get().studentSession;
                 if (session) {
                     const updatedSession = { ...session, avatar };
-                    localStorage.setItem(StorageKeys.STUDENT_SESSION, JSON.stringify(updatedSession));
                     set({ studentSession: updatedSession });
                 }
                 return true;

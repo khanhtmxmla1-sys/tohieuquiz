@@ -5,7 +5,7 @@
  * Pet data, coins, shop items, leaderboard.
  *
  * Works alongside useClassroomStore (which handles auth).
- * Data is loaded after student login and persisted to localStorage.
+ * Data is loaded after student login and kept in memory. The server is authoritative.
  */
 
 import { create } from 'zustand';
@@ -18,7 +18,6 @@ import {
     ResultRewardClaimResult,
 } from '../types/gamification.types';
 import * as gamificationService from '../services/gamificationService';
-import { StorageKeys } from '../constants/storageKeys';
 
 // --- Store Interface ---
 
@@ -54,15 +53,6 @@ interface GamificationStore {
     clearError: () => void;
 }
 
-// --- Helper: save to localStorage ---
-const saveToStorage = (pet: PetData | null, coins: number, shopItems: ShopItem[]) => {
-    try {
-        localStorage.setItem(StorageKeys.GAMIFICATION, JSON.stringify({ pet, coins, shopItems }));
-    } catch {
-        // localStorage quota exceeded - silently fail
-    }
-};
-
 // --- Store ---
 
 export const useGamificationStore = create<GamificationStore>((set, get) => ({
@@ -89,7 +79,6 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
                     shopItems: result.shopItems,
                     isLoading: false,
                 });
-                saveToStorage(result.pet, result.coins, result.shopItems);
             } else {
                 set({ error: 'Không thể tải dữ liệu Pet.', isLoading: false });
             }
@@ -110,7 +99,6 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
      */
     initFromLoginData: (pet: PetData | null, coins: number, shopItems: ShopItem[]) => {
         set({ pet, coins, shopItems });
-        saveToStorage(pet, coins, shopItems);
     },
 
     /**
@@ -143,7 +131,6 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
                         newLevel: result.newLevel,
                     },
                 });
-                saveToStorage(updatedPet, result.newCoins, get().shopItems);
                 return true;
             }
             set({ error: 'Không thể cập nhật điểm.', isLoading: false });
@@ -185,7 +172,6 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
                     newLevel: result.newLevel,
                 },
             });
-            saveToStorage(updatedPet, result.newCoins, get().shopItems);
             return result;
         } catch {
             set({ error: 'Không thể đồng bộ phần thưởng.', isLoading: false });
@@ -211,7 +197,6 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
                     coins: result.newCoins,
                     isLoading: false,
                 });
-                saveToStorage(updatedPet, result.newCoins, get().shopItems);
                 return true;
             }
             set({ error: 'Không thể mua đồ.', isLoading: false });
@@ -250,7 +235,6 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
      * Clear all gamification data (on logout)
      */
     clearGamification: () => {
-        localStorage.removeItem(StorageKeys.GAMIFICATION);
         set({
             pet: null,
             coins: 0,
@@ -267,16 +251,9 @@ export const useGamificationStore = create<GamificationStore>((set, get) => ({
 }));
 
 /**
- * Restore gamification data from localStorage (call on app init)
+ * Legacy compatibility hook. Persistent gamification data is deliberately removed;
+ * callers should hydrate from the authenticated server response instead.
  */
 export const restoreGamificationData = () => {
-    try {
-        const saved = localStorage.getItem(StorageKeys.GAMIFICATION);
-        if (saved) {
-            const { pet, coins, shopItems } = JSON.parse(saved);
-            useGamificationStore.setState({ pet, coins, shopItems });
-        }
-    } catch {
-        localStorage.removeItem(StorageKeys.GAMIFICATION);
-    }
+    try { localStorage.removeItem('tohieuquiz_gamification'); } catch { /* no-op */ }
 };

@@ -60,6 +60,7 @@ const StudentDashboardUI = () => {
         onOpenLiveExam={liveExam.openJoinModal}
         onOpenAvatar={controller.openAvatar}
         onOpenChangePassword={account.open}
+        onClearDeviceData={account.clearDeviceData}
         onOpenBadges={controller.openBadgeGallery}
         onLogout={account.logout}
         onSelectHomework={controller.setSelectedHomework}

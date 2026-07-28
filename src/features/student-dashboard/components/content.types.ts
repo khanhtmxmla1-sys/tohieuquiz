@@ -22,6 +22,7 @@ export interface StudentDashboardContentProps {
   onOpenLiveExam: () => void;
   onOpenAvatar: () => void;
   onOpenChangePassword: () => void;
+  onClearDeviceData: () => void;
   onOpenBadges: () => void;
   onLogout: () => void;
   onSelectHomework: (assignment: HomeworkAssignment) => void;

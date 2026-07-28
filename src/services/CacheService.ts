@@ -1,33 +1,25 @@
 /**
- * CacheService - Hybrid Caching with Memory Cache + LocalStorage
- * 
- * Features:
- * - In-memory cache for fast reads
- * - LocalStorage persistence for data survival across refreshes
- * - TTL-based expiration
- * - Stale-While-Revalidate pattern
- * - Cache invalidation by key or prefix
+ * Privacy-aware cache: memory by default, optional session persistence for public quiz data.
  */
 import { logger } from './logger';
-import { StorageKeys } from '../constants/storageKeys';
 
-// Cache entry structure
 interface CacheEntry<T> {
     data: T;
     timestamp: number;
-    ttl: number;  // Time-to-live in milliseconds
+    ttl: number;
 }
 
-// Cache configuration
+export type CachePersistence = 'memory' | 'session';
+export interface CacheWriteOptions { persistence?: CachePersistence }
+
 export const CacheTTL = {
-    QUIZZES: 5 * 60 * 1000,      // 5 minutes
-    TEACHERS: 30 * 60 * 1000,    // 30 minutes  
-    RESULTS: 1 * 60 * 1000,      // 1 minute
-    SHORT: 30 * 1000,            // 30 seconds
-    NONE: 0,                     // No caching
+    QUIZZES: 5 * 60 * 1000,
+    TEACHERS: 30 * 60 * 1000,
+    RESULTS: 1 * 60 * 1000,
+    SHORT: 30 * 1000,
+    NONE: 0,
 } as const;
 
-// Cache key builders
 export const CacheKeys = {
     quizzes: (sheetId: string) => `quizzes:${sheetId}`,
     teachers: (sheetId: string) => `teachers:${sheetId}`,
@@ -35,239 +27,156 @@ export const CacheKeys = {
     quiz: (quizId: string) => `quiz:${quizId}`,
 };
 
-// Storage prefix to avoid conflicts
-const STORAGE_PREFIX = 'tohieuquiz_cache:';
+const SESSION_PREFIX = 'tohieuquiz_cache_session:';
+const LEGACY_LOCAL_PREFIX = 'tohieuquiz_cache:';
+const SESSION_ALLOWED = /^(quizzes|quiz):/;
+const MEMORY_ONLY = /^(teachers|results|students|student|parents|parent|orders|notifications):/;
 
-class CacheService {
-    private memoryCache: Map<string, CacheEntry<any>> = new Map();
-    private isLocalStorageAvailable: boolean;
-
-    constructor() {
-        this.isLocalStorageAvailable = this.checkLocalStorageAvailability();
-        this.loadFromLocalStorage();
-        logger.debug('CacheService initialized', {
-            module: 'Cache',
-            localStorageAvailable: this.isLocalStorageAvailable
-        });
-    }
-
-    /**
-     * Check if localStorage is available
-     */
-    private checkLocalStorageAvailability(): boolean {
-        try {
-            const testKey = StorageKeys.CACHE_TEST;
-            localStorage.setItem(testKey, 'test');
-            localStorage.removeItem(testKey);
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-    /**
-     * Load existing cache entries from localStorage on init
-     */
-    private loadFromLocalStorage(): void {
-        if (!this.isLocalStorageAvailable) return;
-
-        try {
-            const keys = Object.keys(localStorage).filter(key =>
-                key.startsWith(STORAGE_PREFIX)
-            );
-
-            for (const storageKey of keys) {
-                const cacheKey = storageKey.replace(STORAGE_PREFIX, '');
-                const rawData = localStorage.getItem(storageKey);
-
-                if (rawData) {
-                    const entry: CacheEntry<any> = JSON.parse(rawData);
-
-                    // Only load non-expired entries
-                    if (!this.isExpired(entry)) {
-                        this.memoryCache.set(cacheKey, entry);
-                    } else {
-                        // Clean up expired entries
-                        localStorage.removeItem(storageKey);
-                    }
-                }
-            }
-
-            logger.debug(`Loaded ${this.memoryCache.size} cache entries from localStorage`, {
-                module: 'Cache'
-            });
-        } catch (error) {
-            logger.error('Failed to load cache from localStorage', { module: 'Cache', error });
-        }
-    }
-
-    /**
-     * Check if cache entry is expired
-     */
-    private isExpired(entry: CacheEntry<any>): boolean {
-        if (entry.ttl === 0) return true;  // No caching
-        return Date.now() - entry.timestamp > entry.ttl;
-    }
-
-    /**
-     * Get item from cache (memory first, then localStorage)
-     */
-    get<T>(key: string): T | null {
-        // Check memory cache first
-        const entry = this.memoryCache.get(key);
-
-        if (entry) {
-            if (this.isExpired(entry)) {
-                this.invalidate(key);
-                logger.debug(`Cache expired: ${key}`, { module: 'Cache' });
-                return null;
-            }
-            logger.debug(`Cache hit (memory): ${key}`, { module: 'Cache' });
-            return entry.data as T;
-        }
-
-        logger.debug(`Cache miss: ${key}`, { module: 'Cache' });
+const getSessionStorage = (): Storage | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+        window.sessionStorage.setItem('__cache_test__', '1');
+        window.sessionStorage.removeItem('__cache_test__');
+        return window.sessionStorage;
+    } catch {
         return null;
     }
+};
 
-    /**
-     * Set item in cache (both memory and localStorage)
-     */
-    set<T>(key: string, data: T, ttlMs: number = CacheTTL.QUIZZES): void {
-        const entry: CacheEntry<T> = {
-            data,
-            timestamp: Date.now(),
-            ttl: ttlMs,
-        };
+export class CacheService {
+    private readonly memoryCache = new Map<string, CacheEntry<unknown>>();
+    private namespace: string;
+    private readonly sessionStorage: Storage | null;
 
-        // Set in memory cache
-        this.memoryCache.set(key, entry);
-
-        // Persist to localStorage
-        if (this.isLocalStorageAvailable && ttlMs > 0) {
-            try {
-                localStorage.setItem(
-                    STORAGE_PREFIX + key,
-                    JSON.stringify(entry)
-                );
-            } catch (error) {
-                // localStorage might be full, log and continue
-                logger.warn(`Failed to persist cache to localStorage: ${key}`, {
-                    module: 'Cache',
-                    error
-                });
-            }
-        }
-
-        logger.debug(`Cache set: ${key} (TTL: ${ttlMs}ms)`, { module: 'Cache' });
+    constructor(namespace = 'anonymous') {
+        this.namespace = namespace;
+        this.sessionStorage = getSessionStorage();
+        this.removeLegacyLocalCache();
+        this.loadSessionEntries();
     }
 
-    /**
-     * Get cached data or fetch if not available (Stale-While-Revalidate)
-     */
+    private storagePrefix(): string { return `${SESSION_PREFIX}${this.namespace}:`; }
+    private isExpired(entry: CacheEntry<unknown>): boolean {
+        return entry.ttl === 0 || Date.now() - entry.timestamp > entry.ttl;
+    }
+
+    private removeLegacyLocalCache(): void {
+        if (typeof window === 'undefined') return;
+        try {
+            Object.keys(window.localStorage)
+                .filter(key => key.startsWith(LEGACY_LOCAL_PREFIX))
+                .forEach(key => window.localStorage.removeItem(key));
+        } catch {
+            // Memory caching remains available.
+        }
+    }
+
+    private loadSessionEntries(): void {
+        if (!this.sessionStorage) return;
+        const prefix = this.storagePrefix();
+        try {
+            Object.keys(this.sessionStorage)
+                .filter(key => key.startsWith(prefix))
+                .forEach(storageKey => {
+                    const cacheKey = storageKey.slice(prefix.length);
+                    const raw = this.sessionStorage?.getItem(storageKey);
+                    if (!raw) return;
+                    const entry = JSON.parse(raw) as CacheEntry<unknown>;
+                    if (this.isExpired(entry) || !SESSION_ALLOWED.test(cacheKey)) {
+                        this.sessionStorage?.removeItem(storageKey);
+                        return;
+                    }
+                    this.memoryCache.set(cacheKey, entry);
+                });
+        } catch (error) {
+            logger.warn('Failed to hydrate session cache', { module: 'Cache', error });
+        }
+    }
+
+    setNamespace(namespace: string): void {
+        if (namespace === this.namespace) return;
+        this.clear();
+        this.namespace = namespace || 'anonymous';
+        this.loadSessionEntries();
+    }
+
+    get<T>(key: string): T | null {
+        const entry = this.memoryCache.get(key);
+        if (!entry) return null;
+        if (this.isExpired(entry)) {
+            this.invalidate(key);
+            return null;
+        }
+        return entry.data as T;
+    }
+
+    set<T>(key: string, data: T, ttlMs = CacheTTL.QUIZZES, options: CacheWriteOptions = {}): void {
+        const persistence = options.persistence ?? 'memory';
+        if (persistence === 'session' && (!SESSION_ALLOWED.test(key) || MEMORY_ONLY.test(key))) {
+            throw new Error(`Session persistence is forbidden for cache key: ${key}`);
+        }
+        const entry: CacheEntry<T> = { data, timestamp: Date.now(), ttl: ttlMs };
+        this.memoryCache.set(key, entry);
+        if (persistence === 'session') {
+            if (this.sessionStorage && ttlMs > 0) {
+                this.sessionStorage.setItem(`${this.storagePrefix()}${key}`, JSON.stringify(entry));
+            }
+        }
+    }
+
     async getOrFetch<T>(
         key: string,
         fetcher: () => Promise<T>,
-        ttlMs: number = CacheTTL.QUIZZES,
-        options: { forceRefresh?: boolean; staleWhileRevalidate?: boolean } = {}
+        ttlMs = CacheTTL.QUIZZES,
+        options: { forceRefresh?: boolean; staleWhileRevalidate?: boolean; persistence?: CachePersistence } = {},
     ): Promise<T> {
-        const { forceRefresh = false, staleWhileRevalidate = true } = options;
-
-        // If force refresh, skip cache
+        const { forceRefresh = false, staleWhileRevalidate = true, persistence = 'memory' } = options;
         if (!forceRefresh) {
             const cached = this.get<T>(key);
-            if (cached !== null) {
-                return cached;
-            }
+            if (cached !== null) return cached;
         }
-
-        // Check for stale data while we fetch fresh data
         const staleEntry = this.memoryCache.get(key);
-
-        // Fetch fresh data
         try {
-            logger.debug(`Fetching fresh data: ${key}`, { module: 'Cache' });
-            const freshData = await fetcher();
-            this.set(key, freshData, ttlMs);
-            return freshData;
+            const data = await fetcher();
+            this.set(key, data, ttlMs, { persistence });
+            return data;
         } catch (error) {
-            // If fetch fails and we have stale data, return it
             if (staleWhileRevalidate && staleEntry) {
-                logger.warn(`Fetch failed, returning stale data: ${key}`, {
-                    module: 'Cache',
-                    error
-                });
+                logger.warn(`Fetch failed, returning stale data: ${key}`, { module: 'Cache', error });
                 return staleEntry.data as T;
             }
             throw error;
         }
     }
 
-    /**
-     * Invalidate specific cache key
-     */
     invalidate(key: string): void {
         this.memoryCache.delete(key);
-
-        if (this.isLocalStorageAvailable) {
-            localStorage.removeItem(STORAGE_PREFIX + key);
-        }
-
-        logger.debug(`Cache invalidated: ${key}`, { module: 'Cache' });
+        this.sessionStorage?.removeItem(`${this.storagePrefix()}${key}`);
     }
 
-    /**
-     * Invalidate all cache keys with given prefix
-     */
     invalidatePrefix(prefix: string): void {
-        // Memory cache
-        for (const key of this.memoryCache.keys()) {
-            if (key.startsWith(prefix)) {
-                this.memoryCache.delete(key);
-            }
+        for (const key of [...this.memoryCache.keys()]) {
+            if (key.startsWith(prefix)) this.memoryCache.delete(key);
         }
-
-        // LocalStorage
-        if (this.isLocalStorageAvailable) {
-            const storagePrefix = STORAGE_PREFIX + prefix;
-            const keysToRemove = Object.keys(localStorage).filter(key =>
-                key.startsWith(storagePrefix)
-            );
-            keysToRemove.forEach(key => localStorage.removeItem(key));
-        }
-
-        logger.debug(`Cache invalidated with prefix: ${prefix}`, { module: 'Cache' });
+        if (!this.sessionStorage) return;
+        const storagePrefix = `${this.storagePrefix()}${prefix}`;
+        Object.keys(this.sessionStorage)
+            .filter(key => key.startsWith(storagePrefix))
+            .forEach(key => this.sessionStorage?.removeItem(key));
     }
 
-    /**
-     * Clear all cache
-     */
     clear(): void {
         this.memoryCache.clear();
-
-        if (this.isLocalStorageAvailable) {
-            const keysToRemove = Object.keys(localStorage).filter(key =>
-                key.startsWith(STORAGE_PREFIX)
-            );
-            keysToRemove.forEach(key => localStorage.removeItem(key));
-        }
-
-        logger.info('Cache cleared', { module: 'Cache' });
+        if (!this.sessionStorage) return;
+        const prefix = this.storagePrefix();
+        Object.keys(this.sessionStorage)
+            .filter(key => key.startsWith(prefix))
+            .forEach(key => this.sessionStorage?.removeItem(key));
     }
 
-    /**
-     * Get cache statistics
-     */
-    getStats(): { memorySize: number; keys: string[] } {
-        return {
-            memorySize: this.memoryCache.size,
-            keys: Array.from(this.memoryCache.keys()),
-        };
+    getStats(): { memorySize: number; keys: string[]; namespace: string } {
+        return { memorySize: this.memoryCache.size, keys: [...this.memoryCache.keys()], namespace: this.namespace };
     }
 }
 
-// Singleton instance
 export const cacheService = new CacheService();
-
-// Export class for testing
-export { CacheService };
