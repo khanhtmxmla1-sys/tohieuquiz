@@ -52,7 +52,10 @@ beforeEach(() => {
   homeworkStoreMock.fetchStudentSubmissions.mockClear();
 });
 
-const renderHeader = () =>
+const renderHeader = (callbacks: {
+  onOpenAssignments?: () => void;
+  onOpenPractice?: () => void;
+} = {}) =>
   render(
     <StudentDashboardHeader
       studentName="Nguyễn Minh An"
@@ -64,6 +67,8 @@ const renderHeader = () =>
       giftShopEnabled
       studentId="student-1"
       onSelectSection={vi.fn()}
+      onOpenAssignments={callbacks.onOpenAssignments || vi.fn()}
+      onOpenPractice={callbacks.onOpenPractice || vi.fn()}
       onOpenAssignment={vi.fn()}
       onOpenResultReport={vi.fn()}
       onOpenGiftShop={vi.fn()}
@@ -166,6 +171,18 @@ describe('student dashboard header', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('menu', { name: 'Tài khoản học sinh' })).not.toBeInTheDocument();
+  });
+
+  it('routes assignment and practice navigation through explicit callbacks', () => {
+    const onOpenAssignments = vi.fn();
+    const onOpenPractice = vi.fn();
+    renderHeader({ onOpenAssignments, onOpenPractice });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Bài tập' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Thư viện' })[0]);
+
+    expect(onOpenAssignments).toHaveBeenCalledTimes(1);
+    expect(onOpenPractice).toHaveBeenCalledTimes(1);
   });
 
   it('exposes all header actions as native buttons with 44px targets', () => {

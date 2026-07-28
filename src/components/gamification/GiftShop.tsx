@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import {
     ArrowLeft,
     Check,
@@ -14,7 +15,7 @@ import {
     Star,
     X,
 } from 'lucide-react';
-import { useQuizStore } from '../../../stores/quizStore';
+import { getStudentRoute } from '../../app/navigationRoutes';
 import { useClassroomStore } from '../../stores/useClassroomStore';
 import { useGamificationStore } from '../../stores/useGamificationStore';
 import { useGiftShopStore } from '../../stores/useGiftShopStore';
@@ -97,7 +98,8 @@ const OrderCard = ({ order, copiedCode, onCopy }: {
 );
 
 const GiftShop: React.FC = () => {
-    const goHome = useQuizStore().goHome;
+    const navigate = useNavigate();
+    const goHome = () => navigate(getStudentRoute('dashboard'));
     const { studentSession } = useClassroomStore();
     const coins = useGamificationStore((state) => state.coins);
     const {

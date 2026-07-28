@@ -1,6 +1,7 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, useLocation } from 'react-router';
 import ResultsTab from '../src/components/TeacherDashboard/ResultsTab';
 import ResultsTabModule from '../src/components/TeacherDashboard/results-tab';
 
@@ -17,6 +18,18 @@ vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
   return { ...actual, useNavigate: () => mocks.navigate };
 });
+
+const ResultsLocationProbe = () => {
+  const location = useLocation();
+  return <div data-testid="results-location">{location.pathname}{location.search}</div>;
+};
+
+const renderResults = (component: React.ReactElement, entry = '/teacher/results') => render(
+  <MemoryRouter initialEntries={[entry]}>
+    {component}
+    <ResultsLocationProbe />
+  </MemoryRouter>,
+);
 
 vi.mock('../src/hooks/useResponsiveLayout', () => ({
   useResponsiveLayout: () => ({ isMobile: false }),
@@ -179,7 +192,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
   });
 
   it('paginates results in groups of five and preserves the Vietnamese range label', () => {
-    render(<ResultsTab results={results} quizzes={quizzes} />);
+    renderResults(<ResultsTab results={results} quizzes={quizzes} />);
 
     expect(screen.getByText('Danh sách kết quả (7)')).toBeTruthy();
     expect(within(screen.getByTestId('results-table')).getAllByRole('article')).toHaveLength(5);
@@ -193,8 +206,43 @@ describe('TeacherDashboard ResultsTab contracts', () => {
     expect(screen.getByText('Trang 2/2')).toBeTruthy();
   });
 
+  it('restores filters and pagination from URL search params and updates history', async () => {
+    renderResults(
+      <ResultsTab results={results} quizzes={quizzes} />,
+      '/teacher/results?page=2&sort=score&order=asc',
+    );
+
+    expect(screen.getByText('Trang 2/2')).toBeInTheDocument();
+    expect(screen.getByTestId('results-location')).toHaveTextContent(
+      '/teacher/results?page=2&sort=score&order=asc',
+    );
+
+    await change(screen.getByPlaceholderText('Tìm học sinh...'), 'Lan');
+    await waitFor(() => {
+      const location = screen.getByTestId('results-location').textContent || '';
+      expect(location).toContain('q=Lan');
+      expect(location).not.toContain('page=');
+    });
+    expect(screen.getByText('Danh sách kết quả (1)')).toBeInTheDocument();
+    expect(screen.getByText('Lan')).toBeInTheDocument();
+  });
+
+  it('reconstructs quiz, class, and name filters from a deep link', () => {
+    renderResults(
+      <ResultsTab results={results} quizzes={quizzes} />,
+      '/teacher/results?q=Lan&quiz=quiz-2&class=3B',
+    );
+
+    expect(screen.getByText('Danh sách kết quả (1)')).toBeInTheDocument();
+    expect(screen.getByText('Lan')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Tìm học sinh...')).toHaveValue('Lan');
+    const selects = screen.getAllByRole('combobox');
+    expect(selects[0]).toHaveValue('quiz-2');
+    expect(selects[1]).toHaveValue('3B');
+  });
+
   it('combines name, quiz, and class filters and clears them together', async () => {
-    render(<ResultsTab results={results} quizzes={quizzes} />);
+    renderResults(<ResultsTab results={results} quizzes={quizzes} />);
 
     await change(screen.getByPlaceholderText('Tìm học sinh...'), 'Lan');
     expect(screen.getByText('Danh sách kết quả (1)')).toBeTruthy();
@@ -216,7 +264,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
   });
 
   it('requires one class and one quiz before opening the class delivery wizard', async () => {
-    render(<ResultsTab results={results} quizzes={quizzes} />);
+    renderResults(<ResultsTab results={results} quizzes={quizzes} />);
 
     const deliveryButton = screen.getByRole('button', { name: 'Tạo và gửi phiếu' });
     expect(deliveryButton).toBeDisabled();
@@ -242,7 +290,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
       phieu: { id: 'phieu-1' },
       link: { publicToken: 'token-1' },
     });
-    render(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
+    renderResults(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Chi tiết An' }));
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/results/1');
@@ -275,7 +323,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
       return element;
     }) as typeof document.createElement);
 
-    render(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
+    renderResults(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
 
     fireEvent.click(screen.getByRole('button', { name: /Xuất/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Xuất Excel (CSV)' }));
@@ -288,7 +336,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
 
   it('hides server-backed row actions offline while keeping local export available', () => {
     Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: false });
-    render(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
+    renderResults(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
 
     expect(screen.queryByRole('button', { name: 'Chi tiết An' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Phiếu An' })).not.toBeInTheDocument();
@@ -303,7 +351,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
     });
     const result = { ...results[0], totalQuestions: 2 };
 
-    render(<ResultsTab results={[result] as any} quizzes={quizzes} />);
+    renderResults(<ResultsTab results={[result] as any} quizzes={quizzes} />);
 
     await waitFor(() => {
       expect(screen.getByTestId('override-1')).toHaveTextContent(

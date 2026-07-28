@@ -9,6 +9,7 @@ import type { StudentDashboardContentProps } from './content.types';
 export const StudentDashboardBody = ({
   studentSession, assignments, attendance, practice, rewards,
   giftShopEnabled, isOnline, dashboardUpdatedAt, onOpenGiftShop, onOpenBadges, onSelectHomework,
+  onOpenPrimaryLearning,
 }: StudentDashboardContentProps) => (
   <div className="flex flex-col gap-8 md:gap-10">
     <DataFreshnessNotice staleAt={dashboardUpdatedAt} isOffline={!isOnline} />
@@ -18,7 +19,7 @@ export const StudentDashboardBody = ({
       attendanceClaimed={attendance.claimedToday}
       attendanceLabel={attendance.badgeText}
       attendanceAvailable={attendance.isAvailable && isOnline}
-      onPrimaryAction={assignments.scrollToPrimaryTarget}
+      onPrimaryAction={onOpenPrimaryLearning}
       onAttendance={attendance.open}
     />
     <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.9fr)_minmax(300px,0.9fr)] xl:items-start">

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useAuthStore } from '../../../stores/authStore';
 import { useQuizStore } from '../../../stores/quizStore';
-import { useTeacherDashboardUIStore } from '../../stores/useTeacherDashboardUIStore';
+import { getTeacherRoute } from '../../app/navigationRoutes';
 import ManualQuizWorkspaceGuard from './components/ManualQuizWorkspaceGuard';
 import DraftRecoveryDialog from './components/DraftRecoveryDialog';
 import DraftConflictDialog from './components/DraftConflictDialog';
@@ -52,8 +52,6 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const availableQuiz = useQuizStore((state) =>
         quizId ? state.quizzes.find((quiz) => quiz.id === quizId) ?? null : null,
     );
-    const setView = useQuizStore((state) => state.setView);
-    const setActiveTab = useTeacherDashboardUIStore((state) => state.setActiveTab);
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const initializeFromSeed = useManualQuizWorkspaceStore((state) => state.initializeFromSeed);
     const initializeFromQuiz = useManualQuizWorkspaceStore((state) => state.initializeFromQuiz);
@@ -79,11 +77,9 @@ const ManualQuizWorkspacePage: React.FC = () => {
 
     const autosaveController = useManualQuizAutosave(envelope);
     const handlePublishSuccess = useCallback(() => {
-        setActiveTab('manage');
-        setView('teacher_dash');
         setValidationOpen(false);
-        navigate('/');
-    }, [navigate, setActiveTab, setView]);
+        navigate(getTeacherRoute('manage'));
+    }, [navigate]);
     const publishController = useManualQuizPublish({
         envelope,
         onSuccess: handlePublishSuccess,

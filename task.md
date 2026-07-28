@@ -13,7 +13,7 @@
 | C — UI Foundation | Task 13–16 | `feat/modernization-integration` | Tasks 13–16 hoàn tất trong phạm vi đã mở |
 | D — Database/Operations | Task 12, 30–31 | `feat/modernization-integration` | Task 12 local implementation/rehearsal đạt; remote staging Time Travel còn mở |
 | E — Performance/CI/Test | Task 27–28 | `feat/modernization-integration` | Tasks 27–28 hoàn tất |
-| F — Product Features | Task 18–26, 32–35 | Chỉ mở sau khi dependency merge | Bị chặn bởi dependency |
+| F — Product Features | Task 18–26, 32–35 | `feat/modernization-integration` | Task 18 hoàn tất; Tasks 19–26 và 32–35 còn mở |
 | G — Production Release | Task 38 | Chỉ chạy sau owner approval | Không thực thi tự động |
 
 ## Wave 0 — Baseline và quản trị phạm vi
@@ -74,7 +74,12 @@
   - [x] Offline vẫn cho xem dữ liệu đã tải và export local; khóa refresh, mutation, làm bài, luyện tập, nhận thưởng, live exam và điều hướng tuần cần server.
   - [x] Classes/Results/Parent Portal xóa dữ liệu bảo vệ sau 401/403; lỗi mạng thường không làm mất cache hợp lệ.
   - [x] Targeted regression: 10 file, 79 test đạt; security-focused group 21/21; Cypress Electron offline/reconnect 1/1 đạt.
-- [ ] Task 18 — Điều hướng chính bằng URL
+- [x] Task 18 — Điều hướng chính bằng URL
+  - [x] URL là nguồn sự thật cho Teacher và Student Dashboard; guard chờ khôi phục phiên và không set state trong render.
+  - [x] Deep link chưa đăng nhập giữ allowlisted `returnTo`; route sai vai trò, external URL, protocol-relative URL và hash bị từ chối.
+  - [x] Results filters/sort/date/pagination và Student assignment pagination dùng search params; Back/Forward và refresh giữ đúng trạng thái.
+  - [x] Gift Shop, Live Exam, Result Detail và Manual Quiz Workspace dùng URL canonical; giữ compatibility mapping một release.
+  - [x] Targeted regression 12 file/95 test; Cypress Electron 2/2; full Vitest 314/314 file và 1.498/1.498 test.
 - [ ] Task 19 — Trải nghiệm mạng yếu/thiết bị yếu
 
 ## Wave 3 — Cải tiến tính năng
@@ -118,6 +123,17 @@
 - [x] Cypress component/E2E liên quan
 - [x] Playwright/browser smoke frontend local: HTTP 200, không `pageerror`, không tràn ngang
 - [x] Review diff và secret scan
+
+## Batch 6 — URL-first navigation verification
+
+- [x] Teacher và Student primary routes dùng URL canonical; session guard chờ restore trước redirect/render.
+- [x] `returnTo` chỉ nhận internal same-role path; không còn primary `setView('teacher_dash')` hoặc `setView('shop')`.
+- [x] Results filter/sort/date/page và Student assignment page được khôi phục từ search params; Back/Forward giữ trạng thái.
+- [x] Live Exam lưu metadata tối thiểu trong `sessionStorage`, không lưu answers; Gift Shop/Result Detail/Manual Workspace quay về URL canonical.
+- [x] Targeted regression: 12 file, 95 test đạt; Cypress Electron URL navigation: 2/2 đạt.
+- [x] Full Vitest: 314/314 file, 1.498/1.498 test; 491,10 giây theo Vitest, 493,97 giây wrapper.
+- [x] Full lint, frontend/strict/Workers typecheck, production build, performance budget, security/history/policy gates và root/Workers audits đạt; 0 lỗ hổng.
+- [x] GitNexus risk medium; MCP diff review không có P1/P2/P3; UTF-8/mojibake scan 0 findings.
 
 ## Batch 5 — Async/offline UX verification
 

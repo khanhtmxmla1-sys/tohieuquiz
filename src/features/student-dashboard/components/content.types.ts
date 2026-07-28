@@ -19,6 +19,9 @@ export interface StudentDashboardContentProps {
   practice: StudentPracticeCatalogController;
   rewards: StudentRewardsController;
   onSelectSection: (section: StudentDashboardSection) => void;
+  onOpenAssignments: () => void;
+  onOpenPractice: () => void;
+  onOpenPrimaryLearning: () => void;
   onOpenResultReport: (phieuId: string) => void;
   onOpenGiftShop: () => void;
   onOpenLiveExam: () => void;

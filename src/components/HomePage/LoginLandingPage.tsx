@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
+import { useLocation } from 'react-router';
 import { useAuthStore } from '../../../stores/authStore';
 import { useClassroomStore } from '../../stores/useClassroomStore';
-import { useQuizStore } from '../../../stores/quizStore';
 import { showError, showConfirm } from '../../utils/toast';
 import PasswordChangeDialog from '../common/PasswordChangeDialog';
 import CurrentAnnouncementBanner from '../common/CurrentAnnouncementBanner';
@@ -23,14 +23,17 @@ type SavedLoginAccount = {
 const SAVED_LOGIN_KEY = 'tohieuquiz_saved_login_v1';
 
 const LoginLandingPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'student' | 'teacher'>('student');
+    const location = useLocation();
+    const requestedRole = new URLSearchParams(location.search).get('login');
+    const [activeTab, setActiveTab] = useState<'student' | 'teacher'>(
+        requestedRole === 'teacher' ? 'teacher' : 'student',
+    );
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [pendingTeacher, setPendingTeacher] = useState<any | null>(null);
 
     const authStore = useAuthStore();
     const classroomStore = useClassroomStore();
-    const quizStore = useQuizStore();
     const notificationFlag = useUnifiedNotificationsFeatureFlag();
 
     // Session Persistence
@@ -42,13 +45,17 @@ const LoginLandingPage: React.FC = () => {
             if (typeof saved.username === 'string' && saved.username.trim()) {
                 setUsername(saved.username.trim());
             }
-            if (saved.role === 'teacher' || saved.role === 'student') {
+            if (
+                requestedRole !== 'teacher'
+                && requestedRole !== 'student'
+                && (saved.role === 'teacher' || saved.role === 'student')
+            ) {
                 setActiveTab(saved.role);
             }
         } catch (error) {
             console.warn('Could not load saved login account:', error);
         }
-    }, []);
+    }, [requestedRole]);
 
     const isLoading = activeTab === 'teacher' ? authStore.isLoggingIn : classroomStore.isLoading;
 
@@ -92,7 +99,6 @@ const LoginLandingPage: React.FC = () => {
                 }
                 
                 authStore.loginSuccess(tUsername, tFullName, isTeacherAdmin, tClass);
-                quizStore.setView('teacher_dash');
                 return;
             }
             authStore.loginFailure();
@@ -106,9 +112,7 @@ const LoginLandingPage: React.FC = () => {
 
     const handleStudentLogin = async () => {
         const success = await classroomStore.loginStudent({ username, password });
-        if (success) {
-            quizStore.setView('home');
-        } else {
+        if (!success) {
             showError('Tên đăng nhập hoặc mật khẩu học sinh không đúng!');
         }
     };
@@ -122,7 +126,6 @@ const LoginLandingPage: React.FC = () => {
                 }} onComplete={() => {
                     authStore.loginSuccess(pendingTeacher.username, pendingTeacher.fullName, pendingTeacher.isAdmin, pendingTeacher.class);
                     setPendingTeacher(null);
-                    quizStore.setView('teacher_dash');
                 }} />
             )}
             <LandingHeader />

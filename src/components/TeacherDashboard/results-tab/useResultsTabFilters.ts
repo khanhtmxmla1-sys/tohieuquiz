@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router';
 import type { Quiz, StudentResult } from '../../../types';
 import { useResults } from '../../../hooks';
 import type { DateRange } from '../../teacher/ResultsView';
@@ -7,16 +8,72 @@ import { filterResultsForDisplay, getAvailableQuizzes } from './resultsTabSelect
 
 export const PAGE_SIZE = 5;
 
+const parseDateParam = (value: string | null): Date | null => {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatDateParam = (value: Date | null): string | null => {
+  if (!value || Number.isNaN(value.getTime())) return null;
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parsePage = (value: string | null): number => {
+  const parsed = Number.parseInt(value || '', 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
+};
+
 export const useResultsTabFilters = (
   results: StudentResult[],
   quizzes: Quiz[],
   onRefresh?: () => Promise<StudentResult[]>,
 ) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const resultsHook = useResults({ results, onRefresh });
-  const [dateRange, setDateRange] = useState<DateRange>({ startDate: null, endDate: null, label: 'Tất cả' });
-  const [searchName, setSearchName] = useState('');
-  const [activeQuizId, setActiveQuizId] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  const dateRange = useMemo<DateRange>(() => ({
+    startDate: parseDateParam(searchParams.get('from')),
+    endDate: parseDateParam(searchParams.get('to')),
+    label: searchParams.get('range') || 'Tất cả',
+  }), [searchParams]);
+  const searchName = searchParams.get('q') || '';
+  const activeQuizId = searchParams.get('quiz') || 'all';
+  const currentPage = parsePage(searchParams.get('page'));
+
+  const updateParams = useCallback((
+    updates: Record<string, string | null>,
+    options: { replace?: boolean; resetPage?: boolean } = {},
+  ) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      Object.entries(updates).forEach(([name, value]) => {
+        if (value) next.set(name, value);
+        else next.delete(name);
+      });
+      if (options.resetPage !== false) next.delete('page');
+      return next;
+    }, { replace: options.replace ?? true });
+  }, [setSearchParams]);
+
+  const setDateRange = useCallback((range: DateRange) => {
+    updateParams({
+      from: formatDateParam(range.startDate),
+      to: formatDateParam(range.endDate),
+      range: range.label === 'Tất cả' ? null : range.label,
+    });
+  }, [updateParams]);
+  const setSearchName = useCallback((value: string) => {
+    updateParams({ q: value.trim() || null });
+  }, [updateParams]);
+  const setActiveQuizId = useCallback((value: string) => {
+    updateParams({ quiz: value === 'all' ? null : value });
+  }, [updateParams]);
+  const setCurrentPage = useCallback((page: number) => {
+    updateParams({ page: page > 1 ? String(page) : null }, { replace: false, resetPage: false });
+  }, [updateParams]);
 
   const filteredResults = useMemo(() => filterResultsForDisplay(
     resultsHook.filteredResults,
@@ -25,28 +82,21 @@ export const useResultsTabFilters = (
     activeQuizId,
   ), [resultsHook.filteredResults, dateRange, searchName, activeQuizId]);
   const totalPages = Math.max(1, Math.ceil(filteredResults.length / PAGE_SIZE));
+  const effectivePage = Math.min(currentPage, totalPages);
   const paginatedResults = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
+    const start = (effectivePage - 1) * PAGE_SIZE;
     return filteredResults.slice(start, start + PAGE_SIZE);
-  }, [filteredResults, currentPage]);
+  }, [filteredResults, effectivePage]);
 
-  useEffect(() => setCurrentPage(1), [
-    dateRange,
-    searchName,
-    activeQuizId,
-    resultsHook.filterClass,
-    resultsHook.sortField,
-    resultsHook.sortOrder,
-  ]);
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
+    if (results.length > 0 && currentPage > totalPages) {
+      updateParams({ page: totalPages > 1 ? String(totalPages) : null }, { replace: true, resetPage: false });
+    }
+  }, [currentPage, results.length, totalPages, updateParams]);
 
   const resetFilters = useCallback(() => {
-    setDateRange({ startDate: null, endDate: null, label: 'Tất cả' });
-    setSearchName('');
-    setActiveQuizId('all');
-  }, []);
+    updateParams({ q: null, quiz: null, class: null, from: null, to: null, range: null });
+  }, [updateParams]);
 
   return {
     resultsHook,
@@ -56,7 +106,7 @@ export const useResultsTabFilters = (
     setSearchName,
     activeQuizId,
     setActiveQuizId,
-    currentPage,
+    currentPage: effectivePage,
     setCurrentPage,
     filteredResults,
     paginatedResults,

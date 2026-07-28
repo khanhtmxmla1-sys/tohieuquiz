@@ -5,12 +5,12 @@ const ADMIN_TABS: TeacherDashboardTab[] = ['announcements', 'teachers', 'admin-t
 
 export const useDashboardPermissions = (
   activeTab: TeacherDashboardTab,
-  setActiveTab: (tab: TeacherDashboardTab) => void,
+  onInvalidTab: () => void,
   isAdmin: boolean,
   giftShopEnabled: boolean,
 ) => {
   useEffect(() => {
-    if (!giftShopEnabled && activeTab === 'gift-shop') setActiveTab('overview');
-    if (!isAdmin && ADMIN_TABS.includes(activeTab)) setActiveTab('overview');
-  }, [giftShopEnabled, activeTab, isAdmin, setActiveTab]);
+    if (!giftShopEnabled && activeTab === 'gift-shop') onInvalidTab();
+    if (!isAdmin && ADMIN_TABS.includes(activeTab)) onInvalidTab();
+  }, [giftShopEnabled, activeTab, isAdmin, onInvalidTab]);
 };

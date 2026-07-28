@@ -496,10 +496,10 @@ interface AuthState {
 /student/live-exam/:sessionId
 ```
 
-- [ ] Guard theo session store, không set state trong render.
-- [ ] Filters/pagination dùng search params.
-- [ ] Deep link chưa login dùng allowlisted `returnTo`.
-- [ ] Giữ redirect tương thích một release rồi xóa `quizStore.view` đã migrate.
+- [x] Guard theo session store, không set state trong render.
+- [x] Filters/pagination dùng search params.
+- [x] Deep link chưa login dùng allowlisted `returnTo`.
+- [x] Giữ redirect tương thích một release rồi xóa `quizStore.view` đã migrate.
 
 **Acceptance:** Refresh/deep link/back/forward không làm mất màn hình hoặc filter.
 
@@ -1132,6 +1132,20 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - Production build and bundle budget.
 - Security scan, history scan, policy gates, root/Workers dependency audit.
 - MCP diff review and `git diff --check`.
+
+## Batch 6 Execution Record — 2026-07-28
+
+### Task 18 — URL-first teacher and student navigation
+
+- Added canonical teacher and student route mappings, session-aware `ProtectedRoute`, session bootstrap and allowlisted same-role `returnTo` handling. Protected routes wait for teacher/student session restoration before rendering or redirecting; `RootView` no longer mutates navigation state during render.
+- Teacher Dashboard tabs, sidebar, mobile navigation, quick actions, result detail, Gift Shop and manual quiz workspace now use canonical URLs. Student dashboard sections, assignments, practice, achievements, reports, Gift Shop and live-exam sessions also use canonical routes.
+- Results filters, sorting, date range and pagination are reconstructed from search params. Student assignment pagination uses `?page=`. Live Exam keeps only minimal joined-session metadata in `sessionStorage` so an eligible refresh can restore the route without persisting answers.
+- Compatibility mapping remains for one release: legacy teacher tab and quiz-store view can select an initial canonical destination, while URL is the source of truth after navigation. No primary navigation path still calls `setView('teacher_dash')` or `setView('shop')`.
+- TDD and targeted regression passed **12 files and 95 tests**. Cypress Electron passed **2/2** for restore-before-guard, deep-link query preservation, Results → Classes → Back restoration and anonymous `returnTo` redirect.
+- Full Vitest passed: **314/314 files and 1,498/1,498 tests**, 491.10 seconds reported by Vitest and 493.97 seconds wrapper time.
+- Full lint, frontend typecheck, strict typecheck, Workers typecheck, production build, bundle budget, security/history/policy gates and root/Workers production audits passed with zero vulnerabilities. Build transformed 4,452 modules; initial JS gzip 183,212 B, CSS gzip 41,200 B, largest lazy gzip 125,538 B and largest minified chunk 404,881 B.
+- GitNexus classified the change as medium risk because it crosses dashboard shells and Results flows; targeted tests and the real-browser route gate cover those paths. MCP diff review returned no P1/P2/P3 findings, and UTF-8/mojibake scan returned zero findings.
+- No push, merge, deployment, production migration, secret change, production database operation or cloud resource change was performed.
 
 ## Batch 5 Execution Record — 2026-07-28
 

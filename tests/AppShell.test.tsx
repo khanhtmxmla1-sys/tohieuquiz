@@ -162,16 +162,19 @@ describe('App shell routing contracts', () => {
         expect(useQuizStore.getState().results[0]?.id).toBe('mock-123');
     });
 
-    it('guards teacher dashboard and disabled Gift Shop root views by returning home', async () => {
+    it('renders the public root for unauthenticated legacy views without mutating state during render', async () => {
         useQuizStore.setState({ view: 'teacher_dash' });
         const teacherRender = renderApp();
-        await waitFor(() => expect(useQuizStore.getState().view).toBe('home'));
+        expect(await screen.findByText('home-page')).toBeInTheDocument();
+        expect(useQuizStore.getState().view).toBe('teacher_dash');
+        expect(screen.queryByText('teacher-dashboard')).not.toBeInTheDocument();
         teacherRender.unmount();
 
         vi.stubEnv('VITE_FEATURE_GIFT_SHOP_V2', 'false');
         useQuizStore.setState({ view: 'shop' });
         renderApp();
-        await waitFor(() => expect(useQuizStore.getState().view).toBe('home'));
+        expect(await screen.findByText('home-page')).toBeInTheDocument();
+        expect(useQuizStore.getState().view).toBe('shop');
         expect(screen.queryByText('gift-shop')).not.toBeInTheDocument();
     });
 

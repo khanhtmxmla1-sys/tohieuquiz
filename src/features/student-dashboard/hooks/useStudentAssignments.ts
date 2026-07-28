@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router';
 import toast from 'react-hot-toast';
 import { useAssignmentStore } from '@/src/stores/useAssignmentStore';
 import { useQuizStore } from '@/stores/quizStore';
@@ -6,6 +7,7 @@ import type { AssignedQuiz } from '@/src/components/HomePage/student-dashboard';
 import { getAssignmentVisualState } from '@/src/components/HomePage/student-dashboard';
 import { fetchResultAnswers } from '@/src/services/results/resultAnswersService';
 import type { StudentResult } from '@/src/types';
+import { getStudentRoute } from '../../../app/navigationRoutes';
 import {
   ASSIGNMENTS_PER_PAGE,
   buildAssignmentReviewQuiz,
@@ -20,6 +22,9 @@ interface AssignmentReviewState {
 }
 
 export const useStudentAssignments = (studentId?: string) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const assignments = useAssignmentStore((state) => state.assignments);
   const fetchStudentAssignments = useAssignmentStore((state) => state.fetchStudentAssignments);
   const quizzes = useQuizStore((state) => state.quizzes);
@@ -27,7 +32,10 @@ export const useStudentAssignments = (studentId?: string) => {
   const setView = useQuizStore((state) => state.setView);
   const loadResults = useQuizStore((state) => state.loadResults);
   const loadQuizQuestions = useQuizStore((state) => state.loadQuizQuestions);
-  const [page, setPage] = useState(1);
+  const requestedPage = location.pathname === getStudentRoute('assignments')
+    ? Number.parseInt(searchParams.get('page') || '1', 10)
+    : 1;
+  const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reviewingAssignmentId, setReviewingAssignmentId] = useState<string | null>(null);
@@ -59,18 +67,25 @@ export const useStudentAssignments = (studentId?: string) => {
     [assignments, quizzes],
   );
   const totalPages = Math.max(1, Math.ceil(allQuizzes.length / ASSIGNMENTS_PER_PAGE));
+  const effectivePage = Math.min(page, totalPages);
+  const setPage = useCallback((nextPage: number, replace = false) => {
+    const params = new URLSearchParams();
+    if (nextPage > 1) params.set('page', String(nextPage));
+    const search = params.toString();
+    navigate(`${getStudentRoute('assignments')}${search ? `?${search}` : ''}`, { replace });
+  }, [navigate]);
   const pagedQuizzes = useMemo(() => {
-    const start = (page - 1) * ASSIGNMENTS_PER_PAGE;
+    const start = (effectivePage - 1) * ASSIGNMENTS_PER_PAGE;
     return allQuizzes.slice(start, start + ASSIGNMENTS_PER_PAGE);
-  }, [allQuizzes, page]);
+  }, [allQuizzes, effectivePage]);
   const hasReadyAssignment = useMemo(
     () => allQuizzes.some((quiz) => getAssignmentVisualState(quiz) === 'ready'),
     [allQuizzes],
   );
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+    if (allQuizzes.length > 0 && page > totalPages) setPage(totalPages, true);
+  }, [allQuizzes.length, page, setPage, totalPages]);
 
   const startQuiz = useCallback((quiz: AssignedQuiz) => {
     selectQuiz(quiz);
@@ -82,13 +97,11 @@ export const useStudentAssignments = (studentId?: string) => {
       String(quiz._assignmentData?.id || '') === String(assignmentId)
     ));
     if (index < 0) {
-      document.getElementById('assigned-work')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      navigate(getStudentRoute('assignments'));
       return;
     }
-    setPage(Math.floor(index / ASSIGNMENTS_PER_PAGE) + 1);
     startQuiz(allQuizzes[index]);
-  }, [allQuizzes, startQuiz]);
+  }, [allQuizzes, navigate, startQuiz]);
 
   const reviewQuiz = useCallback(async (quiz: AssignedQuiz) => {
     const assignmentId = String(quiz._assignmentData?.id || quiz.id);
@@ -141,14 +154,9 @@ export const useStudentAssignments = (studentId?: string) => {
     }
   }, [loadQuizQuestions, loadResults]);
 
-  const scrollToPrimaryTarget = useCallback(() => {
-    const targetId = hasReadyAssignment ? 'assigned-work' : 'practice-library';
-    document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [hasReadyAssignment]);
-
   return {
     pagedQuizzes,
-    page,
+    page: effectivePage,
     totalPages,
     isLoading,
     errorMessage,
@@ -161,7 +169,6 @@ export const useStudentAssignments = (studentId?: string) => {
     openAssignment,
     reviewQuiz,
     closeReview: () => setReviewState(null),
-    scrollToPrimaryTarget,
   };
 };
 

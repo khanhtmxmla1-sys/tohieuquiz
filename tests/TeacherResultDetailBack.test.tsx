@@ -8,10 +8,8 @@ vi.mock('../src/components/teacher/ResultsView', () => ({ StudentDetailModal: ()
 vi.mock('../src/services/results/resultAnswersService', () => ({ fetchResultAnswers: vi.fn() }));
 
 /**
- * "Quay lại danh sách" used to be navigate('/'), a fresh PUSH. useScrollReset sends PUSH to the top
- * of the page, which would drop a teacher at the top of the dashboard instead of back at the row
- * they opened. Both destinations are '/', so the assertions read the navigation type — that is the
- * only thing that distinguishes a real Back from a new push.
+ * "Quay lại danh sách" pops history when possible so filters and pagination are restored.
+ * A direct deep link replaces to the canonical results URL instead of leaving the application.
  */
 const Probe = () => {
     const location = useLocation();
@@ -24,7 +22,7 @@ const renderAt = (initialEntries: string[], initialIndex: number) =>
         <MemoryRouter initialEntries={initialEntries} initialIndex={initialIndex}>
             <Probe />
             <Routes>
-                <Route path="/" element={<div>dashboard</div>} />
+                <Route path="/teacher/results" element={<div>results-list</div>} />
                 <Route path="/teacher/results/:resultId" element={<TeacherResultDetailPage />} />
             </Routes>
         </MemoryRouter>,
@@ -34,12 +32,12 @@ const clickBack = () => fireEvent.click(screen.getByRole('button', { name: /Quay
 
 describe('TeacherResultDetailPage back button', () => {
     it('pops history when the teacher pushed their way in from the dashboard', () => {
-        renderAt(['/', '/teacher/results/r-404'], 1);
+        renderAt(['/teacher/results?page=2', '/teacher/results/r-404'], 1);
 
         clickBack();
 
-        expect(screen.getByTestId('probe')).toHaveTextContent('/|POP');
-        expect(screen.getByText('dashboard')).toBeVisible();
+        expect(screen.getByTestId('probe')).toHaveTextContent('/teacher/results|POP');
+        expect(screen.getByText('results-list')).toBeVisible();
     });
 
     it('replaces instead of walking off the site when opened as a direct link', () => {
@@ -47,7 +45,7 @@ describe('TeacherResultDetailPage back button', () => {
 
         clickBack();
 
-        expect(screen.getByTestId('probe')).toHaveTextContent('/|REPLACE');
-        expect(screen.getByText('dashboard')).toBeVisible();
+        expect(screen.getByTestId('probe')).toHaveTextContent('/teacher/results|REPLACE');
+        expect(screen.getByText('results-list')).toBeVisible();
     });
 });

@@ -158,7 +158,10 @@ describe('standardized async and offline states', () => {
       submittedAt: '2026-07-28T08:00:00.000Z',
       answers: {},
     } as never;
-    const { result } = renderHook(() => useResults({ results: [resultRow], onRefresh }));
+    const { result } = renderHook(
+      () => useResults({ results: [resultRow], onRefresh }),
+      { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> },
+    );
 
     expect(result.current.filteredResults).toHaveLength(1);
     await act(async () => {

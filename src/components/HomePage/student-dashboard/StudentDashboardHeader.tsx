@@ -19,6 +19,8 @@ export function StudentDashboardHeader({
   unifiedNotificationsReady,
   unifiedNotificationsEnabled,
   onSelectSection,
+  onOpenAssignments,
+  onOpenPractice,
   onOpenAssignment,
   onOpenResultReport,
   onOpenGiftShop,
@@ -47,13 +49,6 @@ export function StudentDashboardHeader({
   const runAccountAction = (action: () => void) => {
     setIsAccountMenuOpen(false);
     action();
-  };
-
-  const scrollToSection = (id: string) => {
-    onSelectSection('dashboard');
-    window.requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
   };
 
   const openNotificationTarget = (target: NotificationTarget) => {
@@ -120,7 +115,7 @@ export function StudentDashboardHeader({
           </button>
           <button
             type="button"
-            onClick={() => scrollToSection('practice-library')}
+            onClick={onOpenPractice}
             className={`${baseActionClass} text-slate-600 hover:text-slate-900`}
           >
             Thư viện
@@ -253,14 +248,14 @@ export function StudentDashboardHeader({
         </button>
         <button
           type="button"
-          onClick={() => scrollToSection('assigned-work')}
+          onClick={onOpenAssignments}
           className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-slate-600"
         >
           Bài tập
         </button>
         <button
           type="button"
-          onClick={() => scrollToSection('practice-library')}
+          onClick={onOpenPractice}
           className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-slate-600"
         >
           Thư viện

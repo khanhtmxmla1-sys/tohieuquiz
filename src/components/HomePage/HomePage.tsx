@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import toast from 'react-hot-toast';
 import { Quiz } from '../../types';
 import { useAuthStore } from '../../../stores/authStore';
@@ -20,6 +21,7 @@ import { DashboardNavbar } from './components/DashboardNavbar';
 import { DashboardHero } from './components/DashboardHero';
 import { DashboardDecoration } from './components/DashboardDecoration';
 import { SubjectGrid } from './components/SubjectGrid';
+import { getTeacherRoute } from '../../app/navigationRoutes';
 
 // --- Constants ---
 import { 
@@ -46,6 +48,7 @@ const HomePage: React.FC = () => {
     const [showComingSoon, setShowComingSoon] = useState(false);
 
     // --- Stores ---
+    const navigate = useNavigate();
     const authStore = useAuthStore();
     const quizStore = useQuizStore();
     const classroomStore = useClassroomStore();
@@ -82,13 +85,6 @@ const HomePage: React.FC = () => {
             assignmentStore.fetchStudentAssignments(classroomStore.studentSession.studentId);
         }
     }, [isStudentLoggedIn, classroomStore.studentSession?.studentId]);
-
-    // --- Auto-redirect Teachers to Dashboard ---
-    useEffect(() => {
-        if (isTeacherLoggedIn && !isStudentLoggedIn && quizStore.view === 'home') {
-            quizStore.setView('teacher_dash');
-        }
-    }, [isTeacherLoggedIn, isStudentLoggedIn, quizStore.view, quizStore]);
 
     // --- Map Assignments to Quiz Format ---
     const assignmentQuizzes = useMemo((): Quiz[] => {
@@ -304,12 +300,6 @@ const HomePage: React.FC = () => {
         );
     }
 
-    // Nếu là giáo viên/admin đã đăng nhập và đang ở view 'home', trả về null để chờ App.tsx hoặc useEffect nội bộ chuyển hướng
-    // Điều này ngăn chặn việc hiển thị giao diện "Green Meadow" (vốn dành cho học sinh) trong giây lát.
-    if (isTeacherLoggedIn && !isStudentLoggedIn && quizStore.view === 'home') {
-        return null;
-    }
-
     return (
         <div className="sticker-land">
             <AnnouncementMarquee />
@@ -320,7 +310,9 @@ const HomePage: React.FC = () => {
                 isTeacherLoggedIn={isTeacherLoggedIn}
                 onResetHome={handleResetHome}
                 onOpenLogin={() => openLogin('student')}
-                onActionCta={() => isTeacherLoggedIn ? quizStore.setView('teacher_dash') : quizStore.setView('home')}
+                onActionCta={() => isTeacherLoggedIn
+                    ? navigate(getTeacherRoute('overview'))
+                    : quizStore.setView('home')}
             />
 
             {/* QUIZ LIST VIEW */}

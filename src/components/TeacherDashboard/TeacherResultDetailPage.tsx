@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 import { StudentDetailModal } from '../teacher/ResultsView';
 import { fetchResultAnswers } from '../../services/results/resultAnswersService';
 import { useQuizStore } from '../../../stores/quizStore';
-import { useTeacherDashboardUIStore } from '../../stores/useTeacherDashboardUIStore';
+import { getTeacherRoute } from '../../app/navigationRoutes';
 import type { Question, StudentResult } from '../../types';
 
 const TeacherResultDetailPage: React.FC = () => {
@@ -12,7 +12,6 @@ const TeacherResultDetailPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const quizStore = useQuizStore();
-    const setActiveTab = useTeacherDashboardUIStore((state) => state.setActiveTab);
 
     const [resolvedResult, setResolvedResult] = useState<StudentResult | null>(null);
     const [isPageLoading, setIsPageLoading] = useState(false);
@@ -28,10 +27,6 @@ const TeacherResultDetailPage: React.FC = () => {
         const quiz = quizStore.quizzes.find((q) => q.id === result.quizId);
         return quiz?.questions || [];
     }, [quizStore.quizzes, result]);
-
-    useEffect(() => {
-        setActiveTab('results');
-    }, [setActiveTab]);
 
     useEffect(() => {
         let cancelled = false;
@@ -75,13 +70,8 @@ const TeacherResultDetailPage: React.FC = () => {
     }, [result]);
 
     const handleBack = () => {
-        quizStore.setView('teacher_dash');
-        setActiveTab('results');
-        // Same reason as useStudentPracticeCatalog.closeSubject: navigate('/') is a PUSH, and
-        // useScrollReset sends those to the top, so a teacher returning from a result would lose
-        // their place in the results table. react-router keys the first history entry "default", so
-        // any other key means we pushed our way here and a real Back restores that position.
-        if (location.key === 'default') navigate('/', { replace: true });
+        // Back restores result filters/page; direct links replace to the canonical results route.
+        if (location.key === 'default') navigate(getTeacherRoute('results'), { replace: true });
         else navigate(-1);
     };
 

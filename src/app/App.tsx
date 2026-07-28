@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { useLocation } from 'react-router';
 import { useQuizStore } from '../../stores/quizStore';
 import { useSeo } from '../hooks/useSeo';
@@ -10,8 +10,7 @@ import { useQuizUrlSelection } from './useQuizUrlSelection';
 import { useScrollReset } from './useScrollReset';
 import { useSystemSettings } from './useSystemSettings';
 import { useTeacherEntry } from './useTeacherEntry';
-import { useAuthStore } from '../../stores/authStore';
-import { useClassroomStore } from '../stores/useClassroomStore';
+import { useSessionBootstrap } from './useSessionBootstrap';
 import { resolveHostContext } from './hostContext';
 import { isParentPortalEnabled } from '../config/featureFlags';
 import { ParentPortalApp } from './lazyViews';
@@ -21,14 +20,8 @@ import { OfflineBanner } from '../components/common';
 const MainApp: React.FC = () => {
     const quizStore = useQuizStore();
     const location = useLocation();
-    const restoreTeacherSession = useAuthStore(state => state.restoreSession);
-    const restoreStudentSession = useClassroomStore(state => state.restoreStudentSession);
+    const sessionsReady = useSessionBootstrap();
     const giftShopEnabled = String(import.meta.env.VITE_FEATURE_GIFT_SHOP_V2 || 'false').toLowerCase() === 'true';
-
-    useEffect(() => {
-        void restoreTeacherSession();
-        void restoreStudentSession();
-    }, [restoreTeacherSession, restoreStudentSession]);
 
     useSeo(location.pathname, quizStore.view, quizStore.selectedQuiz, giftShopEnabled);
     useLoadQuizzes();
@@ -40,7 +33,7 @@ const MainApp: React.FC = () => {
 
     return (
         <>
-            <AppRoutes giftShopEnabled={giftShopEnabled} />
+            <AppRoutes giftShopEnabled={giftShopEnabled} sessionsReady={sessionsReady} />
             <AppGlobals showChatbot={aiAssistantEnabled && quizStore.view !== 'student'} />
         </>
     );
