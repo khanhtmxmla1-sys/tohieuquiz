@@ -1135,6 +1135,17 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 
 ## Batch 3 Execution Record — 2026-07-28
 
+### Final verification
+
+- Full Vitest passed: **309/309 files and 1,459/1,459 tests**, 416.01 seconds reported by Vitest and 418.17 seconds wrapper time.
+- ESLint, frontend typecheck and Workers typecheck passed.
+- Security scan, reachable-history secret scan, CSP/CORS/browser-auth/migration policy gates and root/Workers production dependency audits passed with zero vulnerabilities.
+- Production build passed after transforming 4,447 modules; every emitted chunk remained below the 500 KB minified budget.
+- The four baseline assertion drifts were aligned. The fresh canonical D1 schema now includes the two AI Tutor quota tables introduced by migration `0044`, preventing new databases from missing those tables.
+- The first enforce-mode full regression exposed seven stale Bearer fixtures in Smart Assignment and Weakness Profile. They were converted to current cookie JWT fixtures, their targeted 9/9 tests passed, and the full suite then passed.
+- Batch 3 work was committed in separate recovery points. No push, merge, production deployment, production migration, secret change or production database operation was performed.
+- Task 10 remains intentionally open until real production evidence proves zero accepted legacy traffic for 72 continuous hours and a later 48-hour enforce stability window supports deleting the compatibility path.
+
 ### Task 10 — Cookie enforcement implementation complete; production observation pending
 
 - Checked-in Worker defaults now use `AUTH_MIGRATION_MODE="enforce"` and cookie transport; no deployment or secret change was performed.

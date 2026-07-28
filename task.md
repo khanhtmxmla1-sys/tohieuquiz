@@ -9,7 +9,7 @@
 | Stream | Phạm vi | Branch/worktree | Trạng thái |
 |---|---|---|---|
 | A — Baseline & Governance | Task 1–3 | `feat/modernization-integration` | Tasks 1–3 hoàn tất |
-| B — Security/API/Privacy | Task 4–9, 11 | `feat/modernization-integration` | Tasks 4–9 và 11 hoàn tất trong phạm vi đã mở |
+| B — Security/API/Privacy | Task 4–11 | `feat/modernization-integration` | Tasks 4–9 và 11 hoàn tất; Task 10 code/config đạt, observation production còn mở |
 | C — UI Foundation | Task 13–16 | `feat/modernization-integration` | Tasks 13–16 hoàn tất trong phạm vi đã mở |
 | D — Database/Operations | Task 12, 30–31 | `feat/modernization-db-ops` | Chưa mở trong batch này |
 | E — Performance/CI/Test | Task 27–28 | `feat/modernization-integration` | Tasks 27–28 hoàn tất |
@@ -41,6 +41,7 @@
   - [x] JWT thiếu issuer/audience/tokenVersion bị từ chối; student token mới có `tokenVersion: 0`.
   - [x] Compat ghi structured metric không chứa token/username; rollback được giới hạn về `AUTH_MIGRATION_MODE=compat`.
   - [x] 22 cookie/JWT migration tests, Workers typecheck và targeted lint đạt.
+  - [x] Full regression sau khi đồng bộ fixture cookie-only: 309/309 file và 1.459/1.459 test đạt.
   - [ ] Xác nhận 0 legacy request hợp lệ trong 72 giờ production liên tục.
   - [ ] Sau 48 giờ enforce ổn định, xóa code path Bearer/legacy claims bằng commit riêng.
 - [x] Task 11 — Security gate cho root và Workers
@@ -103,6 +104,17 @@
 - [x] Cypress component/E2E liên quan
 - [x] Playwright/browser smoke frontend local: HTTP 200, không `pageerror`, không tràn ngang
 - [x] Review diff và secret scan
+
+## Batch 3 — Final verification
+
+- [x] Full Vitest: 309/309 file, 1.459/1.459 test; 416,01 giây theo Vitest, 418,17 giây wrapper.
+- [x] ESLint, frontend typecheck và Workers typecheck đạt.
+- [x] Security scan/history/policy gates và production dependency audits root + Workers đạt, 0 lỗ hổng.
+- [x] Production build đạt; 4.447 modules; mọi chunk dưới 500 KB minified.
+- [x] Bốn assertion drift của baseline đã được xử lý; canonical `workers/schema.sql` đã đồng bộ hai bảng quota AI Tutor của migration `0044`.
+- [x] Bảy fixture Bearer cũ trong Smart Assignment/Weakness Profile đã chuyển sang cookie JWT enforce và 9/9 test mục tiêu đạt.
+- [x] Mỗi task lớn của Batch 3 đã có commit riêng; chưa push, merge, deploy, migration production, đổi secret hoặc sửa production DB.
+- [ ] Task 10 vẫn chờ bằng chứng production 72 giờ không có legacy request và 48 giờ enforce ổn định trước khi xóa compat path.
 
 ## File matrix của batch hiện tại
 
