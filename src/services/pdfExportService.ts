@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+
 import { Quiz, StudentResult, QuestionType } from '../types';
 import { setupUnicodeFont, FONT_NAME } from '../utils/pdfFonts';
 import { normalizeWorksheetMath } from './worksheet-export/shared/mathNormalizer';
@@ -15,6 +15,7 @@ interface ExportOptions {
  * Export quiz result to PDF
  */
 export const exportResultToPDF = async (options: ExportOptions): Promise<void> => {
+    const { default: jsPDF } = await import('jspdf');
     const { quiz, result, answers, studentName, studentClass } = options;
 
     const doc = new jsPDF({

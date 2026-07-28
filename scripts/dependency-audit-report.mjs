@@ -3,6 +3,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const root = process.cwd();
+const workspaceArg = process.argv.find(argument => argument.startsWith('--workspace='));
+const workspace = workspaceArg ? workspaceArg.slice('--workspace='.length) : 'root';
+const auditRoot = workspace === 'root' ? root : path.resolve(root, workspace);
 const production = process.argv.includes('--production');
 const enforce = process.argv.includes('--enforce');
 const npmCli = process.env.npm_execpath
@@ -16,7 +19,7 @@ if (!fs.existsSync(npmCli)) {
 const args = [npmCli, 'audit', '--json'];
 if (production) args.push('--omit=dev');
 const result = spawnSync(process.execPath, args, {
-  cwd: root,
+  cwd: auditRoot,
   encoding: 'utf8',
   windowsHide: true,
 });
@@ -41,6 +44,7 @@ const vulnerabilities = {
 };
 const summary = {
   generatedAt: new Date().toISOString(),
+  workspace,
   scope: production ? 'production' : 'all',
   vulnerabilities,
   dependencies: payload?.metadata?.dependencies || {},
@@ -59,10 +63,10 @@ const summary = {
 
 const reportsDir = path.join(root, 'reports');
 fs.mkdirSync(reportsDir, { recursive: true });
-const reportPath = path.join(reportsDir, `dependency-audit-${summary.scope}.json`);
+const reportPath = path.join(reportsDir, `dependency-audit-${workspace}-${summary.scope}.json`);
 fs.writeFileSync(reportPath, `${JSON.stringify(summary, null, 2)}\n`);
 process.stdout.write(
-  `Dependency audit (${summary.scope}): critical=${vulnerabilities.critical} high=${vulnerabilities.high} `
+  `Dependency audit (${workspace}/${summary.scope}): critical=${vulnerabilities.critical} high=${vulnerabilities.high} `
   + `moderate=${vulnerabilities.moderate} low=${vulnerabilities.low} total=${vulnerabilities.total}\n`,
 );
 process.stdout.write(`Report: ${reportPath}\n`);

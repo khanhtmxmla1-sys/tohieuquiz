@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+
 import { setupUnicodeFont } from '../../../utils/pdfFonts';
 import { createWorksheetFileName } from '../fileName';
 import type { WorksheetExportOptions } from '../types';
@@ -7,7 +7,7 @@ import { drawPdfBackground, drawPdfHeader } from './pdfLayout';
 import { renderPdfQuestion } from './pdfQuestionRenderers';
 import type { PdfRenderContext } from './pdfTypes';
 
-function addPdfFooters(doc: jsPDF, schoolName: string): void {
+function addPdfFooters(doc: PdfRenderContext['doc'], schoolName: string): void {
     const totalPages = doc.getNumberOfPages();
     for (let page = 1; page <= totalPages; page += 1) {
         doc.setPage(page);
@@ -25,6 +25,7 @@ function addPdfFooters(doc: jsPDF, schoolName: string): void {
 export async function exportWorksheetPdf(opts: WorksheetExportOptions): Promise<void> {
     const schoolName = opts.schoolName || 'TôHiệuQuiz';
     try {
+        const { default: jsPDF } = await import('jspdf');
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
         setupUnicodeFont(doc);
         drawPdfBackground(doc, opts.paperStyle);

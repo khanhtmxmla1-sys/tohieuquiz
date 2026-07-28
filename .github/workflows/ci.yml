@@ -149,6 +149,9 @@ jobs:
           VITE_FEATURE_PARENT_PORTAL_V1: 'false'
           VITE_GIFT_SHOP_MODE: api
 
+      - name: Enforce performance budget
+        run: npm run perf:budget
+
       - name: Verify no placeholder host leaked into the bundle
         run: |
           # Match a hostname ending in `.invalid`, not any identifier containing it.

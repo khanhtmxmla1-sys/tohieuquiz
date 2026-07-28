@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type { StudentResult } from '../../../../../types';
-import html2canvas from 'html2canvas';
+
 import { toast } from 'react-hot-toast';
 
 export const useResultImageExport = (
@@ -11,6 +11,7 @@ export const useResultImageExport = (
         if (!reportRef.current) return;
         const loadingToast = toast.loading('Đang chuẩn bị báo cáo...');
         try {
+            const { default: html2canvas } = await import('html2canvas');
             const canvas = await html2canvas(reportRef.current, {
                 scale: 2,
                 useCORS: true,
