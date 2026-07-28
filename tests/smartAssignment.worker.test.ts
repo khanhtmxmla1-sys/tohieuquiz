@@ -42,12 +42,12 @@ async function createTestJwt(payload: Record<string, unknown>, secret: string): 
 }
 
 async function createTeacherRequest(url: string, init: RequestInit): Promise<Request> {
-    const token = await createTestJwt({ username: 'teacher_001', role: 'teacher', fullName: 'Teacher 001' }, TEST_JWT_SECRET);
+    const token = await createTestJwt({ username: 'teacher_001', role: 'teacher', fullName: 'Teacher 001', tokenVersion: 1 }, TEST_JWT_SECRET);
     return new Request(url, {
         ...init,
         headers: {
             ...Object.fromEntries(new Headers(init.headers || {}).entries()),
-            Authorization: `Bearer ${token}`,
+            Cookie: `auth_token=${token}`,
         },
     });
 }
