@@ -58,4 +58,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0049_gift_shop_governance.sql'),
   ('0050_notification_preferences.sql'),
   ('0051_pagination_indexes.sql'),
-  ('0052_auth_sessions_security_events.sql');
+  ('0052_auth_sessions_security_events.sql'),
+  ('0053_webauthn_passkeys.sql');

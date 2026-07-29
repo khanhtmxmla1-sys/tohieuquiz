@@ -47,6 +47,7 @@ export interface WorkerFetchDependencies {
   now?: () => number;
   handleTeacherRoutes: RouteHandler;
   handleSecurityCenterRoutes: RouteHandler;
+  handlePasskeyRoutes: RouteHandler;
   handleLogoutRoute: SimpleRouteHandler;
   handleQuizDraftRoutes: RouteHandler;
   handleQuizRoutes: RouteHandler;
@@ -104,6 +105,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     now = Date.now,
     handleTeacherRoutes,
     handleSecurityCenterRoutes,
+    handlePasskeyRoutes,
     handleLogoutRoute,
     handleQuizDraftRoutes,
     handleQuizRoutes,
@@ -196,7 +198,9 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
 
     const isUnsafeMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
     const isLoginAttempt = method === 'POST'
-      && (path === '/api/login' || path === '/api/student-login');
+      && (path === '/api/login'
+        || path === '/api/student-login'
+        || path.startsWith('/api/passkeys/authenticate/'));
     if (isLoginAttempt) {
       const rateLimitResponse = await rateLimit(request, env, {
         windowMs: 60 * 1000,
@@ -290,6 +294,9 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
 
       if (path === '/api/admin/operations') {
         response = await handleOperationsRoutes(request, env, path, method);
+      } else if (path.startsWith('/api/account/passkeys')
+        || path.startsWith('/api/passkeys/authenticate')) {
+        response = await handlePasskeyRoutes(request, env, path, method);
       } else if (path.startsWith('/api/account/sessions')
         || path === '/api/account/security-events'
         || path === '/api/account/logout-all') {

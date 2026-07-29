@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, GraduationCap, UserRound, Lock } from 'lucide-react';
+import { Loader2, GraduationCap, UserRound, Lock, Fingerprint } from 'lucide-react';
 
 interface LoginFormProps {
     activeTab: 'student' | 'teacher';
@@ -10,10 +10,14 @@ interface LoginFormProps {
     setPassword: (val: string) => void;
     isLoading: boolean;
     onSubmit: (e: React.FormEvent) => void;
+    onPasskey?: () => void;
+    isPasskeyLoading?: boolean;
+    passkeyAvailable?: boolean;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({
-    activeTab, setActiveTab, username, setUsername, password, setPassword, isLoading, onSubmit
+    activeTab, setActiveTab, username, setUsername, password, setPassword, isLoading, onSubmit,
+    onPasskey, isPasskeyLoading = false, passkeyAvailable = false,
 }) => {
     return (
         <div className="w-full max-w-[440px] px-0 md:px-0 order-1 md:order-2">
@@ -110,6 +114,21 @@ const LoginForm: React.FC<LoginFormProps> = ({
                             </span>
                         ) : 'Đăng nhập ngay'}
                     </button>
+
+                    {activeTab === 'teacher' && passkeyAvailable && onPasskey && (
+                        <>
+                            <div className="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-wider text-slate-400"><span className="h-px flex-1 bg-slate-200" />ho?c<span className="h-px flex-1 bg-slate-200" /></div>
+                            <button
+                                type="button"
+                                onClick={onPasskey}
+                                disabled={isLoading || isPasskeyLoading}
+                                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-emerald-200 bg-white font-bold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-50"
+                            >
+                                {isPasskeyLoading ? <Loader2 className="animate-spin" size={20} /> : <Fingerprint size={20} />}
+                                ??ng nh?p b?ng passkey
+                            </button>
+                        </>
+                    )}
                 </form>
 
                 {/* Support */}

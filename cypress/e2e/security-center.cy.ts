@@ -30,6 +30,14 @@ const otherSession = {
 describe('Security Center session management', () => {
   it('shows privacy-minimal sessions and revokes another device', () => {
     let sessions = [currentSession, otherSession];
+    let passkeys = [{
+      id: 'credential-private-1',
+      label: 'Laptop gi?o vi?n',
+      deviceType: 'singleDevice',
+      backedUp: false,
+      createdAt: '2026-07-28T08:00:00.000Z',
+      lastUsedAt: null,
+    }];
     const events = [{
       id: 'event-password',
       eventType: 'PASSWORD_CHANGED',
@@ -58,6 +66,13 @@ describe('Security Center session management', () => {
         },
       },
     }).as('accountProfile');
+    cy.intercept({ method: 'GET', pathname: '/api/account/passkeys' }, (request) => {
+      request.reply({ statusCode: 200, body: { status: 'success', data: passkeys } });
+    }).as('accountPasskeys');
+    cy.intercept({ method: 'DELETE', pathname: '/api/account/passkeys/credential-private-1' }, (request) => {
+      passkeys = [];
+      request.reply({ statusCode: 200, body: { status: 'success' } });
+    }).as('deletePasskey');
     cy.intercept({ method: 'GET', pathname: '/api/account/sessions' }, (request) => {
       request.reply({ statusCode: 200, body: { status: 'success', data: sessions } });
     }).as('accountSessions');
@@ -80,11 +95,19 @@ describe('Security Center session management', () => {
     cy.wait('@accountProfile');
     cy.wait('@accountSessions');
     cy.wait('@securityEvents');
+    cy.wait('@accountPasskeys');
     cy.contains('h3', 'Phiên đăng nhập', { timeout: 20_000 }).should('be.visible');
     cy.contains('Chrome').parent().should('contain.text', 'Phiên hiện tại');
     cy.contains('Firefox').should('be.visible');
     cy.contains('Đã đổi mật khẩu').should('be.visible');
     cy.get('body').should('not.contain.text', '192.168.');
+    cy.contains('Laptop gi?o vi?n').should('be.visible');
+    cy.get('body').should('not.contain.text', 'credential-private-1');
+    cy.contains('Laptop gi?o vi?n').closest('article').within(() => {
+      cy.contains('button', 'X?a').click();
+    });
+    cy.wait('@deletePasskey');
+    cy.contains('Laptop gi?o vi?n').should('not.exist');
 
     cy.contains('Firefox').closest('article').within(() => {
       cy.contains('button', 'Thu hồi').click();

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const api = vi.hoisted(() => ({ callApi: vi.fn() }));
 vi.mock('../src/services/apiAdapter', () => api);
 vi.mock('../src/utils/toast', () => ({ showSuccess: vi.fn(), showError: vi.fn() }));
+vi.mock('../src/features/security/PasskeyPanel', () => ({ PasskeyPanel: () => <div>Passkey settings</div> }));
 
 import { SecuritySessionsPanel } from '../src/features/security/SecuritySessionsPanel';
 

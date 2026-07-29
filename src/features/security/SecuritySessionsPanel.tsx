@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { History, Loader2, MonitorSmartphone, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { callApi } from '../../services/apiAdapter';
 import { showError, showSuccess } from '../../utils/toast';
+import { PasskeyPanel } from './PasskeyPanel';
 
 interface AccountSession {
   id: string;
@@ -138,6 +139,8 @@ export const SecuritySessionsPanel: React.FC = () => {
           ))}
         </div>
       )}
+
+      <PasskeyPanel />
 
       <div className="mt-6 border-t pt-5">
         <h4 className="flex items-center gap-2 font-bold text-slate-900"><History className="h-4 w-4" /> Hoạt động bảo mật gần đây</h4>

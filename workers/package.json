@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "wrangler dev",
         "deploy": "wrangler deploy --config ./wrangler.toml",
-    "deploy:api": "wrangler deploy --config ./wrangler.toml",
+        "deploy:api": "wrangler deploy --config ./wrangler.toml",
         "db:migrate": "wrangler d1 execute tohieuquiz-db --file=schema.sql --remote",
         "db:migrate:local": "wrangler d1 execute tohieuquiz-db --file=schema.sql --local",
         "db:migrate:0013:local": "wrangler d1 execute tohieuquiz-db --file=migrations/0013_add_question_skill_metadata.sql --local",
@@ -31,6 +31,7 @@
     },
     "dependencies": {
         "@resvg/resvg-wasm": "^2.6.2",
+        "@simplewebauthn/server": "13.3.0",
         "jose": "^5.2.0",
         "nanoid": "^5.1.5",
         "zod": "^4.2.1"

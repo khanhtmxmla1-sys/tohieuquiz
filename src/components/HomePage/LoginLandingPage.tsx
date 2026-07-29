@@ -7,6 +7,7 @@ import PasswordChangeDialog from '../common/PasswordChangeDialog';
 import CurrentAnnouncementBanner from '../common/CurrentAnnouncementBanner';
 import { NotificationSurfaceStack } from '../../features/notifications/components';
 import { useUnifiedNotificationsFeatureFlag } from '../../features/notifications/useUnifiedNotificationsFeatureFlag';
+import { authenticateTeacherWithPasskey, passkeysSupported } from '../../services/passkeyService';
 
 // Sub-components
 import LandingHeader from './components/LandingHeader';
@@ -31,6 +32,7 @@ const LoginLandingPage: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [pendingTeacher, setPendingTeacher] = useState<any | null>(null);
+    const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
     const authStore = useAuthStore();
     const classroomStore = useClassroomStore();
@@ -74,39 +76,52 @@ const LoginLandingPage: React.FC = () => {
         }
     };
 
+    const acceptTeacherSession = (teacher: any): boolean => {
+        const tUsername = String(teacher?.username || '').trim();
+        const tFullNameRaw = String(teacher?.fullName || teacher?.fullname || teacher?.full_name || teacher?.name || '').trim();
+        const tFullName = tFullNameRaw || tUsername;
+        const isTeacherAdmin = String(teacher?.role || '').trim().toLowerCase() === 'admin';
+        const tClass = teacher?.class ? String(teacher.class).trim() : undefined;
+        if (!tUsername) return false;
+        if (teacher.requiresPasswordChange) {
+            authStore.loginPendingPasswordChange();
+            setPendingTeacher({ username: tUsername, fullName: tFullName, isAdmin: isTeacherAdmin, class: tClass });
+            return true;
+        }
+        authStore.loginSuccess(tUsername, tFullName, isTeacherAdmin, tClass);
+        return true;
+    };
+
     const handleTeacherLogin = async () => {
         authStore.loginStart();
         try {
             const { callApi } = await import('../../services/apiAdapter');
             const result = await callApi<{ status?: string; data?: any; message?: string }>('login', { username, password });
-            
-            if (result?.status === 'success' && result.data) {
-                const teacher = result.data;
-                const tUsername = String(teacher.username || '').trim();
-                const tFullNameRaw = String(teacher.fullName || teacher.fullname || teacher.full_name || teacher.name || '').trim();
-                const tFullName = tFullNameRaw || tUsername;
-                const isTeacherAdmin = String(teacher.role || '').trim().toLowerCase() === 'admin';
-                const tClass = teacher.class ? String(teacher.class).trim() : undefined;
-                if (teacher.requiresPasswordChange) {
-                    authStore.loginPendingPasswordChange();
-                    setPendingTeacher({
-                        username: tUsername,
-                        fullName: tFullName,
-                        isAdmin: isTeacherAdmin,
-                        class: tClass,
-                    });
-                    return;
-                }
-                
-                authStore.loginSuccess(tUsername, tFullName, isTeacherAdmin, tClass);
-                return;
-            }
+            if (result?.status === 'success' && result.data && acceptTeacherSession(result.data)) return;
             authStore.loginFailure();
-            showError(result?.message || 'Tên đăng nhập hoặc mật khẩu không đúng!');
+            showError(result?.message || 'T?n ??ng nh?p ho?c m?t kh?u kh?ng ??ng!');
         } catch (error) {
             console.error('Login error:', error);
             authStore.loginFailure();
-            showError('Có lỗi xảy ra khi kết nối. Vui lòng thử lại!');
+            showError('C? l?i x?y ra khi k?t n?i. Vui l?ng th? l?i!');
+        }
+    };
+
+    const handlePasskeyLogin = async () => {
+        if (!username.trim()) {
+            showError('H?y nh?p t?i kho?n gi?o vi?n tr??c.');
+            return;
+        }
+        authStore.loginStart();
+        setIsPasskeyLoading(true);
+        try {
+            const teacher = await authenticateTeacherWithPasskey<any>(username);
+            if (!acceptTeacherSession(teacher)) throw new Error('Ph?n h?i t?i kho?n kh?ng h?p l?.');
+        } catch (error) {
+            authStore.loginFailure();
+            showError(error instanceof Error ? error.message : 'Kh?ng th? ??ng nh?p b?ng passkey.');
+        } finally {
+            setIsPasskeyLoading(false);
         }
     };
 
@@ -150,6 +165,9 @@ const LoginLandingPage: React.FC = () => {
                         setPassword={setPassword}
                         isLoading={isLoading}
                         onSubmit={handleLogin}
+                        onPasskey={() => void handlePasskeyLogin()}
+                        isPasskeyLoading={isPasskeyLoading}
+                        passkeyAvailable={passkeysSupported()}
                     />
                 </Suspense>
             </main>

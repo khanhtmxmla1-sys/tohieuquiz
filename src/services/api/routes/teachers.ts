@@ -39,6 +39,26 @@ export const teacherRoutes: RouteRegistry = {
         method: 'POST', auth: 'session', path: () => '/api/account/change-password',
         body: (_action, payload) => ({ currentPassword: payload.currentPassword, newPassword: payload.newPassword }),
     },
+    get_account_passkeys: { method: 'GET', auth: 'session', path: () => '/api/account/passkeys' },
+    begin_passkey_registration: {
+        method: 'POST', auth: 'session', path: () => '/api/account/passkeys/register/options', body: () => ({}),
+    },
+    finish_passkey_registration: {
+        method: 'POST', auth: 'session', path: () => '/api/account/passkeys/register/verify',
+        body: (_action, payload) => ({ challengeId: payload.challengeId, response: payload.response, label: payload.label }),
+    },
+    revoke_account_passkey: {
+        method: 'DELETE', auth: 'session',
+        path: ({ credentialId }) => `/api/account/passkeys/${encodeURIComponent(credentialId)}`,
+    },
+    begin_passkey_authentication: {
+        method: 'POST', auth: 'public', path: () => '/api/passkeys/authenticate/options',
+        body: (_action, payload) => ({ username: payload.username }),
+    },
+    finish_passkey_authentication: {
+        method: 'POST', auth: 'public', path: () => '/api/passkeys/authenticate/verify',
+        body: (_action, payload) => ({ username: payload.username, challengeId: payload.challengeId, response: payload.response }),
+    },
     get_account_sessions: { method: 'GET', auth: 'session', path: () => '/api/account/sessions' },
     get_account_security_events: { method: 'GET', auth: 'session', path: () => '/api/account/security-events' },
     revoke_account_session: {

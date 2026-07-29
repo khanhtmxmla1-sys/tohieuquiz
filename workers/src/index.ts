@@ -8,6 +8,7 @@ import { jsonResponse, errorResponse } from './utils/response';
 import { internalErrorResponse } from './utils/internalError';
 import { handleTeacherRoutes } from './routes/teachers';
 import { handleSecurityCenterRoutes } from './routes/securityCenter';
+import { handlePasskeyRoutes } from './routes/passkeys';
 import { handleQuizRoutes } from './routes/quizzes';
 import { handleQuizDraftRoutes } from './routes/quizDrafts';
 import { handleResultRoutes } from './routes/results';
@@ -56,6 +57,7 @@ import { createDueHomeworkReminders } from './parentPortal/deadlineReminderServi
 import { createParentEmailProvider } from './parentPortal/emailProvider';
 import { runWeeklyParentDigests } from './parentPortal/digestService';
 import { purgeExpiredAuthSecurityData } from './services/authSessionService';
+import { purgeExpiredWebAuthnChallenges } from './services/webauthnService';
 
 const fetch = createWorkerFetch({
     handleCors,
@@ -68,6 +70,7 @@ const fetch = createWorkerFetch({
     rateLimit,
     handleTeacherRoutes,
     handleSecurityCenterRoutes,
+    handlePasskeyRoutes,
     handleLogoutRoute,
     handleQuizDraftRoutes,
     handleQuizRoutes,
@@ -120,6 +123,7 @@ export default {
             }
             try {
                 await purgeExpiredAuthSecurityData(env.DB, new Date());
+                await purgeExpiredWebAuthnChallenges(env.DB, new Date());
             } catch (error) {
                 console.error('[Cron] Failed to purge expired auth security rows:', error);
             }

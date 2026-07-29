@@ -46,6 +46,9 @@ const policy = (
 export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('health', '/api/health', 'public', ['none'], 'router health response', { match: 'exact', methods: ['GET'] }),
   policy('teacher-login', '/api/login', 'public', ['none'], 'teacher login handler', { match: 'exact', methods: ['POST'] }),
+  policy('passkey-auth', '/api/passkeys/authenticate', 'public', ['none'], 'rate limited SimpleWebAuthn authentication flow', { methods: ['POST'] }),
+  policy('passkey-auth-options', '/api/passkeys/authenticate/options', 'public', ['none'], 'rate limited WebAuthn options', { match: 'exact', methods: ['POST'] }),
+  policy('passkey-auth-verify', '/api/passkeys/authenticate/verify', 'public', ['none'], 'SimpleWebAuthn verification and session issuance', { match: 'exact', methods: ['POST'] }),
   policy('student-login', '/api/student-login', 'public', ['none'], 'classroom login handler', { match: 'exact', methods: ['POST'] }),
   policy('parent-activate', '/api/parent/activate', 'public', ['none'], 'parent activation handler', { match: 'exact', methods: ['POST'] }),
   policy('parent-login', '/api/parent/login', 'public', ['none'], 'parent login handler', { match: 'exact', methods: ['POST'] }),
@@ -78,6 +81,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('parent-delivery', '/api/parent-delivery', 'teacher-owned', ['classId', 'studentId'], 'teacher class-scope guard'),
 
   policy('logout', '/api/logout', 'authenticated', ['session'], 'logout session handler', { match: 'exact', methods: ['POST'] }),
+  policy('account-passkeys', '/api/account/passkeys', 'authenticated', ['session'], 'staff owner scope and WebAuthn verification'),
   policy('account-sessions', '/api/account/sessions', 'authenticated', ['session'], 'session owner scope and server-side revocation'),
   policy('account-security-events', '/api/account/security-events', 'authenticated', ['session'], 'security event owner scope', { match: 'exact', methods: ['GET'] }),
   policy('account-logout-all', '/api/account/logout-all', 'authenticated', ['session'], 'session owner scope and cutoff revocation', { match: 'exact', methods: ['POST'] }),

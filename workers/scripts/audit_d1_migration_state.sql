@@ -363,7 +363,14 @@ WITH checks(migration, check_name, ok) AS (
     ('0052_auth_sessions_security_events.sql', 'session and security event indexes',
       (SELECT COUNT(*)=6 FROM sqlite_master WHERE type='index' AND name IN (
         'idx_auth_sessions_user_created','idx_auth_sessions_active_expiry','idx_auth_sessions_retention',
-        'idx_security_events_user_created','idx_security_events_type_created','idx_security_events_retention')))
+        'idx_security_events_user_created','idx_security_events_type_created','idx_security_events_retention'))),
+    ('0053_webauthn_passkeys.sql', 'webauthn credential and challenge tables',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table' AND name IN (
+        'webauthn_credentials','webauthn_challenges'))),
+    ('0053_webauthn_passkeys.sql', 'webauthn indexes',
+      (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_webauthn_credentials_user_created','idx_webauthn_credentials_active',
+        'idx_webauthn_challenges_owner_expiry','idx_webauthn_challenges_retention')))
 ), summary AS (
   SELECT
     migration,
