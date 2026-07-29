@@ -33,7 +33,10 @@ describe('FeatureRolloutPanel', () => {
   it('previews the cohort and patches exactly one selected field with a reason', async () => {
     render(<FeatureRolloutPanel />);
     expect((await screen.findByText(/Preview cohort:/)).parentElement).toHaveTextContent('teacher, 5%');
-    fireEvent.change(screen.getByLabelText('Giá trị'), { target: { value: '25' } });
+    const valueInput = screen.getByLabelText('Giá trị');
+    await waitFor(() => expect(valueInput).toHaveValue(5));
+    fireEvent.change(valueInput, { target: { value: '25' } });
+    expect(valueInput).toHaveValue(25);
     fireEvent.change(screen.getByLabelText('Lý do bắt buộc'), { target: { value: 'Mở pilot 25%' } });
     fireEvent.click(screen.getByRole('button', { name: 'Lưu một trường' }));
     await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith('unified_notifications_v1', {

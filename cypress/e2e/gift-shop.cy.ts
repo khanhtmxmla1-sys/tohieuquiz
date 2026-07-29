@@ -142,7 +142,10 @@ function installGiftShopApi(seedOrders: Array<typeof pendingOrder> = [], account
       (!studentId || order.studentId === studentId)
       && (!status || status === 'ALL' || order.status === status)
     ));
-    req.reply(matched);
+    req.reply({
+      data: matched,
+      meta: { nextCursor: null, hasMore: false },
+    });
   }).as('giftOrders');
 
   cy.intercept('POST', '**/api/gift-shop/purchase', (req) => {

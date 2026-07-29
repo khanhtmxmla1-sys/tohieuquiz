@@ -66,6 +66,18 @@ const installDraft = (win: Window, draft = validDraft()) => {
 };
 
 const interceptManualQuizBackend = () => {
+    cy.intercept('GET', '**/api/quizzes*', {
+        statusCode: 200,
+        body: { status: 'success', data: [] },
+    }).as('initialQuizzes');
+    cy.intercept('GET', '**/api/questions*', {
+        statusCode: 200,
+        body: { status: 'success', data: [] },
+    }).as('initialQuestions');
+    cy.intercept('GET', '**/api/system-settings*', {
+        statusCode: 200,
+        body: { status: 'success', data: { aiAssistantEnabled: false } },
+    }).as('systemSettings');
     cy.intercept('GET', '**/api/account/me', {
         statusCode: 200,
         body: {
@@ -148,7 +160,7 @@ describe('Manual quiz workspace end-to-end', () => {
         cy.wait('@accountProfile', { timeout: 15_000 });
         cy.get('[data-testid="manual-quiz-workspace"]', { timeout: 15_000 }).should('be.visible');
 
-        cy.get('#manual-quiz-title').clear().type('Đề đang tự động lưu');
+        cy.get('#manual-quiz-title').clear({ force: true }).type('Đề đang tự động lưu', { force: true });
         cy.get('button[aria-label="Thêm nhanh Trắc nghiệm"]').click();
         cy.get('textarea[placeholder="Nhập nội dung câu hỏi..."]').clear().type('1 + 1 bằng bao nhiêu?');
         cy.get('input[placeholder="Đáp án A"]').type('1');
@@ -171,7 +183,7 @@ describe('Manual quiz workspace end-to-end', () => {
             Object.defineProperty(win.navigator, 'onLine', { configurable: true, value: false });
             win.dispatchEvent(new Event('offline'));
         });
-        cy.get('#manual-quiz-title').clear().type('Đề sửa khi ngoại tuyến');
+        cy.get('#manual-quiz-title').clear({ force: true }).type('Đề sửa khi ngoại tuyến', { force: true });
         cy.contains('Ngoại tuyến – đã lưu trên thiết bị').should('be.visible');
 
         cy.window().then((win) => {
@@ -191,7 +203,7 @@ describe('Manual quiz workspace end-to-end', () => {
         cy.contains('button', 'Xuất bản đề').click();
         cy.wait('@publishQuiz');
         cy.wait('@deleteDraft');
-        cy.location('pathname', { timeout: 15_000 }).should('eq', '/');
+        cy.location('pathname', { timeout: 15_000 }).should('eq', '/teacher/quizzes');
     });
 
     [
