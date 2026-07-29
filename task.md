@@ -181,7 +181,7 @@
   - [x] Workflow gate chạy trên pull request/main, bao phủ verify, performance budget, migration contract và Cypress V2/V3; không có lệnh deploy.
   - [x] Script và workflow sinh artifact JSON `ready|blocked`; báo cáo aggregate giữ tên check ổn định `Release ready`.
   - [x] CODEOWNERS, desired-state branch protection và runbook xác minh/rollback đã được thêm.
-  - [ ] Branch protection remote chưa thể xác minh/áp dụng: GitHub API trả HTTP 403, yêu cầu GitHub Pro hoặc repository public; không thay đổi visibility/gói tài khoản.
+  - [ ] Branch protection remote chưa thể áp dụng/xác minh: repository đã public, nhưng GitHub CLI trên máy hiện trả HTTP 401 `Bad credentials`; cần đăng nhập lại `gh` trước khi thay đổi remote settings.
   - [x] Targeted 5 file/26 test; full Vitest 349 file/1.634 test, coverage 4 file/32 test, lint, typecheck, build, security và dependency audit đều đạt.
 - [ ] Task 37 — Production smoke và staged rollout automation
 - [ ] Task 38 — Cleanup production, release notes và maintenance calendar
