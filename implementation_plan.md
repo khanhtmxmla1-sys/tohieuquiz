@@ -666,12 +666,12 @@ interface AuthState {
 - Modify: `shared/notifications.contract.ts`, notification schema/service/routes/UI.
 - Test: `tests/notificationPreference.test.ts`, existing E2E.
 
-- [ ] Severity critical/action_required/informational.
-- [ ] Dedupe key theo recipient/type/resource/window.
-- [ ] Quiet hours chỉ trì hoãn informational; critical không bị tắt vĩnh viễn.
-- [ ] Read state authoritative ở server.
-- [ ] Notification expiry và allowlisted internal links.
-- [ ] Aggregate sent/read/click metrics theo quyền.
+- [x] Severity critical/action_required/informational.
+- [x] Dedupe key theo recipient/type/resource/window.
+- [x] Quiet hours chỉ trì hoãn informational; critical không bị tắt vĩnh viễn.
+- [x] Read state authoritative ở server.
+- [x] Notification expiry và allowlisted internal links.
+- [x] Aggregate sent/read/click metrics theo quyền.
 
 **Acceptance:** Một event không tạo notification trùng; preferences được tôn trọng.
 

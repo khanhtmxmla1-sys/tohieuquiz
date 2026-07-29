@@ -133,7 +133,13 @@
   - [x] Action Center cảnh báo tồn kho thấp và mở đúng bộ lọc Gift Shop; đã bổ sung bảo vệ render cho `gift_low_stock`.
   - [x] Migration/rollback `0049`, schema canonical, registry, policy và route contract được đồng bộ.
   - [x] Targeted Vitest 14 file/116 test và Action Center 2 file/10 test; Cypress Gift Shop 4/4 và Action Center 2/2; lint, frontend/Worker typecheck, build và security scan đạt.
-- [ ] Task 26 — Notification preference/dedupe/quiet hours
+- [x] Task 26 — Notification preference/dedupe/quiet hours
+  - [x] Contract và UI phân loại `critical`, `action_required`, `informational`; critical luôn bật, informational có thể trì hoãn theo giờ yên lặng.
+  - [x] Dedupe theo recipient/type/resource/window; expiry và internal action URL được kiểm tra theo allowlist.
+  - [x] Read/unread là trạng thái authoritative từ server; client chỉ cập nhật sau khi API xác nhận và giữ nguyên khi request lỗi.
+  - [x] Preferences theo người dùng/role, loại thông báo, timezone và quiet hours; migration/rollback `0050`, schema canonical, registry và audit query đã đồng bộ.
+  - [x] Admin aggregate metrics theo sent/read/click; click tracking và quyền truy cập route được kiểm tra.
+  - [x] Targeted regression và Cypress Notifications 2/2 đạt; full Vitest 346 file/1.625 test, coverage 4 file/32 test, lint, frontend/strict/Worker typecheck, build, security và dependency audit đều đạt.
 
 ## Wave 4 — Hiệu năng và observability
 

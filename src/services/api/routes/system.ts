@@ -51,10 +51,26 @@ export const systemRoutes: RouteRegistry = {
             return params;
         },
     },
+    get_notification_preferences: {
+        method: 'GET',
+        auth: 'session',
+        path: () => '/api/notifications/preferences',
+    },
+    save_notification_preferences: {
+        method: 'PUT',
+        auth: 'session',
+        path: () => '/api/notifications/preferences',
+    },
     mark_notification_read: {
         method: 'PATCH',
         auth: 'session',
         path: ({ id }) => `/api/notifications/${encodeURIComponent(id)}/read`,
+        body: () => ({}),
+    },
+    record_notification_click: {
+        method: 'POST',
+        auth: 'session',
+        path: ({ id }) => `/api/notifications/${encodeURIComponent(id)}/click`,
         body: () => ({}),
     },
     mark_all_notifications_read: {
@@ -62,6 +78,17 @@ export const systemRoutes: RouteRegistry = {
         auth: 'session',
         path: () => '/api/notifications/read-all',
         body: () => ({}),
+    },
+    get_notification_metrics: {
+        method: 'GET',
+        auth: 'session',
+        path: () => '/api/admin/notification-metrics',
+        query: ({ from, to }) => {
+            const params = new URLSearchParams();
+            if (from) params.set('from', from);
+            if (to) params.set('to', to);
+            return params;
+        },
     },
     get_system_settings: {
         method: 'GET',

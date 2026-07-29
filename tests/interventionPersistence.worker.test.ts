@@ -72,12 +72,18 @@ const setup = () => {
       body TEXT,
       data TEXT NOT NULL DEFAULT '{}',
       priority TEXT NOT NULL DEFAULT 'INFO',
+      severity TEXT NOT NULL DEFAULT 'informational',
       source_type TEXT,
       source_id TEXT,
+      dedupe_key TEXT,
       action_url TEXT,
+      available_at TEXT,
       expires_at TEXT,
+      read_at TEXT,
+      clicked_at TEXT,
+      sent_at TEXT,
       created_at TEXT NOT NULL,
-      UNIQUE(user_id, source_type, source_id)
+      UNIQUE(user_id, user_role, dedupe_key)
     );
   `);
   sqlite.exec(readFileSync('workers/migrations/0047_results_intervention_center.sql', 'utf8'));

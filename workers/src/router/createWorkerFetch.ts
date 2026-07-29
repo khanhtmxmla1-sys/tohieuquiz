@@ -340,7 +340,10 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
         response = await handleTeacherAiQuotaRoutes(request, env, path, method);
       } else if (path.startsWith('/api/live-exam')) {
         response = await handleLiveExamRoutes(request, env, path, method);
-      } else if (path.startsWith('/api/notifications')) {
+      } else if (
+        path.startsWith('/api/notifications')
+        || path === '/api/admin/notification-metrics'
+      ) {
         response = await handleNotificationRoutes(request, env, path, method);
       } else if (
         path.startsWith('/api/certificate-batches')

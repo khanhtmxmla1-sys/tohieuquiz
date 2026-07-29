@@ -1247,20 +1247,47 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read INTEGER NOT NULL DEFAULT 0 CHECK(is_read IN (0, 1)),
   priority TEXT NOT NULL DEFAULT 'INFO'
     CHECK (priority IN ('INFO', 'REMINDER', 'IMPORTANT', 'URGENT')),
+  severity TEXT NOT NULL DEFAULT 'informational'
+    CHECK (severity IN ('critical', 'action_required', 'informational')),
   action_url TEXT,
   source_type TEXT,
   source_id TEXT,
+  dedupe_key TEXT,
+  available_at TEXT,
   expires_at TEXT,
+  read_at TEXT,
+  clicked_at TEXT,
+  sent_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  user_id TEXT NOT NULL,
+  user_role TEXT NOT NULL CHECK(user_role IN ('student', 'teacher', 'admin')),
+  action_required_enabled INTEGER NOT NULL DEFAULT 1 CHECK(action_required_enabled IN (0, 1)),
+  informational_enabled INTEGER NOT NULL DEFAULT 1 CHECK(informational_enabled IN (0, 1)),
+  quiet_hours_enabled INTEGER NOT NULL DEFAULT 0 CHECK(quiet_hours_enabled IN (0, 1)),
+  quiet_start TEXT NOT NULL DEFAULT '21:00',
+  quiet_end TEXT NOT NULL DEFAULT '06:30',
+  timezone_offset_minutes INTEGER NOT NULL DEFAULT 420 CHECK(timezone_offset_minutes BETWEEN -720 AND 840),
+  type_preferences_json TEXT NOT NULL DEFAULT '{}',
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY(user_id, user_role)
 );
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, user_role, is_read);
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_inbox
   ON notifications(user_id, user_role, is_read, created_at DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_source_dedupe
-  ON notifications(user_id, user_role, source_type, source_id, type)
-  WHERE source_type IS NOT NULL AND source_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_window_dedupe
+  ON notifications(user_id, user_role, dedupe_key)
+  WHERE dedupe_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_notifications_delivery_feed
+  ON notifications(user_id, user_role, available_at DESC, created_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_metrics
+  ON notifications(sent_at, severity, read_at, clicked_at);
+CREATE INDEX IF NOT EXISTS idx_notification_preferences_role
+  ON notification_preferences(user_role, updated_at DESC);
 
 -- Parent Portal access and one-way communication
 CREATE TABLE IF NOT EXISTS parent_links (

@@ -341,7 +341,15 @@ WITH checks(migration, check_name, ok) AS (
         'trg_gift_order_approved','trg_gift_order_delivered','trg_gift_order_cancelled'))
       AND (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='index' AND name IN (
         'idx_gift_catalog_scope_stock','idx_gift_orders_student_item_week',
-        'idx_gift_scope_settings_lookup','idx_gift_events_request')))
+        'idx_gift_scope_settings_lookup','idx_gift_events_request'))),
+    ('0050_notification_preferences.sql', 'notification preference columns and table',
+      (SELECT COUNT(*)=6 FROM pragma_table_info('notifications')
+       WHERE name IN ('severity','dedupe_key','available_at','read_at','clicked_at','sent_at'))
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='notification_preferences')),
+    ('0050_notification_preferences.sql', 'notification delivery indexes',
+      (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_notifications_window_dedupe','idx_notifications_delivery_feed',
+        'idx_notifications_metrics','idx_notification_preferences_role')))
 ), summary AS (
   SELECT
     migration,

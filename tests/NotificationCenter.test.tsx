@@ -10,6 +10,15 @@ const inbox = vi.hoisted(() => ({
 vi.mock('../src/features/notifications/useNotificationInbox', () => ({
   useNotificationInbox: () => inbox.value,
 }));
+vi.mock('../src/features/notifications/notificationService', () => ({
+  recordNotificationClick: vi.fn().mockResolvedValue(undefined),
+  fetchNotificationPreferences: vi.fn().mockResolvedValue({
+    criticalEnabled: true, actionRequiredEnabled: true, informationalEnabled: true,
+    quietHoursEnabled: false, quietStart: '21:00', quietEnd: '06:30',
+    timezoneOffsetMinutes: 420, typePreferences: {},
+  }),
+  saveNotificationPreferences: vi.fn(async (value) => value),
+}));
 
 import { NotificationCenter } from '../src/features/notifications/components';
 
@@ -21,12 +30,14 @@ const notification = (
   id,
   type: 'assignment_created',
   priority: 'INFO',
+  severity: 'informational',
   title,
   body: 'Nội dung',
   actionUrl: null,
   data: { assignment_id: `assignment-${id}` },
   isRead,
   createdAt: '2026-07-24T00:00:00.000Z',
+  availableAt: '2026-07-24T00:00:00.000Z',
   expiresAt: null,
 });
 
@@ -42,8 +53,8 @@ describe('NotificationCenter', () => {
       isRefreshing: false,
       isStale: false,
       error: null,
-      markRead: vi.fn().mockResolvedValue(undefined),
-      markAllRead: vi.fn().mockResolvedValue(undefined),
+      markRead: vi.fn().mockResolvedValue(true),
+      markAllRead: vi.fn().mockResolvedValue(true),
       refresh: vi.fn(),
     };
   });

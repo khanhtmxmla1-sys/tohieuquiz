@@ -64,6 +64,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
 
   policy('admin-all', '/api/admin/', 'admin-only', ['route-handler'], 'route-specific requireAdmin checks'),
   policy('admin-teachers', '/api/admin/teachers', 'admin-only', ['route-handler'], 'teacher requireAdmin checks'),
+  policy('admin-notification-metrics', '/api/admin/notification-metrics', 'admin-only', ['route-handler'], 'notification metrics requireAdmin checks', { match: 'exact', methods: ['GET'] }),
   policy('admin-announcements', '/api/admin/announcements', 'admin-only', ['route-handler'], 'announcement requireAdmin checks'),
   policy('admin-certificates', '/api/admin/certificate-templates', 'admin-only', ['route-handler'], 'certificate requireAdmin checks'),
   policy('admin-math-audit', '/api/admin/math-audit', 'admin-only', ['route-handler'], 'math requireAdmin checks'),
