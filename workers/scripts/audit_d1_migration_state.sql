@@ -325,7 +325,23 @@ WITH checks(migration, check_name, ok) AS (
         'idx_parent_contact_preferences_digest_due','idx_parent_contact_tokens_lookup',
         'idx_parent_contact_tokens_link_created','idx_parent_digest_runs_status_updated',
         'idx_parent_account_audit_link_created'
-       )))
+       ))),
+
+    ('0049_gift_shop_governance.sql', 'gift shop governance columns and settings',
+      (SELECT COUNT(*)=9 FROM pragma_table_info('gift_catalog_items')
+       WHERE name IN ('stock_total','stock_remaining','low_stock_threshold','weekly_limit_per_student',
+        'scope_type','school_id','class_id','grade_level','created_by'))
+      AND (SELECT COUNT(*)=10 FROM pragma_table_info('gift_orders')
+       WHERE name IN ('item_id','school_id','grade_level','week_key','approved_by','approved_at',
+        'cancelled_by','cancelled_at','transition_actor','transition_request_id'))
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='gift_shop_scope_settings')),
+    ('0049_gift_shop_governance.sql', 'gift shop governance triggers and indexes',
+      (SELECT COUNT(*)=6 FROM sqlite_master WHERE type='trigger' AND name IN (
+        'trg_gift_order_purchase_guard','trg_gift_order_purchase_commit','trg_gift_order_transition_guard',
+        'trg_gift_order_approved','trg_gift_order_delivered','trg_gift_order_cancelled'))
+      AND (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_gift_catalog_scope_stock','idx_gift_orders_student_item_week',
+        'idx_gift_scope_settings_lookup','idx_gift_events_request')))
 ), summary AS (
   SELECT
     migration,

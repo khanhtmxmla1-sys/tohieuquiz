@@ -1,17 +1,11 @@
-import type { GiftCategory, GiftOrderActor, GiftOrderQuery, GiftOrderStatus } from '../../../types/giftShop.types';
-
+﻿import type { GiftCatalogScope, GiftCategory, GiftOrderActor, GiftOrderQuery, GiftOrderStatus } from '../../../types/giftShop.types';
 export interface GiftCatalogFormState {
-  name: string;
-  category: GiftCategory;
-  priceCoins: string;
-  imageUrl: string;
+  name: string; category: GiftCategory; priceCoins: string; imageUrl: string;
+  stockTotal: string; lowStockThreshold: string; weeklyLimitPerStudent: string;
+  scopeType: GiftCatalogScope; schoolId: string; classId: string; gradeLevel: string;
 }
-
 export interface GiftShopFiltersState {
-  statusFilter: GiftOrderStatus | 'ALL';
-  setStatusFilter: (status: GiftOrderStatus | 'ALL') => void;
-  classFilter: string;
-  setClassFilter: (classId: string) => void;
-  actor: GiftOrderActor;
-  query: GiftOrderQuery;
+  statusFilter: GiftOrderStatus | 'ALL'; setStatusFilter: (status: GiftOrderStatus | 'ALL') => void;
+  classFilter: string; setClassFilter: (classId: string) => void;
+  actor: GiftOrderActor; query: GiftOrderQuery;
 }

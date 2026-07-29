@@ -20,15 +20,15 @@ const Harness = () => {
 
 describe('Gift Shop URL filters', () => {
   it('hydrates the pending status from the Action Center URL', () => {
-    window.history.replaceState({}, '', '/teacher/gift-shop?status=VOUCHER_ISSUED');
+    window.history.replaceState({}, '', '/teacher/gift-shop?status=PENDING');
     render(<Harness />);
 
-    expect(screen.getByTestId('status')).toHaveTextContent('VOUCHER_ISSUED');
-    expect(screen.getByTestId('query-status')).toHaveTextContent('VOUCHER_ISSUED');
+    expect(screen.getByTestId('status')).toHaveTextContent('PENDING');
+    expect(screen.getByTestId('query-status')).toHaveTextContent('PENDING');
   });
 
   it('keeps status changes in the canonical URL', () => {
-    window.history.replaceState({}, '', '/teacher/gift-shop?status=VOUCHER_ISSUED');
+    window.history.replaceState({}, '', '/teacher/gift-shop?status=PENDING');
     render(<Harness />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Đã trao' }));

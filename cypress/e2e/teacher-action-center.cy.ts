@@ -26,11 +26,21 @@ const actionItems = [
     id: 'gift-orders-pending',
     kind: 'gift_order_pending',
     severity: 'warning',
-    title: 'Đơn đổi quà chờ xử lý',
-    explanation: '2 đơn đã phát mã và đang chờ giáo viên trao quà.',
+    title: 'Đơn đổi quà chờ duyệt',
+    explanation: '2 đơn đang chờ giáo viên duyệt trước khi trao quà.',
     count: 2,
     generatedAt,
-    cta: { label: 'Mở đơn chờ trao', url: '/teacher/gift-shop?status=VOUCHER_ISSUED' },
+    cta: { label: 'Mở đơn chờ duyệt', url: '/teacher/gift-shop?status=PENDING' },
+  },
+  {
+    id: 'gift-low-stock',
+    kind: 'gift_low_stock',
+    severity: 'warning',
+    title: 'Phần thưởng sắp hết hàng',
+    explanation: '1 phần thưởng đã chạm ngưỡng tồn kho thấp.',
+    count: 1,
+    generatedAt,
+    cta: { label: 'Kiểm tra tồn kho', url: '/teacher/gift-shop?tab=catalog&stock=low' },
   },
   {
     id: 'drafts-unpublished',
@@ -97,6 +107,13 @@ const stubBackend = () => {
       },
     },
   }).as('teacherSession');
+  cy.intercept('GET', '**/api/gift-shop/catalog', []);
+  cy.intercept('GET', '**/api/gift-shop/orders*', []);
+  cy.intercept('GET', '**/api/gift-shop/events', []);
+  cy.intercept('GET', '**/api/gift-shop/settings', {
+    effective: { isOpen: true, closedReason: '', closedScope: null, schoolId: 'teacher.action', classId: 'class-4a' },
+    settings: [],
+  });
   cy.intercept('GET', '**/api/teacher/action-center', {
     statusCode: 200,
     body: { status: 'success', data: { generatedAt, items: actionItems } },
@@ -159,10 +176,18 @@ describe('Teacher Action Center', () => {
     cy.get('select[aria-label="Lọc trạng thái bài giao"]', { timeout: 20_000 }).should('have.value', 'OPEN');
 
     visitOverview();
-    cy.contains('a', 'Mở đơn chờ trao').click();
+    cy.contains('a', 'Mở đơn chờ duyệt').click();
     cy.location('pathname').should('eq', '/teacher/gift-shop');
-    expectSearchParam('status', 'VOUCHER_ISSUED');
-    cy.contains('button', 'Chờ trao', { timeout: 20_000 }).should('have.attr', 'aria-pressed', 'true');
+    expectSearchParam('status', 'PENDING');
+    cy.contains('button', 'Chờ duyệt', { timeout: 20_000 }).should('have.attr', 'aria-pressed', 'true');
+
+    visitOverview();
+    cy.contains('a', 'Kiểm tra tồn kho').click();
+    cy.location('pathname').should('eq', '/teacher/gift-shop');
+    expectSearchParam('tab', 'catalog');
+    expectSearchParam('stock', 'low');
+    cy.contains('button', 'Tồn kho', { timeout: 20_000 }).should('have.attr', 'aria-current', 'page');
+    cy.contains('h2', 'Tồn kho phần thưởng').should('be.visible');
 
     visitOverview();
     cy.contains('a', 'Xem phiên đã lên lịch').click();

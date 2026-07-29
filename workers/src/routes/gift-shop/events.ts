@@ -1,4 +1,4 @@
-import { generateId } from '../../utils/response';
+﻿import { generateId } from '../../utils/response';
 import { nowIso } from './values';
 
 export const appendEvent = async (
@@ -8,18 +8,16 @@ export const appendEvent = async (
         orderId?: string;
         studentId?: string;
         actor?: string;
+        requestId?: string;
         metadata?: Record<string, unknown>;
     },
 ) => {
-    await db.prepare(
-        'INSERT INTO gift_order_events (id, event_type, order_id, student_id, actor, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).bind(
-        generateId('gevo'),
-        event.type,
-        event.orderId || '',
-        event.studentId || '',
-        event.actor || '',
-        JSON.stringify(event.metadata || {}),
-        nowIso(),
+    await db.prepare(`
+        INSERT INTO gift_order_events
+        (id, event_type, order_id, student_id, actor, metadata, created_at, request_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+        generateId('gevo'), event.type, event.orderId || '', event.studentId || '', event.actor || '',
+        JSON.stringify(event.metadata || {}), nowIso(), event.requestId || '',
     ).run();
 };

@@ -101,6 +101,20 @@ describe('resolveApiRoute', () => {
         expect(qs).toContain('actorIsAdmin=true');
     });
 
+    it('resolves Gift Shop governance actions', () => {
+        const approve = resolveApiRoute('approve_gift_shop_order');
+        expect(approve).toMatchObject({ method: 'PATCH', auth: 'session' });
+        expect(approve.path({ orderId: 'order 1' })).toBe('/api/gift-shop/orders/order%201/approve');
+
+        const settings = resolveApiRoute('get_gift_shop_settings');
+        expect(settings).toMatchObject({ method: 'GET', auth: 'session' });
+        expect(settings.path({})).toBe('/api/gift-shop/settings');
+
+        const updateSettings = resolveApiRoute('update_gift_shop_settings');
+        expect(updateSettings).toMatchObject({ method: 'PUT', auth: 'session' });
+        expect(updateSettings.path({})).toBe('/api/gift-shop/settings');
+    });
+
     it('resolves phieu actions to canonical REST routes', () => {
         const upsert = resolveApiRoute('upsert_phieu');
         expect(upsert.method).toBe('POST');

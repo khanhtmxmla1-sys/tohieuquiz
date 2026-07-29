@@ -1,4 +1,4 @@
-import type { GiftOrderStatus } from './types';
+﻿import type { GiftOrderStatus } from './types';
 
 export const nowIso = () => new Date().toISOString();
 
@@ -16,11 +16,25 @@ export const normalizeStatus = (value: unknown): GiftOrderStatus | 'ALL' | null 
     const raw = String(value || '').trim().toUpperCase();
     if (!raw) return null;
     if (raw === 'ALL') return 'ALL';
-    if (raw === 'CREATED') return 'CREATED';
-    if (raw === 'VOUCHER_ISSUED') return 'VOUCHER_ISSUED';
+    if (raw === 'PENDING' || raw === 'CREATED') return 'PENDING';
+    if (raw === 'APPROVED' || raw === 'VOUCHER_ISSUED') return 'APPROVED';
     if (raw === 'DELIVERED') return 'DELIVERED';
-    if (raw === 'CANCELLED_REFUNDED') return 'CANCELLED_REFUNDED';
+    if (raw === 'CANCELLED' || raw === 'CANCELLED_REFUNDED') return 'CANCELLED';
     return null;
+};
+
+export const getIsoWeekKey = (date: Date): string => {
+    const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    const weekday = target.getUTCDay() || 7;
+    target.setUTCDate(target.getUTCDate() + 4 - weekday);
+    const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+    const week = Math.ceil((((target.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7);
+    return `${target.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+};
+
+export const gradeFromClassName = (value: unknown): number | null => {
+    const match = String(value || '').trim().match(/[1-9]/);
+    return match ? Number(match[0]) : null;
 };
 
 export const parseJson = <T>(raw: unknown, fallback: T): T => {

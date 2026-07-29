@@ -22,6 +22,7 @@ const iconByKind = {
   assignment_at_risk: ClipboardList,
   draft_unpublished: FilePenLine,
   gift_order_pending: Gift,
+  gift_low_stock: Gift,
   live_exam_upcoming: Radio,
 } as const;
 

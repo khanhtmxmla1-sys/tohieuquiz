@@ -1,6 +1,7 @@
 import type { Env } from '../../types';
 import { requireAdmin } from '../../middleware/jwtAuth';
 import { extractIdFromPath } from '../../utils/helpers';
+import { getRequestId } from '../../utils/logger';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import { getAuthenticatedUser } from './auth';
 import { deactivateCatalogItem, getCatalogItemById } from './catalogRepository';
@@ -23,6 +24,7 @@ export const handleCatalogDelete = async (request: Request, env: Env, path: stri
     await appendEvent(env.DB, {
         type: 'CATALOG_DELETED',
         actor: actorUsername,
+        requestId: getRequestId(request),
         metadata: { itemId },
     });
 

@@ -7,6 +7,7 @@ interface FakeRows {
   assignments?: Record<string, unknown>;
   drafts?: Record<string, unknown>;
   giftOrders?: Record<string, unknown>;
+  lowStock?: Record<string, unknown>;
   liveExams?: Record<string, unknown>;
 }
 
@@ -25,6 +26,7 @@ class FakeStatement {
     if (this.sql.includes('action-center:assignments')) return this.db.rows.assignments as T;
     if (this.sql.includes('action-center:drafts')) return this.db.rows.drafts as T;
     if (this.sql.includes('action-center:gift-orders')) return this.db.rows.giftOrders as T;
+    if (this.sql.includes('action-center:gift-low-stock')) return this.db.rows.lowStock as T;
     if (this.sql.includes('action-center:live-exams')) return this.db.rows.liveExams as T;
     throw new Error(`Unexpected query: ${this.sql}`);
   }
@@ -74,6 +76,10 @@ const populatedRows: FakeRows = {
     action_count: 2,
     next_at: '2026-07-28T06:00:00.000Z',
   },
+  lowStock: {
+    action_count: 4,
+    next_at: '2026-07-28T05:00:00.000Z',
+  },
   liveExams: {
     action_count: 1,
     next_at: '2026-07-28T16:00:00.000Z',
@@ -93,6 +99,7 @@ describe('loadTeacherActionCenter', () => {
     expect(center.generatedAt).toBe(now.toISOString());
     expect(center.items.map((item) => [item.kind, item.severity, item.count])).toEqual([
       ['assignment_at_risk', 'critical', 2],
+      ['gift_low_stock', 'warning', 4],
       ['gift_order_pending', 'warning', 2],
       ['draft_unpublished', 'info', 3],
       ['live_exam_upcoming', 'info', 1],
@@ -100,11 +107,12 @@ describe('loadTeacherActionCenter', () => {
     expect(center.items[0].explanation).toContain('7 học sinh chưa nộp');
     expect(center.items.map((item) => item.cta.url)).toEqual([
       '/teacher/assignments?status=OPEN&due=48',
-      '/teacher/gift-shop?status=VOUCHER_ISSUED',
+      '/teacher/gift-shop?tab=catalog&stock=low',
+      '/teacher/gift-shop?status=PENDING',
       '/teacher/quizzes/manual/new?draftId=draft-latest',
       '/teacher/live-exams?status=scheduled&window=24',
     ]);
-    expect(center.items).toHaveLength(4);
+    expect(center.items).toHaveLength(5);
   });
 
   it('scopes every teacher query with the authenticated username', async () => {
@@ -116,7 +124,7 @@ describe('loadTeacherActionCenter', () => {
       now,
     );
 
-    expect(db.calls).toHaveLength(4);
+    expect(db.calls).toHaveLength(5);
     expect(db.calls.every((call) => call.bindings.includes('teacher-a'))).toBe(true);
     expect(db.calls.find((call) => call.sql.includes('action-center:assignments'))?.sql)
       .toContain('c.teacher_username = ?');
@@ -124,6 +132,8 @@ describe('loadTeacherActionCenter', () => {
       .toContain('owner_username = ?');
     expect(db.calls.find((call) => call.sql.includes('action-center:gift-orders'))?.sql)
       .toContain('c.teacher_username = ?');
+    expect(db.calls.find((call) => call.sql.includes('action-center:gift-low-stock'))?.sql)
+      .toContain('teacher_username = ?');
     expect(db.calls.find((call) => call.sql.includes('action-center:live-exams'))?.sql)
       .toContain('teacher_id = ?');
   });
@@ -137,7 +147,7 @@ describe('loadTeacherActionCenter', () => {
       now,
     );
 
-    expect(db.calls).toHaveLength(4);
+    expect(db.calls).toHaveLength(5);
     expect(db.calls.every((call) => !call.bindings.includes('teacher-a'))).toBe(true);
     expect(db.calls.every((call) => !call.sql.includes('c.teacher_username = ?'))).toBe(true);
     expect(db.calls.every((call) => !call.sql.includes('owner_username = ?'))).toBe(true);
@@ -158,15 +168,19 @@ describe('loadTeacherActionCenter', () => {
   it('excludes another teacher\'s classes and records against a real SQLite database', async () => {
     const sqlite = new DatabaseSync(':memory:');
     sqlite.exec(`
-      CREATE TABLE classes (id TEXT PRIMARY KEY, teacher_username TEXT, archived_at TEXT);
+      CREATE TABLE classes (id TEXT PRIMARY KEY, name TEXT, teacher_username TEXT, archived_at TEXT);
       CREATE TABLE students (id TEXT PRIMARY KEY, class_id TEXT, archived_at TEXT);
       CREATE TABLE assignments (id TEXT PRIMARY KEY, class_id TEXT, student_id TEXT, deadline TEXT, status TEXT);
       CREATE TABLE results (assignment_id TEXT, student_id TEXT);
       CREATE TABLE quiz_drafts (id TEXT PRIMARY KEY, owner_username TEXT, updated_at TEXT, expires_at TEXT);
       CREATE TABLE gift_orders (id TEXT PRIMARY KEY, class_id TEXT, status TEXT, created_at TEXT);
+      CREATE TABLE gift_catalog_items (
+        id TEXT PRIMARY KEY, is_active INTEGER, stock_remaining INTEGER, low_stock_threshold INTEGER,
+        scope_type TEXT, school_id TEXT, class_id TEXT, grade_level INTEGER, updated_at TEXT
+      );
       CREATE TABLE live_exam_sessions (id TEXT PRIMARY KEY, teacher_id TEXT, status TEXT, scheduled_at TEXT, archived_at TEXT);
 
-      INSERT INTO classes VALUES ('class-a', 'teacher-a', NULL), ('class-b', 'teacher-b', NULL);
+      INSERT INTO classes VALUES ('class-a', '3A', 'teacher-a', NULL), ('class-b', '4B', 'teacher-b', NULL);
       INSERT INTO students VALUES ('student-a1', 'class-a', NULL), ('student-a2', 'class-a', NULL), ('student-b1', 'class-b', NULL);
       INSERT INTO assignments VALUES
         ('assignment-a', 'class-a', '', '2026-07-29T08:00:00.000Z', 'OPEN'),
@@ -176,8 +190,12 @@ describe('loadTeacherActionCenter', () => {
         ('draft-a', 'teacher-a', '2026-07-28T07:00:00.000Z', NULL),
         ('draft-b', 'teacher-b', '2026-07-28T07:30:00.000Z', NULL);
       INSERT INTO gift_orders VALUES
-        ('gift-a', 'class-a', 'VOUCHER_ISSUED', '2026-07-28T06:00:00.000Z'),
-        ('gift-b', 'class-b', 'VOUCHER_ISSUED', '2026-07-28T06:30:00.000Z');
+        ('gift-a', 'class-a', 'PENDING', '2026-07-28T06:00:00.000Z'),
+        ('gift-b', 'class-b', 'PENDING', '2026-07-28T06:30:00.000Z');
+      INSERT INTO gift_catalog_items VALUES
+        ('stock-a', 1, 1, 2, 'SCHOOL', 'teacher-a', NULL, NULL, '2026-07-28T05:00:00.000Z'),
+        ('stock-b', 1, 1, 2, 'SCHOOL', 'teacher-b', NULL, NULL, '2026-07-28T05:30:00.000Z'),
+        ('stock-ok', 1, 5, 2, 'SCHOOL', 'teacher-a', NULL, NULL, '2026-07-28T05:45:00.000Z');
       INSERT INTO live_exam_sessions VALUES
         ('live-a', 'teacher-a', 'scheduled', '2026-07-28T16:00:00.000Z', NULL),
         ('live-b', 'teacher-b', 'scheduled', '2026-07-28T17:00:00.000Z', NULL);
@@ -191,6 +209,7 @@ describe('loadTeacherActionCenter', () => {
 
     expect(center.items.map((item) => [item.kind, item.count])).toEqual([
       ['assignment_at_risk', 1],
+      ['gift_low_stock', 1],
       ['gift_order_pending', 1],
       ['draft_unpublished', 1],
       ['live_exam_upcoming', 1],
@@ -208,6 +227,7 @@ describe('loadTeacherActionCenter', () => {
       assignments: { action_count: 0, affected_count: 0 },
       drafts: { action_count: 0 },
       giftOrders: { action_count: 0 },
+      lowStock: { action_count: 0 },
       liveExams: { action_count: 0 },
     });
 

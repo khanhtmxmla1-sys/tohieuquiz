@@ -136,7 +136,37 @@ const loadPendingGiftOrders = async (
     SELECT COUNT(*) AS action_count, MIN(o.created_at) AS next_at
     FROM gift_orders o
     JOIN classes c ON c.id = o.class_id
-    WHERE o.status = 'VOUCHER_ISSUED'
+    WHERE o.status = 'PENDING'
+      ${teacherScope}
+  `).bind(...bindings).first<CountRow>() || {};
+};
+
+const loadLowStockGiftItems = async (
+  db: D1Database,
+  actor: ActionCenterActor,
+): Promise<CountRow> => {
+  const username = requireScopedUsername(actor);
+  const teacherScope = actor.role === 'admin' ? '' : `AND EXISTS (
+      SELECT 1
+      FROM classes scoped_class
+      WHERE scoped_class.teacher_username = ?
+        AND scoped_class.archived_at IS NULL
+        AND (item.school_id = '' OR item.school_id = scoped_class.teacher_username)
+        AND (
+          item.scope_type = 'SCHOOL'
+          OR (item.scope_type = 'CLASS' AND COALESCE(item.class_id, '') = scoped_class.id)
+          OR (item.scope_type = 'GRADE' AND item.grade_level = CAST(substr(scoped_class.name, 1, 1) AS INTEGER))
+        )
+    )`;
+  const bindings: unknown[] = [];
+  if (username) bindings.push(username);
+
+  return await db.prepare(`
+    /* action-center:gift-low-stock */
+    SELECT COUNT(*) AS action_count, MIN(item.updated_at) AS next_at
+    FROM gift_catalog_items item
+    WHERE item.is_active = 1
+      AND item.stock_remaining <= item.low_stock_threshold
       ${teacherScope}
   `).bind(...bindings).first<CountRow>() || {};
 };
@@ -172,10 +202,11 @@ export async function loadTeacherActionCenter(
 ): Promise<TeacherActionCenter> {
   requireScopedUsername(actor);
   const generatedAt = now.toISOString();
-  const [assignments, drafts, giftOrders, liveExams] = await Promise.all([
+  const [assignments, drafts, giftOrders, lowStock, liveExams] = await Promise.all([
     loadAssignmentRisk(db, actor, now),
     loadDrafts(db, actor, now),
     loadPendingGiftOrders(db, actor),
+    loadLowStockGiftItems(db, actor),
     loadUpcomingLiveExams(db, actor, now),
   ]);
 
@@ -196,17 +227,31 @@ export async function loadTeacherActionCenter(
     });
   }
 
+  const lowStockCount = toCount(lowStock.action_count);
+  if (lowStockCount > 0) {
+    items.push({
+      id: 'gift-low-stock',
+      kind: 'gift_low_stock',
+      severity: 'warning',
+      title: 'Ph?n th??ng s?p h?t h?ng',
+      explanation: `${lowStockCount} ph?n th??ng ?? ch?m ng??ng t?n kho th?p.`,
+      count: lowStockCount,
+      generatedAt,
+      cta: { label: 'Ki?m tra t?n kho', url: '/teacher/gift-shop?tab=catalog&stock=low' },
+    });
+  }
+
   const giftOrderCount = toCount(giftOrders.action_count);
   if (giftOrderCount > 0) {
     items.push({
       id: 'gift-orders-pending',
       kind: 'gift_order_pending',
       severity: 'warning',
-      title: 'Đơn đổi quà chờ xử lý',
-      explanation: `${giftOrderCount} đơn đã phát mã và đang chờ giáo viên trao quà.`,
+      title: '??n ??i qu? ch? duy?t',
+      explanation: `${giftOrderCount} ??n ?ang ch? gi?o vi?n duy?t tr??c khi trao qu?.`,
       count: giftOrderCount,
       generatedAt,
-      cta: { label: 'Mở đơn chờ trao', url: '/teacher/gift-shop?status=VOUCHER_ISSUED' },
+      cta: { label: 'M? ??n ch? duy?t', url: '/teacher/gift-shop?status=PENDING' },
     });
   }
 

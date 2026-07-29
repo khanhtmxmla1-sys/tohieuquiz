@@ -1,68 +1,34 @@
-import type {
-    GiftCatalogItem,
-    GiftOrder,
-    GiftPurchasePayload,
-    GiftVoucher,
-} from '../../types/giftShop.types';
+﻿import type { GiftCatalogItem, GiftOrder, GiftPurchasePayload } from '../../types/giftShop.types';
 import { pushEvent, pushLedger, randomId } from './mockStateHelpers';
 import type { GiftShopMockState } from './types';
 
-export const createPurchaseRecords = (
-    payload: GiftPurchasePayload,
-    item: GiftCatalogItem,
-    now: string
-) => {
-    const orderId = randomId('order');
-    const voucherCode = `VCH-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Date.now().toString().slice(-4)}`;
+export const createPurchaseRecords = (payload: GiftPurchasePayload, item: GiftCatalogItem, now: string) => {
     const order: GiftOrder = {
-        id: orderId,
+        id: randomId('order'),
         studentId: payload.studentId,
         studentName: payload.studentName,
         studentUsername: payload.studentUsername,
         classId: payload.classId,
         className: payload.className,
-        itemSnapshot: item,
+        itemId: item.id,
+        schoolId: item.schoolId,
+        gradeLevel: item.gradeLevel,
+        itemSnapshot: { ...item },
         priceCoins: item.priceCoins,
-        status: 'VOUCHER_ISSUED',
-        voucherCode,
+        status: 'PENDING',
+        voucherCode: '',
         createdAt: now,
         updatedAt: now,
     };
-    const voucher: GiftVoucher = {
-        code: voucherCode,
-        orderId,
-        studentId: payload.studentId,
-        issuedAt: now,
-        status: 'ISSUED',
-    };
-    return { order, voucher };
+    return { order };
 };
 
-export const recordPurchase = (
-    state: GiftShopMockState,
-    payload: GiftPurchasePayload,
-    order: GiftOrder,
-    voucher: GiftVoucher
-) => {
+export const recordPurchase = (state: GiftShopMockState, payload: GiftPurchasePayload, order: GiftOrder) => {
     state.orders.unshift(order);
-    state.vouchers.unshift(voucher);
     state.idempotencyOrderMap[payload.idempotencyKey] = order.id;
-    pushLedger(state, {
-        studentId: payload.studentId,
-        deltaCoins: -order.priceCoins,
-        reason: 'PURCHASE',
-        refOrderId: order.id,
-    });
+    pushLedger(state, { studentId: payload.studentId, deltaCoins: -order.priceCoins, reason: 'PURCHASE', refOrderId: order.id });
     pushEvent(state, {
-        type: 'ORDER_CREATED',
-        orderId: order.id,
-        studentId: payload.studentId,
+        type: 'ORDER_CREATED', orderId: order.id, studentId: payload.studentId,
         metadata: { itemId: order.itemSnapshot.id, priceCoins: order.priceCoins },
-    });
-    pushEvent(state, {
-        type: 'VOUCHER_ISSUED',
-        orderId: order.id,
-        studentId: payload.studentId,
-        metadata: { voucherCode: voucher.code },
     });
 };

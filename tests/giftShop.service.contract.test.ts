@@ -17,6 +17,12 @@ const catalogItem: GiftCatalogItem = {
     priceCoins: 250,
     imageUrl: 'https://cdn.test/gift.png',
     isActive: true,
+    stockTotal: 10,
+    stockRemaining: 10,
+    lowStockThreshold: 2,
+    weeklyLimitPerStudent: 1,
+    scopeType: 'SCHOOL',
+    schoolId: 'school-a',
     createdAt: '2026-07-19T00:00:00.000Z',
     updatedAt: '2026-07-19T00:00:00.000Z',
 };
@@ -57,6 +63,10 @@ describe('giftShopService API contracts', () => {
             category: 'SNACK',
             priceCoins: 199.9,
             imageUrl: '  https://cdn.test/new.png  ',
+            stockTotal: 10,
+            lowStockThreshold: 2,
+            weeklyLimitPerStudent: 1,
+            scopeType: 'SCHOOL',
             actorIsAdmin: true,
         });
         await giftShopService.upsertCatalogItem({
@@ -65,6 +75,10 @@ describe('giftShopService API contracts', () => {
             category: 'PRIVILEGE',
             priceCoins: 401.8,
             imageUrl: '  https://cdn.test/updated.png  ',
+            stockTotal: 10,
+            lowStockThreshold: 2,
+            weeklyLimitPerStudent: 1,
+            scopeType: 'SCHOOL',
             isActive: false,
         });
         await giftShopService.deleteCatalogItem({
@@ -81,6 +95,13 @@ describe('giftShopService API contracts', () => {
             priceCoins: 199,
             imageUrl: 'https://cdn.test/new.png',
             isActive: true,
+            stockTotal: 10,
+            lowStockThreshold: 2,
+            weeklyLimitPerStudent: 1,
+            scopeType: 'SCHOOL',
+            schoolId: '',
+            classId: undefined,
+            gradeLevel: undefined,
             actorIsAdmin: true,
         });
         expect(callApiMock).toHaveBeenNthCalledWith(3, 'update_gift_shop_catalog_item', {
@@ -90,6 +111,13 @@ describe('giftShopService API contracts', () => {
             priceCoins: 401,
             imageUrl: 'https://cdn.test/updated.png',
             isActive: false,
+            stockTotal: 10,
+            lowStockThreshold: 2,
+            weeklyLimitPerStudent: 1,
+            scopeType: 'SCHOOL',
+            schoolId: '',
+            classId: undefined,
+            gradeLevel: undefined,
             actorIsAdmin: false,
         });
         expect(callApiMock).toHaveBeenNthCalledWith(4, 'delete_gift_shop_catalog_item', {
@@ -101,14 +129,14 @@ describe('giftShopService API contracts', () => {
 
     it('keeps order API actions and payload shapes unchanged', async () => {
         const actor = { username: 'teacher_3a', isAdmin: false, teacherClass: 'class_3a' };
-        const query = { status: 'VOUCHER_ISSUED' as const, classId: 'class_3a' };
+        const query = { status: 'PENDING' as const, classId: 'class_3a' };
         const purchasePayload = getPurchasePayload();
         const order = { id: 'order_api_01' } as GiftOrder;
         const purchaseResult = {
             orderId: order.id,
-            voucherCode: 'VCH-API-0001',
+            voucherCode: '',
             newCoins: 380,
-            status: 'VOUCHER_ISSUED' as const,
+            status: 'PENDING' as const,
             idempotencyReplay: false,
             order,
         };
@@ -178,6 +206,10 @@ describe('giftShopService mock catalog and query contracts', () => {
             category: 'SUPPLY',
             priceCoins: 225.8,
             imageUrl: '  https://cdn.test/stickers.png  ',
+            stockTotal: 10,
+            lowStockThreshold: 2,
+            weeklyLimitPerStudent: 1,
+            scopeType: 'SCHOOL',
             actorIsAdmin: true,
         });
         expect(created).toMatchObject({
@@ -193,6 +225,10 @@ describe('giftShopService mock catalog and query contracts', () => {
             category: 'PRIVILEGE',
             priceCoins: 350,
             imageUrl: 'https://cdn.test/stickers-xl.png',
+            stockTotal: 10,
+            lowStockThreshold: 2,
+            weeklyLimitPerStudent: 1,
+            scopeType: 'SCHOOL',
             actorIsAdmin: true,
         });
         expect(updated).toMatchObject({ id: created.id, name: 'Sticker pack XL', priceCoins: 350 });
@@ -234,7 +270,7 @@ describe('giftShopService mock catalog and query contracts', () => {
         await expect(giftShopService.getOrders({ studentId: 'stu_001' })).resolves.toMatchObject([
             { id: first.orderId },
         ]);
-        await expect(giftShopService.getOrders({ classId: 'class_4a', status: 'VOUCHER_ISSUED' })).resolves.toMatchObject([
+        await expect(giftShopService.getOrders({ classId: 'class_4a', status: 'PENDING' })).resolves.toMatchObject([
             { id: second.orderId },
         ]);
         await expect(giftShopService.getOrders({ classId: 'class_3a', status: 'DELIVERED' })).resolves.toEqual([]);
@@ -249,6 +285,10 @@ describe('giftShopService mock catalog and query contracts', () => {
             category: 'SNACK',
             priceCoins: 0,
             imageUrl: ' ',
+            stockTotal: 10,
+            lowStockThreshold: 2,
+            weeklyLimitPerStudent: 1,
+            scopeType: 'SCHOOL',
         })).rejects.toThrow('Tên quà không được để trống.');
         await expect(giftShopService.deleteCatalogItem({
             id: '',

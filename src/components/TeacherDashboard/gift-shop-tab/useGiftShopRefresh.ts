@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import type { GiftOrderQuery } from '../../../types/giftShop.types';
 
 interface Options {
@@ -7,6 +7,7 @@ interface Options {
   loadCatalog: () => Promise<void>;
   loadManagedOrders: (query: GiftOrderQuery) => Promise<void>;
   loadEventLogs: () => Promise<void>;
+  loadSettings: () => Promise<void>;
 }
 
 export const useGiftShopRefresh = ({
@@ -15,11 +16,13 @@ export const useGiftShopRefresh = ({
   loadCatalog,
   loadManagedOrders,
   loadEventLogs,
+  loadSettings,
 }: Options) => {
   const refreshAll = async () => {
     await Promise.all([
       loadCatalog(),
       loadManagedOrders(query),
+      loadSettings(),
       isAdmin ? loadEventLogs() : Promise.resolve(),
     ]);
   };

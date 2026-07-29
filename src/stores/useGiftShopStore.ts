@@ -13,6 +13,8 @@ import type {
     GiftOrderQuery,
     GiftPurchaseResponse,
     GiftShopEventLog,
+    GiftShopSettingsResponse,
+    GiftShopSettingsUpdate,
 } from '../types/giftShop.types';
 
 interface PurchaseArgs {
@@ -46,7 +48,7 @@ export interface GiftShopErrorState {
 }
 
 export interface GiftShopPendingAction {
-    type: 'purchase' | 'deliver' | 'cancel' | 'save-catalog' | 'delete-catalog';
+    type: 'purchase' | 'approve' | 'deliver' | 'cancel' | 'save-catalog' | 'delete-catalog' | 'settings';
     targetId?: string;
 }
 
@@ -55,6 +57,7 @@ interface GiftShopStore {
     myOrders: GiftOrder[];
     managedOrders: GiftOrder[];
     eventLogs: GiftShopEventLog[];
+    shopSettings: GiftShopSettingsResponse | null;
     loading: GiftShopLoadingState;
     errors: GiftShopErrorState;
     isLoading: boolean;
@@ -66,11 +69,14 @@ interface GiftShopStore {
     loadStudentOrders: (studentId: string) => Promise<void>;
     loadManagedOrders: (query: GiftOrderQuery) => Promise<void>;
     loadEventLogs: () => Promise<void>;
+    loadSettings: () => Promise<void>;
     purchaseGift: (args: PurchaseArgs) => Promise<GiftPurchaseResponse | null>;
+    approveOrder: (orderId: string, actor: GiftOrderActor, queryAfter?: GiftOrderQuery) => Promise<boolean>;
     deliverOrder: (orderId: string, actor: GiftOrderActor, queryAfter?: GiftOrderQuery) => Promise<boolean>;
     cancelOrder: (orderId: string, actor: GiftOrderActor, reason: string, queryAfter?: GiftOrderQuery) => Promise<boolean>;
     saveCatalogItem: (input: GiftCatalogUpsertInput) => Promise<GiftCatalogItem | null>;
     removeCatalogItem: (input: GiftCatalogDeleteInput) => Promise<boolean>;
+    updateSettings: (input: GiftShopSettingsUpdate) => Promise<boolean>;
     clearLastPurchase: () => void;
     clearError: () => void;
 }
@@ -143,6 +149,7 @@ export const useGiftShopStore = create<GiftShopStore>((set, get) => ({
     myOrders: [],
     managedOrders: [],
     eventLogs: [],
+    shopSettings: null,
     loading: { ...EMPTY_LOADING },
     errors: { ...EMPTY_ERRORS },
     isLoading: false,
@@ -202,6 +209,17 @@ export const useGiftShopStore = create<GiftShopStore>((set, get) => ({
         }
     },
 
+
+    loadSettings: async () => {
+        setAreaError(set, 'catalog', null);
+        try {
+            const shopSettings = await giftShopService.getSettings();
+            set({ shopSettings });
+        } catch (error) {
+            setAreaError(set, 'catalog', getErrorMessage(error, 'Kh?ng th? t?i tr?ng th?i ti?m t?p h?a.'));
+        }
+    },
+
     purchaseGift: async (args: PurchaseArgs) => {
         startAction(set, { type: 'purchase', targetId: args.itemId });
         try {
@@ -216,8 +234,11 @@ export const useGiftShopStore = create<GiftShopStore>((set, get) => ({
                 idempotencyKey: args.idempotencyKey,
             });
             syncGamificationCoins(result.newCoins);
-            const myOrders = await giftShopService.getOrders({ studentId: args.studentId });
-            set({ lastPurchase: result, myOrders });
+            const [myOrders, catalog] = await Promise.all([
+                giftShopService.getOrders({ studentId: args.studentId }),
+                giftShopService.getCatalog(),
+            ]);
+            set({ lastPurchase: result, myOrders, catalog });
             return result;
         } catch (error) {
             setAreaError(set, 'action', getErrorMessage(error, 'Đổi quà thất bại.'));
@@ -227,11 +248,27 @@ export const useGiftShopStore = create<GiftShopStore>((set, get) => ({
         }
     },
 
+
+    approveOrder: async (orderId: string, actor: GiftOrderActor, queryAfter?: GiftOrderQuery) => {
+        startAction(set, { type: 'approve', targetId: orderId });
+        try {
+            await giftShopService.approveOrder(orderId, actor);
+            const managedOrders = await giftShopService.getOrders(queryAfter || { status: 'PENDING' });
+            set({ managedOrders });
+            return true;
+        } catch (error) {
+            setAreaError(set, 'action', getErrorMessage(error, 'Kh?ng th? duy?t ??n ??i qu?.'));
+            return false;
+        } finally {
+            finishAction(set);
+        }
+    },
+
     deliverOrder: async (orderId: string, actor: GiftOrderActor, queryAfter?: GiftOrderQuery) => {
         startAction(set, { type: 'deliver', targetId: orderId });
         try {
             await giftShopService.deliverOrder(orderId, actor);
-            const query = queryAfter || { status: 'VOUCHER_ISSUED' };
+            const query = queryAfter || { status: 'PENDING' };
             const managedOrders = await giftShopService.getOrders(query);
             set({ managedOrders });
             return true;
@@ -247,7 +284,7 @@ export const useGiftShopStore = create<GiftShopStore>((set, get) => ({
         startAction(set, { type: 'cancel', targetId: orderId });
         try {
             const result = await giftShopService.cancelOrder(orderId, actor, reason);
-            const query = queryAfter || { status: 'VOUCHER_ISSUED' };
+            const query = queryAfter || { status: 'PENDING' };
             const managedOrders = await giftShopService.getOrders(query);
             const activeStudentId = useClassroomStore.getState().studentSession?.studentId;
             const isCurrentStudent = activeStudentId === result.order.studentId;
@@ -290,6 +327,21 @@ export const useGiftShopStore = create<GiftShopStore>((set, get) => ({
             return true;
         } catch (error) {
             setAreaError(set, 'action', getErrorMessage(error, 'Không thể xóa vật phẩm.'));
+            return false;
+        } finally {
+            finishAction(set);
+        }
+    },
+
+
+    updateSettings: async (input: GiftShopSettingsUpdate) => {
+        startAction(set, { type: 'settings' });
+        try {
+            const shopSettings = await giftShopService.updateSettings(input);
+            set({ shopSettings });
+            return true;
+        } catch (error) {
+            setAreaError(set, 'action', getErrorMessage(error, 'Kh?ng th? c?p nh?t tr?ng th?i ti?m.'));
             return false;
         } finally {
             finishAction(set);

@@ -1,5 +1,6 @@
-import type { Env } from '../../types';
+﻿import type { Env } from '../../types';
 import { errorResponse } from '../../utils/response';
+import { handleApproval } from './handleApproval';
 import { handleCancellation } from './handleCancellation';
 import { handleCatalogCreate } from './handleCatalogCreate';
 import { handleCatalogDelete } from './handleCatalogDelete';
@@ -9,6 +10,7 @@ import { handleDelivery } from './handleDelivery';
 import { handleEvents } from './handleEvents';
 import { handleOrderList } from './handleOrderList';
 import { handlePurchase } from './handlePurchase';
+import { handleSettings } from './handleSettings';
 
 export async function handleGiftShopRoutes(
     request: Request,
@@ -16,16 +18,16 @@ export async function handleGiftShopRoutes(
     path: string,
     method: string,
 ): Promise<Response> {
-    if (path === '/api/gift-shop/catalog' && method === 'GET') return handleCatalogList(env);
+    if (path === '/api/gift-shop/catalog' && method === 'GET') return handleCatalogList(request, env);
     if (path === '/api/gift-shop/catalog' && method === 'POST') return handleCatalogCreate(request, env);
-    if (path.startsWith('/api/gift-shop/catalog/') && method === 'PUT') {
-        return handleCatalogUpdate(request, env, path);
-    }
-    if (path.startsWith('/api/gift-shop/catalog/') && method === 'DELETE') {
-        return handleCatalogDelete(request, env, path);
-    }
+    if (path.startsWith('/api/gift-shop/catalog/') && method === 'PUT') return handleCatalogUpdate(request, env, path);
+    if (path.startsWith('/api/gift-shop/catalog/') && method === 'DELETE') return handleCatalogDelete(request, env, path);
     if (path === '/api/gift-shop/orders' && method === 'GET') return handleOrderList(request, env);
     if (path === '/api/gift-shop/purchase' && method === 'POST') return handlePurchase(request, env);
+    if (path === '/api/gift-shop/settings') return handleSettings(request, env, method);
+    if (path.match(/^\/api\/gift-shop\/orders\/[^/]+\/approve$/) && method === 'PATCH') {
+        return handleApproval(request, env, path);
+    }
     if (path.match(/^\/api\/gift-shop\/orders\/[^/]+\/deliver$/) && method === 'PATCH') {
         return handleDelivery(request, env, path);
     }

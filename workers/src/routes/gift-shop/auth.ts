@@ -1,4 +1,4 @@
-import type { Env } from '../../types';
+﻿import type { Env } from '../../types';
 import { requireAdmin, verifyJWTMiddleware } from '../../middleware/jwtAuth';
 import type { JWTPayload } from '../../utils/jwt';
 import type { ActorAccess, GiftOrderRow } from './types';
@@ -12,6 +12,7 @@ export const getAuthenticatedUser = async (request: Request, env: Env): Promise<
 export const getActorAccessFromUser = (user: JWTPayload): ActorAccess => ({
     isAdmin: requireAdmin(user),
     teacherClass: String(user.classId || '').trim(),
+    schoolId: String(user.school_id || user.username || '').trim(),
 });
 
 export const ensureCanManageOrder = (
@@ -22,6 +23,6 @@ export const ensureCanManageOrder = (
     if (actorIsAdmin) return;
     const scopedClass = String(actorTeacherClass || '').trim();
     if (!scopedClass || (scopedClass !== order.class_id && scopedClass !== order.class_name)) {
-        throw new Error('Ban khong co quyen xu ly don cua lop nay.');
+        throw new Error('Bạn không có quyền xử lý đơn của lớp này.');
     }
 };

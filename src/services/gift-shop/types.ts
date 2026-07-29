@@ -1,7 +1,9 @@
-import type {
+﻿import type {
     GiftCatalogItem,
     GiftOrder,
     GiftShopEventLog,
+    GiftShopSettingsResponse,
+    GiftShopSettingsUpdate,
     GiftVoucher,
     WalletLedgerEntry,
 } from '../../types/giftShop.types';
@@ -16,6 +18,7 @@ export interface GiftShopMockState {
     walletByStudentId: Record<string, number>;
     idempotencyOrderMap: Record<string, string>;
     events: GiftShopEventLog[];
+    settings: GiftShopSettingsResponse;
 }
 
 export interface GiftCatalogUpsertInput {
@@ -25,6 +28,13 @@ export interface GiftCatalogUpsertInput {
     priceCoins: number;
     imageUrl: string;
     isActive?: boolean;
+    stockTotal: number;
+    lowStockThreshold: number;
+    weeklyLimitPerStudent: number;
+    scopeType: GiftCatalogItem['scopeType'];
+    schoolId?: string;
+    classId?: string;
+    gradeLevel?: number;
     actorIsAdmin?: boolean;
 }
 
@@ -37,4 +47,8 @@ export interface GiftCatalogDeleteInput {
 export interface GiftCancelResult {
     order: GiftOrder;
     newCoins: number;
+    refundedCoins: number;
+    idempotencyReplay: boolean;
 }
+
+export type { GiftShopSettingsResponse, GiftShopSettingsUpdate };

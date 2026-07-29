@@ -32,6 +32,7 @@ const ROLLBACK_REQUIRED = [
     '0042',
     '0043',
     '0044',
+    '0049',
 ];
 
 describe('D1 rollback coverage', () => {
@@ -62,6 +63,7 @@ describe('D1 rollback coverage', () => {
             '0032_drop_result_report_delivery.sql',
             '0040_drop_results_assignment_scope.sql',
             '0042_drop_unified_notifications.sql',
+            '0049_drop_gift_shop_governance.sql',
         ];
 
         for (const script of retainingScripts) {

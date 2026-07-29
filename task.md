@@ -124,7 +124,15 @@
   - [x] Digest tuần chỉ lưu/gửi số liệu tổng hợp, tối đa ba nội dung cần hỗ trợ và ba gợi ý tại nhà; không chứa tên, lớp, email, ID kết quả, câu hỏi hoặc đáp án.
   - [x] UI có cài đặt liên lạc, xác minh email, “Quên PIN?”, yêu cầu recovery generic và đặt PIN mới; token bị loại khỏi URL sau khi dùng, không persist vào localStorage.
   - [x] Targeted regression 7 file/44 test; Cypress Parent Portal 4/4; full Vitest 341 file/1.599 test và coverage 4 file/32 test đạt; lint, strict/Worker typecheck, build, security và dependency audit đạt.
-- [ ] Task 25 — Gift Shop governance
+- [x] Task 25 — Gift Shop governance
+  - [x] Catalog hỗ trợ phạm vi trường/lớp, tồn kho, ngưỡng sắp hết và giới hạn đổi theo tuần; giáo viên chỉ xem dữ liệu trong phạm vi được cấp.
+  - [x] Mua quà dùng transaction/trigger D1 nguyên tử, không âm xu hoặc tồn kho và chặn tranh chấp món cuối.
+  - [x] State machine `PENDING → APPROVED → DELIVERED`; voucher chỉ cấp sau duyệt, transition sai bị từ chối.
+  - [x] Hủy đơn bắt buộc lý do, hoàn xu/phục hồi tồn kho idempotent và ghi audit actor/request ID.
+  - [x] Giáo viên/admin đóng mở tiệm theo phạm vi; học sinh thấy lý do đóng, tồn kho và giới hạn tuần.
+  - [x] Action Center cảnh báo tồn kho thấp và mở đúng bộ lọc Gift Shop; đã bổ sung bảo vệ render cho `gift_low_stock`.
+  - [x] Migration/rollback `0049`, schema canonical, registry, policy và route contract được đồng bộ.
+  - [x] Targeted Vitest 14 file/116 test và Action Center 2 file/10 test; Cypress Gift Shop 4/4 và Action Center 2/2; lint, frontend/Worker typecheck, build và security scan đạt.
 - [ ] Task 26 — Notification preference/dedupe/quiet hours
 
 ## Wave 4 — Hiệu năng và observability

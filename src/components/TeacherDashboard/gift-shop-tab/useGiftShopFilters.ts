@@ -11,10 +11,10 @@ interface Options {
 
 const VALID_STATUSES: ReadonlySet<GiftOrderStatus | 'ALL'> = new Set([
   'ALL',
-  'CREATED',
-  'VOUCHER_ISSUED',
+  'PENDING',
+  'APPROVED',
   'DELIVERED',
-  'CANCELLED_REFUNDED',
+  'CANCELLED',
 ]);
 
 export const useGiftShopFilters = ({ username, isAdmin, teacherClass }: Options): GiftShopFiltersState => {
@@ -22,7 +22,7 @@ export const useGiftShopFilters = ({ username, isAdmin, teacherClass }: Options)
   const rawStatus = searchParams.get('status');
   const statusFilter: GiftOrderStatus | 'ALL' = rawStatus && VALID_STATUSES.has(rawStatus as GiftOrderStatus | 'ALL')
     ? rawStatus as GiftOrderStatus | 'ALL'
-    : 'VOUCHER_ISSUED';
+    : 'PENDING';
   const [classFilter, setClassFilter] = useState('');
   const [debouncedClassFilter, setDebouncedClassFilter] = useState('');
 

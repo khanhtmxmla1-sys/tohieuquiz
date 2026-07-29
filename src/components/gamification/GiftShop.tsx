@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
 import {
     ArrowLeft,
     Check,
@@ -15,11 +14,10 @@ import {
     Star,
     X,
 } from 'lucide-react';
-import { getStudentRoute } from '../../app/navigationRoutes';
+import { useQuizStore } from '../../../stores/quizStore';
 import { useClassroomStore } from '../../stores/useClassroomStore';
 import { useGamificationStore } from '../../stores/useGamificationStore';
 import { useGiftShopStore } from '../../stores/useGiftShopStore';
-import { useReducedExperience } from '../../hooks/useReducedExperience';
 import type { GiftCatalogItem, GiftCategory, GiftOrder, GiftOrderStatus } from '../../types/giftShop.types';
 
 const CATEGORY_META: Record<GiftCategory, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -29,10 +27,10 @@ const CATEGORY_META: Record<GiftCategory, { label: string; icon: React.Component
 };
 
 const ORDER_STATUS: Record<GiftOrderStatus, { label: string; className: string }> = {
-    CREATED: { label: 'Đang tạo đơn', className: 'border-slate-200 bg-slate-50 text-slate-700' },
-    VOUCHER_ISSUED: { label: 'Chờ giáo viên trao', className: 'border-amber-200 bg-amber-50 text-amber-800' },
+    PENDING: { label: 'Chờ giáo viên duyệt', className: 'border-amber-200 bg-amber-50 text-amber-800' },
+    APPROVED: { label: 'Đã duyệt · chờ trao', className: 'border-sky-200 bg-sky-50 text-sky-800' },
     DELIVERED: { label: 'Đã nhận', className: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
-    CANCELLED_REFUNDED: { label: 'Đã hủy và hoàn xu', className: 'border-rose-200 bg-rose-50 text-rose-800' },
+    CANCELLED: { label: 'Đã hủy và hoàn xu', className: 'border-rose-200 bg-rose-50 text-rose-800' },
 };
 
 const randomKey = () => {
@@ -44,11 +42,10 @@ const randomKey = () => {
 
 const GiftImage = ({ item, className = '' }: { item: GiftCatalogItem; className?: string }) => {
     const [failed, setFailed] = useState(false);
-    const { reduceVisuals } = useReducedExperience();
     return (
         <div className={`relative flex items-center justify-center overflow-hidden bg-slate-50 text-slate-300 ${className}`}>
             <Gift className="h-10 w-10" aria-hidden="true" />
-            {!reduceVisuals && !failed && item.imageUrl && (
+            {!failed && item.imageUrl && (
                 <img
                     src={item.imageUrl}
                     alt={item.name}
@@ -84,24 +81,27 @@ const OrderCard = ({ order, copiedCode, onCopy }: {
         </div>
         <div className="mt-3 rounded-xl bg-slate-50 p-3">
             <p className="text-xs text-slate-500">Mã nhận quà</p>
-            <div className="mt-1 flex items-center justify-between gap-2">
-                <code className="font-bold tracking-wider text-slate-900">{order.voucherCode}</code>
-                <button
-                    type="button"
-                    onClick={() => void onCopy(order.voucherCode)}
-                    aria-label={`Sao chép mã ${order.voucherCode}`}
-                    className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                >
-                    {copiedCode === order.voucherCode ? <Check className="h-4 w-4 text-emerald-600" /> : <Clipboard className="h-4 w-4" />}
-                </button>
-            </div>
+            {order.voucherCode ? (
+                <div className="mt-1 flex items-center justify-between gap-2">
+                    <code className="font-bold tracking-wider text-slate-900">{order.voucherCode}</code>
+                    <button
+                        type="button"
+                        onClick={() => void onCopy(order.voucherCode)}
+                        aria-label={`Sao chép mã ${order.voucherCode}`}
+                        className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    >
+                        {copiedCode === order.voucherCode ? <Check className="h-4 w-4 text-emerald-600" /> : <Clipboard className="h-4 w-4" />}
+                    </button>
+                </div>
+            ) : (
+                <p className="mt-1 text-sm font-semibold text-amber-700">Giáo viên sẽ cấp mã sau khi duyệt đơn.</p>
+            )}
         </div>
     </article>
 );
 
 const GiftShop: React.FC = () => {
-    const navigate = useNavigate();
-    const goHome = () => navigate(getStudentRoute('dashboard'));
+    const goHome = useQuizStore().goHome;
     const { studentSession } = useClassroomStore();
     const coins = useGamificationStore((state) => state.coins);
     const {
@@ -111,8 +111,10 @@ const GiftShop: React.FC = () => {
         error,
         pendingAction,
         lastPurchase,
+        shopSettings,
         loadCatalog,
         loadStudentOrders,
+        loadSettings,
         purchaseGift,
         clearError,
         clearLastPurchase,
@@ -132,8 +134,9 @@ const GiftShop: React.FC = () => {
         void Promise.all([
             loadCatalog(),
             loadStudentOrders(studentSession.studentId),
+            loadSettings(),
         ]);
-    }, [studentSession?.studentId, loadCatalog, loadStudentOrders]);
+    }, [studentSession?.studentId, loadCatalog, loadStudentOrders, loadSettings]);
 
     useEffect(() => {
         if (!selectedItem && !lastPurchase) return;
@@ -204,7 +207,7 @@ const GiftShop: React.FC = () => {
     const retry = async () => {
         if (!studentSession) return;
         clearError();
-        await Promise.all([loadCatalog(), loadStudentOrders(studentSession.studentId)]);
+        await Promise.all([loadCatalog(), loadStudentOrders(studentSession.studentId), loadSettings()]);
     };
 
     if (!studentSession) {
@@ -271,6 +274,13 @@ const GiftShop: React.FC = () => {
                     <button type="button" onClick={() => setMobileView('orders')} className={`min-h-11 rounded-xl text-sm font-semibold ${mobileView === 'orders' ? 'bg-sky-600 text-white' : 'text-slate-600'}`}>Đơn của em ({myOrders.length})</button>
                 </div>
 
+                {shopSettings?.effective.isOpen === false && (
+                    <div role="status" className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
+                        <p className="font-bold">Tiệm tạp hóa đang tạm đóng</p>
+                        <p className="mt-1 text-sm">{shopSettings.effective.closedReason || 'Em chưa thể tạo đơn đổi quà mới trong lúc này.'}</p>
+                    </div>
+                )}
+
                 {error && (
                     <div role="alert" className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800">
                         <p className="font-semibold">Lỗi tải dữ liệu</p>
@@ -323,21 +333,26 @@ const GiftShop: React.FC = () => {
                             ) : (
                                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                     {categoryItems.map((item) => {
-                                        const canBuy = coins >= item.priceCoins;
+                                        const shopOpen = shopSettings?.effective.isOpen !== false;
+                                        const inStock = item.stockRemaining > 0;
+                                        const canBuy = shopOpen && inStock && coins >= item.priceCoins;
                                         const missingCoins = Math.max(0, item.priceCoins - coins);
                                         return (
                                             <article key={item.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-3">
                                                 <GiftImage item={item} className="aspect-square rounded-xl" />
                                                 <h3 className="mt-3 line-clamp-2 min-h-10 text-sm font-semibold text-slate-900 sm:text-base">{item.name}</h3>
                                                 <p className="mt-1 font-bold text-amber-700">{item.priceCoins.toLocaleString('vi-VN')} xu</p>
-                                                <p className={`mt-2 text-xs font-semibold ${canBuy ? 'text-emerald-700' : 'text-slate-500'}`}>{canBuy ? '✓ Đủ xu' : `Cần thêm ${missingCoins.toLocaleString('vi-VN')} xu`}</p>
+                                                <p className="mt-1 text-xs text-slate-500">Còn {item.stockRemaining}/{item.stockTotal} · tối đa {item.weeklyLimitPerStudent || 'không giới hạn'} lần/tuần</p>
+                                                <p className={`mt-2 text-xs font-semibold ${canBuy ? 'text-emerald-700' : 'text-slate-500'}`}>
+                                                    {!shopOpen ? 'Tiệm đang đóng' : !inStock ? 'Đã hết hàng' : canBuy ? '✓ Đủ xu' : `Cần thêm ${missingCoins.toLocaleString('vi-VN')} xu`}
+                                                </p>
                                                 <button
                                                     type="button"
                                                     onClick={() => { setPurchaseKey(null); setSelectedItem(item); }}
                                                     disabled={!canBuy || isPurchasing}
                                                     className={`mt-3 min-h-11 w-full rounded-xl px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500 ${canBuy ? 'bg-sky-600 text-white hover:bg-sky-700' : 'cursor-not-allowed bg-slate-100 text-slate-500'}`}
                                                 >
-                                                    {canBuy ? 'Đổi quà' : 'Chưa đủ xu'}
+                                                    {!shopOpen ? 'Tiệm đang đóng' : !inStock ? 'Hết hàng' : canBuy ? 'Đổi quà' : 'Chưa đủ xu'}
                                                 </button>
                                             </article>
                                         );
@@ -368,7 +383,7 @@ const GiftShop: React.FC = () => {
                         <section className="rounded-2xl border border-sky-100 bg-sky-50 p-4">
                             <h2 className="font-bold text-sky-900">Cách nhận quà</h2>
                             <ol className="mt-3 space-y-3 text-sm text-sky-950">
-                                {['Chọn và xác nhận đổi quà', 'Nhận mã xác nhận', 'Đưa mã cho giáo viên'].map((step, index) => (
+                                {['Chọn và gửi yêu cầu đổi quà', 'Chờ giáo viên duyệt đơn', 'Đưa mã được cấp để nhận quà'].map((step, index) => (
                                     <li key={step} className="flex items-center gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white font-bold text-sky-700">{index + 1}</span>{step}</li>
                                 ))}
                             </ol>
@@ -397,9 +412,15 @@ const GiftShop: React.FC = () => {
                     <div className="w-full rounded-t-3xl bg-white p-6 text-center sm:max-w-md sm:rounded-2xl">
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"><Check className="h-6 w-6" /></div>
                         <h2 id="success-dialog-title" className="mt-3 text-xl font-bold text-slate-900">Đổi quà thành công</h2>
-                        <p className="mt-1 text-sm text-slate-600">Đưa mã này cho giáo viên để nhận quà.</p>
-                        <code className="mt-4 block rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-xl font-bold tracking-widest text-sky-900">{lastPurchase.voucherCode}</code>
-                        <button type="button" onClick={() => void handleCopyVoucher(lastPurchase.voucherCode)} className="mt-3 min-h-11 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 font-semibold text-slate-700"><Clipboard className="h-4 w-4" />{copiedCode === lastPurchase.voucherCode ? 'Đã sao chép' : 'Sao chép mã'}</button>
+                        <p className="mt-1 text-sm text-slate-600">Yêu cầu đã được gửi. Giáo viên sẽ duyệt và cấp mã nhận quà.</p>
+                        {lastPurchase.voucherCode ? (
+                            <>
+                                <code className="mt-4 block rounded-2xl border border-sky-200 bg-sky-50 px-4 py-4 text-xl font-bold tracking-widest text-sky-900">{lastPurchase.voucherCode}</code>
+                                <button type="button" onClick={() => void handleCopyVoucher(lastPurchase.voucherCode)} className="mt-3 min-h-11 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 font-semibold text-slate-700"><Clipboard className="h-4 w-4" />{copiedCode === lastPurchase.voucherCode ? 'Đã sao chép' : 'Sao chép mã'}</button>
+                            </>
+                        ) : (
+                            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 font-semibold text-amber-900">Trạng thái: Chờ giáo viên duyệt</div>
+                        )}
                         <button type="button" onClick={() => { clearLastPurchase(); setMobileView('orders'); }} className="mt-2 min-h-11 w-full rounded-xl bg-sky-600 font-semibold text-white">Xem đơn của em</button>
                     </div>
                 </div>

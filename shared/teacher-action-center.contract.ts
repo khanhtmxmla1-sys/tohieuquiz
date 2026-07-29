@@ -4,6 +4,7 @@ export type TeacherActionKind =
   | 'assignment_at_risk'
   | 'draft_unpublished'
   | 'gift_order_pending'
+  | 'gift_low_stock'
   | 'live_exam_upcoming';
 
 export type TeacherActionSeverity = 'critical' | 'warning' | 'info';

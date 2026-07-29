@@ -39,6 +39,12 @@ const routeSamples = [
   ['/api/parent/recovery/confirm', 'POST', 'public'],
   ['/api/parent-links', 'POST', 'teacher-owned'],
   ['/api/result-reports/batches/batch-1/retry', 'POST', 'teacher-owned'],
+  ['/api/gift-shop/purchase', 'POST', 'student-owned'],
+  ['/api/gift-shop/settings', 'GET', 'authenticated'],
+  ['/api/gift-shop/settings', 'PUT', 'teacher-owned'],
+  ['/api/gift-shop/orders/order-1/approve', 'PATCH', 'teacher-owned'],
+  ['/api/gift-shop/catalog/gift-1', 'DELETE', 'admin-only'],
+  ['/api/gift-shop/events', 'GET', 'admin-only'],
 ] as const;
 
 describe('API authorization matrix', () => {
