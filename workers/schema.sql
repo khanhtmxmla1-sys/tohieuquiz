@@ -664,6 +664,50 @@ CREATE TABLE IF NOT EXISTS system_settings (
   updated_at TEXT NOT NULL
 );
 
+
+-- Runtime feature rollout control plane.
+CREATE TABLE IF NOT EXISTS feature_flags (
+  flag_key TEXT PRIMARY KEY,
+  description TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+  owner TEXT NOT NULL DEFAULT '',
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS feature_flag_rules (
+  flag_key TEXT PRIMARY KEY,
+  audience TEXT NOT NULL DEFAULT 'all'
+    CHECK (audience IN ('all', 'admin', 'teacher', 'student', 'parent')),
+  percentage INTEGER NOT NULL DEFAULT 100 CHECK (percentage BETWEEN 0 AND 100),
+  allow_users_json TEXT NOT NULL DEFAULT '[]',
+  allow_classes_json TEXT NOT NULL DEFAULT '[]',
+  starts_at TEXT,
+  ends_at TEXT,
+  stop_conditions_json TEXT NOT NULL DEFAULT '{}',
+  reason TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (flag_key) REFERENCES feature_flags(flag_key) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS feature_flag_audit (
+  id TEXT PRIMARY KEY,
+  flag_key TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('UPDATED', 'ROLLED_BACK')),
+  field_name TEXT NOT NULL,
+  before_json TEXT NOT NULL,
+  after_json TEXT NOT NULL,
+  actor_username TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (flag_key) REFERENCES feature_flags(flag_key) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_flag_created
+  ON feature_flag_audit(flag_key, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_actor_created
+  ON feature_flag_audit(actor_username, created_at DESC);
+
 -- Bộ đếm rate limit theo cửa sổ cố định (middleware/rateLimit.ts, utils/loginRateLimit.ts).
 -- BẮT BUỘC phải có: các endpoint đăng nhập chạy limiter với failureMode 'closed', nên thiếu bảng
 -- này là mọi lượt đăng nhập trả 503. Hình dạng bảng khớp ensureRateLimitTable() và migration 0043.

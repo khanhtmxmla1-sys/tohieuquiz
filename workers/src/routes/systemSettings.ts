@@ -4,6 +4,7 @@ import { parseBody } from '../utils/helpers';
 import { isTransientD1Error, withD1Retry } from '../utils/d1';
 import { requireAdmin, verifyJWTMiddleware } from '../middleware/jwtAuth';
 import { auditStatement } from '../utils/audit';
+import { handleFeatureFlagRoutes } from './featureFlags';
 
 type SystemSettingRow = {
     setting_key: string;
@@ -26,6 +27,8 @@ const parseBool = (value: unknown, fallback = false): boolean => {
 };
 
 export async function handleSystemSettingsRoutes(request: Request, env: Env, path: string, method: string): Promise<Response | null> {
+    const featureFlagResponse = await handleFeatureFlagRoutes(request, env, path, method);
+    if (featureFlagResponse) return featureFlagResponse;
     if (path !== '/api/system-settings') return null;
 
     const db = env.DB;

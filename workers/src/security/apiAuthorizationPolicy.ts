@@ -9,6 +9,7 @@ export type ApiAuthorizationClass =
 export type ApiOwnershipKey =
   | 'none'
   | 'session'
+  | 'parentSession'
   | 'studentId'
   | 'quizId'
   | 'resultId'
@@ -60,6 +61,8 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('current-announcement', '/api/announcements/current', 'public', ['none'], 'announcement read handler', { match: 'exact', methods: ['GET'] }),
   policy('announcement-list', '/api/announcements', 'public', ['none'], 'announcement read handler', { match: 'exact', methods: ['GET'] }),
   policy('settings-read', '/api/system-settings', 'public', ['none'], 'settings read handler', { match: 'exact', methods: ['GET'] }),
+  policy('feature-flag-resolve', '/api/system-settings/feature-flags/resolve', 'authenticated', ['session', 'parentSession'], 'server-derived rollout subject', { match: 'exact', methods: ['GET'] }),
+  policy('feature-flag-admin', '/api/system-settings/feature-flags', 'admin-only', ['route-handler'], 'feature flag requireAdmin checks'),
   policy('practice', '/api/practice', 'public', ['none'], 'practice route validation'),
   policy('question-catalog', '/api/questions', 'public', ['quizId'], 'quiz handler strips answers', { methods: ['GET'] }),
   policy('quiz-catalog', '/api/quizzes', 'public', ['quizId'], 'quiz catalogue handler', { match: 'exact', methods: ['GET'] }),

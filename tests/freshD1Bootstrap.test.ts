@@ -42,6 +42,9 @@ describe('fresh D1 bootstrap contract', () => {
       'rate_limits',
       'webauthn_credentials',
       'webauthn_challenges',
+      'feature_flags',
+      'feature_flag_rules',
+      'feature_flag_audit',
     ]) {
       expect(schema).toContain(`create table if not exists ${table}`);
     }
@@ -85,8 +88,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(52);
-    expect(migrationNames.at(-1)).toBe('0053_webauthn_passkeys.sql');
+    expect(migrationNames).toHaveLength(53);
+    expect(migrationNames.at(-1)).toBe('0054_feature_rollout_control_plane.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);

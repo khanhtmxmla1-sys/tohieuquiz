@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getSystemSettings } from '../../services/systemSettingsService';
+import { resolveRuntimeFeatureFlag } from '../../services/featureRolloutService';
 
 export interface UnifiedNotificationsFeatureFlag {
   enabled: boolean;
@@ -20,15 +21,21 @@ export function useUnifiedNotificationsFeatureFlag(): UnifiedNotificationsFeatur
     let active = true;
     const load = async () => {
       try {
-        const settings = await getSystemSettings();
+        const resolution = await resolveRuntimeFeatureFlag('unified_notifications_v1');
         if (!active) return;
-        setState({
-          enabled: settings.unifiedNotificationsEnabled === true,
-          ready: true,
-          degraded: Boolean(settings.degraded),
-        });
+        setState({ enabled: resolution.enabled, ready: true, degraded: false });
       } catch {
-        if (active) setState({ enabled: false, ready: true, degraded: true });
+        try {
+          const settings = await getSystemSettings();
+          if (!active) return;
+          setState({
+            enabled: settings.unifiedNotificationsEnabled === true,
+            ready: true,
+            degraded: Boolean(settings.degraded),
+          });
+        } catch {
+          if (active) setState({ enabled: false, ready: true, degraded: true });
+        }
       }
     };
 
@@ -48,9 +55,11 @@ export function useUnifiedNotificationsFeatureFlag(): UnifiedNotificationsFeatur
       void load();
     };
     window.addEventListener('tohieuquiz:system-settings-updated', handleSettingsUpdated);
+    window.addEventListener('tohieuquiz:feature-flags-updated', handleSettingsUpdated);
     return () => {
       active = false;
       window.removeEventListener('tohieuquiz:system-settings-updated', handleSettingsUpdated);
+      window.removeEventListener('tohieuquiz:feature-flags-updated', handleSettingsUpdated);
     };
   }, []);
 

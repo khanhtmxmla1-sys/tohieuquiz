@@ -59,4 +59,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0050_notification_preferences.sql'),
   ('0051_pagination_indexes.sql'),
   ('0052_auth_sessions_security_events.sql'),
-  ('0053_webauthn_passkeys.sql');
+  ('0053_webauthn_passkeys.sql'),
+  ('0054_feature_rollout_control_plane.sql');

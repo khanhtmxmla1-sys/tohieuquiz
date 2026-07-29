@@ -100,6 +100,23 @@ export const systemRoutes: RouteRegistry = {
         auth: 'session',
         path: () => '/api/system-settings',
     },
+    list_feature_flags: {
+        method: 'GET', auth: 'session', path: () => '/api/system-settings/feature-flags',
+    },
+    resolve_feature_flag: {
+        method: 'GET', auth: 'session', path: () => '/api/system-settings/feature-flags/resolve',
+        query: ({ flag }) => new URLSearchParams({ flag: String(flag || '') }),
+    },
+    patch_feature_flag: {
+        method: 'PATCH', auth: 'session',
+        path: ({ key }) => `/api/system-settings/feature-flags/${encodeURIComponent(key)}`,
+        body: (_action, payload) => ({ field: payload.field, value: payload.value, reason: payload.reason }),
+    },
+    rollback_feature_flag: {
+        method: 'POST', auth: 'session',
+        path: ({ key }) => `/api/system-settings/feature-flags/${encodeURIComponent(key)}/rollback`,
+        body: (_action, payload) => ({ reason: payload.reason }),
+    },
     save_system_settings: {
         method: 'POST',
         auth: 'session',

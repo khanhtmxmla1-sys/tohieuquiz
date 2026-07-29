@@ -370,7 +370,15 @@ WITH checks(migration, check_name, ok) AS (
     ('0053_webauthn_passkeys.sql', 'webauthn indexes',
       (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='index' AND name IN (
         'idx_webauthn_credentials_user_created','idx_webauthn_credentials_active',
-        'idx_webauthn_challenges_owner_expiry','idx_webauthn_challenges_retention')))
+        'idx_webauthn_challenges_owner_expiry','idx_webauthn_challenges_retention'))),
+    ('0054_feature_rollout_control_plane.sql', 'feature rollout tables',
+      (SELECT COUNT(*)=3 FROM sqlite_master WHERE type='table' AND name IN (
+        'feature_flags','feature_flag_rules','feature_flag_audit'))),
+    ('0054_feature_rollout_control_plane.sql', 'feature rollout indexes and seeds',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_feature_flag_audit_flag_created','idx_feature_flag_audit_actor_created'))
+      AND EXISTS(SELECT 1 FROM feature_flags WHERE flag_key='unified_notifications_v1')
+      AND EXISTS(SELECT 1 FROM feature_flags WHERE flag_key='ai_assistant_enabled'))
 ), summary AS (
   SELECT
     migration,
