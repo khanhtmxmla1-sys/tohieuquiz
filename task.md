@@ -176,8 +176,14 @@
   - [x] Ng??i d?ng xem phi?n hi?n t?i/thi?t b? kh?c, thu h?i t?ng phi?n v? logout-all theo cutoff; request sau revoke b? 401, phi?n t?o sau cutoff kh?ng b? ?nh h??ng.
   - [x] ??i/reset m?t kh?u, session revoke, logout-all v? login threshold ghi security event; retention 90 ng?y ???c purge b?ng cron.
   - [x] UI Security Center n?m trong C?i ??t c? nh?n; Cypress Electron 1/1, targeted 5 file/24 test, full Vitest 356 file/1.653 test, coverage 4 file/32 test, lint, frontend/strict/Worker typecheck, build, security v? dependency audit ??u ??t.
-- [ ] Task 34 — Passkey/WebAuthn cho staff
-- [ ] Task 35 — Runtime feature rollout control plane
+- [x] Task 34 — Passkey/WebAuthn cho staff
+  - [x] SimpleWebAuthn 13.3.0 được pin cho browser/Worker; RP ID `thtohieu.com`, exact origins, challenge SHA-256 single-use TTL 5 phút và signature counter CAS.
+  - [x] Passkey chỉ dành cho teacher/admin, phát hành cùng sessionId/JWT/HttpOnly cookie như mật khẩu; mật khẩu vẫn là fallback và recovery path.
+  - [x] Migration/rollback `0053`, Security Center thêm/xóa passkey, Cypress 1/1; full Vitest 364 file/1.679 test, coverage 4 file/32 test, build, security và dependency audit đều đạt.
+- [x] Task 35 — Runtime feature rollout control plane
+  - [x] Resolver deterministic theo user + flag, audience admin/teacher/student/parent/all, percentage, user/class allowlist và time window; parent identity lấy từ Parent Portal session đã xác minh.
+  - [x] Admin chỉ PATCH một trường mỗi request với reason bắt buộc, before/after audit, actor/request ID, owner, stop conditions, preview cohort và rollback gần nhất không cần deploy.
+  - [x] Migration/rollback `0054`, Cypress 1/1; full Vitest 363 file/1.676 test, coverage 4 file/32 test, build, security và dependency audit đều đạt; regression hợp nhất 15 file/96 test.
 
 ## Wave 6 — Release
 
