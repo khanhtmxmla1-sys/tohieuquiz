@@ -44,8 +44,10 @@ describe('operations snapshot service', () => {
     const snapshot = await buildOperationsSnapshot(env({ r2Fails: true }), {
       now: () => new Date('2026-07-29T08:00:00.000Z'),
       timeoutMs: 100,
+      requestId: 'req-ops-service',
     });
 
+    expect(snapshot.requestId).toBe('req-ops-service');
     expect(snapshot.components).toHaveLength(10);
     expect(snapshot.overallStatus).toBe('degraded');
     expect(snapshot.components.find((item) => item.id === 'd1')?.status).toBe('healthy');

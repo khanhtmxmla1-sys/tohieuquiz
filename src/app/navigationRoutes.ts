@@ -16,6 +16,7 @@ const TEACHER_ROUTE_BY_TAB: Record<TeacherDashboardTab, string> = {
   certificates: '/teacher/certificates',
   'admin-templates': '/teacher/certificate-templates',
   'math-audit': '/teacher/math-audit',
+  operations: '/teacher/operations',
   'personal-settings': '/teacher/settings',
 };
 
@@ -33,6 +34,7 @@ const TEACHER_TAB_BY_PATH = new Map<string, TeacherDashboardTab>([
   ['/teacher/certificates', 'certificates'],
   ['/teacher/certificate-templates', 'admin-templates'],
   ['/teacher/math-audit', 'math-audit'],
+  ['/teacher/operations', 'operations'],
   ['/teacher/settings', 'personal-settings'],
 ]);
 

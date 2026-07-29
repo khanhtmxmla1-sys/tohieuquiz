@@ -807,10 +807,10 @@ interface AuthState {
 - Modify admin routes/sidebar.
 - Test: `tests/OperationsCenterPage.test.tsx`, `cypress/e2e/operations-center.cy.ts`
 
-- [ ] Admin-only route/menu.
-- [ ] Health, last checked, runbook, refresh; chưa có destructive action ở phiên đầu.
-- [ ] Charts lazy load.
-- [ ] Copy requestId/release SHA, không raw logs.
+- [x] Admin-only route/menu.
+- [x] Health, last checked, runbook, refresh; chưa có destructive action ở phiên đầu.
+- [x] Charts lazy load.
+- [x] Copy requestId/release SHA, không raw logs.
 
 **Acceptance:** Admin xác định trạng thái hệ thống trong một màn hình; teacher bị chặn.
 

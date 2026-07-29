@@ -15,6 +15,7 @@ export const DASHBOARD_SEARCH_ITEMS: Array<{
   { tab: 'live-exam', label: 'Thi trực tiếp', keywords: 'live exam phòng thi' },
   { tab: 'certificates', label: 'Cấp chứng nhận', keywords: 'giấy khen chứng chỉ' },
   { tab: 'announcements', label: 'Thông báo', keywords: 'cài đặt hệ thống' },
+  { tab: 'operations', label: 'Operations Center', keywords: 'health dependency operations request id release' },
 ];
 
 export const isGiftShopFeatureEnabled = () => String(

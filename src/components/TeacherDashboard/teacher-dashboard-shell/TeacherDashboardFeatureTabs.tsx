@@ -8,6 +8,7 @@ import {
   HomeworkTab,
   LiveExamTab,
   MathAuditPage,
+  OperationsCenterPage,
   PersonalSettingsTab,
   TeacherCertificatesPage,
   TeacherManagementTab,
@@ -37,5 +38,6 @@ export const TeacherDashboardFeatureTabs = (props: TeacherDashboardFeatureTabsPr
     {props.activeTab === 'certificates' && <TeacherCertificatesPage />}
     {props.activeTab === 'admin-templates' && props.isAdmin && <AdminTemplatesPage />}
     {props.activeTab === 'math-audit' && props.isAdmin && <MathAuditPage />}
+    {props.activeTab === 'operations' && props.isAdmin && <OperationsCenterPage />}
   </>
 );

@@ -20,6 +20,7 @@ const TEACHER_DASHBOARD_TABS = [
     'certificates',
     'admin-templates',
     'math-audit',
+    'operations',
     'personal-settings',
 ] as const;
 

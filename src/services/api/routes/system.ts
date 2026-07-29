@@ -90,6 +90,11 @@ export const systemRoutes: RouteRegistry = {
             return params;
         },
     },
+    get_admin_operations: {
+        method: 'GET',
+        auth: 'session',
+        path: () => '/api/admin/operations',
+    },
     get_system_settings: {
         method: 'GET',
         auth: 'session',

@@ -31,6 +31,7 @@ export interface OperationsComponent {
 export interface OperationsSnapshot {
   overallStatus: OperationsComponentStatus;
   checkedAt: string;
+  requestId: string;
   release: string;
   components: OperationsComponent[];
 }

@@ -16,6 +16,7 @@ import {
     Radio,
     ScanSearch,
     Settings,
+    ServerCog,
     Users,
 } from 'lucide-react';
 import { SCHOOL_NAME } from '../../config/constants';
@@ -56,7 +57,7 @@ const groupForTab = (tab: TeacherDashboardTab): GroupKey | null => {
     if (tab === 'gift-shop') return 'utilities';
     if (['certificates', 'admin-templates'].includes(tab)) return 'certificates';
     if (tab === 'personal-settings') return 'account';
-    if (['announcements', 'teachers', 'math-audit'].includes(tab)) return 'system';
+    if (['announcements', 'teachers', 'math-audit', 'operations'].includes(tab)) return 'system';
     return null;
 };
 
@@ -178,6 +179,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         { id: 'announcements', label: 'Thông báo', icon: <Megaphone className="size-5" /> },
         { id: 'teachers', label: 'Giáo viên', icon: <Users className="size-5" /> },
         { id: 'math-audit', label: 'Theo dõi lỗi công thức', icon: <ScanSearch className="size-5" /> },
+        { id: 'operations', label: 'Operations Center', icon: <ServerCog className="size-5" /> },
     ];
 
     const navigateTo = (tab: TeacherDashboardTab) => {

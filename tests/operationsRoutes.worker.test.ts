@@ -55,7 +55,7 @@ describe('admin operations route', () => {
 
   it('returns a no-store snapshot to admins without secret fields', async () => {
     const response = await handleOperationsRoutes(
-      new Request('https://api.test/api/admin/operations', { headers: { 'x-role': 'admin' } }),
+      new Request('https://api.test/api/admin/operations', { headers: { 'x-role': 'admin', 'x-request-id': 'req-ops-route' } }),
       env,
       '/api/admin/operations',
       'GET',
@@ -63,6 +63,7 @@ describe('admin operations route', () => {
     const payload = await response?.json() as any;
     expect(response?.status).toBe(200);
     expect(response?.headers.get('Cache-Control')).toBe('no-store');
+    expect(payload.data.requestId).toBe('req-ops-route');
     expect(payload.data.components).toHaveLength(10);
     expect(JSON.stringify(payload)).not.toMatch(/token|secret|bindingId|databaseId/i);
   });

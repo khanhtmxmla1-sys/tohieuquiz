@@ -166,7 +166,11 @@
   - [x] Từng probe có timeout riêng; lỗi dependency không làm hỏng toàn snapshot và không rò raw error, secret hoặc binding ID.
   - [x] Route `/api/admin/operations` chỉ cho admin, `Cache-Control: no-store`; teacher bị từ chối.
   - [x] Targeted 4 file/49 test; full Vitest 354 file/1.649 test, coverage 4 file/32 test, lint, typecheck, build, security và dependency audit đều đạt.
-- [ ] Task 32 — Operations Center UI
+- [x] Task 32 — Operations Center UI
+  - [x] Route `/teacher/operations` và menu chỉ hiển thị cho admin; teacher truy cập trực tiếp bị chuyển về Tổng quan và không gọi API operations.
+  - [x] Một màn hình hiển thị overall/component health, last checked, probe latency, metrics, refresh và runbook read-only.
+  - [x] Biểu đồ status/latency lazy-load; cho phép sao chép request ID và release SHA, không hiển thị raw log hay thao tác phá hủy.
+  - [x] Cypress Electron admin/teacher 2/2; full Vitest 355 file/1.653 test, coverage 4 file/32 test, lint, strict/frontend/Worker typecheck, build, security và dependency audit đều đạt.
 - [ ] Task 33 — Security Center/session management
 - [ ] Task 34 — Passkey/WebAuthn cho staff
 - [ ] Task 35 — Runtime feature rollout control plane

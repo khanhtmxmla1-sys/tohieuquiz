@@ -16,7 +16,9 @@ export async function handleOperationsRoutes(
   if (auth instanceof Response) return auth;
   if (!requireAdmin(auth.user)) return errorResponse('Forbidden', 403);
 
-  const snapshot = await buildOperationsSnapshot(env);
+  const snapshot = await buildOperationsSnapshot(env, {
+    requestId: request.headers.get('x-request-id') || request.headers.get('cf-ray') || crypto.randomUUID(),
+  });
   const response = jsonResponse({ status: 'success', data: snapshot }, 200);
   const headers = new Headers(response.headers);
   headers.set('Cache-Control', 'no-store');

@@ -24,6 +24,7 @@ interface OperationsServiceOptions {
   now?: () => Date;
   timeoutMs?: number;
   release?: string;
+  requestId?: string;
 }
 
 interface CountRow {
@@ -341,6 +342,7 @@ export async function buildOperationsSnapshot(
   return {
     overallStatus: overallStatus(components),
     checkedAt,
+    requestId: String(options.requestId || 'unknown').slice(0, 128),
     release: String(options.release ?? env.APP_RELEASE ?? 'unknown').slice(0, 100),
     components,
   };
