@@ -1288,6 +1288,8 @@ CREATE INDEX IF NOT EXISTS idx_notifications_metrics
   ON notifications(sent_at, severity, read_at, clicked_at);
 CREATE INDEX IF NOT EXISTS idx_notification_preferences_role
   ON notification_preferences(user_role, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_feed_cursor
+  ON notifications(user_id, user_role, is_read, created_at DESC, id DESC);
 
 -- Parent Portal access and one-way communication
 CREATE TABLE IF NOT EXISTS parent_links (
@@ -1562,3 +1564,22 @@ CREATE INDEX IF NOT EXISTS idx_intervention_audit_group_created
   ON intervention_audit(group_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_assignments_intervention_group
   ON assignments(intervention_group_id, student_id, status);
+
+
+-- Stable cursor indexes for bounded large-collection endpoints.
+CREATE INDEX IF NOT EXISTS idx_results_cursor
+  ON results(submitted_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_results_quiz_cursor
+  ON results(quiz_id, submitted_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_results_class_cursor
+  ON results(class_name, submitted_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_students_class_name_cursor
+  ON students(class_id, archived_at, full_name COLLATE NOCASE, id);
+CREATE INDEX IF NOT EXISTS idx_teachers_admin_cursor
+  ON teachers(status, full_name COLLATE NOCASE, username);
+CREATE INDEX IF NOT EXISTS idx_gift_orders_class_cursor
+  ON gift_orders(class_id, updated_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_gift_orders_student_cursor
+  ON gift_orders(student_id, updated_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_gift_orders_status_cursor
+  ON gift_orders(status, updated_at DESC, id DESC);

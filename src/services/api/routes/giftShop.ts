@@ -36,7 +36,7 @@ export const giftShopRoutes: RouteRegistry = {
         method: 'GET',
         auth: 'session',
         path: () => '/api/gift-shop/orders',
-        query: ({ studentId, classId, status, actorUsername, actorTeacherClass, actorIsAdmin }) => {
+        query: ({ studentId, classId, status, actorUsername, actorTeacherClass, actorIsAdmin, cursor, limit }) => {
             const q = new URLSearchParams();
             if (studentId) q.append('studentId', studentId);
             if (classId) q.append('classId', classId);
@@ -44,6 +44,8 @@ export const giftShopRoutes: RouteRegistry = {
             if (actorUsername) q.append('actorUsername', actorUsername);
             if (actorTeacherClass) q.append('actorTeacherClass', actorTeacherClass);
             if (typeof actorIsAdmin !== 'undefined') q.append('actorIsAdmin', String(actorIsAdmin));
+            if (cursor) q.append('cursor', String(cursor));
+            if (limit) q.append('limit', String(limit));
             return q;
         },
     },

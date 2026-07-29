@@ -18,7 +18,14 @@ interface TeacherRecord {
 
 interface TeacherListResponse {
     status: string;
-    data: { items: TeacherRecord[]; page: number; pageSize: number; total: number };
+    data: {
+        items: TeacherRecord[];
+        page: number;
+        pageSize: number;
+        total: number;
+        hasMore: boolean;
+        nextCursor: string | null;
+    };
 }
 
 interface TeacherForm { username: string; fullName: string; role: 'admin' | 'teacher'; teacherClass: string }
@@ -27,11 +34,16 @@ const EMPTY_FORM: TeacherForm = { username: '', fullName: '', role: 'teacher', t
 
 const TeacherManagementTab: React.FC = () => {
     const [teachers, setTeachers] = useState<TeacherRecord[]>([]);
+    const initialQuery = useMemo(() => new URLSearchParams(window.location.search), []);
     const [total, setTotal] = useState(0);
-    const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
-    const [roleFilter, setRoleFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
+    const [page, setPage] = useState(() => Math.max(1, Number(initialQuery.get('teacherPage') || 1)));
+    const [cursor, setCursor] = useState(() => initialQuery.get('teacherCursor') || '');
+    const [cursorHistory, setCursorHistory] = useState<string[]>([]);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [search, setSearch] = useState(() => initialQuery.get('teacherSearch') || '');
+    const [roleFilter, setRoleFilter] = useState(() => initialQuery.get('teacherRole') || '');
+    const [statusFilter, setStatusFilter] = useState(() => initialQuery.get('teacherStatus') || '');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [form, setForm] = useState(EMPTY_FORM);
@@ -49,19 +61,49 @@ const TeacherManagementTab: React.FC = () => {
         setError('');
         try {
             const response = await callApi<TeacherListResponse>('get_teachers', {
-                search, role: roleFilter, status: statusFilter, page, pageSize: 25,
+                search, role: roleFilter, status: statusFilter, cursor, limit: 25,
             });
             setTeachers(response.data?.items || []);
             setTotal(response.data?.total || 0);
+            setNextCursor(response.data?.nextCursor || null);
+            setHasMore(Boolean(response.data?.hasMore));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Không thể tải danh sách giáo viên.');
         } finally {
             setLoading(false);
         }
-    }, [page, roleFilter, search, statusFilter]);
+    }, [cursor, roleFilter, search, statusFilter]);
 
     useEffect(() => { void fetchTeachers(); }, [fetchTeachers]);
-    useEffect(() => { setPage(1); }, [search, roleFilter, statusFilter]);
+    useEffect(() => {
+        setPage(1);
+        setCursor('');
+        setCursorHistory([]);
+    }, [search, roleFilter, statusFilter]);
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        params.set('teacherPage', String(page));
+        if (cursor) params.set('teacherCursor', cursor); else params.delete('teacherCursor');
+        if (search) params.set('teacherSearch', search); else params.delete('teacherSearch');
+        if (roleFilter) params.set('teacherRole', roleFilter); else params.delete('teacherRole');
+        if (statusFilter) params.set('teacherStatus', statusFilter); else params.delete('teacherStatus');
+        const query = params.toString();
+        window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    }, [cursor, page, roleFilter, search, statusFilter]);
+
+    const goToNextPage = () => {
+        if (!nextCursor) return;
+        setCursorHistory((current) => [...current, cursor]);
+        setCursor(nextCursor);
+        setPage((current) => current + 1);
+    };
+    const goToPreviousPage = () => {
+        if (page <= 1) return;
+        const previous = cursorHistory.at(-1) || '';
+        setCursorHistory((current) => current.slice(0, -1));
+        setCursor(previous);
+        setPage((current) => Math.max(1, current - 1));
+    };
 
     const activeRecipients = useMemo(
         () => teachers.filter((teacher) => teacher.status === 'ACTIVE' && teacher.username !== disableTarget?.username),
@@ -229,7 +271,7 @@ const TeacherManagementTab: React.FC = () => {
                     </div>
                 )}
                 <div className="flex items-center justify-between border-t bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    <span>Tổng cộng {total} tài khoản</span><div className="flex gap-2"><button disabled={page <= 1} onClick={() => setPage((value) => value - 1)} className="rounded-lg border bg-white px-3 py-1 disabled:opacity-40">Trước</button><span className="px-2 py-1">Trang {page}</span><button disabled={page * 25 >= total} onClick={() => setPage((value) => value + 1)} className="rounded-lg border bg-white px-3 py-1 disabled:opacity-40">Sau</button></div>
+                    <span>Tổng cộng {total} tài khoản</span><div className="flex gap-2"><button disabled={page <= 1} onClick={goToPreviousPage} className="rounded-lg border bg-white px-3 py-1 disabled:opacity-40">Trước</button><span className="px-2 py-1">Trang {page}</span><button disabled={!hasMore || !nextCursor} onClick={goToNextPage} className="rounded-lg border bg-white px-3 py-1 disabled:opacity-40">Sau</button></div>
                 </div>
             </div>
 

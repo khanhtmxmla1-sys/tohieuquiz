@@ -7,7 +7,7 @@ export const teacherRoutes: RouteRegistry = {
         method: 'GET', auth: 'session', path: () => adminBase,
         query: (payload) => new URLSearchParams(Object.entries({
             search: payload.search || '', role: payload.role || '', status: payload.status || '',
-            page: String(payload.page || 1), pageSize: String(payload.pageSize || 25),
+            cursor: payload.cursor || '', limit: String(payload.limit || payload.pageSize || 25),
         }).filter(([, value]) => value !== '')),
     },
     create_teacher: { method: 'POST', auth: 'session', path: () => adminBase },

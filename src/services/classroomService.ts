@@ -79,11 +79,25 @@ export const restoreClass = async (classId: string): Promise<boolean> => {
  * - Student role: omits parentPhone
  */
 export const getStudents = async (classId: string, role: 'teacher' | 'student' = 'teacher'): Promise<Student[]> => {
-    const res = await callWorkerApi<Student[]>('get_students', { classId, role });
-    if (res.status === 'success' && Array.isArray(res.data)) {
-        return res.data;
+    const students: Student[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < 100; page += 1) {
+        const res = await callWorkerApi<Student[]>('get_students', {
+            classId,
+            role,
+            cursor,
+            limit: 100,
+        }) as Awaited<ReturnType<typeof callWorkerApi<Student[]>>> & {
+            meta?: { nextCursor?: string | null; hasMore?: boolean };
+        };
+        if (res.status !== 'success' || !Array.isArray(res.data)) {
+            throw new Error(res.message || 'Kh?ng th? t?i danh s?ch h?c sinh.');
+        }
+        students.push(...res.data);
+        cursor = res.meta?.nextCursor || undefined;
+        if (!cursor || res.meta?.hasMore === false) break;
     }
-    throw new Error(res.message || 'Không thể tải danh sách học sinh.');
+    return students;
 };
 
 /**

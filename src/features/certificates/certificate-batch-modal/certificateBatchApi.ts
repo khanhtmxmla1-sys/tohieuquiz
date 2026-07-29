@@ -22,17 +22,32 @@ export const fetchQuizOptions = async (): Promise<QuizOption[]> => {
   return Array.isArray(payload) ? payload : [];
 };
 
-export const fetchClassStudents = async (classId: string): Promise<StudentOption[]> => {
-  const response = await fetch(`${apiBase()}/api/students?classId=${classId}`, { headers: authHeaders(), credentials: 'include' });
-  const payload = await response.json() as { data?: StudentOption[] };
-  return payload.data ?? [];
-};
+async function fetchAllCursorPages<T>(path: string): Promise<T[]> {
+  const items: T[] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 100; page += 1) {
+    const separator = path.includes('?') ? '&' : '?';
+    const cursorQuery = cursor ? `&cursor=${encodeURIComponent(cursor)}` : '';
+    const response = await fetch(`${apiBase()}${path}${separator}limit=100${cursorQuery}`, {
+      headers: authHeaders(),
+      credentials: 'include',
+    });
+    const payload = await response.json() as {
+      data?: T[];
+      meta?: { nextCursor?: string | null; hasMore?: boolean };
+    };
+    items.push(...(payload.data ?? []));
+    cursor = payload.meta?.nextCursor || undefined;
+    if (!cursor || payload.meta?.hasMore === false) break;
+  }
+  return items;
+}
 
-export const fetchQuizResults = async (quizId: string): Promise<ResultRecord[]> => {
-  const response = await fetch(`${apiBase()}/api/results?quizId=${quizId}&limit=200`, { headers: authHeaders(), credentials: 'include' });
-  const payload = await response.json() as { data?: ResultRecord[] };
-  return payload.data ?? [];
-};
+export const fetchClassStudents = async (classId: string): Promise<StudentOption[]> =>
+  fetchAllCursorPages<StudentOption>(`/api/students?classId=${encodeURIComponent(classId)}`);
+
+export const fetchQuizResults = async (quizId: string): Promise<ResultRecord[]> =>
+  fetchAllCursorPages<ResultRecord>(`/api/results?quizId=${encodeURIComponent(quizId)}`);
 
 export const renderCertificatePreview = async (input: CertificatePreviewInput): Promise<Blob> => {
   const response = await fetch(`${apiBase()}/api/certificates/render-preview`, {

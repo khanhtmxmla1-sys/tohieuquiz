@@ -247,7 +247,7 @@ describe('Gift Shop worker route contracts', () => {
 
         expect(response.status).toBe(200);
         const payload = await responseJson(response);
-        expect(payload[0]).toMatchObject({
+        expect(payload.data[0]).toMatchObject({
             id: 'order-1',
             studentId: 'student-1',
             classId: 'class-3a',
@@ -257,7 +257,7 @@ describe('Gift Shop worker route contracts', () => {
         });
         const query = db.executed.find((statement) => statement.sql.includes('FROM gift_orders o'));
         expect(query?.sql).toContain('(o.class_id = ? OR c.name = ?)');
-        expect(query?.bindings).toEqual(['3A', '3A', 'APPROVED']);
+        expect(query?.bindings).toEqual(['3A', '3A', 'APPROVED', 26]);
     });
 
     it('allows student self-history but forbids purchasing for another student', async () => {
@@ -275,7 +275,7 @@ describe('Gift Shop worker route contracts', () => {
         );
         expect(historyResponse.status).toBe(200);
         const historyQuery = db.executed.find((statement) => statement.sql.includes('FROM gift_orders o'));
-        expect(historyQuery?.bindings).toEqual(['student-1']);
+        expect(historyQuery?.bindings).toEqual(['student-1', 26]);
 
         const otherStudentHistory = await handleGiftShopRoutes(
             request('/api/gift-shop/orders?studentId=student-2'),

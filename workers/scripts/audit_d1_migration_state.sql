@@ -349,7 +349,13 @@ WITH checks(migration, check_name, ok) AS (
     ('0050_notification_preferences.sql', 'notification delivery indexes',
       (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='index' AND name IN (
         'idx_notifications_window_dedupe','idx_notifications_delivery_feed',
-        'idx_notifications_metrics','idx_notification_preferences_role')))
+        'idx_notifications_metrics','idx_notification_preferences_role'))),
+    ('0051_pagination_indexes.sql', 'bounded collection cursor indexes',
+      (SELECT COUNT(*)=9 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_results_cursor','idx_results_quiz_cursor','idx_results_class_cursor',
+        'idx_students_class_name_cursor','idx_teachers_admin_cursor',
+        'idx_gift_orders_class_cursor','idx_gift_orders_student_cursor',
+        'idx_gift_orders_status_cursor','idx_notifications_feed_cursor')))
 ), summary AS (
   SELECT
     migration,

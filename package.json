@@ -43,7 +43,8 @@
     "verify": "npm run lint && npm run typecheck && npm run typecheck:strict && npm run typecheck:workers && npm run test:ci:all && npm run test:coverage && npm run build && npm run security:check",
     "release:readiness": "node scripts/release-readiness.mjs",
     "perf:analyze": "node scripts/analyze-bundle.mjs",
-    "perf:budget": "node scripts/analyze-bundle.mjs --check"
+    "perf:budget": "node scripts/analyze-bundle.mjs --check",
+    "perf:collections": "node scripts/benchmark-list-endpoints.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

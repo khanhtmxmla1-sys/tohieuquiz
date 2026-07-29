@@ -38,7 +38,7 @@ export class ClassroomDatabase {
         return null;
     }
     all(sql: string) {
-        if (sql.includes('SELECT * FROM students WHERE class_id = ?')) {
+        if (sql.includes('FROM students') && sql.includes('class_id = ?') && sql.includes('ORDER BY full_name')) {
             return this.options.students ?? [];
         }
         if (sql.includes('SELECT * FROM shop_items')) return this.options.shopItems ?? [];

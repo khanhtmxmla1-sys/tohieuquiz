@@ -5,6 +5,13 @@ export const resultRoutes: RouteRegistry = {
         method: 'GET',
         auth: 'session',
         path: () => '/api/results',
+        query: ({ quizId, cursor, limit }) => {
+            const query = new URLSearchParams();
+            if (quizId) query.set('quizId', String(quizId));
+            if (cursor) query.set('cursor', String(cursor));
+            if (limit) query.set('limit', String(limit));
+            return query;
+        },
     },
     get_results_summary: {
         method: 'GET',

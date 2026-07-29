@@ -3,6 +3,7 @@ import { AlertTriangle, Clock3, Gift, X } from 'lucide-react';
 import type { GiftOrder } from '../../../types/giftShop.types';
 import type { GiftShopFiltersState } from './types';
 import { GiftOrderCard } from './GiftOrderCard';
+import { AccessibleVirtualList } from '../../common/AccessibleVirtualList';
 import { GiftOrderFilters } from './GiftOrderFilters';
 
 interface PendingAction {
@@ -124,10 +125,14 @@ export const GiftOrdersSection = ({
             <p className="mt-1 text-sm text-slate-500">Thử đổi trạng thái, tên lớp hoặc từ khóa tìm kiếm.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredOrders.map((order) => (
+          <AccessibleVirtualList
+            items={filteredOrders}
+            getKey={(order) => order.id}
+            ariaLabel="Danh s?ch ??n ??i qu?"
+            className="space-y-3"
+            itemHeight={250}
+            renderItem={(order) => (
               <GiftOrderCard
-                key={order.id}
                 order={order}
                 pending={pendingAction?.targetId === order.id}
                 onRequestApprove={(selectedOrder) => void onApprove(selectedOrder.id)}
@@ -137,8 +142,8 @@ export const GiftOrdersSection = ({
                   setCancelOrder(selectedOrder);
                 }}
               />
-            ))}
-          </div>
+            )}
+          />
         )}
       </div>
 

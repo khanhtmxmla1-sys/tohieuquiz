@@ -1,0 +1,9 @@
+DROP INDEX IF EXISTS idx_notifications_feed_cursor;
+DROP INDEX IF EXISTS idx_gift_orders_status_cursor;
+DROP INDEX IF EXISTS idx_gift_orders_student_cursor;
+DROP INDEX IF EXISTS idx_gift_orders_class_cursor;
+DROP INDEX IF EXISTS idx_teachers_admin_cursor;
+DROP INDEX IF EXISTS idx_students_class_name_cursor;
+DROP INDEX IF EXISTS idx_results_class_cursor;
+DROP INDEX IF EXISTS idx_results_quiz_cursor;
+DROP INDEX IF EXISTS idx_results_cursor;

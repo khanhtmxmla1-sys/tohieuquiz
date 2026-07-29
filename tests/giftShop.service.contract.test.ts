@@ -143,7 +143,7 @@ describe('giftShopService API contracts', () => {
         const cancelResult = { order, newCoins: 500 };
 
         callApiMock
-            .mockResolvedValueOnce([order])
+            .mockResolvedValueOnce({ data: [order], meta: { hasMore: false, nextCursor: null } })
             .mockResolvedValueOnce(purchaseResult)
             .mockResolvedValueOnce(order)
             .mockResolvedValueOnce(cancelResult)
@@ -155,7 +155,11 @@ describe('giftShopService API contracts', () => {
         await giftShopService.cancelOrder(order.id, actor, 'Manual cancel');
         await giftShopService.getEventLogs();
 
-        expect(callApiMock).toHaveBeenNthCalledWith(1, 'get_gift_shop_orders', query);
+        expect(callApiMock).toHaveBeenNthCalledWith(1, 'get_gift_shop_orders', {
+            ...query,
+            cursor: undefined,
+            limit: 100,
+        });
         expect(callApiMock).toHaveBeenNthCalledWith(2, 'purchase_gift_shop_item', purchasePayload);
         expect(callApiMock).toHaveBeenNthCalledWith(3, 'deliver_gift_shop_order', {
             orderId: order.id,

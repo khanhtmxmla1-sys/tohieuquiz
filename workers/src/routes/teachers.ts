@@ -13,6 +13,7 @@ import {
 } from '../utils/password';
 import { checkLoginLimit, clearLoginFailures, recordLoginFailure } from '../utils/loginRateLimit';
 import { auditStatement, writeAuditLog } from '../utils/audit';
+import { collectionLimit, decodeCollectionCursor, encodeCollectionCursor } from '../utils/cursorPagination';
 
 type TeacherRow = {
     username: string;
@@ -211,19 +212,41 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
         const search = (url.searchParams.get('search') || '').trim();
         const role = url.searchParams.get('role') || '';
         const status = url.searchParams.get('status') || '';
-        const page = Math.max(1, Number(url.searchParams.get('page') || 1));
-        const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('pageSize') || 25)));
+        let limit: number;
+        let cursor: string[] | null;
+        try {
+            limit = collectionLimit(url, ['pageSize']);
+            cursor = decodeCollectionCursor(url.searchParams.get('cursor'), 'teachers', 3);
+        } catch (error) {
+            return errorResponse(error instanceof Error ? error.message : 'Pagination invalid', 400);
+        }
         const where: string[] = ['1 = 1'];
         const bindings: unknown[] = [];
         if (search) {
             where.push('(t.username LIKE ? OR t.full_name LIKE ?)');
             bindings.push(`%${search}%`, `%${search}%`);
         }
-        if (role === 'admin' || role === 'teacher') { where.push('t.role = ?'); bindings.push(role); }
-        if (status === 'ACTIVE' || status === 'DISABLED') { where.push('t.status = ?'); bindings.push(status); }
+        if (role === 'admin' || role === 'teacher') {
+            where.push('t.role = ?');
+            bindings.push(role);
+        }
+        if (status === 'ACTIVE' || status === 'DISABLED') {
+            where.push('t.status = ?');
+            bindings.push(status);
+        }
+        const countWhereSql = where.join(' AND ');
+        const countBindings = [...bindings];
+        if (cursor) {
+            where.push(`(
+                t.status > ?
+                OR (t.status = ? AND LOWER(t.full_name) > ?)
+                OR (t.status = ? AND LOWER(t.full_name) = ? AND t.username > ?)
+            )`);
+            bindings.push(cursor[0], cursor[0], cursor[1], cursor[0], cursor[1], cursor[2]);
+        }
         const whereSql = where.join(' AND ');
-        const total = await db.prepare(`SELECT COUNT(*) AS count FROM teachers t WHERE ${whereSql}`)
-            .bind(...bindings).first<{ count: number }>();
+        const total = await db.prepare(`SELECT COUNT(*) AS count FROM teachers t WHERE ${countWhereSql}`)
+            .bind(...countBindings).first<{ count: number }>();
         const rows = await db.prepare(`
             SELECT t.username, t.full_name, t.role, t.class, t.status, t.must_change_password,
                    t.last_login_at, t.password_changed_at, t.disabled_at,
@@ -232,11 +255,15 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
             LEFT JOIN classes c ON c.teacher_username = t.username
             WHERE ${whereSql}
             GROUP BY t.username
-            ORDER BY t.status, t.full_name, t.username
-            LIMIT ? OFFSET ?
-        `).bind(...bindings, pageSize, (page - 1) * pageSize).all<any>();
+            ORDER BY t.status ASC, t.full_name COLLATE NOCASE ASC, t.username ASC
+            LIMIT ?
+        `).bind(...bindings, limit + 1).all<any>();
+        const sourceRows = rows.results || [];
+        const pageRows = sourceRows.slice(0, limit);
+        const last = pageRows.at(-1);
+        const hasMore = sourceRows.length > limit;
         return finish(jsonResponse({ status: 'success', data: {
-            items: (rows.results || []).map((teacher) => ({
+            items: pageRows.map((teacher) => ({
                 username: teacher.username,
                 fullName: teacher.full_name,
                 full_name: teacher.full_name,
@@ -249,9 +276,17 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
                 disabledAt: teacher.disabled_at,
                 classCount: Number(teacher.class_count || 0),
             })),
-            page,
-            pageSize,
+            page: 1,
+            pageSize: limit,
             total: Number(total?.count || 0),
+            hasMore,
+            nextCursor: hasMore && last
+                ? encodeCollectionCursor('teachers', [
+                    last.status,
+                    String(last.full_name || '').toLowerCase(),
+                    last.username,
+                ])
+                : null,
         } }));
     }
 
