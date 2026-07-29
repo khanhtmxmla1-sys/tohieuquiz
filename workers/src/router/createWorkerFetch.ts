@@ -1,5 +1,12 @@
 import type { Env } from '../types';
-import { getRequestId, logStructured, withRequestId, type StructuredLogSink } from '../utils/logger';
+import {
+  getRequestId,
+  logStructured,
+  normalizeLogRouteTemplate,
+  withRequestId,
+  type StructuredLogSink,
+} from '../utils/logger';
+import { findApiAuthorizationPolicy } from '../security/apiAuthorizationPolicy';
 
 interface RateLimitOptions {
   windowMs: number;
@@ -65,6 +72,7 @@ export interface WorkerFetchDependencies {
   handleAdminCertificateRoutes: RouteHandler;
   handleMathObservabilityRoutes: RouteHandler;
   handleClientErrorRoute: RouteHandler;
+  handleClientTelemetryRoute: RouteHandler;
   handleActionCenterRoutes: RouteHandler;
   handlePhieuSubdomain: SimpleRouteHandler;
   handlePublicPhieuApi: (
@@ -119,6 +127,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     handleAdminCertificateRoutes,
     handleMathObservabilityRoutes,
     handleClientErrorRoute,
+    handleClientTelemetryRoute,
     handleActionCenterRoutes,
     handlePhieuSubdomain,
     handlePublicPhieuApi,
@@ -168,6 +177,17 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
       if (rateLimitResponse) return addCors(rateLimitResponse, request, env);
       const clientErrorResponse = await handleClientErrorRoute(request, env, path, method);
       if (clientErrorResponse) return addCors(clientErrorResponse, request, env);
+    }
+
+    if (path === '/api/client-telemetry') {
+      const rateLimitResponse = await rateLimit(request, env, {
+        windowMs: 60 * 1000,
+        maxRequests: 60,
+        failureMode: 'closed',
+      });
+      if (rateLimitResponse) return addCors(rateLimitResponse, request, env);
+      const telemetryResponse = await handleClientTelemetryRoute(request, env, path, method);
+      if (telemetryResponse) return addCors(telemetryResponse, request, env);
     }
 
     const isUnsafeMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
@@ -367,13 +387,27 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
 
     const response = await dispatch();
     const correlatedResponse = withRequestId(response, requestId);
+    const policy = findApiAuthorizationPolicy(path, method, { ignoreMethod: true });
+    const authorization = policy?.authorization;
+    const roleCategory = authorization === 'student-owned'
+      ? 'student'
+      : authorization === 'teacher-owned'
+        ? 'staff'
+        : authorization === 'admin-only'
+          ? 'admin'
+          : authorization === 'internal-only'
+            ? 'internal'
+            : authorization || 'unknown';
+    const routeTemplate = policy?.path || normalizeLogRouteTemplate(path);
     logStructured('info', {
       event: 'worker_request_completed',
       requestId,
-      route: path,
+      route: routeTemplate,
+      routeTemplate,
       method,
       status: response.status,
       durationMs: now() - startedAt,
+      roleCategory,
     }, logger);
     return correlatedResponse;
   };

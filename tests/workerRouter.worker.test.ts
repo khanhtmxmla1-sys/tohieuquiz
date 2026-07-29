@@ -39,6 +39,7 @@ const routeMocks = {
   handleAdminCertificateRoutes: vi.fn(async () => null as Response | null),
   handleMathObservabilityRoutes: vi.fn(async () => null as Response | null),
   handleClientErrorRoute: vi.fn(async () => null as Response | null),
+  handleClientTelemetryRoute: vi.fn(async () => null as Response | null),
   handlePhieuSubdomain: vi.fn(async () => null as Response | null),
   handlePublicPhieuApi: vi.fn(async () => null as Response | null),
   handleParentPortalRoutes: vi.fn(async () => unauthorized()),
@@ -128,9 +129,11 @@ describe('Worker root route dispatch', () => {
       event: 'worker_request_completed',
       requestId: 'req-health-1',
       route: '/api/health',
+      routeTemplate: '/api/health',
       method: 'GET',
       status: 200,
       durationMs: 25,
+      roleCategory: 'public',
     });
   });
 
@@ -146,6 +149,21 @@ describe('Worker root route dispatch', () => {
       expect.objectContaining({ failureMode: 'closed', maxRequests: 30 }),
     );
     expect(routeMocks.handleClientErrorRoute).toHaveBeenCalledOnce();
+    expect(verifyTokenMock).not.toHaveBeenCalled();
+  });
+
+  it('accepts sampled client telemetry before shared authentication with a fail-closed limiter', async () => {
+    routeMocks.handleClientTelemetryRoute.mockResolvedValueOnce(new Response('{}', { status: 202 }));
+
+    const response = await workerFetch(request('/api/client-telemetry', 'POST'), env);
+
+    expect(response.status).toBe(202);
+    expect(rateLimitMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      env,
+      expect.objectContaining({ failureMode: 'closed', maxRequests: 60 }),
+    );
+    expect(routeMocks.handleClientTelemetryRoute).toHaveBeenCalledOnce();
     expect(verifyTokenMock).not.toHaveBeenCalled();
   });
 

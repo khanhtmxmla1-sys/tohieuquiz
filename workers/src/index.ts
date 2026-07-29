@@ -43,6 +43,7 @@ import { handleResultReportRoutes } from './routes/resultReports';
 import { handleParentPortalRoutes } from './routes/parentPortal';
 import { handleNotificationRoutes } from './routes/notifications/route';
 import { handleClientErrorRoute } from './routes/clientErrors';
+import { handleClientTelemetryRoute } from './routes/clientTelemetry';
 import { handleActionCenterRoutes } from './routes/actionCenter';
 import { Env } from './types';
 import { createWorkerFetch } from './router/createWorkerFetch';
@@ -89,6 +90,7 @@ const fetch = createWorkerFetch({
     handleAdminCertificateRoutes,
     handleMathObservabilityRoutes,
     handleClientErrorRoute,
+    handleClientTelemetryRoute,
     handleActionCenterRoutes,
     handlePhieuSubdomain,
     handlePublicPhieuApi,

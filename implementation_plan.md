@@ -761,12 +761,12 @@ interface AuthState {
 - Create: `docs/operations/observability.md`, `docs/operations/alert-thresholds.md`
 - Test: telemetry redaction/sampling tests.
 
-- [ ] LCP ≤2.5s p75, INP ≤200ms p75, CLS ≤0.1 p75.
-- [ ] API core read p95 <500ms; heavy analytics <1.5s.
-- [ ] Client sample ≤10%, không PII/full URL query/answers.
-- [ ] Worker log: requestId, route template, method, status, duration, role category.
-- [ ] Alert: 5xx, login failures, 429 spike, Queue/DLQ, certificates, AI errors/cost.
-- [ ] Mỗi alert có owner, cooldown và runbook.
+- [x] LCP ≤2.5s p75, INP ≤200ms p75, CLS ≤0.1 p75.
+- [x] API core read p95 <500ms; heavy analytics <1.5s.
+- [x] Client sample ≤10%, không PII/full URL query/answers.
+- [x] Worker log: requestId, route template, method, status, duration, role category.
+- [x] Alert: 5xx, login failures, 429 spike, Queue/DLQ, certificates, AI errors/cost.
+- [x] Mỗi alert có owner, cooldown và runbook.
 
 **Acceptance:** Từ UI error có thể truy ra requestId/Worker event mà không cần dữ liệu nhạy cảm.
 

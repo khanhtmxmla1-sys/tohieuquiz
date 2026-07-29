@@ -7,9 +7,11 @@ import MathRenderTelemetryObserver from './src/components/common/MathRenderTelem
 import { installChunkRecovery } from './src/utils/chunkRecovery';
 import { cleanupLegacyAuthStorage } from './src/services/api/auth';
 import { mathJaxConfig } from './src/config/mathJaxConfig';
+import { installWebVitalsTelemetry } from './src/observability/webVitals';
 
 cleanupLegacyAuthStorage();
 installChunkRecovery();
+installWebVitalsTelemetry();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

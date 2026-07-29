@@ -146,7 +146,12 @@
 - [x] Task 27 — Bundle analyzer và performance budget CI
 - [x] Task 28 — Lazy-load DOCX/PDF/worksheet/chart
 - [ ] Task 29 — Pagination, virtualization và indexes
-- [ ] Task 30 — Web Vitals, API latency và alerting
+- [x] Task 30 — Web Vitals, API latency và alerting
+  - [x] Frontend thu thập LCP/INP/CLS qua `web-vitals`, lấy mẫu tối đa 10% và chỉ gửi pathname, release, metric/rating, request ID; không query, PII, câu hỏi hoặc đáp án.
+  - [x] Worker telemetry endpoint giới hạn 4 KB, allowlist CLS/INP/LCP, rate limit fail-closed và structured log có request correlation.
+  - [x] Request completion log dùng route template/family, method, status, duration và role category cardinality thấp; ID động bị loại khỏi route log.
+  - [x] Runbook định nghĩa ngưỡng Web Vitals/API latency và alert 5xx, login, 429, Queue/DLQ, certificate, AI/cost; mỗi alert có owner, cooldown và runbook.
+  - [x] Targeted 7 file/56 test; full Vitest 352 file/1.640 test, coverage 4 file/32 test, lint, frontend/strict/Worker typecheck, build, security và dependency audit đều đạt.
 
 ## Wave 5 — Vận hành và bảo mật nâng cao
 

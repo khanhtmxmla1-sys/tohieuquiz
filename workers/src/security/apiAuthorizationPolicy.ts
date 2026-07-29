@@ -61,6 +61,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('question-catalog', '/api/questions', 'public', ['quizId'], 'quiz handler strips answers', { methods: ['GET'] }),
   policy('quiz-catalog', '/api/quizzes', 'public', ['quizId'], 'quiz catalogue handler', { match: 'exact', methods: ['GET'] }),
   policy('client-error-ingest', '/api/client-errors', 'internal-only', ['none'], 'origin guard, rate limit and sanitizer', { match: 'exact', methods: ['POST'] }),
+  policy('client-telemetry-ingest', '/api/client-telemetry', 'internal-only', ['none'], 'origin guard, sampling, rate limit and telemetry sanitizer', { match: 'exact', methods: ['POST'] }),
 
   policy('admin-all', '/api/admin/', 'admin-only', ['route-handler'], 'route-specific requireAdmin checks'),
   policy('admin-teachers', '/api/admin/teachers', 'admin-only', ['route-handler'], 'teacher requireAdmin checks'),

@@ -32,6 +32,7 @@ const routeSamples = [
   ['/api/admin/teachers/teacher-1', 'DELETE', 'admin-only'],
   ['/api/admin/math-audit', 'GET', 'admin-only'],
   ['/api/client-errors', 'POST', 'internal-only'],
+  ['/api/client-telemetry', 'POST', 'internal-only'],
   ['/api/parent/dashboard', 'GET', 'student-owned'],
   ['/api/parent/preferences', 'GET', 'student-owned'],
   ['/api/parent/preferences/email/verify', 'POST', 'public'],
