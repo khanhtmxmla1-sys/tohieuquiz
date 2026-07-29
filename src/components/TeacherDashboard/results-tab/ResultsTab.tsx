@@ -12,6 +12,7 @@ import { QuestionAnalysisSection } from './QuestionAnalysisSection';
 import { ResultsEmptyState } from './ResultsEmptyState';
 import { ResultsOverlays } from './ResultsOverlays';
 import { AsyncState } from '../../common';
+import { InterventionPanel } from '../../teacher/ResultsView';
 
 const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) => {
   const { isMobile } = useResponsiveLayout();
@@ -94,6 +95,12 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) 
           totalPages={filters.totalPages}
           totalResults={filters.filteredResults.length}
           onPageChange={filters.setCurrentPage}
+        />
+        <InterventionPanel
+          classNameFilter={filters.resultsHook.filterClass}
+          quizId={filters.activeQuizId}
+          quizzes={quizzes}
+          isOnline={filters.resultsHook.isOnline}
         />
         <QuestionAnalysisSection
           activeQuizId={filters.activeQuizId}

@@ -11,6 +11,7 @@ import { verifyJWTMiddleware, requireAdmin, requireTeacher, isStudent } from '..
 import { withD1Retry } from '../utils/d1';
 import { createParentNotification } from '../parentPortal/notificationService';
 import { loadResultDashboardSummary } from '../services/resultSummaryService';
+import { handleInterventionRoutes } from './interventions';
 import {
     buildResultSkillBreakdownFromData,
     buildWeaknessProfileFromData,
@@ -194,6 +195,15 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
     const authResult = await verifyJWTMiddleware(request, env);
     if (authResult instanceof Response) return authResult;
     const { user } = authResult;
+
+    const interventionResponse = await handleInterventionRoutes({
+        request,
+        env,
+        user,
+        path,
+        method,
+    });
+    if (interventionResponse) return interventionResponse;
 
     if (path === '/api/results/summary' && method === 'GET') {
         if (!requireTeacher(user)) {

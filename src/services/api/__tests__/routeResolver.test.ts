@@ -27,6 +27,19 @@ describe('resolveApiRoute', () => {
         expect(route).toMatchObject({ method: 'GET', auth: 'session' });
         expect(route.path({})).toBe('/api/results/summary');
     });
+
+    it('resolves intervention routes and strips path-only group IDs from request bodies', () => {
+        const dashboard = resolveApiRoute('get_result_interventions');
+        expect(dashboard).toMatchObject({ method: 'GET', auth: 'session' });
+        expect(dashboard.path({})).toBe('/api/results/interventions');
+        expect(dashboard.query?.({ className: '4 A', quizId: 'q1' }).toString())
+            .toBe('className=4+A&quizId=q1');
+
+        const notes = resolveApiRoute('add_intervention_note');
+        expect(notes.path({ groupId: 'group-1' })).toBe('/api/results/interventions/groups/group-1/notes');
+        expect(notes.body?.('add_intervention_note', { groupId: 'g1', note: 'Private' }))
+            .toEqual({ note: 'Private' });
+    });
     it('resolves delete_quiz without body', () => {
         const r = resolveApiRoute('delete_quiz');
         expect(r.method).toBe('DELETE');

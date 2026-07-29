@@ -110,7 +110,12 @@
   - [x] Kết thúc sớm dùng xác nhận hai bước, token hash single-use có TTL, bắt buộc lý do và audit actor/request.
   - [x] Tự nộp giữ snapshot autosave mới nhất; phiên chỉ đóng sau khi mọi hạn riêng đã hết hoặc học sinh đã nộp.
   - [x] Targeted Live Exam 9 file/61 test và full Vitest 333 file/1.570 test đạt; lint, frontend/strict/Worker typecheck, build và security audit đạt.
-- [ ] Task 23 — Results Intervention Center
+- [x] Task 23 — Results Intervention Center
+  - [x] Phân tích kết quả 28 ngày theo kỹ năng với ngưỡng tối thiểu 3 mẫu và confidence 0,55; hiển thị lần đầu, gần nhất và xu hướng 4 tuần.
+  - [x] Copy hỗ trợ dùng “Cần hỗ trợ ở…”, không gắn nhãn tiêu cực; giáo viên tạo nhóm và lưu snapshot thành viên/khuyến nghị bài luyện.
+  - [x] Ghi chú riêng chỉ giáo viên truy cập; group, note và assignment batch đều có audit actor/request/metadata.
+  - [x] Từ nhóm đến giao bài chỉ 2 thao tác; tạo assignment cá nhân idempotent, tái dùng bài toàn lớp đang mở và chặn trùng/cross-group replay.
+  - [x] Targeted regression 9 file/47 test; Cypress Electron 1/1; full Vitest 337 file/1.581 test, lint, frontend/strict/Worker typecheck, build và security audit đạt.
 - [ ] Task 24 — Parent digest/preferences/account recovery
 - [ ] Task 25 — Gift Shop governance
 - [ ] Task 26 — Notification preference/dedupe/quiet hours

@@ -31,7 +31,7 @@ describe('D1 migration layout', () => {
     expect(new Set(registered).size).toBe(registered.length);
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
-    expect(migrations.at(-1)).toBe('0046_live_exam_controls.sql');
+    expect(migrations.at(-1)).toBe('0047_results_intervention_center.sql');
   });
 
   it('stores assignment-scoped result identity in migration 0040', () => {

@@ -91,6 +91,9 @@ vi.mock('../src/components/teacher/ResultsView', () => ({
       {JSON.stringify({ cohortSize, attemptMode, isLoading, error })}
     </div>
   ),
+  InterventionPanel: ({ classNameFilter, quizId }: any) => (
+    <div data-testid="intervention-panel">{JSON.stringify({ classNameFilter, quizId })}</div>
+  ),
 }));
 
 vi.mock('../src/features/results/components/PhieuFromResultsPanel', () => ({

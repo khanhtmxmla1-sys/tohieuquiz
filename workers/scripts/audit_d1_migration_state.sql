@@ -302,7 +302,19 @@ WITH checks(migration, check_name, ok) AS (
       (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table'
        AND name IN ('live_exam_control_confirmations','live_exam_control_audit'))
       AND (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='index'
-       AND name IN ('idx_live_exam_control_confirmations_lookup','idx_live_exam_control_audit_session_created')))
+       AND name IN ('idx_live_exam_control_confirmations_lookup','idx_live_exam_control_audit_session_created'))),
+
+    ('0047_results_intervention_center.sql', 'intervention assignment column and tables',
+      EXISTS(SELECT 1 FROM pragma_table_info('assignments') WHERE name='intervention_group_id')
+      AND (SELECT COUNT(*)=5 FROM sqlite_master WHERE type='table'
+       AND name IN ('intervention_groups','intervention_group_members','intervention_notes','intervention_assignment_batches','intervention_audit'))),
+    ('0047_results_intervention_center.sql', 'intervention indexes',
+      (SELECT COUNT(*)=6 FROM sqlite_master WHERE type='index'
+       AND name IN (
+        'idx_intervention_groups_teacher_updated','idx_intervention_groups_class_skill',
+        'idx_intervention_members_student','idx_intervention_notes_group_created',
+        'idx_intervention_audit_group_created','idx_assignments_intervention_group'
+       )))
 ), summary AS (
   SELECT
     migration,

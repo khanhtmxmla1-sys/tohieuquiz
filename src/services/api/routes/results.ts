@@ -11,6 +11,40 @@ export const resultRoutes: RouteRegistry = {
         auth: 'session',
         path: () => '/api/results/summary',
     },
+    get_result_interventions: {
+        method: 'GET',
+        auth: 'session',
+        path: () => '/api/results/interventions',
+        query: ({ className, quizId }) => {
+            const query = new URLSearchParams();
+            if (className) query.set('className', String(className));
+            if (quizId) query.set('quizId', String(quizId));
+            return query;
+        },
+    },
+    create_intervention_group: {
+        method: 'POST',
+        auth: 'session',
+        path: () => '/api/results/interventions/groups',
+    },
+    add_intervention_note: {
+        method: 'POST',
+        auth: 'session',
+        path: ({ groupId }) => `/api/results/interventions/groups/${groupId}/notes`,
+        body: (_action, payload) => {
+            const { groupId: _groupId, ...body } = payload;
+            return body;
+        },
+    },
+    create_intervention_assignments: {
+        method: 'POST',
+        auth: 'session',
+        path: ({ groupId }) => `/api/results/interventions/groups/${groupId}/assignments`,
+        body: (_action, payload) => {
+            const { groupId: _groupId, ...body } = payload;
+            return body;
+        },
+    },
     get_result_answers: {
         method: 'GET',
         auth: 'session',
