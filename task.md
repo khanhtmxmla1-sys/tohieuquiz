@@ -101,12 +101,15 @@
   - [x] Review hiển thị blocking/warning theo câu; blocking khóa save ở UI và persistence, warning bắt buộc giáo viên xác nhận.
   - [x] Sinh lại từng câu có so sánh trước/sau và hoàn tác; metadata chỉ lưu prompt/blueprint version cùng quality summary/acknowledgement.
   - [x] Targeted regression 7 file/37 test; Cypress AI V2 6/6 và Blueprint V3 3/3; full verify 330 file/1.561 test, coverage, build và security audit đạt.
-- [ ] Task 22 — Live Exam reconnect/autosave/connection monitoring
+- [x] Task 22 — Live Exam reconnect/autosave/connection monitoring
   - [x] Autosave server-side dùng attemptVersion và idempotency key; snapshot cũ bị từ chối, replay cùng payload an toàn.
   - [x] Khi kết nối lại, học sinh lấy snapshot authoritative từ server và đồng bộ timer vẫn dựa trên endsAt server.
   - [x] Connection event log chỉ lưu loại sự kiện/version/thời điểm, không lưu nội dung đáp án.
   - [x] Teacher monitor hiển thị online/reconnecting/offline và lastSeen; submit vẫn idempotent, không tạo bài nộp trùng.
-  - [ ] Còn lại: gia hạn cá nhân, pause room và end-early audit hai bước.
+  - [x] Gia hạn cá nhân dùng deadline authoritative; pause/resume đóng băng đồng hồ và dịch chuyển hạn phòng/hạn riêng.
+  - [x] Kết thúc sớm dùng xác nhận hai bước, token hash single-use có TTL, bắt buộc lý do và audit actor/request.
+  - [x] Tự nộp giữ snapshot autosave mới nhất; phiên chỉ đóng sau khi mọi hạn riêng đã hết hoặc học sinh đã nộp.
+  - [x] Targeted Live Exam 9 file/61 test và full Vitest 333 file/1.570 test đạt; lint, frontend/strict/Worker typecheck, build và security audit đạt.
 - [ ] Task 23 — Results Intervention Center
 - [ ] Task 24 — Parent digest/preferences/account recovery
 - [ ] Task 25 — Gift Shop governance

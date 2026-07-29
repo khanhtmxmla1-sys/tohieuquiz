@@ -6,15 +6,25 @@
  */
 
 import React, { useState } from 'react';
-import { Users, Clock, AlertCircle, Loader2, StopCircle } from 'lucide-react';
+import { Users, Clock, AlertCircle, Loader2, PauseCircle, PlayCircle, PlusCircle, StopCircle } from 'lucide-react';
 import { useLiveExamParticipants, useLiveExamTimer } from '../../hooks';
-import { endExamEarly } from '../../services/liveExamService';
+import {
+    endExamEarly,
+    extendParticipantTime,
+    pauseExam,
+    prepareEndExamEarly,
+    resumeExam,
+} from '../../services/liveExamService';
+import type { LiveExamSession, LiveExamStatus } from '../../types/liveExam.types';
 
 interface ActiveExamMonitorProps {
     sessionId: string;
     sessionTitle: string;
     endsAt: string;
+    pausedAt?: string;
+    sessionStatus: LiveExamStatus;
     totalQuestions: number;
+    onSessionUpdated: (session: LiveExamSession) => void;
     onExamEnded: () => void;
 }
 
@@ -22,28 +32,81 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
     sessionId,
     sessionTitle,
     endsAt,
+    pausedAt,
+    sessionStatus,
     totalQuestions,
+    onSessionUpdated,
     onExamEnded,
 }) => {
-    const { participants, isLoading, error: participantsError } = useLiveExamParticipants({
+    const { participants, isLoading, error: participantsError, refetch } = useLiveExamParticipants({
         sessionId,
         enabled: true,
     });
 
     const { timeRemaining, formattedTime, progress } = useLiveExamTimer({
         endsAt,
+        pausedAt: sessionStatus === 'paused' ? pausedAt : null,
     });
 
     const [isEnding, setIsEnding] = useState(false);
+    const [isControlling, setIsControlling] = useState(false);
+    const [extendingParticipantId, setExtendingParticipantId] = useState('');
     const [error, setError] = useState('');
     const [showConfirm, setShowConfirm] = useState(false);
+    const [confirmationToken, setConfirmationToken] = useState('');
+    const [confirmationExpiresAt, setConfirmationExpiresAt] = useState('');
+    const [endReason, setEndReason] = useState('');
+
+    const handlePauseToggle = async () => {
+        setIsControlling(true);
+        setError('');
+        try {
+            const updated = sessionStatus === 'paused'
+                ? await resumeExam(sessionId)
+                : await pauseExam(sessionId);
+            onSessionUpdated(updated);
+        } catch (err: any) {
+            setError(err.message || 'Không thể thay đổi trạng thái phòng thi');
+        } finally {
+            setIsControlling(false);
+        }
+    };
+
+    const handleExtendParticipant = async (participantId: string) => {
+        setExtendingParticipantId(participantId);
+        setError('');
+        try {
+            await extendParticipantTime(sessionId, participantId, 5);
+            await refetch();
+        } catch (err: any) {
+            setError(err.message || 'Không thể gia hạn cho học sinh');
+        } finally {
+            setExtendingParticipantId('');
+        }
+    };
+
+    const handlePrepareEndEarly = async () => {
+        setIsEnding(true);
+        setError('');
+        try {
+            const preparation = await prepareEndExamEarly(sessionId);
+            setConfirmationToken(preparation.confirmationToken);
+            setConfirmationExpiresAt(preparation.expiresAt);
+            setShowConfirm(true);
+        } catch (err: any) {
+            setError(err.message || 'Không thể tạo xác nhận kết thúc sớm');
+        } finally {
+            setIsEnding(false);
+        }
+    };
 
     const handleEndEarly = async () => {
+        if (!confirmationToken || endReason.trim().length < 5) return;
         setIsEnding(true);
         setError('');
 
         try {
-            await endExamEarly(sessionId);
+            await endExamEarly(sessionId, confirmationToken, endReason.trim());
             onExamEnded();
         } catch (err: any) {
             setError(err.message || 'Không thể kết thúc bài thi');
@@ -74,10 +137,25 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                         <div className="flex items-center gap-3">
                             <div className="text-right">
                                 <div className="text-sm text-slate-600 mb-1">Trạng thái</div>
-                                <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    Đang thi
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium ${
+                                        sessionStatus === 'paused'
+                                            ? 'bg-amber-100 text-amber-800'
+                                            : 'bg-green-100 text-green-800'
+                                    }`}>
+                                        <span className={`w-2 h-2 rounded-full ${sessionStatus === 'paused' ? 'bg-amber-500' : 'bg-green-500 animate-pulse'}`}></span>
+                                        {sessionStatus === 'paused' ? 'Tạm dừng' : 'Đang thi'}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => void handlePauseToggle()}
+                                        disabled={isControlling || isEnding}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                    >
+                                        {isControlling ? <Loader2 className="animate-spin" size={16} /> : sessionStatus === 'paused' ? <PlayCircle size={16} /> : <PauseCircle size={16} />}
+                                        {sessionStatus === 'paused' ? 'Tiếp tục' : 'Tạm dừng'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -86,7 +164,7 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                     <div className="flex items-center justify-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
                         <Clock size={32} className="text-blue-600" />
                         <div>
-                            <div className="text-sm text-slate-600">Thời gian còn lại</div>
+                            <div className="text-sm text-slate-600">{sessionStatus === 'paused' ? 'Thời gian còn lại khi tiếp tục' : 'Thời gian còn lại'}</div>
                             <div className={`text-4xl font-bold ${
                                 timeRemaining <= 60 ? 'text-red-600' : 
                                 timeRemaining <= 300 ? 'text-yellow-600' : 
@@ -172,6 +250,8 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                                         <th className="text-center py-3 px-4 font-semibold text-slate-700">Tiến độ</th>
                                         <th className="text-center py-3 px-4 font-semibold text-slate-700">Đã trả lời</th>
                                         <th className="text-center py-3 px-4 font-semibold text-slate-700">Trạng thái</th>
+                                        <th className="text-center py-3 px-4 font-semibold text-slate-700">Hạn riêng</th>
+                                        <th className="text-center py-3 px-4 font-semibold text-slate-700">Thao tác</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -222,6 +302,22 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                                                         </span>
                                                     )}
                                                 </td>
+                                                <td className="py-3 px-4 text-center text-sm text-slate-600">
+                                                    {participant.individualEndsAt
+                                                        ? new Date(participant.individualEndsAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                                        : 'Theo phòng'}
+                                                </td>
+                                                <td className="py-3 px-4 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => void handleExtendParticipant(participant.id)}
+                                                        disabled={Boolean(participant.submittedAt) || extendingParticipantId === participant.id}
+                                                        className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                                                    >
+                                                        {extendingParticipantId === participant.id ? <Loader2 className="animate-spin" size={14} /> : <PlusCircle size={14} />}
+                                                        +5 phút
+                                                    </button>
+                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -242,12 +338,12 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
 
                     {!showConfirm ? (
                         <button
-                            onClick={() => setShowConfirm(true)}
-                            disabled={isEnding}
+                            onClick={() => void handlePrepareEndEarly()}
+                            disabled={isEnding || isControlling}
                             className="w-full py-4 bg-red-600 text-white rounded-xl font-bold text-lg hover:bg-red-700 disabled:bg-slate-300 flex items-center justify-center gap-3"
                         >
-                            <StopCircle size={24} />
-                            Kết Thúc Bài Thi Sớm
+                            {isEnding ? <Loader2 className="animate-spin" size={24} /> : <StopCircle size={24} />}
+                            {isEnding ? 'Đang tạo xác nhận...' : 'Kết Thúc Bài Thi Sớm'}
                         </button>
                     ) : (
                         <div className="space-y-4">
@@ -261,18 +357,35 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                                     <li>• Không thể hoàn tác sau khi kết thúc</li>
                                     <li>• Hệ thống sẽ tự động chấm điểm</li>
                                 </ul>
+                                {confirmationExpiresAt && <p className="mt-2 text-xs text-yellow-700">Xác nhận hết hạn lúc {new Date(confirmationExpiresAt).toLocaleTimeString('vi-VN')}.</p>}
                             </div>
+                            <label className="block text-sm font-semibold text-slate-700">
+                                Lý do kết thúc sớm
+                                <textarea
+                                    value={endReason}
+                                    onChange={(event) => setEndReason(event.target.value)}
+                                    maxLength={300}
+                                    rows={3}
+                                    className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 font-normal focus:border-red-500 focus:outline-none"
+                                    placeholder="Ví dụ: Nhà trường cần kết thúc buổi học sớm"
+                                />
+                            </label>
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => setShowConfirm(false)}
+                                    onClick={() => {
+                                        setShowConfirm(false);
+                                        setConfirmationToken('');
+                                        setConfirmationExpiresAt('');
+                                        setEndReason('');
+                                    }}
                                     disabled={isEnding}
                                     className="flex-1 py-3 border-2 border-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 disabled:opacity-50"
                                 >
                                     Hủy
                                 </button>
                                 <button
-                                    onClick={handleEndEarly}
-                                    disabled={isEnding}
+                                    onClick={() => void handleEndEarly()}
+                                    disabled={isEnding || endReason.trim().length < 5}
                                     className="flex-1 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:bg-slate-300 flex items-center justify-center gap-2"
                                 >
                                     {isEnding ? (

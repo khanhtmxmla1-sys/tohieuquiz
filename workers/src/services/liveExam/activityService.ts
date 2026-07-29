@@ -1,4 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
+import { requireParticipantWorkWindow } from './deadlineService';
 import { LiveExamServiceError } from './errors';
 import { getLiveExamById } from './sessionRepository';
 import type { UpdateActivityParams } from './types';
@@ -11,15 +12,7 @@ export async function updateActivity(
   const timestamp = now();
   const session = await getLiveExamById(db, params.liveExamId);
   if (!session || session.archivedAt) throw new LiveExamServiceError('Session not found', 404);
-  if (session.status !== 'active' || !session.endsAt || Date.parse(session.endsAt) <= Date.now()) {
-    throw new LiveExamServiceError('Exam is not active', 409);
-  }
-
-  const participant = await db.prepare(
-    'SELECT submitted_at FROM live_exam_participants WHERE live_exam_id = ? AND student_id = ?',
-  ).bind(params.liveExamId, params.studentId).first<{ submitted_at: string | null }>();
-  if (!participant) throw new LiveExamServiceError('Forbidden: Join session first', 403);
-  if (participant.submitted_at) throw new LiveExamServiceError('Answers already submitted', 409);
+  await requireParticipantWorkWindow(db, session, params.studentId);
 
   await db.prepare(`
     INSERT INTO live_exam_activity (

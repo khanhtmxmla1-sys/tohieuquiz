@@ -20,7 +20,7 @@ class Database {
       settings: '{}', status: 'active', access_code: 'ABC123', chat_enabled: 1, archived_at: null,
       created_at: '2026-07-28T00:00:00.000Z', updated_at: '2026-07-28T00:00:00.000Z',
     };
-    if (sql.includes('SELECT submitted_at FROM live_exam_participants')) return { submitted_at: null };
+    if (sql.includes('SELECT id, submitted_at, individual_ends_at')) return { id: 'participant-1', submitted_at: null, individual_ends_at: null };
     if (sql.includes('FROM live_exam_answer_snapshots')) return this.snapshot;
     return null;
   }

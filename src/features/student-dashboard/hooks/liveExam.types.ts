@@ -7,7 +7,7 @@ export interface JoinedLiveExam {
   endsAt?: string;
 }
 
-export type LiveExamStage = 'waiting' | 'active' | 'submitted' | 'results';
+export type LiveExamStage = 'waiting' | 'active' | 'paused' | 'submitted' | 'results';
 
 export interface JoinedSessionPayload {
   id: string;

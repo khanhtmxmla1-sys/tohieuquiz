@@ -276,7 +276,33 @@ WITH checks(migration, check_name, ok) AS (
        WHERE name IN ('priority','action_url','source_type','source_id','expires_at'))),
     ('0042_unified_notifications.sql', 'unified notification indexes',
       (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='index'
-       AND name IN ('idx_notifications_inbox','idx_notifications_source_dedupe')))
+       AND name IN ('idx_notifications_inbox','idx_notifications_source_dedupe'))),
+
+    ('0043_create_rate_limits.sql', 'rate limit table',
+      EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='rate_limits')),
+
+    ('0044_create_ai_tutor_usage.sql', 'AI tutor usage tables and index',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table'
+       AND name IN ('ai_tutor_daily_usage','ai_tutor_reservations'))
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='index'
+       AND name='idx_ai_tutor_reservations_user_day')),
+
+    ('0045_live_exam_reconnect.sql', 'live exam reconnect tables and index',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table'
+       AND name IN ('live_exam_answer_snapshots','live_exam_connection_events'))
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='index'
+       AND name='idx_live_exam_connection_events_session_created')),
+
+    ('0046_live_exam_controls.sql', 'live exam control columns',
+      (SELECT COUNT(*)=2 FROM pragma_table_info('live_exam_sessions')
+       WHERE name IN ('paused_at','total_paused_seconds'))
+      AND EXISTS(SELECT 1 FROM pragma_table_info('live_exam_participants')
+       WHERE name='individual_ends_at')),
+    ('0046_live_exam_controls.sql', 'live exam control tables and indexes',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table'
+       AND name IN ('live_exam_control_confirmations','live_exam_control_audit'))
+      AND (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='index'
+       AND name IN ('idx_live_exam_control_confirmations_lookup','idx_live_exam_control_audit_session_created')))
 ), summary AS (
   SELECT
     migration,

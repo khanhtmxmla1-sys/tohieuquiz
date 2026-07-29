@@ -13,6 +13,7 @@ export enum LiveExamStatus {
   SCHEDULED = 'scheduled',  // Created but not started yet
   WAITING = 'waiting',      // Teacher opened, students joining
   ACTIVE = 'active',        // Exam in progress, timer running
+  PAUSED = 'paused',        // Teacher temporarily freezes the room timer
   SCORING = 'scoring',      // Time expired, calculating scores
   CLOSED = 'closed',        // Results revealed to students
 }
@@ -50,6 +51,8 @@ export interface LiveExamSession {
   startedAt?: string;              // When exam actually started
   endsAt?: string;                 // Calculated: startedAt + duration
   closedAt?: string;               // When teacher/system closed session
+  pausedAt?: string;                // Server timestamp when room was paused
+  totalPausedSeconds?: number;
   
   // Settings
   settings: LiveExamSettings;
@@ -96,6 +99,7 @@ export interface LiveExamParticipant {
   joinedAt: string;                // When student joined waiting room
   startedAt?: string;              // When student started exam
   submittedAt?: string;            // When student submitted (or auto-submitted)
+  individualEndsAt?: string;        // Optional teacher-granted personal deadline
   
   // Answers
   answers?: StudentAnswers;
@@ -140,10 +144,12 @@ export interface LiveExamStatusResponse {
     status: LiveExamStatus;
     startedAt?: string;
     endsAt?: string;
+    pausedAt?: string;
     duration: number;
     chatEnabled?: boolean;
   };
   participantCount: number;
+  participantSubmittedAt?: string;
   timeRemaining?: number;          // Seconds remaining (only when active)
 }
 
@@ -194,6 +200,7 @@ export interface LiveExamParticipantsResponse {
     isOnline: boolean;
     connectionState: 'online' | 'reconnecting' | 'offline';
     lastSeen: string;
+    individualEndsAt?: string;
   }>;
   totalCount: number;
   submittedCount: number;
@@ -285,8 +292,11 @@ export interface UpdateActivityRequest {
 export enum TeacherAction {
   OPEN_SESSION = 'open_session',   // scheduled → waiting
   START_EXAM = 'start_exam',       // waiting → active
-  END_EARLY = 'end_early',         // active → scoring
-  CANCEL = 'cancel',               // any → cancelled
+  PAUSE_EXAM = 'pause_exam',       // active → paused
+  RESUME_EXAM = 'resume_exam',     // paused → active
+  PREPARE_END_EARLY = 'prepare_end_early',
+  END_EARLY = 'end_early',         // active/paused → scoring
+  EXTEND_PARTICIPANT = 'extend_participant'
 }
 
 /**

@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 
 interface UseLiveExamTimerOptions {
     endsAt: string | null; // ISO 8601 timestamp
+    pausedAt?: string | null; // Freeze countdown at this server timestamp
     onExpire?: () => void; // Callback when timer expires
 }
 
@@ -23,6 +24,7 @@ interface UseLiveExamTimerReturn {
 
 export function useLiveExamTimer({
     endsAt,
+    pausedAt = null,
     onExpire,
 }: UseLiveExamTimerOptions): UseLiveExamTimerReturn {
     const [timeRemaining, setTimeRemaining] = useState(0);
@@ -38,10 +40,13 @@ export function useLiveExamTimer({
             return;
         }
 
+        hasCalledExpireRef.current = false;
+        initialTimeRef.current = null;
+
         const calculateTimeRemaining = () => {
-            const now = Date.now();
+            const referenceTime = pausedAt ? new Date(pausedAt).getTime() : Date.now();
             const end = new Date(endsAt).getTime();
-            const remaining = Math.max(0, Math.floor((end - now) / 1000));
+            const remaining = Math.max(0, Math.floor((end - referenceTime) / 1000));
 
             if (initialTimeRef.current === null && remaining > 0) {
                 initialTimeRef.current = remaining;
@@ -62,13 +67,15 @@ export function useLiveExamTimer({
 
         calculateTimeRemaining();
 
-        intervalRef.current = setInterval(() => {
-            const remaining = calculateTimeRemaining();
-            if (remaining === 0 && intervalRef.current) {
-                clearInterval(intervalRef.current);
-                intervalRef.current = null;
-            }
-        }, 1000);
+        if (!pausedAt) {
+            intervalRef.current = setInterval(() => {
+                const remaining = calculateTimeRemaining();
+                if (remaining === 0 && intervalRef.current) {
+                    clearInterval(intervalRef.current);
+                    intervalRef.current = null;
+                }
+            }, 1000);
+        }
 
         return () => {
             if (intervalRef.current) {
@@ -76,7 +83,7 @@ export function useLiveExamTimer({
                 intervalRef.current = null;
             }
         };
-    }, [endsAt, onExpire]);
+    }, [endsAt, onExpire, pausedAt]);
 
     const formattedTime = formatTime(timeRemaining);
 

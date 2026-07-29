@@ -32,19 +32,67 @@ export const handleControlRoute: LiveExamRouteHandler = async (context) => {
 
   try {
     const isAdmin = auth.data.role === 'admin';
-    const actions = {
-      open_session: LiveExamService.openSession,
-      start_exam: LiveExamService.startExam,
-      end_early: LiveExamService.endExamEarly,
-    } as const;
-    const actionHandler = actions[validation.data.action as keyof typeof actions];
-    if (!actionHandler) return errorResponse('Invalid action', 400);
-    await actionHandler(context.db, sessionId, auth.data.username, isAdmin);
+    const requestId = validation.data.requestId
+      || context.request.headers.get('x-request-id')
+      || crypto.randomUUID();
+    let result: Record<string, unknown> = {};
+
+    switch (validation.data.action) {
+      case 'open_session':
+        await LiveExamService.openSession(context.db, sessionId, auth.data.username, isAdmin, requestId);
+        break;
+      case 'start_exam':
+        await LiveExamService.startExam(context.db, sessionId, auth.data.username, isAdmin, requestId);
+        break;
+      case 'pause_exam':
+        await LiveExamService.pauseExam(context.db, sessionId, auth.data.username, isAdmin, requestId);
+        break;
+      case 'resume_exam':
+        await LiveExamService.resumeExam(context.db, sessionId, auth.data.username, isAdmin, requestId);
+        break;
+      case 'prepare_end_early':
+        result = await LiveExamService.prepareEndExamEarly(
+          context.db,
+          sessionId,
+          auth.data.username,
+          isAdmin,
+          requestId,
+        );
+        break;
+      case 'extend_participant': {
+        const individualEndsAt = await LiveExamService.extendParticipantTime(
+          context.db,
+          sessionId,
+          validation.data.participantId,
+          validation.data.extraMinutes,
+          auth.data.username,
+          isAdmin,
+          requestId,
+        );
+        result = { individualEndsAt };
+        break;
+      }
+      case 'end_early':
+        await LiveExamService.endExamEarly(
+          context.db,
+          sessionId,
+          auth.data.username,
+          validation.data.confirmationToken,
+          validation.data.reason,
+          isAdmin,
+          requestId,
+        );
+        break;
+      default:
+        return errorResponse('Invalid action', 400);
+    }
+
     const session = await LiveExamService.getLiveExamById(context.db, sessionId);
     return jsonResponse({
       success: true,
       message: `Action ${validation.data.action} completed`,
       session,
+      ...result,
     });
   } catch (error: unknown) {
     return liveExamErrorResponse(error, context.request, 'Failed to execute action');

@@ -28,17 +28,28 @@ export const handleParticipantsRoute: LiveExamRouteHandler = async (context) => 
         lastSeen: row.last_activity,
       }]),
     );
-    const combined = participants.map((participant) => ({
-      id: participant.id,
-      username: participant.username,
-      joinedAt: participant.joinedAt,
-      submittedAt: participant.submittedAt,
-      currentQuestion: activityMap.get(participant.studentId)?.currentQuestion,
-      answeredCount: activityMap.get(participant.studentId)?.answeredCount || 0,
-      isOnline: activityMap.get(participant.studentId)?.isOnline || false,
-      connectionState: activityMap.get(participant.studentId)?.isOnline ? 'online' : 'offline',
-      lastSeen: activityMap.get(participant.studentId)?.lastSeen || participant.joinedAt,
-    }));
+    const combined = participants.map((participant) => {
+      const activity = activityMap.get(participant.studentId);
+      const lastSeen = activity?.lastSeen || participant.joinedAt;
+      const isOnline = activity?.isOnline || false;
+      const connectionState = isOnline
+        ? 'online'
+        : Date.now() - Date.parse(lastSeen) <= 60_000
+          ? 'reconnecting'
+          : 'offline';
+      return {
+        id: participant.id,
+        username: participant.username,
+        joinedAt: participant.joinedAt,
+        submittedAt: participant.submittedAt,
+        currentQuestion: activity?.currentQuestion,
+        answeredCount: activity?.answeredCount || 0,
+        isOnline,
+        connectionState,
+        lastSeen,
+        individualEndsAt: participant.individualEndsAt,
+      };
+    });
     return jsonResponse({
       success: true,
       participants: combined,

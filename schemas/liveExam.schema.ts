@@ -84,11 +84,31 @@ export const LiveExamAutosaveRequestSchema = z.object({
 // ===============================
 // Teacher Control Request Schema
 // ===============================
-export const TeacherControlRequestSchema = z.object({
-    action: z.nativeEnum(TeacherAction),
+const TeacherControlBaseSchema = {
     liveExamId: z.string().min(1, 'Live exam ID is required'),
-    teacherId: z.string().min(1, 'Teacher ID is required')
-});
+    teacherId: z.string().min(1, 'Teacher ID is required'),
+    requestId: z.string().min(8).max(160).optional()
+};
+
+export const TeacherControlRequestSchema = z.discriminatedUnion('action', [
+    z.object({ ...TeacherControlBaseSchema, action: z.literal(TeacherAction.OPEN_SESSION) }),
+    z.object({ ...TeacherControlBaseSchema, action: z.literal(TeacherAction.START_EXAM) }),
+    z.object({ ...TeacherControlBaseSchema, action: z.literal(TeacherAction.PAUSE_EXAM) }),
+    z.object({ ...TeacherControlBaseSchema, action: z.literal(TeacherAction.RESUME_EXAM) }),
+    z.object({ ...TeacherControlBaseSchema, action: z.literal(TeacherAction.PREPARE_END_EARLY) }),
+    z.object({
+        ...TeacherControlBaseSchema,
+        action: z.literal(TeacherAction.END_EARLY),
+        confirmationToken: z.string().min(32).max(160),
+        reason: z.string().trim().min(5).max(300)
+    }),
+    z.object({
+        ...TeacherControlBaseSchema,
+        action: z.literal(TeacherAction.EXTEND_PARTICIPANT),
+        participantId: z.string().min(1),
+        extraMinutes: z.number().int().min(1).max(60)
+    })
+]);
 
 export const WaitingRoomChatMessageSchema = z.object({
     content: z.string()
@@ -126,6 +146,8 @@ export const LiveExamSessionSchema = z.object({
     startedAt: z.string().datetime().optional(),
     endsAt: z.string().datetime().optional(),
     closedAt: z.string().datetime().optional(),
+    pausedAt: z.string().datetime().optional(),
+    totalPausedSeconds: z.number().int().min(0).optional(),
     
     // Settings
     settings: LiveExamSettingsSchema,
@@ -154,6 +176,7 @@ export const LiveExamParticipantSchema = z.object({
     joinedAt: z.string().datetime(),
     startedAt: z.string().datetime().optional(),
     submittedAt: z.string().datetime().optional(),
+    individualEndsAt: z.string().datetime().optional(),
     
     // Answers
     answers: StudentAnswersSchema.optional(),

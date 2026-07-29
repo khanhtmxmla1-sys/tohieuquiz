@@ -100,6 +100,37 @@ describe('live exam request schemas', () => {
       liveExamId: 'exam-1',
       teacherId: 'teacher-1',
     }).success).toBe(true);
+    expect(TeacherControlRequestSchema.safeParse({
+      action: TeacherAction.PAUSE_EXAM,
+      liveExamId: 'exam-1',
+      teacherId: 'teacher-1',
+    }).success).toBe(true);
+    expect(TeacherControlRequestSchema.safeParse({
+      action: TeacherAction.END_EARLY,
+      liveExamId: 'exam-1',
+      teacherId: 'teacher-1',
+      confirmationToken: 'a'.repeat(64),
+      reason: 'Kết thúc theo lịch của nhà trường',
+    }).success).toBe(true);
+    expect(TeacherControlRequestSchema.safeParse({
+      action: TeacherAction.END_EARLY,
+      liveExamId: 'exam-1',
+      teacherId: 'teacher-1',
+    }).success).toBe(false);
+    expect(TeacherControlRequestSchema.safeParse({
+      action: TeacherAction.EXTEND_PARTICIPANT,
+      liveExamId: 'exam-1',
+      teacherId: 'teacher-1',
+      participantId: 'participant-1',
+      extraMinutes: 5,
+    }).success).toBe(true);
+    expect(TeacherControlRequestSchema.safeParse({
+      action: TeacherAction.EXTEND_PARTICIPANT,
+      liveExamId: 'exam-1',
+      teacherId: 'teacher-1',
+      participantId: 'participant-1',
+      extraMinutes: 0,
+    }).success).toBe(false);
   });
 
   it('normalizes waiting-room chat and validates anti-cheat warnings', () => {

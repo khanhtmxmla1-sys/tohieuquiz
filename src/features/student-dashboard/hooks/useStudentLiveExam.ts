@@ -76,10 +76,12 @@ export const useStudentLiveExam = ({
   useEffect(() => {
     const sessionStatus = status?.session?.status;
     if (!sessionStatus) return;
-    if (sessionStatus === 'active' && stage !== 'submitted') setStage('active');
-    else if (sessionStatus === 'closed') setStage('results');
+    if (sessionStatus === 'closed') setStage('results');
+    else if (status?.participantSubmittedAt) setStage('submitted');
+    else if (sessionStatus === 'active') setStage('active');
+    else if (sessionStatus === 'paused') setStage('paused');
     else if (stage !== 'submitted') setStage('waiting');
-  }, [stage, status?.session?.status]);
+  }, [stage, status?.participantSubmittedAt, status?.session?.status]);
 
   const join = (session: JoinedSessionPayload) => {
     const exam: JoinedLiveExam = {
@@ -93,7 +95,7 @@ export const useStudentLiveExam = ({
     setJoinedExam(exam);
     storeJoinedExam(exam);
     setSubmission(null);
-    setStage(session.status === 'active' ? 'active' : 'waiting');
+    setStage(session.status === 'active' ? 'active' : session.status === 'paused' ? 'paused' : 'waiting');
     setJoinModalOpen(false);
     onJoined?.(session.id);
   };

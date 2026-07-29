@@ -539,6 +539,8 @@ CREATE TABLE IF NOT EXISTS live_exam_sessions (
   started_at TEXT,
   ends_at TEXT,
   closed_at TEXT,
+  paused_at TEXT,
+  total_paused_seconds INTEGER NOT NULL DEFAULT 0,
   settings TEXT NOT NULL DEFAULT '{}',
   status TEXT NOT NULL DEFAULT 'scheduled',
   access_code TEXT NOT NULL UNIQUE,
@@ -572,6 +574,7 @@ CREATE TABLE IF NOT EXISTS live_exam_participants (
   joined_at TEXT NOT NULL,
   started_at TEXT,
   submitted_at TEXT,
+  individual_ends_at TEXT,
   answers TEXT,
   score INTEGER,
   correct_count INTEGER,
@@ -634,6 +637,37 @@ CREATE TABLE IF NOT EXISTS live_exam_connection_events (
 
 CREATE INDEX IF NOT EXISTS idx_live_exam_connection_events_session_created
   ON live_exam_connection_events(live_exam_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS live_exam_control_confirmations (
+  id TEXT PRIMARY KEY,
+  live_exam_id TEXT NOT NULL,
+  actor_username TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action = 'end_early'),
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  consumed_at TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (live_exam_id) REFERENCES live_exam_sessions(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_exam_control_confirmations_lookup
+  ON live_exam_control_confirmations(live_exam_id, actor_username, action, expires_at);
+
+CREATE TABLE IF NOT EXISTS live_exam_control_audit (
+  id TEXT PRIMARY KEY,
+  live_exam_id TEXT NOT NULL,
+  actor_username TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target_participant_id TEXT,
+  request_id TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (live_exam_id) REFERENCES live_exam_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_participant_id) REFERENCES live_exam_participants(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_exam_control_audit_session_created
+  ON live_exam_control_audit(live_exam_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS live_exam_chat_messages (
   id TEXT PRIMARY KEY,

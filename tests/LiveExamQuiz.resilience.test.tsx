@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let online = true;
 const submitMock = vi.hoisted(() => vi.fn());
+const saveAnswerSnapshotMock = vi.hoisted(() => vi.fn());
+const getAnswerSnapshotMock = vi.hoisted(() => vi.fn().mockResolvedValue(null));
 const updateActivityMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 
 vi.mock('../src/hooks', () => ({
@@ -15,6 +17,8 @@ vi.mock('../src/hooks/useOnlineStatus', () => ({
 }));
 vi.mock('../src/services/liveExamService', () => ({
   submitAnswers: submitMock,
+  saveAnswerSnapshot: saveAnswerSnapshotMock,
+  getAnswerSnapshot: getAnswerSnapshotMock,
 }));
 vi.mock('../src/components/student/QuestionRenderer', () => ({
   default: ({ question, onAnswerChange }: any) => (
@@ -63,6 +67,12 @@ describe('LiveExamQuiz resilience', () => {
   beforeEach(() => {
     online = true;
     submitMock.mockReset();
+    saveAnswerSnapshotMock.mockReset().mockImplementation(async (_sessionId, snapshot) => ({
+      attemptVersion: snapshot.attemptVersion,
+      answers: snapshot.answers,
+      updatedAt: '2026-07-29T00:00:00.000Z',
+    }));
+    getAnswerSnapshotMock.mockClear();
     updateActivityMock.mockClear();
     window.sessionStorage.clear();
   });

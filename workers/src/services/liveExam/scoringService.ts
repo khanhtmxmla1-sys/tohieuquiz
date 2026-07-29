@@ -6,6 +6,13 @@ import { loadLiveExamQuiz } from './quizLoader';
 import { getLiveExamById } from './sessionRepository';
 import { now } from './utils';
 
+const snapshotAnswersSql = `
+  SELECT snapshots.answers
+  FROM live_exam_answer_snapshots snapshots
+  WHERE snapshots.live_exam_id = live_exam_participants.live_exam_id
+    AND snapshots.student_id = live_exam_participants.student_id
+`;
+
 export async function autoSubmitIncompleteAnswers(
   db: D1Database,
   sessionId: string,
@@ -13,9 +20,26 @@ export async function autoSubmitIncompleteAnswers(
   const timestamp = now();
   await db.prepare(`
     UPDATE live_exam_participants
-    SET submitted_at = ?
+    SET answers = COALESCE(answers, (${snapshotAnswersSql}), '{}'),
+        submitted_at = ?, updated_at = ?
     WHERE live_exam_id = ? AND submitted_at IS NULL
-  `).bind(timestamp, sessionId).run();
+  `).bind(timestamp, timestamp, sessionId).run();
+}
+
+async function autoSubmitExpiredParticipants(db: D1Database, timestamp: string): Promise<void> {
+  await db.prepare(`
+    UPDATE live_exam_participants
+    SET answers = COALESCE(answers, (${snapshotAnswersSql}), '{}'),
+        submitted_at = ?, updated_at = ?
+    WHERE submitted_at IS NULL
+      AND EXISTS (
+        SELECT 1 FROM live_exam_sessions sessions
+        WHERE sessions.id = live_exam_participants.live_exam_id
+          AND sessions.status = 'active'
+          AND sessions.archived_at IS NULL
+          AND COALESCE(live_exam_participants.individual_ends_at, sessions.ends_at) <= ?
+      )
+  `).bind(timestamp, timestamp, timestamp).run();
 }
 
 export async function calculateScoresAndClose(
@@ -77,10 +101,20 @@ export async function calculateScoresAndClose(
 }
 
 export async function checkAndAutoCloseExpiredExams(db: D1Database): Promise<void> {
+  const timestamp = now();
+  await autoSubmitExpiredParticipants(db, timestamp);
   const expiredSessions = await db.prepare(`
-    SELECT id FROM live_exam_sessions
-    WHERE status = 'active' AND archived_at IS NULL AND ends_at <= ?
-  `).bind(now()).all();
+    SELECT sessions.id FROM live_exam_sessions sessions
+    WHERE sessions.status = 'active'
+      AND sessions.archived_at IS NULL
+      AND sessions.ends_at <= ?
+      AND NOT EXISTS (
+        SELECT 1 FROM live_exam_participants participants
+        WHERE participants.live_exam_id = sessions.id
+          AND participants.submitted_at IS NULL
+          AND COALESCE(participants.individual_ends_at, sessions.ends_at) > ?
+      )
+  `).bind(timestamp, timestamp).all();
 
   for (const session of expiredSessions.results) {
     const sessionId = session.id as string;

@@ -1,5 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import { calculateStudentScore } from '../../../../src/features/quiz-player/utils/quizScoring';
+import { getEffectiveParticipantEndsAt } from './deadlineService';
 import { LiveExamServiceError } from './errors';
 import { loadLiveExamQuiz } from './quizLoader';
 import { getLiveExamById } from './sessionRepository';
@@ -9,6 +10,7 @@ import { getChangedRows, now } from './utils';
 interface ParticipantSubmissionRow {
   id: string;
   submitted_at: string | null;
+  individual_ends_at: string | null;
 }
 
 interface CommittedSubmissionRow {
@@ -46,7 +48,7 @@ const loadParticipantState = async (
   liveExamId: string,
   studentId: string,
 ): Promise<ParticipantSubmissionRow | null> => db.prepare(`
-    SELECT id, submitted_at FROM live_exam_participants
+    SELECT id, submitted_at, individual_ends_at FROM live_exam_participants
     WHERE live_exam_id = ? AND student_id = ?
   `).bind(liveExamId, studentId).first<ParticipantSubmissionRow>();
 
@@ -93,8 +95,10 @@ export async function submitAnswers(
   const participant = await loadParticipantState(db, params.liveExamId, params.studentId);
   if (participant?.submitted_at) return replayCommittedSubmission(db, params);
 
+  if (session.status === 'paused') throw new LiveExamServiceError('Exam is paused', 409);
   if (session.status !== 'active') throw new LiveExamServiceError('Exam is not active', 409);
-  if (!session.endsAt || Date.parse(session.endsAt) <= Date.now()) {
+  const effectiveEndsAt = getEffectiveParticipantEndsAt(session.endsAt, participant?.individual_ends_at);
+  if (!effectiveEndsAt || Date.parse(effectiveEndsAt) <= Date.now()) {
     throw new LiveExamServiceError('Exam time has ended', 409);
   }
   if (!participant) throw new LiveExamServiceError('Forbidden: Join session first', 403);

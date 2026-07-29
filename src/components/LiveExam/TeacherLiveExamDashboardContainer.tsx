@@ -220,7 +220,7 @@ export const TeacherLiveExamDashboardContainer: React.FC = () => {
         );
     }
 
-    if (selectedSession?.status === 'active') {
+    if (selectedSession?.status === 'active' || selectedSession?.status === 'paused') {
         if (!selectedSession.endsAt) {
             return (
                 <div className="min-h-screen bg-red-50 p-6">
@@ -240,7 +240,10 @@ export const TeacherLiveExamDashboardContainer: React.FC = () => {
                     sessionId={selectedSession.id}
                     sessionTitle={selectedSession.title}
                     endsAt={selectedSession.endsAt}
+                    pausedAt={selectedSession.pausedAt}
+                    sessionStatus={selectedSession.status}
                     totalQuestions={selectedQuiz?.questions?.length || 0}
+                    onSessionUpdated={updateSelectedSession}
                     onExamEnded={() => refreshSelectedSession('Bài thi đã kết thúc')}
                 />
             </div>

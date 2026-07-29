@@ -42,13 +42,14 @@ interface TeacherLiveExamDashboardProps {
     } | null;
 }
 
-type LiveExamFilter = 'all' | 'scheduled' | 'waiting' | 'active' | 'scoring' | 'closed';
+type LiveExamFilter = 'all' | 'scheduled' | 'waiting' | 'active' | 'paused' | 'scoring' | 'closed';
 
 const filters: Array<{ value: LiveExamFilter; label: string }> = [
     { value: 'all', label: 'Tất cả' },
     { value: 'scheduled', label: 'Đã lên lịch' },
     { value: 'waiting', label: 'Đang chờ' },
     { value: 'active', label: 'Đang thi' },
+    { value: 'paused', label: 'Tạm dừng' },
     { value: 'scoring', label: 'Đang chấm' },
     { value: 'closed', label: 'Đã kết thúc' },
 ];
@@ -57,6 +58,7 @@ const primaryActionLabel: Record<LiveExamStatus, string> = {
     scheduled: 'Mở phòng chờ',
     waiting: 'Vào phòng chờ',
     active: 'Giám sát',
+    paused: 'Tiếp tục giám sát',
     scoring: 'Xem tiến trình chấm',
     closed: 'Xem kết quả',
 };

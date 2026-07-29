@@ -27,7 +27,7 @@ class Database {
     if (sql.includes('SELECT answers, score')) {
       return this.participantRows[Math.max(0, this.participantReads - 1)] ?? null;
     }
-    if (sql.includes('SELECT id, submitted_at FROM live_exam_participants')) {
+    if (sql.includes('SELECT id, submitted_at')) {
       const row = this.participantRows[Math.min(this.participantReads, this.participantRows.length - 1)] ?? null;
       this.participantReads += 1;
       return row;
@@ -58,6 +58,7 @@ const submittedParticipant = (answers: Record<string, string>) => ({
   score: 10,
   correct_count: 1,
   wrong_count: 0,
+  individual_ends_at: null,
 });
 
 describe('Live Exam idempotent submit', () => {
