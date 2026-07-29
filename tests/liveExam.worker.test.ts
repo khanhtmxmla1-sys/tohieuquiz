@@ -187,7 +187,7 @@ describe('live exam P0 authorization and integrity', () => {
     const db = new FakeDB();
     db.first = (sql) => {
       if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow();
-      if (sql.includes('SELECT id, submitted_at FROM live_exam_participants')) return { id: 'participant-a', submitted_at: null };
+      if (sql.includes('SELECT id, submitted_at')) return { id: 'participant-a', submitted_at: null, individual_ends_at: null };
       if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'ToÃƒÂ¡n 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
       return null;
     };
@@ -210,7 +210,7 @@ describe('live exam P0 authorization and integrity', () => {
     const db = new FakeDB();
     db.first = (sql) => {
       if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow();
-      if (sql.includes('SELECT id, submitted_at FROM live_exam_participants')) return { id: 'participant-a', submitted_at: null };
+      if (sql.includes('SELECT id, submitted_at')) return { id: 'participant-a', submitted_at: null, individual_ends_at: null };
       if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'ToÃƒÂ¡n 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
       return null;
     };
@@ -264,7 +264,7 @@ describe('live exam P0 authorization and integrity', () => {
     const db = new FakeDB();
     db.first = (sql) => {
       if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow();
-      if (sql.includes('SELECT submitted_at FROM live_exam_participants')) return { submitted_at: null };
+      if (sql.includes('SELECT id, submitted_at, individual_ends_at')) return { id: 'participant-a', submitted_at: null, individual_ends_at: null };
       return null;
     };
 

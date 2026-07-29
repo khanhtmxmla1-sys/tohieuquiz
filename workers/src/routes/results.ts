@@ -9,8 +9,10 @@ import { handleValidateAnswers, parseBody } from '../utils/helpers';
 import { JWTPayload } from '../utils/jwt';
 import { verifyJWTMiddleware, requireAdmin, requireTeacher, isStudent } from '../middleware/jwtAuth';
 import { withD1Retry } from '../utils/d1';
+import { collectionLimit, decodeCollectionCursor, encodeCollectionCursor } from '../utils/cursorPagination';
 import { createParentNotification } from '../parentPortal/notificationService';
 import { loadResultDashboardSummary } from '../services/resultSummaryService';
+import { handleInterventionRoutes } from './interventions';
 import {
     buildResultSkillBreakdownFromData,
     buildWeaknessProfileFromData,
@@ -195,6 +197,15 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
     if (authResult instanceof Response) return authResult;
     const { user } = authResult;
 
+    const interventionResponse = await handleInterventionRoutes({
+        request,
+        env,
+        user,
+        path,
+        method,
+    });
+    if (interventionResponse) return interventionResponse;
+
     if (path === '/api/results/summary' && method === 'GET') {
         if (!requireTeacher(user)) {
             return errorResponse('Forbidden: Teacher access required', 403);
@@ -207,19 +218,22 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         return jsonResponse({ data: summary });
     }
 
-    // GET /api/results - List results with pagination
-    // Supports: ?page=1&limit=50&quizId=xxx
+    // GET /api/results - Stable cursor pagination for large result collections.
     if (path === '/api/results' && method === 'GET') {
         const url = new URL(request.url);
-        const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
-        const limit = Math.min(200, Math.max(1, parseInt(url.searchParams.get('limit') || '100', 10)));
+        let limit: number;
+        let cursorValues: string[] | null;
+        try {
+            limit = collectionLimit(url);
+            cursorValues = decodeCollectionCursor(url.searchParams.get('cursor'), 'results', 2);
+        } catch (error) {
+            return errorResponse(error instanceof Error ? error.message : 'Pagination invalid', 400);
+        }
         const quizId = url.searchParams.get('quizId') || '';
-        const offset = (page - 1) * limit;
 
-        // Count total for pagination metadata; scope by JWT role.
         let countQuery = 'SELECT COUNT(*) as total FROM results';
         let dataQuery = 'SELECT id, student_name, class_name, quiz_id, quiz_title, score, correct_count, total_questions, time_taken, submitted_at FROM results';
-        const bindings: any[] = [];
+        const bindings: unknown[] = [];
         const whereClauses: string[] = [];
 
         if (quizId) {
@@ -239,39 +253,53 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             return errorResponse('Forbidden: Results access required', 403);
         }
 
-        if (whereClauses.length > 0) {
-            const whereSql = ` WHERE ${whereClauses.join(' AND ')}`;
-            countQuery += whereSql;
-            dataQuery += whereSql;
+        const countBindings = [...bindings];
+        if (cursorValues) {
+            whereClauses.push('(submitted_at < ? OR (submitted_at = ? AND id < ?))');
+            bindings.push(cursorValues[0], cursorValues[0], cursorValues[1]);
         }
-
-        dataQuery += ' ORDER BY submitted_at DESC LIMIT ? OFFSET ?';
+        if (whereClauses.length > 0) {
+            dataQuery += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+        const countClauses = whereClauses.filter((clause) => !clause.startsWith('(submitted_at < ?'));
+        if (countClauses.length > 0) countQuery += ` WHERE ${countClauses.join(' AND ')}`;
+        dataQuery += ' ORDER BY submitted_at DESC, id DESC LIMIT ?';
 
         const countResult = await withD1Retry(
-            () => db.prepare(countQuery).bind(...bindings).first<{ total: number }>(),
-            'GET /api/results count'
+            () => db.prepare(countQuery).bind(...countBindings).first<{ total: number }>(),
+            'GET /api/results count',
         );
-        const total = countResult?.total || 0;
-
         const rows = await withD1Retry(
-            () => db.prepare(dataQuery).bind(...bindings, limit, offset).all<import('../types').ResultRow>(),
-            'GET /api/results page'
+            () => db.prepare(dataQuery).bind(...bindings, limit + 1).all<import('../types').ResultRow>(),
+            'GET /api/results cursor page',
         );
-
-        // Map column names to the frontend result contract
-        const mapped = rows.results.map((r) => ({
-            id: r.id,
-            'Student Name': r.student_name,
-            'Class': r.class_name,
-            'Quiz ID': r.quiz_id,
-            'Quiz Title': r.quiz_title,
-            'Score': r.score,
-            'correctCount': r.correct_count,
-            'Total Questions': r.total_questions,
-            'Time Taken': r.time_taken || 0,
-            'Submitted At': r.submitted_at,
+        const sourceRows = rows.results || [];
+        const pageRows = sourceRows.slice(0, limit);
+        const last = pageRows.at(-1);
+        const mapped = pageRows.map((result) => ({
+            id: result.id,
+            'Student Name': result.student_name,
+            'Class': result.class_name,
+            'Quiz ID': result.quiz_id,
+            'Quiz Title': result.quiz_title,
+            'Score': result.score,
+            correctCount: result.correct_count,
+            'Total Questions': result.total_questions,
+            'Time Taken': result.time_taken || 0,
+            'Submitted At': result.submitted_at,
         }));
-        return jsonResponse({ data: mapped, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+        const hasMore = sourceRows.length > limit;
+        return jsonResponse({
+            data: mapped,
+            meta: {
+                limit,
+                total: Number(countResult?.total || 0),
+                hasMore,
+                nextCursor: hasMore && last
+                    ? encodeCollectionCursor('results', [last.submitted_at, last.id])
+                    : null,
+            },
+        });
     }
 
     // GET /api/results/:id/answers - Lazy-load answers for a specific result

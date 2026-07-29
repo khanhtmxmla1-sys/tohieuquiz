@@ -13,6 +13,12 @@ import {
 } from '../utils/password';
 import { checkLoginLimit, clearLoginFailures, recordLoginFailure } from '../utils/loginRateLimit';
 import { auditStatement, writeAuditLog } from '../utils/audit';
+import { collectionLimit, decodeCollectionCursor, encodeCollectionCursor } from '../utils/cursorPagination';
+import {
+    createAuthSession,
+    recordSecurityEvent,
+    revokeAllAuthSessions,
+} from '../services/authSessionService';
 
 type TeacherRow = {
     username: string;
@@ -44,7 +50,17 @@ async function passwordMatches(password: string, stored: string): Promise<{ vali
     return { valid: stored === password || stored === legacyHash, legacy: true };
 }
 
-async function createSessionToken(teacher: TeacherRow, env: Env, purpose: 'session' | 'password_change'): Promise<string> {
+async function createSessionToken(
+    request: Request,
+    teacher: TeacherRow,
+    env: Env,
+    purpose: 'session' | 'password_change',
+): Promise<string> {
+    const session = await createAuthSession(env.DB, request, {
+        username: teacher.username,
+        role: teacher.role === 'admin' ? 'admin' : 'teacher',
+        tokenVersion: Number(teacher.token_version),
+    }, { purpose, ttlSeconds: purpose === 'password_change' ? 15 * 60 : 7 * 24 * 60 * 60 });
     return signJWT({
         id: teacher.username,
         username: teacher.username,
@@ -53,6 +69,7 @@ async function createSessionToken(teacher: TeacherRow, env: Env, purpose: 'sessi
         classId: teacher.class,
         school_id: teacher.username,
         tokenVersion: Number(teacher.token_version),
+        sessionId: session.id,
         purpose,
     }, env.JWT_SECRET, purpose === 'password_change' ? '15m' : '7d');
 }
@@ -88,7 +105,16 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
         if (!username || !password) return errorResponse('Thiếu tên đăng nhập hoặc mật khẩu.');
 
         const limited = await checkLoginLimit(request, env, username);
-        if (limited) return limited;
+        if (limited) {
+            await recordSecurityEvent(db, {
+                username: username || 'unknown',
+                role: 'teacher',
+                eventType: 'LOGIN_FAILURE_THRESHOLD',
+                severity: 'action_required',
+                requestId: requestId(request),
+            });
+            return limited;
+        }
 
         const teacher = await db.prepare('SELECT * FROM teachers WHERE username = ? LIMIT 1')
             .bind(username).first<TeacherRow>();
@@ -104,7 +130,7 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
         if (limiterError) return limiterError;
         const requiresPasswordChange = match.legacy || Number(teacher.must_change_password) === 1;
         const purpose = requiresPasswordChange ? 'password_change' : 'session';
-        const jwtToken = await createSessionToken(teacher, env, purpose);
+        const jwtToken = await createSessionToken(request, teacher, env, purpose);
         if (!requiresPasswordChange) {
             await db.prepare('UPDATE teachers SET last_login_at = ?, updated_at = ? WHERE username = ?')
                 .bind(new Date().toISOString(), new Date().toISOString(), username).run();
@@ -148,8 +174,22 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
                 password_changed_at = ?, last_login_at = ?, updated_at = ?
             WHERE username = ?
         `).bind(encoded, nextVersion, now, now, now, teacher.username).run();
+        await revokeAllAuthSessions(db, user, {
+            requestId: requestId(request),
+            cutoff: new Date(now),
+            reason: 'password_changed',
+        });
         const updated = { ...teacher, password: encoded, must_change_password: 0, token_version: nextVersion };
-        const token = await createSessionToken(updated, env, 'session');
+        const token = await createSessionToken(request, updated, env, 'session');
+        await recordSecurityEvent(db, {
+            username: teacher.username,
+            role: teacher.role === 'admin' ? 'admin' : 'teacher',
+            eventType: 'PASSWORD_CHANGED',
+            actorUsername: teacher.username,
+            requestId: requestId(request),
+            sessionId: user.sessionId || null,
+            now: new Date(now),
+        });
         await writeAuditLog(db, {
             actorUsername: teacher.username,
             action: 'ACCOUNT_PASSWORD_CHANGED',
@@ -185,9 +225,15 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
     }
 
     if (path === '/api/account/logout-all' && method === 'POST') {
-        const now = new Date().toISOString();
+        const cutoff = new Date();
+        const now = cutoff.toISOString();
         await db.prepare('UPDATE teachers SET token_version = token_version + 1, updated_at = ? WHERE username = ?')
             .bind(now, user.username).run();
+        await revokeAllAuthSessions(db, user, {
+            requestId: requestId(request),
+            cutoff,
+            reason: 'logout_all',
+        });
         await writeAuditLog(db, {
             actorUsername: user.username,
             action: 'ACCOUNT_LOGOUT_ALL',
@@ -211,19 +257,41 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
         const search = (url.searchParams.get('search') || '').trim();
         const role = url.searchParams.get('role') || '';
         const status = url.searchParams.get('status') || '';
-        const page = Math.max(1, Number(url.searchParams.get('page') || 1));
-        const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('pageSize') || 25)));
+        let limit: number;
+        let cursor: string[] | null;
+        try {
+            limit = collectionLimit(url, ['pageSize']);
+            cursor = decodeCollectionCursor(url.searchParams.get('cursor'), 'teachers', 3);
+        } catch (error) {
+            return errorResponse(error instanceof Error ? error.message : 'Pagination invalid', 400);
+        }
         const where: string[] = ['1 = 1'];
         const bindings: unknown[] = [];
         if (search) {
             where.push('(t.username LIKE ? OR t.full_name LIKE ?)');
             bindings.push(`%${search}%`, `%${search}%`);
         }
-        if (role === 'admin' || role === 'teacher') { where.push('t.role = ?'); bindings.push(role); }
-        if (status === 'ACTIVE' || status === 'DISABLED') { where.push('t.status = ?'); bindings.push(status); }
+        if (role === 'admin' || role === 'teacher') {
+            where.push('t.role = ?');
+            bindings.push(role);
+        }
+        if (status === 'ACTIVE' || status === 'DISABLED') {
+            where.push('t.status = ?');
+            bindings.push(status);
+        }
+        const countWhereSql = where.join(' AND ');
+        const countBindings = [...bindings];
+        if (cursor) {
+            where.push(`(
+                t.status > ?
+                OR (t.status = ? AND LOWER(t.full_name) > ?)
+                OR (t.status = ? AND LOWER(t.full_name) = ? AND t.username > ?)
+            )`);
+            bindings.push(cursor[0], cursor[0], cursor[1], cursor[0], cursor[1], cursor[2]);
+        }
         const whereSql = where.join(' AND ');
-        const total = await db.prepare(`SELECT COUNT(*) AS count FROM teachers t WHERE ${whereSql}`)
-            .bind(...bindings).first<{ count: number }>();
+        const total = await db.prepare(`SELECT COUNT(*) AS count FROM teachers t WHERE ${countWhereSql}`)
+            .bind(...countBindings).first<{ count: number }>();
         const rows = await db.prepare(`
             SELECT t.username, t.full_name, t.role, t.class, t.status, t.must_change_password,
                    t.last_login_at, t.password_changed_at, t.disabled_at,
@@ -232,11 +300,15 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
             LEFT JOIN classes c ON c.teacher_username = t.username
             WHERE ${whereSql}
             GROUP BY t.username
-            ORDER BY t.status, t.full_name, t.username
-            LIMIT ? OFFSET ?
-        `).bind(...bindings, pageSize, (page - 1) * pageSize).all<any>();
+            ORDER BY t.status ASC, t.full_name COLLATE NOCASE ASC, t.username ASC
+            LIMIT ?
+        `).bind(...bindings, limit + 1).all<any>();
+        const sourceRows = rows.results || [];
+        const pageRows = sourceRows.slice(0, limit);
+        const last = pageRows.at(-1);
+        const hasMore = sourceRows.length > limit;
         return finish(jsonResponse({ status: 'success', data: {
-            items: (rows.results || []).map((teacher) => ({
+            items: pageRows.map((teacher) => ({
                 username: teacher.username,
                 fullName: teacher.full_name,
                 full_name: teacher.full_name,
@@ -249,9 +321,17 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
                 disabledAt: teacher.disabled_at,
                 classCount: Number(teacher.class_count || 0),
             })),
-            page,
-            pageSize,
+            page: 1,
+            pageSize: limit,
             total: Number(total?.count || 0),
+            hasMore,
+            nextCursor: hasMore && last
+                ? encodeCollectionCursor('teachers', [
+                    last.status,
+                    String(last.full_name || '').toLowerCase(),
+                    last.username,
+                ])
+                : null,
         } }));
     }
 
@@ -323,6 +403,25 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
             );
         }
         await db.batch(statements);
+        for (const credential of credentials) {
+            const targetUser = { username: credential.username, role: 'teacher' as const };
+            await revokeAllAuthSessions(db, targetUser, {
+                actorUsername: user.username,
+                requestId: requestId(request),
+                cutoff: new Date(now),
+                reason: 'password_reset',
+            });
+            await recordSecurityEvent(db, {
+                username: credential.username,
+                role: 'teacher',
+                eventType: 'PASSWORD_RESET',
+                severity: 'action_required',
+                actorUsername: user.username,
+                requestId: requestId(request),
+                now: new Date(now),
+                metadata: { bulk: true },
+            });
+        }
 
         return noStore(jsonResponse({ status: 'success', data: {
             count: credentials.length,
@@ -382,6 +481,22 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
                 targetId: targetUsername, requestId: requestId(request),
             }),
         ]);
+        const targetRole = target.role === 'admin' ? 'admin' as const : 'teacher' as const;
+        await revokeAllAuthSessions(db, { username: targetUsername, role: targetRole }, {
+            actorUsername: user.username,
+            requestId: requestId(request),
+            cutoff: new Date(now),
+            reason: 'password_reset',
+        });
+        await recordSecurityEvent(db, {
+            username: targetUsername,
+            role: targetRole,
+            eventType: 'PASSWORD_RESET',
+            severity: 'action_required',
+            actorUsername: user.username,
+            requestId: requestId(request),
+            now: new Date(now),
+        });
         return noStore(jsonResponse({ status: 'success', data: { temporaryPassword } }));
     }
 

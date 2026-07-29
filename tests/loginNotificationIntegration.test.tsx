@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAnnouncements = vi.hoisted(() => vi.fn());
@@ -39,8 +40,9 @@ vi.mock('../src/components/HomePage/components/HeroSection', () => ({
   default: () => <div>Học vui mỗi ngày</div>,
 }));
 vi.mock('../src/components/HomePage/components/LoginForm', () => ({
-  default: () => (
+  default: ({ activeTab }: { activeTab: 'student' | 'teacher' }) => (
     <form aria-label="Đăng nhập">
+      <span data-testid="login-role">{activeTab}</span>
       <button type="submit">Đăng nhập</button>
     </form>
   ),
@@ -92,7 +94,11 @@ describe('login notification integration', () => {
   });
 
   it('renders public ticker and in-flow banner before the login form', async () => {
-    render(<LoginLandingPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <LoginLandingPage />
+      </MemoryRouter>,
+    );
 
     expect(await screen.findByRole('region', { name: 'Thông báo chung' }))
       .toBeInTheDocument();
@@ -106,5 +112,21 @@ describe('login notification integration', () => {
         banner.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     });
+  });
+
+  it('opens the requested login role from the guarded deep-link query', () => {
+    localStorage.setItem('tohieuquiz_saved_login_v1', JSON.stringify({
+      username: 'student.one',
+      role: 'student',
+      savedAt: '2026-07-28T00:00:00.000Z',
+    }));
+
+    render(
+      <MemoryRouter initialEntries={['/?login=teacher&returnTo=%2Fteacher%2Fresults']}>
+        <LoginLandingPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('login-role')).toHaveTextContent('teacher');
   });
 });

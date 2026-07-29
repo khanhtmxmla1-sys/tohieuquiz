@@ -19,12 +19,15 @@ export function StudentDashboardHeader({
   unifiedNotificationsReady,
   unifiedNotificationsEnabled,
   onSelectSection,
+  onOpenAssignments,
+  onOpenPractice,
   onOpenAssignment,
   onOpenResultReport,
   onOpenGiftShop,
   onOpenLiveExam,
   onOpenAvatar,
   onOpenChangePassword,
+  onClearDeviceData,
   onLogout,
 }: StudentDashboardHeaderProps) {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
@@ -46,13 +49,6 @@ export function StudentDashboardHeader({
   const runAccountAction = (action: () => void) => {
     setIsAccountMenuOpen(false);
     action();
-  };
-
-  const scrollToSection = (id: string) => {
-    onSelectSection('dashboard');
-    window.requestAnimationFrame(() => {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
   };
 
   const openNotificationTarget = (target: NotificationTarget) => {
@@ -119,7 +115,7 @@ export function StudentDashboardHeader({
           </button>
           <button
             type="button"
-            onClick={() => scrollToSection('practice-library')}
+            onClick={onOpenPractice}
             className={`${baseActionClass} text-slate-600 hover:text-slate-900`}
           >
             Thư viện
@@ -220,6 +216,14 @@ export function StudentDashboardHeader({
                 <button
                   type="button"
                   role="menuitem"
+                  onClick={() => runAccountAction(onClearDeviceData)}
+                  className="flex min-h-11 w-full items-center rounded-[10px] px-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                >
+                  Xóa dữ liệu trên thiết bị này
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
                   onClick={() => runAccountAction(onLogout)}
                   className="flex min-h-11 w-full items-center rounded-[10px] px-3 text-left text-sm font-medium text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                 >
@@ -244,14 +248,14 @@ export function StudentDashboardHeader({
         </button>
         <button
           type="button"
-          onClick={() => scrollToSection('assigned-work')}
+          onClick={onOpenAssignments}
           className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-slate-600"
         >
           Bài tập
         </button>
         <button
           type="button"
-          onClick={() => scrollToSection('practice-library')}
+          onClick={onOpenPractice}
           className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-slate-600"
         >
           Thư viện

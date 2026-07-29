@@ -90,7 +90,11 @@ const orderRow = (overrides: Record<string, unknown> = {}) => ({
     class_id: 'class-3a',
     item_snapshot: JSON.stringify({ id: 'gift-1', name: 'Pencil' }),
     price_coins: 125,
-    status: 'VOUCHER_ISSUED',
+    item_id: 'gift-1',
+    school_id: 'teacher-3a',
+    grade_level: 3,
+    week_key: '2026-W31',
+    status: 'APPROVED',
     voucher_code: 'VCH-TEST-0001',
     created_at: '2026-07-19T00:00:00.000Z',
     updated_at: '2026-07-19T00:00:00.000Z',
@@ -112,14 +116,15 @@ describe('Gift Shop worker route contracts', () => {
         expect(source.default.trim()).toBe("export { handleGiftShopRoutes } from './gift-shop';");
     });
 
-    it('seeds an empty catalog and maps active catalog rows without authentication', async () => {
+    it('requires authentication, seeds an empty catalog, and maps scoped active rows', async () => {
+        currentUser = { id: 'student-1', username: 'student01', role: 'student', classId: 'class-3a' };
         const db = new FakeDatabase(
             (sql) => sql.includes('SELECT COUNT(*) AS cnt') ? { cnt: 0 } : null,
             (sql) => sql.includes('FROM gift_catalog_items') ? [catalogRow()] : [],
         );
 
         const response = await handleGiftShopRoutes(
-            new Request('https://test/api/gift-shop/catalog'),
+            request('/api/gift-shop/catalog'),
             env(db),
             '/api/gift-shop/catalog',
             'GET',
@@ -133,12 +138,19 @@ describe('Gift Shop worker route contracts', () => {
             priceCoins: 125,
             imageUrl: 'https://cdn.test/pencil.png',
             isActive: true,
+            stockTotal: 0,
+            stockRemaining: 0,
+            lowStockThreshold: 0,
+            weeklyLimitPerStudent: 0,
+            scopeType: 'SCHOOL',
+            schoolId: '',
+            createdBy: '',
             createdAt: '2026-07-19T00:00:00.000Z',
             updatedAt: '2026-07-19T00:00:00.000Z',
         }]);
         expect(db.batches).toHaveLength(1);
         expect(db.batches[0]).toHaveLength(3);
-        expect(db.executed.some((statement) => statement.sql.includes('ORDER BY category ASC, name ASC'))).toBe(true);
+        expect(db.executed.some((statement) => statement.sql.includes('ORDER BY item.category, item.name'))).toBe(true);
     });
 
     it('requires admin and preserves normalized catalog create bindings and event logging', async () => {
@@ -177,7 +189,7 @@ describe('Gift Shop worker route contracts', () => {
         ]);
         const event = db.executed.find((statement) => statement.sql.includes('INSERT INTO gift_order_events'));
         expect(event?.bindings[1]).toBe('CATALOG_CREATED');
-        expect(event?.bindings[5]).toBe(JSON.stringify({ itemId: 'gift-custom', priceCoins: 129 }));
+        expect(event?.bindings[5]).toBe(JSON.stringify({ itemId: 'gift-custom', priceCoins: 129, scopeType: 'SCHOOL' }));
     });
 
     it('forbids non-admin catalog mutation before writing', async () => {
@@ -235,17 +247,17 @@ describe('Gift Shop worker route contracts', () => {
 
         expect(response.status).toBe(200);
         const payload = await responseJson(response);
-        expect(payload[0]).toMatchObject({
+        expect(payload.data[0]).toMatchObject({
             id: 'order-1',
             studentId: 'student-1',
             classId: 'class-3a',
             className: '3A',
-            status: 'VOUCHER_ISSUED',
+            status: 'APPROVED',
             itemSnapshot: { id: 'gift-1', name: 'Pencil' },
         });
         const query = db.executed.find((statement) => statement.sql.includes('FROM gift_orders o'));
         expect(query?.sql).toContain('(o.class_id = ? OR c.name = ?)');
-        expect(query?.bindings).toEqual(['3A', '3A', 'VOUCHER_ISSUED']);
+        expect(query?.bindings).toEqual(['3A', '3A', 'APPROVED', 26]);
     });
 
     it('allows student self-history but forbids purchasing for another student', async () => {
@@ -263,7 +275,7 @@ describe('Gift Shop worker route contracts', () => {
         );
         expect(historyResponse.status).toBe(200);
         const historyQuery = db.executed.find((statement) => statement.sql.includes('FROM gift_orders o'));
-        expect(historyQuery?.bindings).toEqual(['student-1']);
+        expect(historyQuery?.bindings).toEqual(['student-1', 26]);
 
         const otherStudentHistory = await handleGiftShopRoutes(
             request('/api/gift-shop/orders?studentId=student-2'),
@@ -335,21 +347,28 @@ describe('Gift Shop worker route contracts', () => {
             orderId: 'order-1',
             voucherCode: 'VCH-TEST-0001',
             newCoins: 375,
-            status: 'VOUCHER_ISSUED',
+            status: 'APPROVED',
             idempotencyReplay: true,
         });
         expect(db.batches).toHaveLength(0);
     });
 
-    it('creates a purchase atomically with wallet, voucher, ledger, and two events', async () => {
+    it('creates a pending purchase with one guarded order insert and no voucher', async () => {
         currentUser = { id: 'student-1', username: 'student01', role: 'student', classId: 'class-3a' };
         const db = new FakeDatabase((sql, bindings) => {
             if (sql.includes('WHERE o.idempotency_key = ?')) return null;
-            if (sql.includes('FROM gift_catalog_items') && sql.includes('is_active = 1')) return catalogRow();
-            if (sql.includes('FROM students s')) {
-                return { id: 'student-1', full_name: 'Student One', username: 'student01', class_id: 'class-3a', class_name: '3A', coins: 500 };
+            if (sql.includes('FROM gift_catalog_items') && sql.includes('is_active = 1')) {
+                return catalogRow({ stock_total: 4, stock_remaining: 4, weekly_limit_per_student: 1 });
             }
-            if (sql.includes('WHERE o.id = ?')) return orderRow({ id: String(bindings[0]) });
+            if (sql.includes('FROM students s')) {
+                return {
+                    id: 'student-1', full_name: 'Student One', username: 'student01',
+                    class_id: 'class-3a', class_name: '3A', school_id: 'teacher-3a', coins: 500,
+                };
+            }
+            if (sql.includes('WHERE o.id = ?')) {
+                return orderRow({ id: String(bindings[0]), status: 'PENDING', voucher_code: '' });
+            }
             if (sql.includes('SELECT coins FROM students')) return { coins: 375 };
             return null;
         });
@@ -365,28 +384,22 @@ describe('Gift Shop worker route contracts', () => {
 
         expect(response.status).toBe(200);
         expect(await responseJson(response)).toMatchObject({
-            newCoins: 375,
-            status: 'VOUCHER_ISSUED',
-            idempotencyReplay: false,
+            voucherCode: '', newCoins: 375, status: 'PENDING', idempotencyReplay: false,
         });
-        expect(db.batches).toHaveLength(1);
-        expect(db.batches[0]).toHaveLength(6);
-        const sql = db.batches[0].map((statement) => statement.sql).join('\n');
-        expect(sql).toContain('UPDATE students SET coins = coins - ?');
-        expect(sql).toContain('INSERT INTO gift_orders');
-        expect(sql).toContain('INSERT INTO gift_vouchers');
-        expect(sql).toContain("'PURCHASE'");
-        expect(sql).toContain("'ORDER_CREATED'");
-        expect(sql).toContain("'VOUCHER_ISSUED'");
+        expect(db.batches).toHaveLength(0);
+        const insert = db.executed.find((statement) => statement.sql.includes('INSERT INTO gift_orders'));
+        expect(insert?.sql).toContain("'PENDING'");
+        expect(db.executed.some((statement) => statement.sql.includes('INSERT INTO gift_vouchers'))).toBe(false);
     });
 
-    it('delivers an issued order with teacher class access and updates voucher and audit event', async () => {
+    it('delivers only an approved order through one audited conditional transition', async () => {
         currentUser = { username: 'teacher-3a', role: 'teacher', classId: '3A' };
         const db = new FakeDatabase((sql) => {
             if (sql.includes('FROM gift_orders o') && sql.includes('WHERE o.id = ?')) {
-                return db.batches.length === 0
-                    ? orderRow()
-                    : orderRow({ status: 'DELIVERED', delivered_by: 'teacher-3a' });
+                const transitioned = db.executed.some((statement) => statement.sql.includes("SET status='DELIVERED'"));
+                return transitioned
+                    ? orderRow({ status: 'DELIVERED', delivered_by: 'teacher-3a' })
+                    : orderRow({ status: 'APPROVED' });
             }
             return null;
         });
@@ -400,20 +413,20 @@ describe('Gift Shop worker route contracts', () => {
 
         expect(response.status).toBe(200);
         expect(await responseJson(response)).toMatchObject({ status: 'DELIVERED', deliveredBy: 'teacher-3a' });
-        expect(db.batches[0]).toHaveLength(3);
-        const sql = db.batches[0].map((statement) => statement.sql).join('\n');
-        expect(sql).toContain("status = 'DELIVERED'");
-        expect(sql).toContain("status = 'USED'");
-        expect(sql).toContain("'ORDER_DELIVERED'");
+        const update = db.executed.find((statement) => statement.sql.includes("SET status='DELIVERED'"));
+        expect(update?.sql).toContain("WHERE id=? AND status='APPROVED'");
+        expect(update?.bindings[2]).toBe('teacher-3a');
+        expect(db.batches).toHaveLength(0);
     });
 
-    it('cancels and refunds an issued order in one batch with ledger and two events', async () => {
+    it('cancels an approved order once and delegates the refund to database triggers', async () => {
         currentUser = { username: 'admin-1', role: 'admin' };
         const db = new FakeDatabase((sql) => {
             if (sql.includes('FROM gift_orders o') && sql.includes('WHERE o.id = ?')) {
-                return db.batches.length === 0
-                    ? orderRow()
-                    : orderRow({ status: 'CANCELLED_REFUNDED', cancel_reason: 'Manual cancel' });
+                const transitioned = db.executed.some((statement) => statement.sql.includes("SET status='CANCELLED'"));
+                return transitioned
+                    ? orderRow({ status: 'CANCELLED', cancel_reason: 'Manual cancel', cancelled_by: 'admin-1' })
+                    : orderRow({ status: 'APPROVED' });
             }
             if (sql.includes('SELECT coins FROM students')) return { coins: 500 };
             return null;
@@ -428,17 +441,12 @@ describe('Gift Shop worker route contracts', () => {
 
         expect(response.status).toBe(200);
         expect(await responseJson(response)).toMatchObject({
-            order: { status: 'CANCELLED_REFUNDED', cancelReason: 'Manual cancel' },
-            newCoins: 500,
+            order: { status: 'CANCELLED', cancelReason: 'Manual cancel' },
+            newCoins: 500, refundedCoins: 125, idempotencyReplay: false,
         });
-        expect(db.batches[0]).toHaveLength(6);
-        const sql = db.batches[0].map((statement) => statement.sql).join('\n');
-        expect(sql).toContain('UPDATE students SET coins = coins + ?');
-        expect(sql).toContain("status = 'CANCELLED_REFUNDED'");
-        expect(sql).toContain("status = 'CANCELLED'");
-        expect(sql).toContain("'REFUND'");
-        expect(sql).toContain("'ORDER_CANCELLED'");
-        expect(sql).toContain("'WALLET_REFUNDED'");
+        const update = db.executed.find((statement) => statement.sql.includes("SET status='CANCELLED'"));
+        expect(update?.sql).toContain("WHERE id=? AND status IN ('PENDING', 'APPROVED')");
+        expect(db.batches).toHaveLength(0);
     });
 
     it('restricts event logs to admins and maps metadata JSON', async () => {

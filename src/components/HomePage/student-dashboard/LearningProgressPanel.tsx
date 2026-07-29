@@ -8,6 +8,7 @@ export function LearningProgressPanel({
   errorMessage,
   expanded,
   claimingMissionId,
+  isOffline = false,
   onToggle,
   onRetry,
   onClaimMission,
@@ -60,14 +61,14 @@ export function LearningProgressPanel({
         <div id="learning-progress-details" className="mt-5">
           {isLoading && !dashboard ? <ProgressSkeleton /> : null}
           {!isLoading && errorMessage ? (
-            <DashboardSectionError message={errorMessage} onRetry={onRetry} />
+            <DashboardSectionError message={errorMessage} onRetry={onRetry} retryDisabled={isOffline} />
           ) : null}
           {!isLoading && !errorMessage && dashboard ? (
             <div className="divide-y divide-slate-100">
               {dashboard.missions.map((mission) => {
                 const percent = getMissionProgressPercent(mission);
                 const isClaiming = claimingMissionId === mission.id;
-                const claimDisabled = !mission.completed || mission.claimed || isClaiming;
+                const claimDisabled = !mission.completed || mission.claimed || isClaiming || isOffline;
                 const claimLabel = isClaiming
                   ? 'Đang nhận...'
                   : mission.claimed

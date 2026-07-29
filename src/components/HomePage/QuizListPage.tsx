@@ -1,9 +1,10 @@
 import React from 'react';
-import { Search, Clock, ChevronRight, ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
+import { Search, Clock, ChevronRight, ArrowLeft, Lock, ShieldCheck, BookOpen, CloudSun } from 'lucide-react';
 
 // --- Fluent Emoji CDN Base ---
 const FLUENT_CDN = 'https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets';
 
+import { useReducedExperience } from '../../hooks/useReducedExperience';
 import { SUBJECT_CONFIG } from './constants/dashboard.constants';
 
 // --- Grade Config ---
@@ -52,25 +53,17 @@ const QuizListPage: React.FC<Props> = ({
     onLoginClick,
 }) => {
     const categoryConfig = SUBJECT_CONFIG[category] || SUBJECT_CONFIG['class'];
+    const { reduceVisuals } = useReducedExperience();
 
     return (
         <div className="quiz-list-page">
-            {/* Decorative Elements */}
-            <img
-                src={`${FLUENT_CDN}/Sun/3D/sun_3d.png`}
-                alt="Hình minh họa mặt trời 3D"
-                className="quiz-list-deco quiz-list-deco--sun"
-            />
-            <img
-                src={`${FLUENT_CDN}/Cloud/3D/cloud_3d.png`}
-                alt="Hình minh họa đám mây 3D"
-                className="quiz-list-deco quiz-list-deco--cloud-1"
-            />
-            <img
-                src={`${FLUENT_CDN}/Cloud/3D/cloud_3d.png`}
-                alt="Hình minh họa đám mây 3D"
-                className="quiz-list-deco quiz-list-deco--cloud-2"
-            />
+            {!reduceVisuals && (
+                <>
+                    <img src={`${FLUENT_CDN}/Sun/3D/sun_3d.png`} alt="Hình minh họa mặt trời 3D" className="quiz-list-deco quiz-list-deco--sun" />
+                    <img src={`${FLUENT_CDN}/Cloud/3D/cloud_3d.png`} alt="Hình minh họa đám mây 3D" className="quiz-list-deco quiz-list-deco--cloud-1" />
+                    <img src={`${FLUENT_CDN}/Cloud/3D/cloud_3d.png`} alt="Hình minh họa đám mây 3D" className="quiz-list-deco quiz-list-deco--cloud-2" />
+                </>
+            )}
 
             {/* Main Container */}
             <div className="quiz-list-container">
@@ -86,11 +79,15 @@ const QuizListPage: React.FC<Props> = ({
                 {/* Header */}
                 <header className="quiz-list-header">
                     <div className="quiz-list-header__content">
-                        <img
-                            src={categoryConfig.icon}
-                            alt={`Biểu tượng danh mục ${categoryConfig.label}`}
-                            className="quiz-list-header__icon"
-                        />
+                        {reduceVisuals ? (
+                            <CloudSun className="quiz-list-header__icon" aria-hidden="true" />
+                        ) : (
+                            <img
+                                src={categoryConfig.icon}
+                                alt={`Biểu tượng danh mục ${categoryConfig.label}`}
+                                className="quiz-list-header__icon"
+                            />
+                        )}
                         <div className="quiz-list-header__text">
                             <h1 className="quiz-list-header__title">{categoryConfig.title}</h1>
                             <p className="quiz-list-header__desc">{categoryConfig.desc}</p>
@@ -167,11 +164,15 @@ const QuizListPage: React.FC<Props> = ({
 
                                     {/* Header with Icon */}
                                     <div className="quiz-list-card__header">
-                                        <img
-                                            src={quizConfig.icon}
-                                            alt={`Biểu tượng môn ${quizConfig.title}`}
-                                            className="quiz-list-card__icon"
-                                        />
+                                        {reduceVisuals ? (
+                                            <BookOpen className="quiz-list-card__icon" aria-hidden="true" />
+                                        ) : (
+                                            <img
+                                                src={quizConfig.icon}
+                                                alt={`Biểu tượng môn ${quizConfig.title}`}
+                                                className="quiz-list-card__icon"
+                                            />
+                                        )}
                                         {quiz.requireCode && !isCompleted && (
                                             <Lock className="quiz-list-card__lock" />
                                         )}
@@ -229,11 +230,15 @@ const QuizListPage: React.FC<Props> = ({
                             </div>
                         ) : (
                             <div className="quiz-list-empty">
-                                <img
-                                    src={`${FLUENT_CDN}/See-no-evil%20monkey/3D/see-no-evil_monkey_3d.png`}
-                                    alt="Khỉ che mắt 3D - Không có kết quả"
-                                    className="quiz-list-empty__img"
-                                />
+                                {reduceVisuals ? (
+                                    <BookOpen className="quiz-list-empty__img" aria-hidden="true" />
+                                ) : (
+                                    <img
+                                        src={`${FLUENT_CDN}/See-no-evil%20monkey/3D/see-no-evil_monkey_3d.png`}
+                                        alt="Khỉ che mắt 3D - Không có kết quả"
+                                        className="quiz-list-empty__img"
+                                    />
+                                )}
                                 <h3 className="quiz-list-empty__title">Không tìm thấy bài nào!</h3>
                                 <p className="quiz-list-empty__text">Thử tìm từ khóa khác xem sao?</p>
                             </div>

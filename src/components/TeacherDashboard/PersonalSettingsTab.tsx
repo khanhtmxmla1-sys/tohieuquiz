@@ -4,6 +4,7 @@ import { callApi } from '../../services/apiAdapter';
 import { showConfirm, showError, showSuccess } from '../../utils/toast';
 import { useAuthStore } from '../../../stores/authStore';
 import PasswordChangeDialog from '../common/PasswordChangeDialog';
+import { SecuritySessionsPanel } from '../../features/security/SecuritySessionsPanel';
 
 interface Profile {
     username: string;
@@ -71,6 +72,7 @@ const PersonalSettingsTab: React.FC = () => {
                 <button onClick={logoutAll} className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 px-4 font-semibold text-red-700"><LogOut className="h-4 w-4" />Đăng xuất mọi thiết bị</button>
             </div>
         </section>
+        <SecuritySessionsPanel />
         <section className="rounded-2xl border bg-white p-5 shadow-sm"><div className="flex items-center justify-between gap-4"><div className="flex gap-3"><MonitorCog className="h-5 w-5 text-slate-500" /><div><h3 className="font-bold">Giao diện gọn</h3><p className="text-sm text-slate-500">Giảm khoảng cách hiển thị trên thiết bị này.</p></div></div><input type="checkbox" checked={compact} onChange={(event) => toggleCompact(event.target.checked)} className="h-5 w-5" aria-label="Bật giao diện gọn" /></div></section>
         {showPassword && <PasswordChangeDialog onCancel={() => setShowPassword(false)} onComplete={() => { authStore.loginSuccess(profile.username, profile.fullName, profile.role === 'admin', authStore.teacherClass); setShowPassword(false); }} />}
     </div>;

@@ -14,6 +14,11 @@ export interface StructuredLogFields {
   errorName?: string;
   errorMessage?: string;
   release?: string;
+  routeTemplate?: string;
+  roleCategory?: string;
+  metricName?: string;
+  metricValue?: number;
+  metricRating?: string;
 }
 
 const TEXT_LIMIT = 1_000;
@@ -38,6 +43,35 @@ export const normalizeLogRoute = (value: unknown): string => {
   } catch {
     return '/';
   }
+};
+
+const DYNAMIC_PARENT_SEGMENTS = new Set([
+  'assignments', 'batches', 'catalog', 'certificate-batches', 'certificates',
+  'classes', 'groups', 'notifications', 'orders', 'pets', 'phieu', 'questions',
+  'quiz-drafts', 'quizzes', 'result-reports', 'results', 'students', 'submissions',
+  'teachers',
+]);
+
+const STATIC_ACTION_SEGMENTS = new Set([
+  'approve', 'archive', 'cancel', 'click', 'confirm', 'deliver', 'events', 'image',
+  'metrics', 'mine', 'preferences', 'read', 'retry', 'settings', 'verify',
+]);
+
+export const normalizeLogRouteTemplate = (value: unknown): string => {
+  const route = normalizeLogRoute(value);
+  const segments = route.split('/').filter(Boolean);
+  const normalized = segments.map((segment, index) => {
+    const previous = segments[index - 1]?.toLowerCase() || '';
+    const lower = segment.toLowerCase();
+    const looksDynamic = /^\d+$/.test(segment)
+      || /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(segment)
+      || (/^[a-z0-9_-]{8,}$/i.test(segment) && /\d/.test(segment));
+    if (looksDynamic || (DYNAMIC_PARENT_SEGMENTS.has(previous) && !STATIC_ACTION_SEGMENTS.has(lower))) {
+      return ':id';
+    }
+    return segment;
+  });
+  return normalized.length > 0 ? `/${normalized.join('/')}` : '/';
 };
 
 export function getRequestId(request: Request): string {
@@ -75,5 +109,10 @@ export function logStructured(
   if (fields.errorName !== undefined) event.errorName = sanitizeLogText(fields.errorName, SHORT_TEXT_LIMIT);
   if (fields.errorMessage !== undefined) event.errorMessage = sanitizeLogText(fields.errorMessage, TEXT_LIMIT);
   if (fields.release !== undefined) event.release = sanitizeLogText(fields.release, SHORT_TEXT_LIMIT);
+  if (fields.routeTemplate !== undefined) event.routeTemplate = normalizeLogRouteTemplate(fields.routeTemplate);
+  if (fields.roleCategory !== undefined) event.roleCategory = sanitizeLogText(fields.roleCategory, 32);
+  if (fields.metricName !== undefined) event.metricName = sanitizeLogText(fields.metricName, 16);
+  if (fields.metricValue !== undefined && Number.isFinite(fields.metricValue)) event.metricValue = Number(fields.metricValue);
+  if (fields.metricRating !== undefined) event.metricRating = sanitizeLogText(fields.metricRating, 32);
   logger[level](JSON.stringify(event));
 }

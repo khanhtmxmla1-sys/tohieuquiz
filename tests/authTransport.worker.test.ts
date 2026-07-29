@@ -24,10 +24,10 @@ describe('auth token transport modes', () => {
         )).toEqual({ username: 'teacher-a', role: 'teacher' });
     });
 
-    it('keeps the checked deployment config on cookie transport while legacy claims remain in compat', () => {
+    it('keeps the checked deployment config on cookie transport while registered claims are enforced', () => {
         const config = readFileSync('workers/wrangler.toml', 'utf8');
         expect(config).toContain('AUTH_TOKEN_TRANSPORT_MODE = "cookie"');
-        expect(config).toContain('AUTH_MIGRATION_MODE = "compat"');
+        expect(config).toContain('AUTH_MIGRATION_MODE = "enforce"');
     });
 
     it('sets and clears HttpOnly auth cookies with no-store responses', () => {

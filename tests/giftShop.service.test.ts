@@ -51,11 +51,11 @@ describe('giftShopService (mock mode)', () => {
             'Cancel for test'
         );
 
-        expect(result.order.status).toBe('CANCELLED_REFUNDED');
+        expect(result.order.status).toBe('CANCELLED');
         expect(result.newCoins).toBe(500);
 
         const updated = await giftShopService.getOrders({ studentId: 'stu_001' });
-        expect(updated[0]?.status).toBe('CANCELLED_REFUNDED');
+        expect(updated[0]?.status).toBe('CANCELLED');
     });
 
     it('blocks teacher from managing orders outside their class', async () => {
@@ -72,6 +72,11 @@ describe('giftShopService (mock mode)', () => {
 
     it('rejects invalid order state transitions', async () => {
         const purchase = await giftShopService.purchase(getPurchasePayload());
+        await giftShopService.approveOrder(purchase.orderId, {
+            username: 'teacher_3a',
+            isAdmin: false,
+            teacherClass: 'class_3a',
+        });
         await giftShopService.deliverOrder(purchase.orderId, {
             username: 'teacher_3a',
             isAdmin: false,

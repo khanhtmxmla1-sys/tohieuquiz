@@ -22,6 +22,7 @@ interface ResultsToolbarProps {
   phieuDisabled: boolean;
   onExportCsv: () => void;
   onExportSummary: () => void;
+  serverActionsDisabled?: boolean;
 }
 
 export const ResultsToolbar = (props: ResultsToolbarProps) => (
@@ -47,6 +48,7 @@ export const ResultsToolbar = (props: ResultsToolbarProps) => (
         phieuDisabled={props.phieuDisabled}
         onExportCsv={props.onExportCsv}
         onExportSummary={props.onExportSummary}
+        serverActionsDisabled={props.serverActionsDisabled}
       />
     </div>
     <ActiveResultsFilters

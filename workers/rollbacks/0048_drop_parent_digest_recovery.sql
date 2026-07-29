@@ -1,0 +1,9 @@
+DROP INDEX IF EXISTS idx_parent_account_audit_link_created;
+DROP INDEX IF EXISTS idx_parent_digest_runs_status_updated;
+DROP INDEX IF EXISTS idx_parent_contact_tokens_link_created;
+DROP INDEX IF EXISTS idx_parent_contact_tokens_lookup;
+DROP INDEX IF EXISTS idx_parent_contact_preferences_digest_due;
+DROP TABLE IF EXISTS parent_account_audit;
+DROP TABLE IF EXISTS parent_digest_runs;
+DROP TABLE IF EXISTS parent_contact_tokens;
+DROP TABLE IF EXISTS parent_contact_preferences;

@@ -1,7 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -25,12 +24,13 @@ export interface NotificationInboxState {
 }
 
 const messageFromError = (error: unknown): string => (
-  error instanceof Error ? error.message : 'Không thể tải thông báo.'
+  error instanceof Error ? error.message : 'Kh?ng th? t?i th?ng b?o.'
 );
 
 export function useNotificationInbox(enabled = true) {
-  const [state, setState] = useState<Omit<NotificationInboxState, 'unreadCount'>>({
+  const [state, setState] = useState<NotificationInboxState>({
     items: [],
+    unreadCount: 0,
     isLoading: enabled,
     isRefreshing: false,
     isStale: false,
@@ -52,12 +52,13 @@ export function useNotificationInbox(enabled = true) {
         isRefreshing: loadedRef.current,
       }));
       try {
-        const page = await fetchNotificationInbox({ filter: 'all', limit: 20 });
+        const page = await fetchNotificationInbox({ filter: 'all', limit: 25 });
         if (!mountedRef.current) return true;
         loadedRef.current = true;
         failureCountRef.current = 0;
         setState({
           items: page.items,
+          unreadCount: page.unreadCount,
           isLoading: false,
           isRefreshing: false,
           isStale: false,
@@ -91,14 +92,13 @@ export function useNotificationInbox(enabled = true) {
       failureCountRef.current = 0;
       setState({
         items: [],
+        unreadCount: 0,
         isLoading: false,
         isRefreshing: false,
         isStale: false,
         error: null,
       });
-      return () => {
-        mountedRef.current = false;
-      };
+      return () => { mountedRef.current = false; };
     }
 
     let timer: number | undefined;
@@ -108,19 +108,13 @@ export function useNotificationInbox(enabled = true) {
       if (disposed || document.visibilityState === 'hidden') return;
       const delay = successful
         ? POLL_INTERVAL_MS
-        : Math.min(
-          POLL_INTERVAL_MS * (2 ** failureCountRef.current),
-          MAX_BACKOFF_MS,
-        );
+        : Math.min(POLL_INTERVAL_MS * (2 ** failureCountRef.current), MAX_BACKOFF_MS);
       timer = window.setTimeout(run, delay);
     };
-
     const run = async () => {
       if (disposed || document.visibilityState === 'hidden') return;
-      const successful = await refresh();
-      schedule(successful);
+      schedule(await refresh());
     };
-
     const handleVisibility = () => {
       if (timer !== undefined) window.clearTimeout(timer);
       timer = undefined;
@@ -137,58 +131,53 @@ export function useNotificationInbox(enabled = true) {
     };
   }, [enabled, refresh]);
 
-  const markRead = useCallback(async (id: string): Promise<void> => {
-    let previous: InboxNotification[] = [];
-    setState((current) => {
-      previous = current.items;
-      return {
-        ...current,
-        items: current.items.map((item) => (
-          item.id === id ? { ...item, isRead: true } : item
-        )),
-      };
-    });
+  const markRead = useCallback(async (id: string): Promise<boolean> => {
     try {
       await readNotification(id);
+      setState((current) => {
+        const wasUnread = current.items.some((item) => item.id === id && !item.isRead);
+        return {
+          ...current,
+          items: current.items.map((item) => (
+            item.id === id ? { ...item, isRead: true } : item
+          )),
+          unreadCount: wasUnread ? Math.max(0, current.unreadCount - 1) : current.unreadCount,
+          error: null,
+        };
+      });
+      return true;
     } catch (error) {
       setState((current) => ({
         ...current,
-        items: previous,
         isStale: true,
         error: messageFromError(error),
       }));
+      return false;
     }
   }, []);
 
-  const markAllRead = useCallback(async (): Promise<void> => {
-    let previous: InboxNotification[] = [];
-    setState((current) => {
-      previous = current.items;
-      return {
-        ...current,
-        items: current.items.map((item) => ({ ...item, isRead: true })),
-      };
-    });
+  const markAllRead = useCallback(async (): Promise<boolean> => {
     try {
       await readAllNotifications();
+      setState((current) => ({
+        ...current,
+        items: current.items.map((item) => ({ ...item, isRead: true })),
+        unreadCount: 0,
+        error: null,
+      }));
+      return true;
     } catch (error) {
       setState((current) => ({
         ...current,
-        items: previous,
         isStale: true,
         error: messageFromError(error),
       }));
+      return false;
     }
   }, []);
-
-  const unreadCount = useMemo(
-    () => state.items.filter((item) => !item.isRead).length,
-    [state.items],
-  );
 
   return {
     ...state,
-    unreadCount,
     refresh,
     markRead,
     markAllRead,

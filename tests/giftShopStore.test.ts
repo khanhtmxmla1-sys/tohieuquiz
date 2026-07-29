@@ -31,11 +31,17 @@ const cancelledOrder: GiftOrder = {
     priceCoins: 120,
     imageUrl: 'https://cdn.example.com/pencil.png',
     isActive: true,
+    stockTotal: 10,
+    stockRemaining: 9,
+    lowStockThreshold: 2,
+    weeklyLimitPerStudent: 1,
+    scopeType: 'SCHOOL',
+    schoolId: 'school-a',
     createdAt: '2026-07-21T00:00:00.000Z',
     updatedAt: '2026-07-21T00:00:00.000Z',
   },
   priceCoins: 120,
-  status: 'CANCELLED_REFUNDED',
+  status: 'CANCELLED',
   voucherCode: 'VCH-1234',
   cancelReason: 'Học sinh đổi ý',
   createdAt: '2026-07-21T00:00:00.000Z',
@@ -45,7 +51,7 @@ const cancelledOrder: GiftOrder = {
 const actor = { username: 'teacher-3a', isAdmin: false, teacherClass: '3A' };
 
 beforeEach(() => {
-  mocks.cancelOrder.mockReset().mockResolvedValue({ order: cancelledOrder, newCoins: 500 });
+  mocks.cancelOrder.mockReset().mockResolvedValue({ order: cancelledOrder, newCoins: 500, refundedCoins: 120, idempotencyReplay: false });
   mocks.getOrders.mockReset().mockResolvedValue([]);
   useClassroomStore.setState({ studentSession: null, isLoading: false, error: null });
   useGamificationStore.setState({ coins: 999 });
@@ -54,6 +60,7 @@ beforeEach(() => {
     myOrders: [],
     managedOrders: [cancelledOrder],
     eventLogs: [],
+    shopSettings: null,
     loading: { catalog: false, studentOrders: false, managedOrders: false, events: false, action: false },
     errors: { catalog: null, studentOrders: null, managedOrders: null, events: null, action: null },
     isLoading: false,

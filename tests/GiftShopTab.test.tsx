@@ -27,6 +27,12 @@ const catalogItem: GiftCatalogItem = {
   priceCoins: 120,
   imageUrl: 'https://cdn.example.com/pencil.png',
   isActive: true,
+  stockTotal: 20,
+  stockRemaining: 4,
+  lowStockThreshold: 5,
+  weeklyLimitPerStudent: 1,
+  scopeType: 'SCHOOL',
+  schoolId: 'admin_01',
   createdAt: '2026-07-19T00:00:00.000Z',
   updatedAt: '2026-07-19T00:00:00.000Z',
 };
@@ -40,7 +46,7 @@ const managedOrder: GiftOrder = {
   className: 'Lớp 3A',
   itemSnapshot: catalogItem,
   priceCoins: 120,
-  status: 'VOUCHER_ISSUED',
+  status: 'APPROVED',
   voucherCode: 'VCH-1234',
   createdAt: '2026-07-19T00:00:00.000Z',
   updatedAt: '2026-07-19T00:00:00.000Z',
@@ -76,6 +82,10 @@ function resetStores(options: {
     myOrders: [],
     managedOrders: options.orders ?? [],
     eventLogs: options.events ?? [],
+    shopSettings: {
+      effective: { isOpen: true, closedReason: '', closedScope: null, schoolId: 'teacher_01', classId: '3A' },
+      settings: [],
+    },
     loading: {
       catalog: false,
       studentOrders: false,
@@ -98,11 +108,14 @@ function resetStores(options: {
     loadStudentOrders: vi.fn(async () => undefined),
     loadManagedOrders: vi.fn(async () => undefined),
     loadEventLogs: vi.fn(async () => undefined),
+    loadSettings: vi.fn(async () => undefined),
     purchaseGift: vi.fn(async () => null),
+    approveOrder: vi.fn(async () => true),
     deliverOrder: vi.fn(async () => true),
     cancelOrder: vi.fn(async () => true),
     saveCatalogItem: vi.fn(async () => catalogItem),
     removeCatalogItem: vi.fn(async () => true),
+    updateSettings: vi.fn(async () => true),
     clearLastPurchase: vi.fn(),
     clearError: vi.fn(),
   });
@@ -115,6 +128,7 @@ describe('TeacherDashboard GiftShopTab contracts', () => {
   });
 
   beforeEach(() => {
+    window.history.replaceState({}, '', '/teacher/gift-shop?status=PENDING');
     vi.clearAllMocks();
     resetStores();
   });
@@ -126,7 +140,7 @@ describe('TeacherDashboard GiftShopTab contracts', () => {
     await waitFor(() => {
       expect(state.loadCatalog).toHaveBeenCalled();
       expect(state.loadManagedOrders).toHaveBeenCalledWith({
-        status: 'VOUCHER_ISSUED',
+        status: 'PENDING',
         classId: '3A',
         actorUsername: 'teacher_01',
         actorIsAdmin: false,
@@ -147,7 +161,7 @@ describe('TeacherDashboard GiftShopTab contracts', () => {
     await waitFor(() => {
       expect(state.loadEventLogs).toHaveBeenCalled();
       expect(state.loadManagedOrders).toHaveBeenCalledWith(expect.objectContaining({
-        status: 'VOUCHER_ISSUED',
+        status: 'PENDING',
         classId: undefined,
         actorUsername: 'admin_01',
         actorIsAdmin: true,
@@ -173,7 +187,7 @@ describe('TeacherDashboard GiftShopTab contracts', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Thêm quà mới/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Thêm quà$/i }));
-    expect(mockedShowError).toHaveBeenCalledWith('Vui lòng nhập đầy đủ tên, giá hợp lệ và link ảnh.');
+    expect(mockedShowError).toHaveBeenCalledWith('Vui lòng nhập đầy đủ tên, giá, tồn kho, giới hạn và phạm vi hợp lệ.');
 
     fireEvent.change(screen.getByPlaceholderText('Tên quà'), { target: { value: '  Vở ô ly  ' } });
     fireEvent.change(screen.getByDisplayValue('Ăn vặt'), { target: { value: 'SUPPLY' } });
@@ -190,6 +204,13 @@ describe('TeacherDashboard GiftShopTab contracts', () => {
         priceCoins: 125,
         imageUrl: 'https://cdn.example.com/notebook.png',
         isActive: true,
+        stockTotal: 100,
+        lowStockThreshold: 5,
+        weeklyLimitPerStudent: 1,
+        scopeType: 'SCHOOL',
+        schoolId: undefined,
+        classId: undefined,
+        gradeLevel: undefined,
         actorIsAdmin: true,
       });
     });
@@ -236,6 +257,43 @@ describe('TeacherDashboard GiftShopTab contracts', () => {
     expect(screen.getByRole('button', { name: /^Thêm quà$/i })).toBeInTheDocument();
   });
 
+  it('approves a pending order before a voucher can be issued', async () => {
+    const pendingOrder: GiftOrder = { ...managedOrder, status: 'PENDING', voucherCode: '' };
+    resetStores({ orders: [pendingOrder] });
+    render(<GiftShopTab />);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Duy\u1ec7t \u0111\u01a1n$/i }));
+
+    await waitFor(() => {
+      expect(useGiftShopStore.getState().approveOrder).toHaveBeenCalledWith(
+        'order-1',
+        { username: 'teacher_01', isAdmin: false, teacherClass: '3A' },
+        expect.objectContaining({ status: 'PENDING', classId: '3A' }),
+      );
+    });
+  });
+
+  it('lets a teacher close their class shop with a required reason', async () => {
+    render(<GiftShopTab />);
+
+    const closeButton = screen.getByRole('button', { name: /T\u1ea1m \u0111\u00f3ng ti\u1ec7m/i });
+    expect(closeButton).toBeDisabled();
+    fireEvent.change(screen.getByPlaceholderText(/\u0110ang ki\u1ec3m k\u00ea ph\u1ea7n th\u01b0\u1edfng/i), {
+      target: { value: '\u0110ang ki\u1ec3m k\u00ea kho qu\u00e0' },
+    });
+    fireEvent.click(closeButton);
+
+    await waitFor(() => {
+      expect(useGiftShopStore.getState().updateSettings).toHaveBeenCalledWith({
+        scopeType: 'CLASS',
+        schoolId: undefined,
+        classId: undefined,
+        isOpen: false,
+        closedReason: '\u0110ang ki\u1ec3m k\u00ea kho qu\u00e0',
+      });
+    });
+  });
+
   it('delivers and cancels an order with the current actor and active query', async () => {
     resetStores({ orders: [managedOrder] });
     render(<GiftShopTab />);
@@ -247,7 +305,7 @@ describe('TeacherDashboard GiftShopTab contracts', () => {
       expect(useGiftShopStore.getState().deliverOrder).toHaveBeenCalledWith(
         'order-1',
         { username: 'teacher_01', isAdmin: false, teacherClass: '3A' },
-        expect.objectContaining({ status: 'VOUCHER_ISSUED', classId: '3A' }),
+        expect.objectContaining({ status: 'PENDING', classId: '3A' }),
       );
     });
 
@@ -263,7 +321,7 @@ describe('TeacherDashboard GiftShopTab contracts', () => {
         'order-1',
         { username: 'teacher_01', isAdmin: false, teacherClass: '3A' },
         'Học sinh đổi ý',
-        expect.objectContaining({ status: 'VOUCHER_ISSUED', classId: '3A' }),
+        expect.objectContaining({ status: 'PENDING', classId: '3A' }),
       );
     });
   });

@@ -7,9 +7,11 @@
  * Fallback: Image -> 3D CSS Cube -> Emoji.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback } from 'react';
 import { PetData, PET_OPTIONS } from '../../types/gamification.types';
-import Css3dChibiPet from './Css3dChibiPet';
+import { useReducedExperience } from '../../hooks/useReducedExperience';
+
+const Css3dChibiPet = lazy(() => import('./Css3dChibiPet'));
 
 // Pet emoji map by ID and level
 const getPetEmoji = (petId: string, level: number): string => {
@@ -55,6 +57,7 @@ const PetDisplay: React.FC<PetDisplayProps> = ({ pet, size = 'lg', interactive =
     const [speechBubble, setSpeechBubble] = useState('');
     const [showBubble, setShowBubble] = useState(false);
     const [imageError, setImageError] = useState(false);
+    const { reduceVisuals } = useReducedExperience();
 
     // Determines the image URL to try (User's custom URL > Default Option URL)
     const effectiveImageUrl = pet.imageUrl || PET_OPTIONS.find(p => p.id === pet.petId)?.imageUrl;
@@ -66,6 +69,8 @@ const PetDisplay: React.FC<PetDisplayProps> = ({ pet, size = 'lg', interactive =
 
     // Random speech bubble on mount and periodically
     useEffect(() => {
+        if (reduceVisuals) return undefined;
+
         const showRandomBubble = () => {
             const msg = SPEECH_BUBBLES[Math.floor(Math.random() * SPEECH_BUBBLES.length)];
             setSpeechBubble(msg);
@@ -80,10 +85,10 @@ const PetDisplay: React.FC<PetDisplayProps> = ({ pet, size = 'lg', interactive =
             clearTimeout(initialTimer);
             clearInterval(interval);
         };
-    }, []);
+    }, [reduceVisuals]);
 
     const handleClick = useCallback(() => {
-        if (!interactive) return;
+        if (!interactive || reduceVisuals) return;
 
         setIsJumping(true);
         setTimeout(() => setIsJumping(false), 600);
@@ -95,7 +100,7 @@ const PetDisplay: React.FC<PetDisplayProps> = ({ pet, size = 'lg', interactive =
         setSpeechBubble(msg);
         setShowBubble(true);
         setTimeout(() => setShowBubble(false), 2500);
-    }, [interactive]);
+    }, [interactive, reduceVisuals]);
 
     const petEmoji = getPetEmoji(pet.petId, pet.level);
     const moodEmoji = getMoodEmoji(pet.mood);
@@ -119,8 +124,8 @@ const PetDisplay: React.FC<PetDisplayProps> = ({ pet, size = 'lg', interactive =
     // Priority: CSS 3D chibi is preferred for supported types (looks better than static PNG)
     const petTypeFromId = pet.petId.split('_')[0] as 'cat' | 'dog' | 'rabbit';
     const supportedChibiTypes = ['cat', 'dog', 'rabbit'];
-    const showCss3d = supportedChibiTypes.includes(petTypeFromId);
-    const showImage = !showCss3d && effectiveImageUrl && !imageError;
+    const showCss3d = !reduceVisuals && supportedChibiTypes.includes(petTypeFromId);
+    const showImage = !reduceVisuals && !showCss3d && effectiveImageUrl && !imageError;
 
     // Border logic: Hide heavy borders for Image/3D modes to look cleaner
     const showBorder = !showImage && !showCss3d;
@@ -162,12 +167,16 @@ const PetDisplay: React.FC<PetDisplayProps> = ({ pet, size = 'lg', interactive =
             >
                 {/* 1. Preferred: CSS 3D Chibi (Cat, Dog, Rabbit) */}
                 {showCss3d ? (
-                    <Css3dChibiPet
-                        petType={petTypeFromId}
-                        size={size}
-                        mood={pet.mood}
-                        interactive={false}
-                    />
+                    <Suspense fallback={<span className={`${cfg.emoji} drop-shadow-lg`}>{petEmoji}</span>}>
+                        <div data-rich-media="css-3d-pet">
+                            <Css3dChibiPet
+                                petType={petTypeFromId}
+                                size={size}
+                                mood={pet.mood}
+                                interactive={false}
+                            />
+                        </div>
+                    </Suspense>
                 ) : showImage ? (
                     /* 2. Fallback: Image for unsupported types */
                     <img

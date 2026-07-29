@@ -54,6 +54,7 @@ describe('0042 unified notifications migration', () => {
     expect(schema).toContain('action_url text');
     expect(schema).toContain('source_type text');
     expect(schema).toContain('idx_notifications_inbox');
-    expect(schema).toContain('idx_notifications_source_dedupe');
+    expect(schema).toContain('idx_notifications_window_dedupe');
+    expect(schema).toContain('notification_preferences');
   });
 });

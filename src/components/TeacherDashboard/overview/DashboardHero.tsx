@@ -6,6 +6,7 @@ import {
     GraduationCap,
     ShieldCheck,
 } from 'lucide-react';
+import { Button } from '../../common';
 
 interface DashboardHeroProps {
     greeting: string;
@@ -39,20 +40,20 @@ const DashboardHero: React.FC<DashboardHeroProps> = ({
     return (
         <section
             aria-labelledby="teacher-overview-heading"
-            className="rounded-[14px] border border-[#E5E7EB] bg-white px-5 py-5 text-[#172033] sm:px-6 sm:py-6 lg:px-7"
+            className="rounded-[14px] border border-slate-200 bg-white px-5 py-5 text-slate-900 sm:px-6 sm:py-6 lg:px-7"
         >
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)] xl:items-center">
                 <div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-[#526174]">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600">
                         <span className="inline-flex items-center gap-2">
-                            <CalendarDays aria-hidden="true" className="size-4 text-[#0284C7]" />
+                            <CalendarDays aria-hidden="true" className="size-4 text-sky-600" />
                             {dateLabel}
                         </span>
-                        <span aria-hidden="true" className="hidden h-4 w-px bg-[#E5E7EB] sm:block" />
+                        <span aria-hidden="true" className="hidden h-4 w-px bg-slate-200 sm:block" />
                         <span className="inline-flex items-center gap-2">
                             {isAdmin
-                                ? <ShieldCheck aria-hidden="true" className="size-4 text-[#0284C7]" />
-                                : <GraduationCap aria-hidden="true" className="size-4 text-[#0284C7]" />}
+                                ? <ShieldCheck aria-hidden="true" className="size-4 text-sky-600" />
+                                : <GraduationCap aria-hidden="true" className="size-4 text-sky-600" />}
                             {isAdmin ? 'Quản trị viên' : 'Giáo viên'} · {scopeLabel}
                         </span>
                     </div>
@@ -60,42 +61,42 @@ const DashboardHero: React.FC<DashboardHeroProps> = ({
                     <h1 id="teacher-overview-heading" className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
                         {greeting}, {teacherName}!
                     </h1>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[#526174] sm:text-base">
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
                         {description}
                     </p>
 
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                        <button
+                        <Button
                             type="button"
                             onClick={onCreateQuiz}
-                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-[#0EA5E9] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0284C7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] focus-visible:ring-offset-2"
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
                         >
                             <FilePlus2 aria-hidden="true" className="size-5" />
                             Tạo đề mới
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="button"
                             onClick={onViewResults}
-                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-[#E5E7EB] bg-white px-4 py-2.5 text-sm font-semibold text-[#172033] transition-colors hover:border-[#BAE6FD] hover:bg-[#F0F9FF] hover:text-[#0284C7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] focus-visible:ring-offset-2"
+                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
                         >
                             Xem kết quả
                             <ArrowRight aria-hidden="true" className="size-4" />
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
-                <dl className="grid grid-cols-3 divide-x divide-[#E5E7EB] rounded-[12px] border border-[#E5E7EB] bg-[#F8FAFC] px-2 py-4 sm:px-3">
+                <dl className="grid grid-cols-3 divide-x divide-slate-200 rounded-[12px] border border-slate-200 bg-slate-50 px-2 py-4 sm:px-3">
                     <div className="min-w-0 px-2 text-center sm:px-3">
-                        <dt className="text-[11px] font-medium leading-4 text-[#7A8796] sm:text-xs">Lượt nộp hôm nay</dt>
-                        <dd className="mt-2 text-2xl font-bold text-[#172033]">{todaySubmissionCount}</dd>
+                        <dt className="text-[11px] font-medium leading-4 text-slate-500 sm:text-xs">Lượt nộp hôm nay</dt>
+                        <dd className="mt-2 text-2xl font-bold text-slate-900">{todaySubmissionCount}</dd>
                     </div>
                     <div className="min-w-0 px-2 text-center sm:px-3">
-                        <dt className="text-[11px] font-medium leading-4 text-[#7A8796] sm:text-xs">Tỷ lệ đạt</dt>
-                        <dd className="mt-2 text-2xl font-bold text-[#172033]">{typeof passRate === 'number' ? `${passRate}%` : passRate}</dd>
+                        <dt className="text-[11px] font-medium leading-4 text-slate-500 sm:text-xs">Tỷ lệ đạt</dt>
+                        <dd className="mt-2 text-2xl font-bold text-slate-900">{typeof passRate === 'number' ? `${passRate}%` : passRate}</dd>
                     </div>
                     <div className="min-w-0 px-2 text-center sm:px-3">
-                        <dt className="text-[11px] font-medium leading-4 text-[#7A8796] sm:text-xs">Học sinh</dt>
-                        <dd className="mt-2 text-2xl font-bold text-[#172033]">{uniqueStudents}</dd>
+                        <dt className="text-[11px] font-medium leading-4 text-slate-500 sm:text-xs">Học sinh</dt>
+                        <dd className="mt-2 text-2xl font-bold text-slate-900">{uniqueStudents}</dd>
                     </div>
                 </dl>
             </div>

@@ -5,6 +5,8 @@ import { normalizeStudentInput, validateStudentInput } from '../../classroom/val
 import { isStudent } from '../../middleware/jwtAuth';
 import { extractIdFromPath, parseBody } from '../../utils/helpers';
 import { errorResponse, generateId, hashPassword, jsonResponse, verifyPassword } from '../../utils/response';
+import { withClearedAuthCookie } from '../../utils/authSession';
+import { recordSecurityEvent, revokeAllAuthSessions } from '../../services/authSessionService';
 
 export async function handleStudentChangePasswordRoute(context: ClassroomRouteContext): Promise<Response | null> {
     const { request, path, method, db, url, nowIso, user } = context;
@@ -41,8 +43,27 @@ export async function handleStudentChangePasswordRoute(context: ClassroomRouteCo
             }
 
             const newHash = await hashPassword(newPassword);
-            await db.prepare('UPDATE students SET password_hash = ? WHERE id = ?').bind(newHash, studentId).run();
-            return jsonResponse({ status: 'success' });
+            const cutoff = new Date(nowIso);
+            await db.prepare(`
+                UPDATE students
+                SET password_hash = ?, token_version = token_version + 1
+                WHERE id = ?
+            `).bind(newHash, studentId).run();
+            await revokeAllAuthSessions(db, user, {
+                requestId: request.headers.get('x-request-id') || request.headers.get('cf-ray') || crypto.randomUUID(),
+                cutoff,
+                reason: 'password_changed',
+            });
+            await recordSecurityEvent(db, {
+                username: user.username,
+                role: 'student',
+                eventType: 'PASSWORD_CHANGED',
+                actorUsername: user.username,
+                sessionId: user.sessionId || null,
+                requestId: request.headers.get('x-request-id') || request.headers.get('cf-ray') || crypto.randomUUID(),
+                now: cutoff,
+            });
+            return withClearedAuthCookie(jsonResponse({ status: 'success' }));
         }
     return null;
 }

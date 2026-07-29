@@ -142,7 +142,7 @@ describe('TeacherDashboard OverviewTab', () => {
         const heroSection = heroHeading.closest('section');
         expect(heroSection).toBeTruthy();
         expect(heroSection?.className).toContain('bg-white');
-        expect(heroSection?.className).toContain('border-[#E5E7EB]');
+        expect(heroSection?.className).toContain('border-slate-200');
         expect(heroSection?.className).toContain('rounded-[14px]');
         expect(heroSection?.className).not.toContain('gradient');
         expect(heroSection?.className).not.toContain('shadow');
@@ -162,7 +162,7 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(createAction.className).toContain('hover:-translate-y-0.5');
         expect(createAction.className).toContain('shadow-[0_2px_10px_rgba(15,23,42,0.05)]');
         expect(createAction.className).toContain('bg-gradient-to-br');
-        expect(createAction.querySelector('.bg-\\[\\#F0F9FF\\]')).toBeTruthy();
+        expect(createAction.className).toContain('from-sky-50');
         expect(quizMetric?.className).toContain('rounded-[14px]');
         expect(quizMetric?.className).not.toContain('translate-y');
         expect(quizMetric?.className).not.toContain('gradient');
@@ -192,7 +192,7 @@ describe('TeacherDashboard OverviewTab', () => {
 
         for (const panel of [performancePanel, submissionsPanel, quizzesPanel]) {
             expect(panel?.className).toContain('rounded-[14px]');
-            expect(panel?.className).toContain('border-[#E5E7EB]');
+            expect(panel?.className).toContain('border-slate-200');
             expect(panel?.className).not.toContain('shadow');
         }
     });

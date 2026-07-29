@@ -2,6 +2,7 @@ import type { Env } from '../../types';
 import { errorResponse } from '../../utils/response';
 import { handleActivityRoute } from './activityRoute';
 import { handleAnalyticsRoute } from './analyticsRoute';
+import { handleAutosaveRoute } from './autosaveRoute';
 import { handleChatAnnouncementRoute } from './chatAnnouncementRoute';
 import { handleChatMessageRoute } from './chatMessageRoute';
 import { handleChatModerationRoutes } from './chatModerationRoutes';
@@ -26,6 +27,7 @@ const ROUTE_HANDLERS: LiveExamRouteHandler[] = [
   handleJoinRoute,
   handleStatusRoute,
   handleSubmitRoute,
+  handleAutosaveRoute,
   handleActivityRoute,
   handleResultsRoute,
   handleChatReadRoute,

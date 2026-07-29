@@ -19,13 +19,24 @@ import type {
     CreateLiveExamRequest,
     JoinLiveExamRequest,
     SubmitAnswersRequest,
-    TeacherAction,
     StudentAnswers,
     SendWaitingRoomMessageRequest,
     UpdateWaitingRoomChatSettingsRequest,
 } from '../types/liveExam.types';
+import { TeacherAction } from '../types/liveExam.types';
 import { fetchWithJWTInterceptor } from '../utils/jwtInterceptor';
+import { retryWithBackoff, type RetryOptions } from '../utils/boundedRetry';
 import { getWorkersApiBaseUrl } from './api/config';
+
+export class LiveExamApiError extends Error {
+    readonly status: number;
+
+    constructor(message: string, status: number) {
+        super(message);
+        this.name = 'LiveExamApiError';
+        this.status = status;
+    }
+}
 
 /**
  * Generic API call helper
@@ -55,7 +66,7 @@ async function apiCall<T>(
         } catch (e) {
             // Ignore JSON parse errors for HTML responses
         }
-        throw new Error(errorMessage);
+        throw new LiveExamApiError(errorMessage, response.status);
     }
 
     // Check if response is JSON before parsing
@@ -112,41 +123,88 @@ export async function deleteLiveExamSession(sessionId: string): Promise<void> {
 }
 
 /**
- * Control Live Exam Session (open, start, end)
+ * Control Live Exam Session lifecycle.
  */
-export async function controlLiveExam(
+type TeacherControlPayload =
+    | { action: TeacherAction.OPEN_SESSION }
+    | { action: TeacherAction.START_EXAM }
+    | { action: TeacherAction.PAUSE_EXAM }
+    | { action: TeacherAction.RESUME_EXAM }
+    | { action: TeacherAction.PREPARE_END_EARLY }
+    | { action: TeacherAction.END_EARLY; confirmationToken: string; reason: string }
+    | { action: TeacherAction.EXTEND_PARTICIPANT; participantId: string; extraMinutes: number };
+
+interface TeacherControlResponse {
+    success: boolean;
+    session: LiveExamSession;
+    confirmationToken?: string;
+    expiresAt?: string;
+    individualEndsAt?: string;
+}
+
+async function controlLiveExam(
     sessionId: string,
-    action: TeacherAction
-): Promise<LiveExamSession> {
-    const result = await apiCall<{ success: boolean; session: LiveExamSession }>(
+    payload: TeacherControlPayload,
+): Promise<TeacherControlResponse> {
+    return apiCall<TeacherControlResponse>(
         `/api/live-exam/${sessionId}/control`,
         {
             method: 'POST',
-            body: JSON.stringify({ action }),
-        }
+            body: JSON.stringify(payload),
+        },
     );
-    return result.session;
 }
 
-/**
- * Open session (scheduled → waiting)
- */
 export async function openSession(sessionId: string): Promise<LiveExamSession> {
-    return controlLiveExam(sessionId, 'open_session' as TeacherAction);
+    return (await controlLiveExam(sessionId, { action: TeacherAction.OPEN_SESSION })).session;
 }
 
-/**
- * Start exam (waiting → active)
- */
 export async function startExam(sessionId: string): Promise<LiveExamSession> {
-    return controlLiveExam(sessionId, 'start_exam' as TeacherAction);
+    return (await controlLiveExam(sessionId, { action: TeacherAction.START_EXAM })).session;
 }
 
-/**
- * End exam early (active → scoring → closed)
- */
-export async function endExamEarly(sessionId: string): Promise<LiveExamSession> {
-    return controlLiveExam(sessionId, 'end_early' as TeacherAction);
+export async function pauseExam(sessionId: string): Promise<LiveExamSession> {
+    return (await controlLiveExam(sessionId, { action: TeacherAction.PAUSE_EXAM })).session;
+}
+
+export async function resumeExam(sessionId: string): Promise<LiveExamSession> {
+    return (await controlLiveExam(sessionId, { action: TeacherAction.RESUME_EXAM })).session;
+}
+
+export async function prepareEndExamEarly(
+    sessionId: string,
+): Promise<{ confirmationToken: string; expiresAt: string }> {
+    const result = await controlLiveExam(sessionId, { action: TeacherAction.PREPARE_END_EARLY });
+    if (!result.confirmationToken || !result.expiresAt) {
+        throw new Error('Server did not return an early-end confirmation');
+    }
+    return { confirmationToken: result.confirmationToken, expiresAt: result.expiresAt };
+}
+
+export async function endExamEarly(
+    sessionId: string,
+    confirmationToken: string,
+    reason: string,
+): Promise<LiveExamSession> {
+    return (await controlLiveExam(sessionId, {
+        action: TeacherAction.END_EARLY,
+        confirmationToken,
+        reason,
+    })).session;
+}
+
+export async function extendParticipantTime(
+    sessionId: string,
+    participantId: string,
+    extraMinutes: number,
+): Promise<string> {
+    const result = await controlLiveExam(sessionId, {
+        action: TeacherAction.EXTEND_PARTICIPANT,
+        participantId,
+        extraMinutes,
+    });
+    if (!result.individualEndsAt) throw new Error('Server did not return the participant deadline');
+    return result.individualEndsAt;
 }
 
 /**
@@ -196,15 +254,39 @@ export async function getSessionStatus(
 /**
  * Submit answers
  */
+export interface SubmitAnswersOptions {
+    idempotencyKey: string;
+    retry?: RetryOptions;
+}
+
+const isTransientSubmitError = (error: unknown): boolean => {
+    if (!(error instanceof LiveExamApiError)) return true;
+    return error.status === 408
+        || error.status === 425
+        || error.status === 429
+        || error.status >= 500;
+};
+
 export async function submitAnswers(
     sessionId: string,
-    answers: StudentAnswers
+    answers: StudentAnswers,
+    options: SubmitAnswersOptions,
 ): Promise<LiveExamSubmissionResponse> {
-    const result = await apiCall<{ success: boolean; participant: LiveExamSubmissionResponse['participant'] }>(
-        `/api/live-exam/${sessionId}/submit`,
+    const result = await retryWithBackoff(
+        () => apiCall<{ success: boolean; participant: LiveExamSubmissionResponse['participant'] }>(
+            `/api/live-exam/${sessionId}/submit`,
+            {
+                method: 'POST',
+                body: JSON.stringify({ answers, idempotencyKey: options.idempotencyKey }),
+                headers: { 'Idempotency-Key': options.idempotencyKey },
+            },
+        ),
         {
-            method: 'POST',
-            body: JSON.stringify({ answers }),
+            maxAttempts: 3,
+            baseDelayMs: 300,
+            maxDelayMs: 1_500,
+            shouldRetry: isTransientSubmitError,
+            ...options.retry,
         },
     );
 
@@ -217,6 +299,30 @@ export async function submitAnswers(
  * Update activity (progress tracking)
  * Called with every status poll
  */
+export interface LiveExamAnswerSnapshot {
+    attemptVersion: number;
+    answers: StudentAnswers;
+    updatedAt: string;
+}
+
+export async function getAnswerSnapshot(sessionId: string): Promise<LiveExamAnswerSnapshot | null> {
+    const result = await apiCall<{ success: boolean; snapshot: LiveExamAnswerSnapshot | null }>(
+        `/api/live-exam/${sessionId}/autosave`,
+    );
+    return result.snapshot;
+}
+
+export async function saveAnswerSnapshot(
+    sessionId: string,
+    snapshot: { attemptVersion: number; idempotencyKey: string; answers: StudentAnswers },
+): Promise<LiveExamAnswerSnapshot> {
+    const result = await apiCall<{ success: boolean; snapshot: LiveExamAnswerSnapshot }>(
+        `/api/live-exam/${sessionId}/autosave`,
+        { method: 'PUT', body: JSON.stringify(snapshot), headers: { 'Idempotency-Key': snapshot.idempotencyKey } },
+    );
+    return result.snapshot;
+}
+
 export async function updateActivity(
     sessionId: string,
     data: {
@@ -358,6 +464,8 @@ export function getStatusColor(status: string): string {
             return 'yellow';
         case 'active':
             return 'green';
+        case 'paused':
+            return 'yellow';
         case 'scoring':
             return 'blue';
         case 'closed':
@@ -378,6 +486,8 @@ export function getStatusLabel(status: string): string {
             return 'Đang chờ';
         case 'active':
             return 'Đang thi';
+        case 'paused':
+            return 'Tạm dừng';
         case 'scoring':
             return 'Đang chấm';
         case 'closed':

@@ -24,3 +24,6 @@ export { StudentDetailModal } from './StudentDetailModal';
 
 // Question Analysis Table
 export { QuestionAnalysisTable } from './QuestionAnalysisTable';
+
+// Results Intervention Center
+export { InterventionPanel } from './InterventionPanel';

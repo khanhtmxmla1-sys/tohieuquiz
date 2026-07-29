@@ -35,17 +35,24 @@ bucket_name = "tohieuquiz-certificates"
 [vars]
 CLIPROXY_API = "https://ai-gateway.internal/v1"
 R2_PUBLIC_URL = "https://assets.thtohieu.com"
-AUTH_MIGRATION_MODE = "compat"
+AUTH_MIGRATION_MODE = "enforce"
 AUTH_TOKEN_TRANSPORT_MODE = "cookie"
+AUTH_SESSION_MODE = "compat"
 ENVIRONMENT = "production"
 ALLOWED_ORIGINS = "https://thtohieu.com,https://www.thtohieu.com,https://app.thtohieu.com,https://phuhuynh.thtohieu.com"
 ANNOUNCEMENT_IMAGE_HOSTS = "thtohieu.com,www.thtohieu.com,app.thtohieu.com,assets.thtohieu.com"
+PARENT_EMAIL_PROVIDER = "disabled"
+PARENT_EMAIL_PUBLIC_BASE_URL = "https://phuhuynh.thtohieu.com"
+PARENT_EMAIL_SPF_READY = "false"
+PARENT_EMAIL_DKIM_READY = "false"
+PARENT_EMAIL_DMARC_READY = "false"
 
 [triggers]
 crons = [
     "0 0 * * 1",
     "* * * * *",
-    "0 23 * * *"
+    "0 23 * * *",
+    "0 * * * *"
 ]
 
 [[queues.producers]]

@@ -27,15 +27,10 @@ export const useTeacherEntry = () => {
     const location = useLocation();
 
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
+        const params = new URLSearchParams(location.search);
         if (params.get('autologin') === 'teacher' && !authStore.isLoggedIn) {
             authStore.loginSuccess('admin', 'Admin Test', true, '4A');
             if (quizStore.results.length === 0) quizStore.setResults([createMockResult()]);
-            return;
         }
-
-        if (authStore.isLoggedIn && quizStore.view === 'home' && location.pathname === '/') {
-            quizStore.setView('teacher_dash');
-        }
-    }, [authStore.isLoggedIn, quizStore.view, location.pathname, quizStore, authStore]);
+    }, [authStore.isLoggedIn, location.search, quizStore.results.length, quizStore.setResults, authStore.loginSuccess]);
 };

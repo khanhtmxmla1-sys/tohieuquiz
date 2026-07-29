@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import type { Quiz } from '../../../types';
 import { useAuthStore } from '../../../../stores/authStore';
 import { useQuizStore } from '../../../../stores/quizStore';
+import { getTeacherRoute, resolveTeacherTabFromLocation } from '../../../app/navigationRoutes';
 import {
   type TeacherDashboardTab,
   useTeacherDashboardUIStore,
@@ -25,30 +26,45 @@ const TeacherDashboard = () => {
   const authStore = useAuthStore();
   const quizStore = useQuizStore();
   const navigate = useNavigate();
-  const activeTab = useTeacherDashboardUIStore(state => state.activeTab);
-  const setActiveTab = useTeacherDashboardUIStore(state => state.setActiveTab);
+  const location = useLocation();
+  const activeTab = resolveTeacherTabFromLocation(location.pathname, location.search);
+  const setLegacyActiveTab = useTeacherDashboardUIStore(state => state.setActiveTab);
   const clearAssignmentComposerDraft = useTeacherDashboardUIStore(state => state.clearAssignmentComposerDraft);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const giftShopEnabled = isGiftShopFeatureEnabled();
   const accountGate = useTeacherAccountGate();
   const bootstrap = useTeacherDashboardBootstrap();
-  const dashboardSearch = useDashboardSearch(setActiveTab);
+  const navigateToTab = useCallback((tab: TeacherDashboardTab) => {
+    if (tab === 'create') setEditingQuiz(null);
+    navigate(getTeacherRoute(tab));
+  }, [navigate]);
+  const dashboardSearch = useDashboardSearch(navigateToTab);
   const accessCode = useAccessCodeEditor();
-  const logout = useTeacherLogout(setActiveTab, clearAssignmentComposerDraft);
+  const runLegacyLogout = useTeacherLogout(setLegacyActiveTab, clearAssignmentComposerDraft);
+  const logout = () => {
+    runLegacyLogout();
+    navigate('/', { replace: true });
+  };
 
-  useDashboardPermissions(activeTab, setActiveTab, authStore.isAdmin, giftShopEnabled);
+  useEffect(() => {
+    setLegacyActiveTab(activeTab);
+  }, [activeTab, setLegacyActiveTab]);
+
+  useDashboardPermissions(
+    activeTab,
+    () => navigate(getTeacherRoute('overview'), { replace: true }),
+    authStore.isAdmin,
+    giftShopEnabled,
+  );
 
   const displayName = getTeacherDisplayName(authStore.teacherName, authStore.username);
-  const selectTab = (tab: TeacherDashboardTab) => {
-    if (tab === 'create') setEditingQuiz(null);
-    setActiveTab(tab);
-  };
+  const selectTab = navigateToTab;
 
   return (
     <TeacherDashboardLayout
       activeTab={activeTab}
-      setActiveTab={setActiveTab}
+      setActiveTab={navigateToTab}
       selectTab={selectTab}
       isMobileMenuOpen={isMobileMenuOpen}
       setIsMobileMenuOpen={setIsMobileMenuOpen}

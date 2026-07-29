@@ -16,10 +16,38 @@ describe('resolveApiRoute', () => {
         expect(r.query?.({ quizId: 'a b' })?.toString()).toBe('quizId=a+b');
     });
 
+    it('resolves teacher action center as a protected GET', () => {
+        const route = resolveApiRoute('get_teacher_action_center');
+        expect(route).toMatchObject({ method: 'GET', auth: 'session' });
+        expect(route.path({})).toBe('/api/teacher/action-center');
+    });
+
+    it('resolves parent preference and recovery routes through the independent parent cookie', () => {
+        expect(resolveApiRoute('get_parent_preferences')).toMatchObject({ method: 'GET', auth: 'public' });
+        expect(resolveApiRoute('get_parent_preferences').path({})).toBe('/api/parent/preferences');
+        expect(resolveApiRoute('request_parent_email_verification').path({})).toBe('/api/parent/preferences/email/request-verification');
+        expect(resolveApiRoute('verify_parent_email').path({})).toBe('/api/parent/preferences/email/verify');
+        expect(resolveApiRoute('request_parent_pin_recovery').path({})).toBe('/api/parent/recovery/request');
+        expect(resolveApiRoute('confirm_parent_pin_recovery').path({})).toBe('/api/parent/recovery/confirm');
+    });
+
     it('resolves result dashboard summary as a protected GET', () => {
         const route = resolveApiRoute('get_results_summary');
         expect(route).toMatchObject({ method: 'GET', auth: 'session' });
         expect(route.path({})).toBe('/api/results/summary');
+    });
+
+    it('resolves intervention routes and strips path-only group IDs from request bodies', () => {
+        const dashboard = resolveApiRoute('get_result_interventions');
+        expect(dashboard).toMatchObject({ method: 'GET', auth: 'session' });
+        expect(dashboard.path({})).toBe('/api/results/interventions');
+        expect(dashboard.query?.({ className: '4 A', quizId: 'q1' }).toString())
+            .toBe('className=4+A&quizId=q1');
+
+        const notes = resolveApiRoute('add_intervention_note');
+        expect(notes.path({ groupId: 'group-1' })).toBe('/api/results/interventions/groups/group-1/notes');
+        expect(notes.body?.('add_intervention_note', { groupId: 'g1', note: 'Private' }))
+            .toEqual({ note: 'Private' });
     });
     it('resolves delete_quiz without body', () => {
         const r = resolveApiRoute('delete_quiz');
@@ -71,6 +99,20 @@ describe('resolveApiRoute', () => {
         expect(qs).toContain('studentId=s1');
         expect(qs).toContain('classId=c1');
         expect(qs).toContain('actorIsAdmin=true');
+    });
+
+    it('resolves Gift Shop governance actions', () => {
+        const approve = resolveApiRoute('approve_gift_shop_order');
+        expect(approve).toMatchObject({ method: 'PATCH', auth: 'session' });
+        expect(approve.path({ orderId: 'order 1' })).toBe('/api/gift-shop/orders/order%201/approve');
+
+        const settings = resolveApiRoute('get_gift_shop_settings');
+        expect(settings).toMatchObject({ method: 'GET', auth: 'session' });
+        expect(settings.path({})).toBe('/api/gift-shop/settings');
+
+        const updateSettings = resolveApiRoute('update_gift_shop_settings');
+        expect(updateSettings).toMatchObject({ method: 'PUT', auth: 'session' });
+        expect(updateSettings.path({})).toBe('/api/gift-shop/settings');
     });
 
     it('resolves phieu actions to canonical REST routes', () => {

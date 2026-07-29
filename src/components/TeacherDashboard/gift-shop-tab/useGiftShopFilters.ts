@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { GiftOrderStatus } from '../../../types/giftShop.types';
 import type { GiftShopFiltersState } from './types';
+import { useBrowserSearchParams } from '../../../hooks/useBrowserSearchParams';
 
 interface Options {
   username?: string | null;
@@ -8,8 +9,20 @@ interface Options {
   teacherClass?: string | null;
 }
 
+const VALID_STATUSES: ReadonlySet<GiftOrderStatus | 'ALL'> = new Set([
+  'ALL',
+  'PENDING',
+  'APPROVED',
+  'DELIVERED',
+  'CANCELLED',
+]);
+
 export const useGiftShopFilters = ({ username, isAdmin, teacherClass }: Options): GiftShopFiltersState => {
-  const [statusFilter, setStatusFilter] = useState<GiftOrderStatus | 'ALL'>('VOUCHER_ISSUED');
+  const [searchParams, setSearchParams] = useBrowserSearchParams();
+  const rawStatus = searchParams.get('status');
+  const statusFilter: GiftOrderStatus | 'ALL' = rawStatus && VALID_STATUSES.has(rawStatus as GiftOrderStatus | 'ALL')
+    ? rawStatus as GiftOrderStatus | 'ALL'
+    : 'PENDING';
   const [classFilter, setClassFilter] = useState('');
   const [debouncedClassFilter, setDebouncedClassFilter] = useState('');
 
@@ -17,6 +30,12 @@ export const useGiftShopFilters = ({ username, isAdmin, teacherClass }: Options)
     const timeoutId = window.setTimeout(() => setDebouncedClassFilter(classFilter.trim()), 350);
     return () => window.clearTimeout(timeoutId);
   }, [classFilter]);
+
+  const setStatusFilter = useCallback((status: GiftOrderStatus | 'ALL') => {
+    const next = new URLSearchParams(searchParams);
+    next.set('status', status);
+    setSearchParams(next);
+  }, [searchParams, setSearchParams]);
 
   const actor = useMemo(() => ({
     username: username || 'teacher',

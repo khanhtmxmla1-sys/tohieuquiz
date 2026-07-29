@@ -27,6 +27,7 @@ export function SubjectPracticeGrid({
   comingSoonSubjects,
   isLoading,
   errorMessage,
+  isOffline = false,
   onRetry,
   onSelectSubject,
 }: SubjectPracticeGridProps) {
@@ -44,7 +45,7 @@ export function SubjectPracticeGrid({
       {isLoading ? <PracticeListSkeletons /> : null}
 
       {!isLoading && errorMessage ? (
-        <DashboardSectionError message={errorMessage} onRetry={onRetry} />
+        <DashboardSectionError message={errorMessage} onRetry={onRetry} retryDisabled={isOffline} />
       ) : null}
 
       {!isLoading && !errorMessage ? (
@@ -61,7 +62,9 @@ export function SubjectPracticeGrid({
                     key={subject.id}
                     type="button"
                     onClick={() => onSelectSubject(subject.id)}
-                    className="group flex min-h-40 w-full flex-col border-b border-r border-slate-100 p-5 text-left transition-colors hover:bg-slate-50 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-inset"
+                    disabled={isOffline}
+                    title={isOffline ? 'Cần kết nối mạng để mở chuyên đề.' : undefined}
+                    className="group flex min-h-40 w-full flex-col border-b border-r border-slate-100 p-5 text-left transition-colors hover:bg-slate-50 focus-visible disabled:cursor-not-allowed disabled:opacity-60:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-inset"
                   >
                     <span className="text-lg font-semibold text-[#172033]">{subject.title}</span>
                     <span className="mt-2 flex-1 text-sm leading-6 text-[#526174]">

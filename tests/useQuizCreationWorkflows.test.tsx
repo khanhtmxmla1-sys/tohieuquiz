@@ -185,11 +185,55 @@ describe('quiz creation workflows', () => {
             classLevel: '4A',
             timeLimit: 20,
             questions: [expect.objectContaining({ id: 'q-1' })],
+            aiGeneration: expect.objectContaining({ generationKind: 'full' }),
         }));
         await waitFor(() => expect(result.current.aiUsageCount).toBe(2));
         expect(mockedGetQuota).toHaveBeenCalledTimes(2);
         expect(result.current.isGenerating).toBe(false);
         expect(result.current.generationStep).toBe('completed');
+    });
+
+    it('creates a three-question trial that cannot be saved', async () => {
+        mockedGenerateQuiz.mockResolvedValueOnce({
+            title: 'Trial fractions quiz',
+            timeLimit: 10,
+            questions: [0, 1, 2].map((index) => ({
+                id: `trial-${index + 1}`,
+                type: QuestionType.MCQ,
+                question: `Câu phân số thử ${index + 1}?`,
+                options: ['0', '1', '2', '3'],
+                correctAnswer: 'B',
+            })),
+        });
+        const onSaveQuiz = vi.fn(async () => undefined);
+        const { result } = renderCreationHook({ onSaveQuiz });
+        act(() => result.current.setTopic('Fractions'));
+
+        await act(async () => result.current.handleGenerateTrial('practice'));
+
+        const generationOptions = mockedGenerateQuiz.mock.calls[0]?.[4];
+        expect(generationOptions).toEqual(expect.objectContaining({ questionCount: 3 }));
+        expect(generationOptions?.blueprint?.totalQuestions).toBe(3);
+        expect(result.current.generatedQuiz).toEqual(expect.objectContaining({
+            questions: expect.arrayContaining([
+                expect.objectContaining({ id: 'trial-1' }),
+                expect.objectContaining({ id: 'trial-2' }),
+                expect.objectContaining({ id: 'trial-3' }),
+            ]),
+            aiGeneration: expect.objectContaining({ generationKind: 'trial' }),
+        }));
+        expect(result.current.isTrialPreview).toBe(true);
+        expect(result.current.canSaveQuiz).toBe(false);
+        expect(result.current.saveQuizBlockReason).toBe(
+            'Đây là bản tạo thử 3 câu. Hãy tạo đề đầy đủ trước khi lưu.',
+        );
+
+        await act(async () => result.current.handleSaveQuiz());
+
+        expect(onSaveQuiz).not.toHaveBeenCalled();
+        expect(mockedShowError).toHaveBeenCalledWith(
+            'Đây là bản tạo thử 3 câu. Hãy tạo đề đầy đủ trước khi lưu.',
+        );
     });
 
     it('shows the Worker quota error and does not store a quiz', async () => {
@@ -202,6 +246,66 @@ describe('quiz creation workflows', () => {
         expect(mockedGenerateQuiz).toHaveBeenCalledTimes(1);
         expect(mockedShowError).toHaveBeenCalledWith('Bạn đã dùng hết 5 lượt tạo đề AI hôm nay.');
         expect(result.current.generatedQuiz).toBeNull();
+    });
+
+    it('blocks saving an MCQ whose correct answer is outside the options', async () => {
+        const onSaveQuiz = vi.fn(async () => undefined);
+        const { result } = renderCreationHook({ onSaveQuiz });
+        const invalidQuiz: Quiz = {
+            ...createManualQuiz('Invalid AI quiz'),
+            questions: [{
+                id: 'invalid-mcq',
+                type: QuestionType.MCQ,
+                question: 'Hai cộng hai bằng bao nhiêu?',
+                options: ['1', '2', '3', '4'],
+                correctAnswer: 'E',
+            }],
+            aiGeneration: { promptVersion: 'ai-quiz-v2' },
+        };
+
+        act(() => result.current.setGeneratedQuiz(invalidQuiz));
+        await waitFor(() => expect(result.current.canSaveQuiz).toBe(false));
+        expect(result.current.questionQualitySummary?.blockingCount).toBe(1);
+
+        await act(async () => result.current.handleSaveQuiz());
+
+        expect(onSaveQuiz).not.toHaveBeenCalled();
+        expect(mockedShowError).toHaveBeenCalledWith('Cần sửa 1 lỗi bắt buộc trước khi lưu đề.');
+    });
+
+    it('requires acknowledgement for quality warnings before saving', async () => {
+        const onSaveQuiz = vi.fn(async () => undefined);
+        const { result } = renderCreationHook({ onSaveQuiz });
+        const warningQuiz: Quiz = {
+            ...createManualQuiz('Warning AI quiz'),
+            questions: [{
+                id: 'grade-warning',
+                type: QuestionType.MCQ,
+                question: 'Bài toán dành cho lớp 5: hai cộng hai bằng bao nhiêu?',
+                options: ['1', '2', '3', '4'],
+                correctAnswer: 'D',
+            }],
+            aiGeneration: { promptVersion: 'ai-quiz-v2' },
+        };
+
+        act(() => result.current.setGeneratedQuiz(warningQuiz));
+        await waitFor(() => expect(result.current.questionQualitySummary?.warningCount).toBe(1));
+        expect(result.current.canSaveQuiz).toBe(false);
+
+        const warningId = result.current.questionQualitySummary?.issues[0]?.id;
+        expect(warningId).toBeTruthy();
+        act(() => result.current.toggleQualityWarningAcknowledgement(warningId!));
+        await waitFor(() => expect(result.current.canSaveQuiz).toBe(true));
+        await act(async () => result.current.handleSaveQuiz());
+
+        expect(onSaveQuiz).toHaveBeenCalledWith(expect.objectContaining({
+            aiGeneration: expect.objectContaining({
+                qualitySummary: expect.objectContaining({
+                    warningCount: 1,
+                    acknowledgedWarningIds: [warningId],
+                }),
+            }),
+        }));
     });
 
     it('saves a manual quiz, opens the link modal and resets the form', async () => {
@@ -218,7 +322,16 @@ describe('quiz creation workflows', () => {
 
         await act(async () => result.current.handleSaveQuiz());
 
-        expect(onSaveQuiz).toHaveBeenCalledWith(createdQuiz);
+        expect(onSaveQuiz).toHaveBeenCalledWith(expect.objectContaining({
+            ...createdQuiz,
+            aiGeneration: expect.objectContaining({
+                qualitySummary: expect.objectContaining({
+                    version: 'ai-question-quality-v1',
+                    blockingCount: 0,
+                    warningCount: 0,
+                }),
+            }),
+        }));
         expect(onSuccess).toHaveBeenCalledTimes(1);
         expect(result.current.showLinkModal).toBe(true);
         expect(result.current.savedQuizLink).toContain(`?quiz=${createdQuiz?.id}`);

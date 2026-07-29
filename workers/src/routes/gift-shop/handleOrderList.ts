@@ -1,6 +1,7 @@
 import type { Env } from '../../types';
 import { requireTeacher } from '../../middleware/jwtAuth';
 import { errorResponse, jsonResponse } from '../../utils/response';
+import { collectionLimit, decodeCollectionCursor, encodeCollectionCursor } from '../../utils/cursorPagination';
 import { getActorAccessFromUser, getAuthenticatedUser } from './auth';
 import { mapOrder } from './mappers';
 import { ORDER_SELECT } from './orderRepository';
@@ -16,6 +17,14 @@ export const handleOrderList = async (request: Request, env: Env): Promise<Respo
 
     const actorAccess = getActorAccessFromUser(userOrResponse);
     const status = normalizeStatus(url.searchParams.get('status'));
+    let limit: number;
+    let cursor: string[] | null;
+    try {
+        limit = collectionLimit(url);
+        cursor = decodeCollectionCursor(url.searchParams.get('cursor'), 'gift-orders', 2);
+    } catch (error) {
+        return errorResponse(error instanceof Error ? error.message : 'Pagination invalid', 400);
+    }
     const isStudent = userOrResponse.role === 'student';
     let studentId = requestedStudentId;
 
@@ -54,12 +63,26 @@ export const handleOrderList = async (request: Request, env: Env): Promise<Respo
         conditions.push('o.status = ?');
         params.push(status);
     }
+    if (cursor) {
+        conditions.push('(o.updated_at < ? OR (o.updated_at = ? AND o.id < ?))');
+        params.push(cursor[0], cursor[0], cursor[1]);
+    }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    const query = `${ORDER_SELECT} ${whereClause} ORDER BY datetime(o.updated_at) DESC`;
-    let stmt = env.DB.prepare(query);
-    if (params.length > 0) stmt = stmt.bind(...params);
-
-    const rows = await stmt.all<GiftOrderRow>();
-    return jsonResponse((rows.results || []).map(mapOrder));
+    const query = `${ORDER_SELECT} ${whereClause} ORDER BY o.updated_at DESC, o.id DESC LIMIT ?`;
+    const rows = await env.DB.prepare(query).bind(...params, limit + 1).all<GiftOrderRow>();
+    const sourceRows = rows.results || [];
+    const pageRows = sourceRows.slice(0, limit);
+    const last = pageRows.at(-1);
+    const hasMore = sourceRows.length > limit;
+    return jsonResponse({
+        data: pageRows.map(mapOrder),
+        meta: {
+            limit,
+            hasMore,
+            nextCursor: hasMore && last
+                ? encodeCollectionCursor('gift-orders', [last.updated_at, last.id])
+                : null,
+        },
+    });
 };

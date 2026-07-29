@@ -12,6 +12,11 @@ import QuizPreviewToolbar from './QuizPreviewToolbar';
 import QuestionList from './QuestionList';
 import EmptyQuizPreview from './EmptyQuizPreview';
 import QuizPreviewOverlays from './QuizPreviewOverlays';
+import QuestionQualityReview from '../../../features/quiz-generator/components/QuestionQualityReview';
+import QuestionRegenerationNotice from './QuestionRegenerationNotice';
+import TrialPreviewNotice from './TrialPreviewNotice';
+
+const EMPTY_WARNING_IDS = new Set<string>();
 
 const QuizPreview: React.FC<QuizPreviewProps> = ({
     quiz,
@@ -20,6 +25,11 @@ const QuizPreview: React.FC<QuizPreviewProps> = ({
     onUpdateQuestions,
     onStartManual,
     onRegenerateQuestion,
+    qualitySummary = null,
+    acknowledgedWarningIds = EMPTY_WARNING_IDS,
+    onToggleQualityWarning,
+    canSave = true,
+    saveBlockReason = null,
 }) => {
     const editor = useQuestionEditor({ quiz, onUpdateQuestions });
     const distractors = useSmartDistractors({
@@ -53,7 +63,24 @@ const QuizPreview: React.FC<QuizPreviewProps> = ({
                             onSave={onSave}
                             isSaving={isSaving}
                             onOpenWorksheet={() => setShowWorksheetModal(true)}
+                            saveDisabled={!canSave}
+                            saveDisabledReason={saveBlockReason}
                         />
+                        {quiz.aiGeneration?.generationKind === 'trial' && <TrialPreviewNotice />}
+                        {regeneration.lastRegeneration && (
+                            <QuestionRegenerationNotice
+                                change={regeneration.lastRegeneration}
+                                onUndo={regeneration.undoLastRegeneration}
+                                onDismiss={regeneration.dismissLastRegeneration}
+                            />
+                        )}
+                        {qualitySummary && onToggleQualityWarning && (
+                            <QuestionQualityReview
+                                summary={qualitySummary}
+                                acknowledgedWarningIds={acknowledgedWarningIds}
+                                onToggleWarning={onToggleQualityWarning}
+                            />
+                        )}
                         <QuestionList
                             quiz={quiz}
                             onUpdateQuestions={onUpdateQuestions}

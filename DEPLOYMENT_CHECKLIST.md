@@ -1,6 +1,6 @@
 # TôHiệuQuiz — Deployment Checklist
 
-Trạng thái cập nhật: **26/07/2026**. Bằng chứng chi tiết cho từng mục đã tick nằm trong
+Trạng thái cập nhật: **29/07/2026**. Bằng chứng chi tiết cho từng mục đã tick nằm trong
 `docs/deployment/CURRENT_PROGRESS.md`.
 
 Không deploy khi cấu hình còn chứa domain `.invalid` hoặc D1 ID toàn số 0.
@@ -55,7 +55,16 @@ CI đã có bước chặn tự động: job `build` trong `.github/workflows/ci
 - [ ] Monitoring/logging thuộc tài khoản mới.
 - [x] Không có webhook hoặc callback URL cũ — security scan pass trên 1616 file.
 
-## 6. Kiểm tra trước deploy
+## 6. Bảo vệ nhánh và release-readiness
+
+- [x] Workflow `release-readiness.yml` chạy trên pull request và `main`, không chứa lệnh deploy.
+- [x] Gate bao phủ typecheck frontend/Worker, Vitest, coverage, build, performance budget, security/dependency audit, migration contract và Cypress V2/V3.
+- [x] Mỗi run sinh artifact JSON có trạng thái `ready` hoặc `blocked`.
+- [x] CODEOWNERS bao phủ workflow, security, JWT, migration và Wrangler.
+- [ ] Áp dụng desired state trong `.github/branch-protection.yml` lên GitHub và lưu bằng chứng remote; file trong repo không tự thay đổi cài đặt GitHub. Hiện GitHub API trả HTTP 403 do repository private trên gói chưa hỗ trợ branch protection.
+- [ ] Xác minh PR lỗi, stale approval, direct push và force push đều bị chặn theo `docs/operations/branch-protection.md`.
+
+## 7. Kiểm tra trước deploy
 
 ```bash
 npm ci
@@ -86,7 +95,7 @@ npm run cypress:run:component
 - [ ] Email xác minh/quên mật khẩu.
 - [ ] Backup và phục hồi thử nghiệm.
 
-## 7. Sau deploy
+## 8. Sau deploy
 
 - [x] `/api/health` trả 200 — cả trực tiếp lẫn qua rewrite frontend.
 - [x] Frontend production trả 200 trên cả ba domain.
@@ -94,7 +103,7 @@ npm run cypress:run:component
 - [ ] Smoke test thủ công trên desktop và mobile.
 - [ ] Theo dõi log và chi phí ít nhất 30 phút sau mỗi lần bật cờ tính năng.
 
-## 8. Rollout cờ tính năng
+## 9. Rollout cờ tính năng
 
 Thứ tự và điều kiện xem `docs/ROADMAP.md` giai đoạn 5. Tất cả cờ hiện đang `false`
 trên production.

@@ -18,6 +18,7 @@ import AdvancedSettingsSection from '../../features/quiz-generator/components/Ad
 import AssignmentSection from '../../features/quiz-generator/components/AssignmentSection';
 import GenerationProgressPanel from '../../features/quiz-generator/components/GenerationProgressPanel';
 import SuccessModal from '../../features/quiz-generator/components/SuccessModal';
+import GenerationReadinessSummary from '../../features/quiz-generator/components/GenerationReadinessSummary';
 
 interface CreateTabProps {
     editingQuiz: Quiz | null;
@@ -69,6 +70,17 @@ const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdate
     const questionCount = logic.difficultyLevels.level1 + logic.difficultyLevels.level2 + logic.difficultyLevels.level3;
     const aiQuizV2Enabled = logic.aiQuizV2Enabled;
     const generationConfigurationInvalid = aiQuizV2Enabled && !logic.isBlueprintValid;
+    const selectedTypeCount = Object.values(logic.selectedTypes).filter(Boolean).length;
+    const trialMode = logic.uploadedFile
+        ? 'pdf'
+        : logic.quizMode === 'exam'
+            ? 'exam'
+            : 'practice';
+    const trialDisabled = questionCount <= 3
+        || generationConfigurationInvalid
+        || logic.isGenerating
+        || (logic.uploadedFile ? false : !logic.topic.trim())
+        || (logic.isTeacherAccount && !logic.hasAiQuota);
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -190,13 +202,23 @@ const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdate
                     </div>
                 )}
 
+                <GenerationReadinessSummary
+                    questionCount={questionCount}
+                    selectedTypeCount={selectedTypeCount}
+                    difficultyLevels={logic.difficultyLevels}
+                    isTeacherAccount={logic.isTeacherAccount}
+                    aiUsageRemaining={logic.aiUsageRemaining}
+                    dailyAiLimit={logic.dailyAiLimit}
+                    trialMode={trialMode}
+                    trialDisabled={trialDisabled}
+                    onGenerateTrial={(mode) => {
+                        if (logic.category === 'trang-nguyen') logic.setTnSearchMode('quick');
+                        logic.handleGenerateTrial(mode);
+                    }}
+                />
+
                 {/* ====== GENERATE BUTTONS ====== */}
                 <div className="space-y-3 sticky bottom-0 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-4 pb-2">
-                    {logic.isTeacherAccount && (
-                        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800">
-                            Lượt tạo đề AI hôm nay: <span className="font-bold">{logic.aiUsageRemaining}/{logic.dailyAiLimit}</span>
-                        </div>
-                    )}
                     {aiQuizV2Enabled && logic.generationStep !== 'idle' && (
                         <GenerationProgressPanel
                             step={logic.generationStep}
@@ -301,6 +323,11 @@ const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdate
                     }}
                     onStartManual={openManualWorkspace}
                     onRegenerateQuestion={logic.handleRegenerateSingle}
+                    qualitySummary={logic.questionQualitySummary}
+                    acknowledgedWarningIds={logic.acknowledgedQualityWarningIds}
+                    onToggleQualityWarning={logic.toggleQualityWarningAcknowledgement}
+                    canSave={logic.canSaveQuiz}
+                    saveBlockReason={logic.saveQuizBlockReason}
                 />
             </div>
 

@@ -1,12 +1,27 @@
-name: Production smoke
+name: Production smoke and staged rollout
 
 on:
   workflow_dispatch:
     inputs:
+      action:
+        description: Read-only smoke or staged rollout operation
+        required: true
+        type: choice
+        default: smoke
+        options:
+          - smoke
+          - rollout-plan
+          - rollout-apply
+          - rollout-evaluate
+          - rollout-rollback
       site_url:
-        description: Public TôHiệuQuiz URL
+        description: Canonical TôHiệuQuiz URL
         required: true
         default: https://www.thtohieu.com
+      apex_url:
+        description: Apex frontend URL
+        required: true
+        default: https://thtohieu.com
       api_url:
         description: Cloudflare Worker API URL
         required: true
@@ -15,29 +30,189 @@ on:
         description: Parent portal URL
         required: true
         default: https://phuhuynh.thtohieu.com
+      ai_smoke:
+        description: Run read-only AI rollout readiness checks
+        required: true
+        type: boolean
+        default: false
+      mutation_namespace:
+        description: Queue/certificate mutations are disabled here; only staging/test are valid namespaces
+        required: true
+        type: choice
+        default: none
+        options:
+          - none
+          - staging
+          - test
+      flag_key:
+        description: Runtime feature flag key
+        required: true
+        default: unified_notifications_v1
+      rollout_stage:
+        description: Current or target rollout stage
+        required: true
+        type: choice
+        default: admin-only
+        options:
+          - admin-only
+          - teachers-5
+          - pilot-class
+          - teachers-25
+          - full
+      pilot_class_id:
+        description: Required only for the pilot-class stage
+        required: false
+      rollout_reason:
+        description: Required audit reason for apply or rollback
+        required: false
+        default: GitHub Actions staged rollout
+      observation_started_at:
+        description: ISO timestamp when the current observation window began
+        required: false
+      error_5xx_rate_percent:
+        description: Current 5xx rate percent
+        required: false
+        default: '0'
+      baseline_client_error_rate:
+        description: Baseline client error rate
+        required: false
+        default: '0'
+      client_error_rate:
+        description: Current client error rate
+        required: false
+        default: '0'
+      baseline_p95_ms:
+        description: Baseline p95 latency in milliseconds
+        required: false
+        default: '0'
+      p95_ms:
+        description: Current p95 latency in milliseconds
+        required: false
+        default: '0'
+      data_corruption:
+        description: Data-corruption signal detected
+        required: true
+        type: boolean
+        default: false
+      auth_anomaly:
+        description: Authentication anomaly detected
+        required: true
+        type: boolean
+        default: false
+      auto_rollback:
+        description: Roll back to the previous stage when evaluation is blocked
+        required: true
+        type: boolean
+        default: false
   deployment_status:
 
 permissions:
   contents: read
 
 concurrency:
-  group: production-smoke
+  group: production-smoke-${{ github.event.deployment.environment || inputs.flag_key || github.ref }}
   cancel-in-progress: false
 
 jobs:
   smoke:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_dispatch' && inputs.action == 'smoke') ||
       (github.event_name == 'deployment_status' &&
        github.event.deployment_status.state == 'success' &&
        github.event.deployment.environment == 'Production')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    environment: production-smoke
     env:
       NODE_VERSION: 22.22.0
-      SITE_URL: ${{ github.event.inputs.site_url || 'https://www.thtohieu.com' }}
-      API_URL: ${{ github.event.inputs.api_url || 'https://api.thtohieu.com' }}
-      PARENT_URL: ${{ github.event.inputs.parent_url || 'https://phuhuynh.thtohieu.com' }}
+      SITE_URL: ${{ inputs.site_url || 'https://www.thtohieu.com' }}
+      APEX_URL: ${{ inputs.apex_url || 'https://thtohieu.com' }}
+      API_URL: ${{ inputs.api_url || 'https://api.thtohieu.com' }}
+      PARENT_URL: ${{ inputs.parent_url || 'https://phuhuynh.thtohieu.com' }}
+      AI_SMOKE: ${{ inputs.ai_smoke || 'false' }}
+      MUTATION_NAMESPACE: ${{ inputs.mutation_namespace || 'none' }}
+      SMOKE_ADMIN_USERNAME: ${{ secrets.SMOKE_ADMIN_USERNAME }}
+      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
+      SMOKE_TEACHER_USERNAME: ${{ secrets.SMOKE_TEACHER_USERNAME }}
+      SMOKE_TEACHER_PASSWORD: ${{ secrets.SMOKE_TEACHER_PASSWORD }}
+      SMOKE_STUDENT_USERNAME: ${{ secrets.SMOKE_STUDENT_USERNAME }}
+      SMOKE_STUDENT_PASSWORD: ${{ secrets.SMOKE_STUDENT_PASSWORD }}
+      SMOKE_PARENT_ACCESS_CODE: ${{ secrets.SMOKE_PARENT_ACCESS_CODE }}
+      SMOKE_PARENT_PIN: ${{ secrets.SMOKE_PARENT_PIN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies and Cypress binary
+        run: npm ci
+
+      - name: Run read-only production smoke
+        shell: bash
+        run: |
+          args=(
+            --site "$SITE_URL"
+            --apex "$APEX_URL"
+            --api "$API_URL"
+            --parent "$PARENT_URL"
+            --mutation-namespace "$MUTATION_NAMESPACE"
+            --output reports/production-smoke.json
+          )
+          if [[ "$AI_SMOKE" == "true" ]]; then
+            args+=(--ai-smoke)
+          fi
+          node scripts/run-production-smoke.mjs "${args[@]}"
+
+      - name: Upload redacted smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-smoke-report-${{ github.run_id }}
+          path: reports/production-smoke.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload public-page failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-smoke-public-screenshots-${{ github.run_id }}
+          path: cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 7
+
+  rollout:
+    if: github.event_name == 'workflow_dispatch' && startsWith(inputs.action, 'rollout-')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production-smoke
+    env:
+      NODE_VERSION: 22.22.0
+      ACTION_INPUT: ${{ inputs.action }}
+      SITE_URL: ${{ inputs.site_url }}
+      API_URL: ${{ inputs.api_url }}
+      FLAG_KEY: ${{ inputs.flag_key }}
+      ROLLOUT_STAGE: ${{ inputs.rollout_stage }}
+      PILOT_CLASS_ID: ${{ inputs.pilot_class_id }}
+      ROLLOUT_REASON: ${{ inputs.rollout_reason }}
+      OBSERVATION_STARTED_AT: ${{ inputs.observation_started_at }}
+      AUTO_ROLLBACK: ${{ inputs.auto_rollback }}
+      ERROR_5XX_RATE_PERCENT: ${{ inputs.error_5xx_rate_percent }}
+      BASELINE_CLIENT_ERROR_RATE: ${{ inputs.baseline_client_error_rate }}
+      CLIENT_ERROR_RATE: ${{ inputs.client_error_rate }}
+      BASELINE_P95_MS: ${{ inputs.baseline_p95_ms }}
+      P95_MS: ${{ inputs.p95_ms }}
+      DATA_CORRUPTION: ${{ inputs.data_corruption }}
+      AUTH_ANOMALY: ${{ inputs.auth_anomaly }}
+      SMOKE_ADMIN_USERNAME: ${{ secrets.SMOKE_ADMIN_USERNAME }}
+      SMOKE_ADMIN_PASSWORD: ${{ secrets.SMOKE_ADMIN_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -51,20 +226,58 @@ jobs:
           cache: npm
 
       - name: Install locked dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      - name: Run read-only production smoke
-        run: >-
-          node scripts/run-production-smoke.mjs
-          --site "$SITE_URL"
-          --api "$API_URL"
-          --parent "$PARENT_URL"
+      - name: Build rollout metrics input
+        if: inputs.action == 'rollout-evaluate'
+        shell: bash
+        run: |
+          mkdir -p reports
+          node <<'NODE'
+          const fs = require('node:fs');
+          const number = (name) => Number(process.env[name] || 0);
+          const boolean = (name) => String(process.env[name] || '').toLowerCase() === 'true';
+          const metrics = {
+            error5xxRatePercent: number('ERROR_5XX_RATE_PERCENT'),
+            baselineClientErrorRate: number('BASELINE_CLIENT_ERROR_RATE'),
+            clientErrorRate: number('CLIENT_ERROR_RATE'),
+            baselineP95Ms: number('BASELINE_P95_MS'),
+            p95Ms: number('P95_MS'),
+            dataCorruption: boolean('DATA_CORRUPTION'),
+            authAnomaly: boolean('AUTH_ANOMALY'),
+          };
+          fs.writeFileSync('reports/rollout-metrics.json', `${JSON.stringify(metrics, null, 2)}\n`, 'utf8');
+          NODE
 
-      - name: Upload failure screenshots
-        if: failure()
+      - name: Plan, apply, evaluate, or roll back rollout
+        shell: bash
+        run: |
+          action="${ACTION_INPUT#rollout-}"
+          args=(
+            --action "$action"
+            --site "$SITE_URL"
+            --api "$API_URL"
+            --flag "$FLAG_KEY"
+            --stage "$ROLLOUT_STAGE"
+            --reason "$ROLLOUT_REASON"
+            --output reports/staged-rollout.json
+          )
+          if [[ -n "$PILOT_CLASS_ID" ]]; then
+            args+=(--pilot-class "$PILOT_CLASS_ID")
+          fi
+          if [[ "$action" == "evaluate" ]]; then
+            args+=(--metrics reports/rollout-metrics.json --observation-started-at "$OBSERVATION_STARTED_AT")
+            if [[ "$AUTO_ROLLBACK" == "true" ]]; then
+              args+=(--auto-rollback)
+            fi
+          fi
+          node scripts/run-staged-rollout.mjs "${args[@]}"
+
+      - name: Upload redacted rollout report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: production-smoke-screenshots
-          path: cypress/screenshots
-          if-no-files-found: ignore
-          retention-days: 7
+          name: staged-rollout-report-${{ github.run_id }}
+          path: reports/staged-rollout.json
+          if-no-files-found: error
+          retention-days: 14

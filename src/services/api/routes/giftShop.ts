@@ -36,7 +36,7 @@ export const giftShopRoutes: RouteRegistry = {
         method: 'GET',
         auth: 'session',
         path: () => '/api/gift-shop/orders',
-        query: ({ studentId, classId, status, actorUsername, actorTeacherClass, actorIsAdmin }) => {
+        query: ({ studentId, classId, status, actorUsername, actorTeacherClass, actorIsAdmin, cursor, limit }) => {
             const q = new URLSearchParams();
             if (studentId) q.append('studentId', studentId);
             if (classId) q.append('classId', classId);
@@ -44,8 +44,15 @@ export const giftShopRoutes: RouteRegistry = {
             if (actorUsername) q.append('actorUsername', actorUsername);
             if (actorTeacherClass) q.append('actorTeacherClass', actorTeacherClass);
             if (typeof actorIsAdmin !== 'undefined') q.append('actorIsAdmin', String(actorIsAdmin));
+            if (cursor) q.append('cursor', String(cursor));
+            if (limit) q.append('limit', String(limit));
             return q;
         },
+    },
+    approve_gift_shop_order: {
+        method: 'PATCH',
+        auth: 'session',
+        path: ({ orderId }) => `/api/gift-shop/orders/${encodeURIComponent(orderId)}/approve`,
     },
     deliver_gift_shop_order: {
         method: 'PATCH',
@@ -56,6 +63,16 @@ export const giftShopRoutes: RouteRegistry = {
         method: 'PATCH',
         auth: 'session',
         path: ({ orderId }) => `/api/gift-shop/orders/${encodeURIComponent(orderId)}/cancel`,
+    },
+    get_gift_shop_settings: {
+        method: 'GET',
+        auth: 'session',
+        path: () => '/api/gift-shop/settings',
+    },
+    update_gift_shop_settings: {
+        method: 'PUT',
+        auth: 'session',
+        path: () => '/api/gift-shop/settings',
     },
     get_gift_shop_event_logs: {
         method: 'GET',

@@ -10,13 +10,28 @@ export interface Env {
     JWT_SECRET: string;
     AUTH_MIGRATION_MODE?: 'compat' | 'enforce';
     AUTH_TOKEN_TRANSPORT_MODE?: 'compat' | 'cookie';
+    AUTH_SESSION_MODE?: 'compat' | 'enforce';
+    WEBAUTHN_ALLOWED_ORIGINS?: string;
     ENVIRONMENT?: 'production' | 'development' | 'test';
+    APP_RELEASE?: string;
+    OPERATIONS_PROBE_TIMEOUT_MS?: string;
+    LAST_D1_BACKUP_AT?: string;
+    LAST_D1_RESTORE_DRILL_AT?: string;
     ALLOWED_ORIGINS?: string;
     ANNOUNCEMENT_IMAGE_HOSTS?: string;
+    PARENT_EMAIL_PROVIDER?: 'disabled' | 'http';
+    PARENT_EMAIL_API_URL?: string;
+    PARENT_EMAIL_API_TOKEN?: string;
+    PARENT_EMAIL_FROM?: string;
+    PARENT_EMAIL_PUBLIC_BASE_URL?: string;
+    PARENT_EMAIL_SPF_READY?: string;
+    PARENT_EMAIL_DKIM_READY?: string;
+    PARENT_EMAIL_DMARC_READY?: string;
     OG_IMAGES: R2Bucket;
     R2_PUBLIC_URL: string;
     // Task 1.4: Cloudflare Queues binding
     CERTIFICATE_QUEUE: Queue<{ batchId: string }>;
+    CERTIFICATE_DLQ?: Queue;
     CERT_IMAGES: R2Bucket;           // R2 bucket for rendered certificate PNGs
 }
 

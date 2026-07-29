@@ -64,8 +64,23 @@ vi.mock('../src/components/common', () => ({
             {children}
         </section>
     ),
-    Button: ({ children, onClick, loading, variant }: any) => (
-        <button type="button" onClick={onClick} disabled={loading} data-variant={variant}>
+    Button: ({
+        children,
+        onClick,
+        loading,
+        disabled,
+        variant,
+        title,
+        'aria-describedby': ariaDescribedBy,
+    }: any) => (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={loading || disabled}
+            data-variant={variant}
+            title={title}
+            aria-describedby={ariaDescribedBy}
+        >
             {children}
         </button>
     ),
@@ -214,6 +229,44 @@ describe('QuizPreview contracts', () => {
         expect(onSave).toHaveBeenCalledTimes(1);
     });
 
+    it('disables saving while the quality gate has a blocking issue', () => {
+        const onSave = vi.fn();
+        render(
+            <QuizPreview
+                quiz={makeQuiz()}
+                onSave={onSave}
+                canSave={false}
+                saveBlockReason="Cần sửa 1 lỗi bắt buộc trước khi lưu đề."
+                qualitySummary={{
+                    version: 'ai-question-quality-v1',
+                    checkedAt: '2026-07-28T00:00:00.000Z',
+                    questionCount: 2,
+                    blockingCount: 1,
+                    warningCount: 0,
+                    canPublish: false,
+                    issues: [{
+                        id: 'ANSWER_OUTSIDE_OPTIONS:q1',
+                        code: 'ANSWER_OUTSIDE_OPTIONS',
+                        severity: 'blocking',
+                        questionIndex: 0,
+                        questionId: 'q1',
+                        message: 'Câu 1 có đáp án đúng không thuộc các phương án đã cho.',
+                        path: 'correctAnswer',
+                    }],
+                }}
+                acknowledgedWarningIds={new Set()}
+                onToggleQualityWarning={vi.fn()}
+            />,
+        );
+
+        const saveButton = screen.getByRole('button', { name: 'Lưu đề' });
+        expect(saveButton).toBeDisabled();
+        expect(saveButton).toHaveAttribute('title', 'Cần sửa 1 lỗi bắt buộc trước khi lưu đề.');
+        expect(screen.getByText('Chưa thể lưu')).toBeVisible();
+        fireEvent.click(saveButton);
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
     it('renders each question and wires edit, delete, and list distractor callbacks', () => {
         const quiz = makeQuiz();
         const onUpdateQuestions = vi.fn();
@@ -255,6 +308,13 @@ describe('QuizPreview contracts', () => {
         resolveRegeneration(regenerated);
         await waitFor(() => expect(onUpdateQuestions).toHaveBeenCalledWith([regenerated, q2]));
         await waitFor(() => expect(screen.queryByText('loading-q1')).not.toBeInTheDocument());
+        expect(screen.getByText('AI đã thay đổi một câu hỏi')).toBeVisible();
+        expect(screen.getByText('Regenerated question')).toBeVisible();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Hoàn tác lần sinh lại này' }));
+
+        expect(onUpdateQuestions).toHaveBeenLastCalledWith([q1, q2]);
+        expect(screen.queryByText('AI đã thay đổi một câu hỏi')).not.toBeInTheDocument();
     });
 
     it('creates a useful starter draft for quick-add question types', () => {

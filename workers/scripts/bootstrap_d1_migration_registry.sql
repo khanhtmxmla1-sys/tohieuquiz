@@ -49,4 +49,15 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0040_scope_results_to_assignments.sql'),
   ('0041_certificate_layout_and_name_fonts.sql'),
   ('0042_unified_notifications.sql'),
-  ('0043_create_rate_limits.sql');
+  ('0043_create_rate_limits.sql'),
+  ('0044_create_ai_tutor_usage.sql'),
+  ('0045_live_exam_reconnect.sql'),
+  ('0046_live_exam_controls.sql'),
+  ('0047_results_intervention_center.sql'),
+  ('0048_parent_digest_recovery.sql'),
+  ('0049_gift_shop_governance.sql'),
+  ('0050_notification_preferences.sql'),
+  ('0051_pagination_indexes.sql'),
+  ('0052_auth_sessions_security_events.sql'),
+  ('0053_webauthn_passkeys.sql'),
+  ('0054_feature_rollout_control_plane.sql');

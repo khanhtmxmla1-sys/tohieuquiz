@@ -41,9 +41,91 @@ CREATE TABLE IF NOT EXISTS students (
   parent_phone TEXT DEFAULT '',
   avatar TEXT DEFAULT '',
   coins INTEGER DEFAULT 0,
+  token_version INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL,
   archived_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('student', 'teacher', 'admin')),
+  token_version INTEGER NOT NULL,
+  purpose TEXT NOT NULL DEFAULT 'session' CHECK (purpose IN ('session', 'password_change')),
+  user_agent_family TEXT NOT NULL DEFAULT 'Other',
+  created_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  revoked_at TEXT,
+  revoked_reason TEXT,
+  revoked_by TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_created
+  ON auth_sessions(username, role, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_active_expiry
+  ON auth_sessions(username, role, revoked_at, expires_at);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_retention
+  ON auth_sessions(created_at);
+
+CREATE TABLE IF NOT EXISTS security_events (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('student', 'teacher', 'admin')),
+  event_type TEXT NOT NULL CHECK (event_type IN (
+    'LOGIN_FAILURE_THRESHOLD', 'PASSWORD_CHANGED', 'PASSWORD_RESET',
+    'SESSION_REVOKED', 'SESSIONS_REVOKED_ALL', 'PASSKEY_ADDED', 'PASSKEY_REMOVED'
+  )),
+  severity TEXT NOT NULL DEFAULT 'informational'
+    CHECK (severity IN ('informational', 'action_required', 'critical')),
+  actor_username TEXT,
+  session_id TEXT,
+  request_id TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_security_events_user_created
+  ON security_events(username, role, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_security_events_type_created
+  ON security_events(event_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_security_events_retention
+  ON security_events(created_at);
+
+
+CREATE TABLE IF NOT EXISTS webauthn_credentials (
+  credential_id TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('teacher', 'admin')),
+  public_key BLOB NOT NULL,
+  counter INTEGER NOT NULL DEFAULT 0 CHECK (counter >= 0),
+  transports_json TEXT NOT NULL DEFAULT '[]',
+  device_type TEXT NOT NULL,
+  backed_up INTEGER NOT NULL DEFAULT 0 CHECK (backed_up IN (0, 1)),
+  label TEXT NOT NULL DEFAULT 'Passkey',
+  created_at TEXT NOT NULL,
+  last_used_at TEXT,
+  revoked_at TEXT,
+  revoked_by TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user_created
+  ON webauthn_credentials(username, role, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_active
+  ON webauthn_credentials(username, role, revoked_at);
+
+CREATE TABLE IF NOT EXISTS webauthn_challenges (
+  id TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('teacher', 'admin')),
+  purpose TEXT NOT NULL CHECK (purpose IN ('registration', 'authentication')),
+  challenge_hash TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  consumed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_owner_expiry
+  ON webauthn_challenges(username, role, purpose, expires_at);
+CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_retention
+  ON webauthn_challenges(created_at);
 
 -- Quizzes
 CREATE TABLE IF NOT EXISTS quizzes (
@@ -132,6 +214,7 @@ CREATE TABLE IF NOT EXISTS assignments (
   student_id TEXT DEFAULT '',
   deadline TEXT NOT NULL,
   max_attempts INTEGER DEFAULT 1,
+  intervention_group_id TEXT,
   status TEXT DEFAULT 'OPEN',
   created_at TEXT NOT NULL
 );
@@ -182,7 +265,16 @@ CREATE TABLE IF NOT EXISTS gift_catalog_items (
   image_url TEXT NOT NULL,
   is_active INTEGER DEFAULT 1,
   created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  updated_at TEXT NOT NULL,
+  stock_total INTEGER NOT NULL DEFAULT 100,
+  stock_remaining INTEGER NOT NULL DEFAULT 100,
+  low_stock_threshold INTEGER NOT NULL DEFAULT 5,
+  weekly_limit_per_student INTEGER NOT NULL DEFAULT 1,
+  scope_type TEXT NOT NULL DEFAULT 'SCHOOL',
+  school_id TEXT NOT NULL DEFAULT '',
+  class_id TEXT,
+  grade_level INTEGER,
+  created_by TEXT NOT NULL DEFAULT ''
 );
 
 -- Gift Shop Orders
@@ -191,13 +283,23 @@ CREATE TABLE IF NOT EXISTS gift_orders (
   idempotency_key TEXT UNIQUE NOT NULL,
   student_id TEXT NOT NULL,
   class_id TEXT NOT NULL,
+  item_id TEXT NOT NULL DEFAULT '',
+  school_id TEXT NOT NULL DEFAULT '',
+  grade_level INTEGER,
+  week_key TEXT NOT NULL DEFAULT '',
   item_snapshot TEXT NOT NULL,
   price_coins INTEGER NOT NULL,
   status TEXT NOT NULL,
   voucher_code TEXT NOT NULL,
+  approved_by TEXT NOT NULL DEFAULT '',
+  approved_at TEXT NOT NULL DEFAULT '',
   delivered_by TEXT DEFAULT '',
   delivered_at TEXT DEFAULT '',
+  cancelled_by TEXT NOT NULL DEFAULT '',
+  cancelled_at TEXT NOT NULL DEFAULT '',
   cancel_reason TEXT DEFAULT '',
+  transition_actor TEXT NOT NULL DEFAULT '',
+  transition_request_id TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -229,8 +331,206 @@ CREATE TABLE IF NOT EXISTS gift_order_events (
   student_id TEXT DEFAULT '',
   actor TEXT DEFAULT '',
   metadata TEXT DEFAULT '{}',
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  request_id TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS gift_shop_scope_settings (
+  id TEXT PRIMARY KEY,
+  scope_type TEXT NOT NULL CHECK(scope_type IN ('SCHOOL', 'CLASS')),
+  school_id TEXT NOT NULL,
+  class_id TEXT NOT NULL DEFAULT '',
+  is_open INTEGER NOT NULL DEFAULT 1 CHECK(is_open IN (0, 1)),
+  closed_reason TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(scope_type, school_id, class_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_gift_catalog_scope_stock
+  ON gift_catalog_items(is_active, school_id, scope_type, class_id, grade_level, stock_remaining);
+CREATE INDEX IF NOT EXISTS idx_gift_orders_student_item_week
+  ON gift_orders(student_id, item_id, week_key, status);
+CREATE INDEX IF NOT EXISTS idx_gift_scope_settings_lookup
+  ON gift_shop_scope_settings(school_id, class_id, is_open);
+CREATE INDEX IF NOT EXISTS idx_gift_events_request
+  ON gift_order_events(request_id, created_at DESC);
+
+DROP TRIGGER IF EXISTS trg_gift_order_purchase_guard;
+CREATE TRIGGER trg_gift_order_purchase_guard
+BEFORE INSERT ON gift_orders
+WHEN NEW.status = 'PENDING'
+BEGIN
+  SELECT CASE WHEN NOT EXISTS (
+    SELECT 1 FROM gift_catalog_items item
+    WHERE item.id = NEW.item_id AND item.is_active = 1
+  ) THEN RAISE(ABORT, 'GIFT_ITEM_UNAVAILABLE') END;
+
+  SELECT CASE WHEN NOT EXISTS (
+    SELECT 1 FROM students student
+    WHERE student.id = NEW.student_id
+      AND student.class_id = NEW.class_id
+      AND COALESCE(student.archived_at, '') = ''
+  ) THEN RAISE(ABORT, 'GIFT_STUDENT_SCOPE') END;
+
+  SELECT CASE WHEN NOT EXISTS (
+    SELECT 1
+    FROM gift_catalog_items item
+    JOIN students student ON student.id = NEW.student_id AND student.class_id = NEW.class_id
+    JOIN classes classroom ON classroom.id = student.class_id AND COALESCE(classroom.archived_at, '') = ''
+    WHERE item.id = NEW.item_id
+      AND (item.school_id = '' OR item.school_id = classroom.teacher_username)
+      AND (
+        item.scope_type = 'SCHOOL'
+        OR (item.scope_type = 'CLASS' AND COALESCE(item.class_id, '') = student.class_id)
+        OR (item.scope_type = 'GRADE' AND item.grade_level = CAST(substr(classroom.name, 1, 1) AS INTEGER))
+      )
+  ) THEN RAISE(ABORT, 'GIFT_SCOPE_FORBIDDEN') END;
+
+  SELECT CASE WHEN EXISTS (
+    SELECT 1 FROM gift_shop_scope_settings setting
+    WHERE setting.is_open = 0
+      AND setting.school_id = NEW.school_id
+      AND (
+        setting.scope_type = 'SCHOOL'
+        OR (setting.scope_type = 'CLASS' AND setting.class_id = NEW.class_id)
+      )
+  ) THEN RAISE(ABORT, 'GIFT_SHOP_CLOSED') END;
+
+  SELECT CASE WHEN (
+    SELECT stock_remaining FROM gift_catalog_items WHERE id = NEW.item_id
+  ) <= 0 THEN RAISE(ABORT, 'GIFT_OUT_OF_STOCK') END;
+
+  SELECT CASE WHEN NEW.price_coins <> (
+    SELECT price_coins FROM gift_catalog_items WHERE id = NEW.item_id
+  ) THEN RAISE(ABORT, 'GIFT_PRICE_MISMATCH') END;
+
+  SELECT CASE WHEN (
+    SELECT coins FROM students WHERE id = NEW.student_id
+  ) < NEW.price_coins THEN RAISE(ABORT, 'GIFT_INSUFFICIENT_COINS') END;
+
+  SELECT CASE WHEN (
+    SELECT weekly_limit_per_student FROM gift_catalog_items WHERE id = NEW.item_id
+  ) > 0 AND (
+    SELECT COUNT(*)
+    FROM gift_orders prior
+    WHERE prior.student_id = NEW.student_id
+      AND prior.item_id = NEW.item_id
+      AND prior.week_key = NEW.week_key
+      AND prior.status IN ('PENDING', 'APPROVED', 'DELIVERED')
+  ) >= (
+    SELECT weekly_limit_per_student FROM gift_catalog_items WHERE id = NEW.item_id
+  ) THEN RAISE(ABORT, 'GIFT_WEEKLY_LIMIT') END;
+END;
+
+DROP TRIGGER IF EXISTS trg_gift_order_purchase_commit;
+CREATE TRIGGER trg_gift_order_purchase_commit
+AFTER INSERT ON gift_orders
+WHEN NEW.status = 'PENDING'
+BEGIN
+  UPDATE students
+  SET coins = coins - NEW.price_coins
+  WHERE id = NEW.student_id AND coins >= NEW.price_coins;
+
+  UPDATE gift_catalog_items
+  SET stock_remaining = stock_remaining - 1,
+      updated_at = NEW.updated_at
+  WHERE id = NEW.item_id AND stock_remaining > 0;
+
+  INSERT INTO gift_wallet_ledger
+    (id, student_id, delta_coins, reason, ref_order_id, created_at)
+  VALUES
+    ('gled-' || lower(hex(randomblob(8))), NEW.student_id, -NEW.price_coins, 'PURCHASE', NEW.id, NEW.created_at);
+
+  INSERT INTO gift_order_events
+    (id, event_type, order_id, student_id, actor, metadata, created_at, request_id)
+  VALUES
+    ('gevo-' || lower(hex(randomblob(8))), 'ORDER_CREATED', NEW.id, NEW.student_id,
+     NEW.transition_actor, json_object('itemId', NEW.item_id, 'priceCoins', NEW.price_coins),
+     NEW.created_at, NEW.transition_request_id);
+END;
+
+DROP TRIGGER IF EXISTS trg_gift_order_transition_guard;
+CREATE TRIGGER trg_gift_order_transition_guard
+BEFORE UPDATE OF status ON gift_orders
+WHEN NEW.status <> OLD.status
+BEGIN
+  SELECT CASE WHEN NOT (
+    (OLD.status = 'PENDING' AND NEW.status IN ('APPROVED', 'CANCELLED'))
+    OR (OLD.status = 'APPROVED' AND NEW.status IN ('DELIVERED', 'CANCELLED'))
+  ) THEN RAISE(ABORT, 'GIFT_INVALID_TRANSITION') END;
+
+  SELECT CASE WHEN TRIM(NEW.transition_actor) = '' OR TRIM(NEW.transition_request_id) = ''
+    THEN RAISE(ABORT, 'GIFT_TRANSITION_AUDIT_REQUIRED') END;
+
+  SELECT CASE WHEN NEW.status = 'APPROVED' AND TRIM(NEW.voucher_code) = ''
+    THEN RAISE(ABORT, 'GIFT_VOUCHER_REQUIRED') END;
+
+  SELECT CASE WHEN NEW.status = 'CANCELLED' AND TRIM(NEW.cancel_reason) = ''
+    THEN RAISE(ABORT, 'GIFT_CANCEL_REASON_REQUIRED') END;
+END;
+
+DROP TRIGGER IF EXISTS trg_gift_order_approved;
+CREATE TRIGGER trg_gift_order_approved
+AFTER UPDATE OF status ON gift_orders
+WHEN OLD.status = 'PENDING' AND NEW.status = 'APPROVED'
+BEGIN
+  INSERT INTO gift_vouchers (code, order_id, student_id, issued_at, status)
+  VALUES (NEW.voucher_code, NEW.id, NEW.student_id, NEW.approved_at, 'ISSUED');
+
+  INSERT INTO gift_order_events
+    (id, event_type, order_id, student_id, actor, metadata, created_at, request_id)
+  VALUES
+    ('gevo-' || lower(hex(randomblob(8))), 'ORDER_APPROVED', NEW.id, NEW.student_id,
+     NEW.transition_actor, json_object('voucherCode', NEW.voucher_code),
+     NEW.approved_at, NEW.transition_request_id);
+END;
+
+DROP TRIGGER IF EXISTS trg_gift_order_delivered;
+CREATE TRIGGER trg_gift_order_delivered
+AFTER UPDATE OF status ON gift_orders
+WHEN OLD.status = 'APPROVED' AND NEW.status = 'DELIVERED'
+BEGIN
+  UPDATE gift_vouchers SET status = 'USED' WHERE order_id = NEW.id;
+
+  INSERT INTO gift_order_events
+    (id, event_type, order_id, student_id, actor, metadata, created_at, request_id)
+  VALUES
+    ('gevo-' || lower(hex(randomblob(8))), 'ORDER_DELIVERED', NEW.id, NEW.student_id,
+     NEW.transition_actor, '{}', NEW.delivered_at, NEW.transition_request_id);
+END;
+
+DROP TRIGGER IF EXISTS trg_gift_order_cancelled;
+CREATE TRIGGER trg_gift_order_cancelled
+AFTER UPDATE OF status ON gift_orders
+WHEN OLD.status IN ('PENDING', 'APPROVED') AND NEW.status = 'CANCELLED'
+BEGIN
+  UPDATE students SET coins = coins + NEW.price_coins WHERE id = NEW.student_id;
+  UPDATE gift_catalog_items
+  SET stock_remaining = MIN(stock_total, stock_remaining + 1),
+      updated_at = NEW.updated_at
+  WHERE id = NEW.item_id;
+  UPDATE gift_vouchers SET status = 'CANCELLED' WHERE order_id = NEW.id;
+
+  INSERT INTO gift_wallet_ledger
+    (id, student_id, delta_coins, reason, ref_order_id, created_at)
+  VALUES
+    ('gled-' || lower(hex(randomblob(8))), NEW.student_id, NEW.price_coins, 'REFUND', NEW.id, NEW.cancelled_at);
+
+  INSERT INTO gift_order_events
+    (id, event_type, order_id, student_id, actor, metadata, created_at, request_id)
+  VALUES
+    ('gevo-' || lower(hex(randomblob(8))), 'ORDER_CANCELLED', NEW.id, NEW.student_id,
+     NEW.transition_actor, json_object('reason', NEW.cancel_reason),
+     NEW.cancelled_at, NEW.transition_request_id);
+
+  INSERT INTO gift_order_events
+    (id, event_type, order_id, student_id, actor, metadata, created_at, request_id)
+  VALUES
+    ('gevo-' || lower(hex(randomblob(8))), 'WALLET_REFUNDED', NEW.id, NEW.student_id,
+     NEW.transition_actor, json_object('amount', NEW.price_coins),
+     NEW.cancelled_at, NEW.transition_request_id);
+END;
 
 -- Game loop profiles (missions, boosters, collections)
 CREATE TABLE IF NOT EXISTS student_game_profiles (
@@ -363,6 +663,50 @@ CREATE TABLE IF NOT EXISTS system_settings (
   setting_value TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+
+-- Runtime feature rollout control plane.
+CREATE TABLE IF NOT EXISTS feature_flags (
+  flag_key TEXT PRIMARY KEY,
+  description TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+  owner TEXT NOT NULL DEFAULT '',
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS feature_flag_rules (
+  flag_key TEXT PRIMARY KEY,
+  audience TEXT NOT NULL DEFAULT 'all'
+    CHECK (audience IN ('all', 'admin', 'teacher', 'student', 'parent')),
+  percentage INTEGER NOT NULL DEFAULT 100 CHECK (percentage BETWEEN 0 AND 100),
+  allow_users_json TEXT NOT NULL DEFAULT '[]',
+  allow_classes_json TEXT NOT NULL DEFAULT '[]',
+  starts_at TEXT,
+  ends_at TEXT,
+  stop_conditions_json TEXT NOT NULL DEFAULT '{}',
+  reason TEXT NOT NULL DEFAULT '',
+  updated_by TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (flag_key) REFERENCES feature_flags(flag_key) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS feature_flag_audit (
+  id TEXT PRIMARY KEY,
+  flag_key TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('UPDATED', 'ROLLED_BACK')),
+  field_name TEXT NOT NULL,
+  before_json TEXT NOT NULL,
+  after_json TEXT NOT NULL,
+  actor_username TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (flag_key) REFERENCES feature_flags(flag_key) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_flag_created
+  ON feature_flag_audit(flag_key, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_actor_created
+  ON feature_flag_audit(actor_username, created_at DESC);
 
 -- Bộ đếm rate limit theo cửa sổ cố định (middleware/rateLimit.ts, utils/loginRateLimit.ts).
 -- BẮT BUỘC phải có: các endpoint đăng nhập chạy limiter với failureMode 'closed', nên thiếu bảng
@@ -539,6 +883,8 @@ CREATE TABLE IF NOT EXISTS live_exam_sessions (
   started_at TEXT,
   ends_at TEXT,
   closed_at TEXT,
+  paused_at TEXT,
+  total_paused_seconds INTEGER NOT NULL DEFAULT 0,
   settings TEXT NOT NULL DEFAULT '{}',
   status TEXT NOT NULL DEFAULT 'scheduled',
   access_code TEXT NOT NULL UNIQUE,
@@ -572,6 +918,7 @@ CREATE TABLE IF NOT EXISTS live_exam_participants (
   joined_at TEXT NOT NULL,
   started_at TEXT,
   submitted_at TEXT,
+  individual_ends_at TEXT,
   answers TEXT,
   score INTEGER,
   correct_count INTEGER,
@@ -607,6 +954,64 @@ CREATE TABLE IF NOT EXISTS live_exam_activity (
 
 CREATE INDEX IF NOT EXISTS idx_live_exam_activity_session
   ON live_exam_activity(live_exam_id, is_online);
+
+CREATE TABLE IF NOT EXISTS live_exam_answer_snapshots (
+  live_exam_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  attempt_version INTEGER NOT NULL DEFAULT 0,
+  answers TEXT NOT NULL DEFAULT '{}',
+  idempotency_key TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (live_exam_id, student_id),
+  UNIQUE (live_exam_id, student_id, idempotency_key),
+  FOREIGN KEY (live_exam_id) REFERENCES live_exam_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS live_exam_connection_events (
+  id TEXT PRIMARY KEY,
+  live_exam_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  event_type TEXT NOT NULL CHECK (event_type IN ('online', 'reconnecting', 'offline', 'autosave', 'reconnected')),
+  attempt_version INTEGER,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (live_exam_id) REFERENCES live_exam_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_exam_connection_events_session_created
+  ON live_exam_connection_events(live_exam_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS live_exam_control_confirmations (
+  id TEXT PRIMARY KEY,
+  live_exam_id TEXT NOT NULL,
+  actor_username TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action = 'end_early'),
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  consumed_at TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (live_exam_id) REFERENCES live_exam_sessions(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_exam_control_confirmations_lookup
+  ON live_exam_control_confirmations(live_exam_id, actor_username, action, expires_at);
+
+CREATE TABLE IF NOT EXISTS live_exam_control_audit (
+  id TEXT PRIMARY KEY,
+  live_exam_id TEXT NOT NULL,
+  actor_username TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target_participant_id TEXT,
+  request_id TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (live_exam_id) REFERENCES live_exam_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_participant_id) REFERENCES live_exam_participants(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_exam_control_audit_session_created
+  ON live_exam_control_audit(live_exam_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS live_exam_chat_messages (
   id TEXT PRIMARY KEY,
@@ -968,20 +1373,49 @@ CREATE TABLE IF NOT EXISTS notifications (
   is_read INTEGER NOT NULL DEFAULT 0 CHECK(is_read IN (0, 1)),
   priority TEXT NOT NULL DEFAULT 'INFO'
     CHECK (priority IN ('INFO', 'REMINDER', 'IMPORTANT', 'URGENT')),
+  severity TEXT NOT NULL DEFAULT 'informational'
+    CHECK (severity IN ('critical', 'action_required', 'informational')),
   action_url TEXT,
   source_type TEXT,
   source_id TEXT,
+  dedupe_key TEXT,
+  available_at TEXT,
   expires_at TEXT,
+  read_at TEXT,
+  clicked_at TEXT,
+  sent_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  user_id TEXT NOT NULL,
+  user_role TEXT NOT NULL CHECK(user_role IN ('student', 'teacher', 'admin')),
+  action_required_enabled INTEGER NOT NULL DEFAULT 1 CHECK(action_required_enabled IN (0, 1)),
+  informational_enabled INTEGER NOT NULL DEFAULT 1 CHECK(informational_enabled IN (0, 1)),
+  quiet_hours_enabled INTEGER NOT NULL DEFAULT 0 CHECK(quiet_hours_enabled IN (0, 1)),
+  quiet_start TEXT NOT NULL DEFAULT '21:00',
+  quiet_end TEXT NOT NULL DEFAULT '06:30',
+  timezone_offset_minutes INTEGER NOT NULL DEFAULT 420 CHECK(timezone_offset_minutes BETWEEN -720 AND 840),
+  type_preferences_json TEXT NOT NULL DEFAULT '{}',
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY(user_id, user_role)
 );
 
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, user_role, is_read);
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_inbox
   ON notifications(user_id, user_role, is_read, created_at DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_source_dedupe
-  ON notifications(user_id, user_role, source_type, source_id, type)
-  WHERE source_type IS NOT NULL AND source_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_window_dedupe
+  ON notifications(user_id, user_role, dedupe_key)
+  WHERE dedupe_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_notifications_delivery_feed
+  ON notifications(user_id, user_role, available_at DESC, created_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_metrics
+  ON notifications(sent_at, severity, read_at, clicked_at);
+CREATE INDEX IF NOT EXISTS idx_notification_preferences_role
+  ON notification_preferences(user_role, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_feed_cursor
+  ON notifications(user_id, user_role, is_read, created_at DESC, id DESC);
 
 -- Parent Portal access and one-way communication
 CREATE TABLE IF NOT EXISTS parent_links (
@@ -1062,3 +1496,216 @@ CREATE INDEX IF NOT EXISTS idx_parent_notifications_student_feed
   ON parent_notifications(student_id, revoked_at, published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_parent_notifications_student_unread
   ON parent_notifications(student_id, read_at, published_at DESC);
+
+CREATE TABLE IF NOT EXISTS parent_contact_preferences (
+  link_id TEXT PRIMARY KEY,
+  email TEXT,
+  email_normalized TEXT,
+  email_verified_at TEXT,
+  weekly_digest_enabled INTEGER NOT NULL DEFAULT 0 CHECK (weekly_digest_enabled IN (0, 1)),
+  digest_weekday INTEGER NOT NULL DEFAULT 1 CHECK (digest_weekday BETWEEN 1 AND 7),
+  digest_hour INTEGER NOT NULL DEFAULT 19 CHECK (digest_hour BETWEEN 0 AND 23),
+  timezone TEXT NOT NULL DEFAULT 'Asia/Ho_Chi_Minh' CHECK (timezone = 'Asia/Ho_Chi_Minh'),
+  quiet_hours_enabled INTEGER NOT NULL DEFAULT 1 CHECK (quiet_hours_enabled IN (0, 1)),
+  quiet_hours_start_minute INTEGER NOT NULL DEFAULT 1260 CHECK (quiet_hours_start_minute BETWEEN 0 AND 1439),
+  quiet_hours_end_minute INTEGER NOT NULL DEFAULT 420 CHECK (quiet_hours_end_minute BETWEEN 0 AND 1439),
+  email_kinds_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (link_id) REFERENCES parent_links(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS parent_contact_tokens (
+  id TEXT PRIMARY KEY,
+  link_id TEXT NOT NULL,
+  purpose TEXT NOT NULL CHECK (purpose IN ('EMAIL_VERIFICATION', 'ACCOUNT_RECOVERY')),
+  token_hash TEXT NOT NULL UNIQUE,
+  email_normalized TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  consumed_at TEXT,
+  request_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (link_id) REFERENCES parent_links(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS parent_digest_runs (
+  id TEXT PRIMARY KEY,
+  link_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  week_start TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('PENDING', 'SENT', 'SKIPPED', 'FAILED')),
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  provider_message_id TEXT,
+  error_code TEXT,
+  created_at TEXT NOT NULL,
+  sent_at TEXT,
+  updated_at TEXT NOT NULL,
+  UNIQUE (link_id, week_start),
+  FOREIGN KEY (link_id) REFERENCES parent_links(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS parent_account_audit (
+  id TEXT PRIMARY KEY,
+  link_id TEXT,
+  action TEXT NOT NULL CHECK (action IN (
+    'PREFERENCES_UPDATED', 'EMAIL_VERIFICATION_REQUESTED', 'EMAIL_VERIFIED',
+    'RECOVERY_REQUESTED', 'PIN_RESET', 'DIGEST_SENT', 'DIGEST_FAILED'
+  )),
+  request_id TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (link_id) REFERENCES parent_links(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_parent_contact_preferences_digest_due
+  ON parent_contact_preferences(weekly_digest_enabled, email_verified_at, digest_weekday, digest_hour);
+CREATE INDEX IF NOT EXISTS idx_parent_contact_tokens_lookup
+  ON parent_contact_tokens(token_hash, purpose, expires_at, consumed_at);
+CREATE INDEX IF NOT EXISTS idx_parent_contact_tokens_link_created
+  ON parent_contact_tokens(link_id, purpose, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_parent_digest_runs_status_updated
+  ON parent_digest_runs(status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_parent_account_audit_link_created
+  ON parent_account_audit(link_id, created_at DESC);
+
+-- AI Tutor daily quota and idempotent reservation ledger
+CREATE TABLE IF NOT EXISTS ai_tutor_daily_usage (
+  username TEXT NOT NULL,
+  usage_date TEXT NOT NULL,
+  role TEXT NOT NULL CHECK(role IN ('student', 'teacher', 'admin')),
+  used_count INTEGER NOT NULL DEFAULT 0 CHECK(used_count >= 0),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (username, usage_date)
+);
+
+CREATE TABLE IF NOT EXISTS ai_tutor_reservations (
+  reservation_key TEXT PRIMARY KEY,
+  username TEXT NOT NULL,
+  usage_date TEXT NOT NULL,
+  result_id TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('RESERVED', 'SUCCEEDED', 'FAILED')),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_tutor_reservations_user_day
+  ON ai_tutor_reservations(username, usage_date, status);
+
+
+-- Results Intervention Center (teacher-only groups, notes and audited assignment batches)
+CREATE TABLE IF NOT EXISTS intervention_groups (
+  id TEXT PRIMARY KEY,
+  teacher_username TEXT NOT NULL,
+  name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'ARCHIVED')),
+  class_id TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  subject_label TEXT NOT NULL,
+  skill_code TEXT NOT NULL,
+  skill_label TEXT NOT NULL,
+  sample_size INTEGER NOT NULL CHECK (sample_size >= 0),
+  confidence REAL NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
+  source_filter_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (teacher_username) REFERENCES teachers(username) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS intervention_group_members (
+  group_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  latest_result_id TEXT NOT NULL,
+  latest_submitted_at TEXT NOT NULL,
+  first_attempt_score REAL NOT NULL,
+  latest_attempt_score REAL NOT NULL,
+  score_delta REAL NOT NULL,
+  attempt_count INTEGER NOT NULL,
+  skill_accuracy REAL NOT NULL,
+  skill_sample_size INTEGER NOT NULL,
+  confidence REAL NOT NULL,
+  trend_json TEXT NOT NULL DEFAULT '[]',
+  added_at TEXT NOT NULL,
+  PRIMARY KEY (group_id, student_id),
+  FOREIGN KEY (group_id) REFERENCES intervention_groups(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS intervention_notes (
+  id TEXT PRIMARY KEY,
+  group_id TEXT NOT NULL,
+  student_id TEXT,
+  teacher_username TEXT NOT NULL,
+  note_text TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (group_id) REFERENCES intervention_groups(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL,
+  FOREIGN KEY (teacher_username) REFERENCES teachers(username) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS intervention_assignment_batches (
+  id TEXT PRIMARY KEY,
+  group_id TEXT NOT NULL,
+  teacher_username TEXT NOT NULL,
+  idempotency_key TEXT NOT NULL,
+  quiz_id TEXT NOT NULL,
+  deadline TEXT NOT NULL,
+  max_attempts INTEGER NOT NULL,
+  assignment_ids_json TEXT NOT NULL DEFAULT '[]',
+  skipped_assignment_ids_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  UNIQUE (teacher_username, idempotency_key),
+  FOREIGN KEY (group_id) REFERENCES intervention_groups(id) ON DELETE CASCADE,
+  FOREIGN KEY (teacher_username) REFERENCES teachers(username) ON DELETE CASCADE,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS intervention_audit (
+  id TEXT PRIMARY KEY,
+  teacher_username TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('GROUP_CREATED', 'NOTE_CREATED', 'ASSIGNMENT_BATCH_CREATED')),
+  group_id TEXT,
+  student_id TEXT,
+  assignment_id TEXT,
+  request_id TEXT NOT NULL,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (teacher_username) REFERENCES teachers(username) ON DELETE CASCADE,
+  FOREIGN KEY (group_id) REFERENCES intervention_groups(id) ON DELETE SET NULL,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_intervention_groups_teacher_updated
+  ON intervention_groups(teacher_username, status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_intervention_groups_class_skill
+  ON intervention_groups(class_id, subject, skill_code, status);
+CREATE INDEX IF NOT EXISTS idx_intervention_members_student
+  ON intervention_group_members(student_id, group_id);
+CREATE INDEX IF NOT EXISTS idx_intervention_notes_group_created
+  ON intervention_notes(group_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_intervention_audit_group_created
+  ON intervention_audit(group_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_assignments_intervention_group
+  ON assignments(intervention_group_id, student_id, status);
+
+
+-- Stable cursor indexes for bounded large-collection endpoints.
+CREATE INDEX IF NOT EXISTS idx_results_cursor
+  ON results(submitted_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_results_quiz_cursor
+  ON results(quiz_id, submitted_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_results_class_cursor
+  ON results(class_name, submitted_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_students_class_name_cursor
+  ON students(class_id, archived_at, full_name COLLATE NOCASE, id);
+CREATE INDEX IF NOT EXISTS idx_teachers_admin_cursor
+  ON teachers(status, full_name COLLATE NOCASE, username);
+CREATE INDEX IF NOT EXISTS idx_gift_orders_class_cursor
+  ON gift_orders(class_id, updated_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_gift_orders_student_cursor
+  ON gift_orders(student_id, updated_at DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_gift_orders_status_cursor
+  ON gift_orders(status, updated_at DESC, id DESC);

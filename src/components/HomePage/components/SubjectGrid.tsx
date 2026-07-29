@@ -1,4 +1,5 @@
 import React from 'react';
+import { useReducedExperience } from '../../../hooks/useReducedExperience';
 import { SubjectConfigItem } from '../constants/dashboard.constants';
 
 interface SubjectGridCard extends SubjectConfigItem {
@@ -17,6 +18,8 @@ export const SubjectGrid: React.FC<SubjectGridProps> = ({
     activeTab, 
     onCategoryClick 
 }) => {
+    const { reduceVisuals } = useReducedExperience();
+
     return (
         <section id="subject-cards" className="sticker-main">
             <div className="sticker-cards">
@@ -31,9 +34,12 @@ export const SubjectGrid: React.FC<SubjectGridProps> = ({
                         }}
                         style={{ '--card-color': subject.color, textDecoration: 'none' } as React.CSSProperties}
                     >
-                        {/* 3D Sticker Icon */}
                         <div className="sticker-card__icon-wrap">
-                            <img src={subject.icon} alt={`Ảnh minh họa môn ${subject.label}`} className="sticker-card__icon" />
+                            {reduceVisuals ? (
+                                <span className="text-5xl" aria-hidden="true">📘</span>
+                            ) : (
+                                <img src={subject.icon} alt={`Ảnh minh họa môn ${subject.label}`} className="sticker-card__icon" />
+                            )}
                         </div>
 
                         {/* Label */}

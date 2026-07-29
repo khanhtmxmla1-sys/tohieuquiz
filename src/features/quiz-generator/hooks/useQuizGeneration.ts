@@ -14,7 +14,10 @@ import { generateTrangNguyenQuiz } from '../../../services/trangNguyenGeminiServ
 import { showError } from '../../../utils/toast';
 import { getQuizGenerationUserMessage } from '../../../services/ai/quizGenerationErrors';
 import { normalizeAiCategory, normalizeTags } from '../utils/quizNormalizers';
-import { buildQuizGenerationOptions } from '../domain/buildQuizGenerationRequest';
+import {
+    buildQuizGenerationOptions,
+    buildTrialQuizGenerationOptions,
+} from '../domain/buildQuizGenerationRequest';
 import { buildQuestionRegenerationPrompt } from '../../../services/ai/prompts/questionRegenerationPrompt';
 import { isAiSelectableQuestionType } from '../../../services/ai/question-contracts/questionTypeAvailability';
 import type { GeneratedQuestionV3 } from '../../../services/ai/question-contracts/questionContract.types';
@@ -33,6 +36,8 @@ interface UseQuizGenerationOptions {
     aiQuizV2Enabled: boolean;
     aiBlueprintV3Enabled: boolean;
 }
+
+type GenerationRequestKind = 'full' | 'trial';
 
 interface ActiveGeneration {
     action: ClientAiAction;
@@ -63,6 +68,7 @@ export const useQuizGeneration = ({
         detectedCategory: string | null,
         detectedLesson: string,
         suggestedTags: string[],
+        generationKind: GenerationRequestKind,
     ): Quiz => ({
         id: editingQuiz?.id || `quiz-${Date.now()}`,
         title: (result.title as string) || optionsTitle,
@@ -86,6 +92,15 @@ export const useQuizGeneration = ({
         detectedCategory: detectedCategory || undefined,
         detectedLesson: detectedLesson || undefined,
         suggestedTags: suggestedTags.length > 0 ? suggestedTags : undefined,
+        aiGeneration: {
+            promptVersion: typeof result.promptVersion === 'string'
+                ? result.promptVersion
+                : (aiBlueprintV3Enabled ? 'ai-blueprint-v3' : 'ai-quiz-v2'),
+            blueprintVersion: typeof result.blueprintVersion === 'number'
+                ? result.blueprintVersion
+                : (aiBlueprintV3Enabled ? 3 : undefined),
+            generationKind,
+        },
     });
 
     const prepareOcrPreview = async (file: File): Promise<OcrDocument | null> => {
@@ -136,7 +151,10 @@ export const useQuizGeneration = ({
         }
     };
 
-    const handleGenerate = async (modeOverride?: QuizMode) => {
+    const handleGenerate = async (
+        modeOverride?: QuizMode,
+        requestKind: GenerationRequestKind = 'full',
+    ) => {
         const activeQuizMode = modeOverride ?? form.quizMode;
         const isPdfMode = activeQuizMode === 'pdf';
         form.setQuizMode(activeQuizMode);
@@ -218,7 +236,9 @@ export const useQuizGeneration = ({
                     questionTypes: trangNguyenTypes.length > 0
                         ? trangNguyenTypes
                         : ['single_choice', 'fill_blank'],
-                    questionCount: validation.questionCount,
+                    questionCount: requestKind === 'trial'
+                        ? Math.min(3, validation.questionCount)
+                        : validation.questionCount,
                     difficulty: 'mixed',
                     customPrompt: form.customPrompt.trim() || undefined,
                     enableSearch: form.tnSearchMode === 'search',
@@ -239,6 +259,10 @@ export const useQuizGeneration = ({
                     category: 'trang-nguyen',
                     showOnHome: form.showOnHome,
                     tags: form.tags,
+                    aiGeneration: {
+                        promptVersion: 'trang-nguyen-ai-v1',
+                        generationKind: requestKind,
+                    },
                 } as Quiz);
                 setGenerationStep('completed');
                 return;
@@ -274,7 +298,7 @@ export const useQuizGeneration = ({
                 generationFile = undefined;
             }
 
-            const options = buildQuizGenerationOptions({
+            const fullOptions = buildQuizGenerationOptions({
                 title: form.quizTitle || `${titlePrefix}: ${
                     form.topic
                     || form.uploadedFile?.name?.replace(/\.[^/.]+$/, '')
@@ -301,6 +325,9 @@ export const useQuizGeneration = ({
                     : undefined,
                 isPdfMode,
             }, { enableBlueprintV3: aiBlueprintV3Enabled });
+            const options = requestKind === 'trial'
+                ? buildTrialQuizGenerationOptions(fullOptions)
+                : fullOptions;
 
             const result = await generateQuiz(
                 generationTopic,
@@ -333,6 +360,7 @@ export const useQuizGeneration = ({
                 detectedCategory,
                 detectedLesson,
                 suggestedTags,
+                requestKind,
             ));
             setGenerationStep('completed');
         } catch (error: unknown) {
@@ -447,6 +475,7 @@ export const useQuizGeneration = ({
         hasAiQuota: quota.hasAiQuota,
         dailyAiLimit: quota.dailyAiLimit,
         handleGenerate,
+        handleGenerateTrial: (modeOverride?: QuizMode) => handleGenerate(modeOverride, 'trial'),
         handleRegenerateSingle,
         cancelGeneration: () => {
             const activeGeneration = activeGenerationRef.current;

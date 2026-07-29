@@ -276,7 +276,109 @@ WITH checks(migration, check_name, ok) AS (
        WHERE name IN ('priority','action_url','source_type','source_id','expires_at'))),
     ('0042_unified_notifications.sql', 'unified notification indexes',
       (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='index'
-       AND name IN ('idx_notifications_inbox','idx_notifications_source_dedupe')))
+       AND name IN ('idx_notifications_inbox','idx_notifications_source_dedupe'))),
+
+    ('0043_create_rate_limits.sql', 'rate limit table',
+      EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='rate_limits')),
+
+    ('0044_create_ai_tutor_usage.sql', 'AI tutor usage tables and index',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table'
+       AND name IN ('ai_tutor_daily_usage','ai_tutor_reservations'))
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='index'
+       AND name='idx_ai_tutor_reservations_user_day')),
+
+    ('0045_live_exam_reconnect.sql', 'live exam reconnect tables and index',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table'
+       AND name IN ('live_exam_answer_snapshots','live_exam_connection_events'))
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='index'
+       AND name='idx_live_exam_connection_events_session_created')),
+
+    ('0046_live_exam_controls.sql', 'live exam control columns',
+      (SELECT COUNT(*)=2 FROM pragma_table_info('live_exam_sessions')
+       WHERE name IN ('paused_at','total_paused_seconds'))
+      AND EXISTS(SELECT 1 FROM pragma_table_info('live_exam_participants')
+       WHERE name='individual_ends_at')),
+    ('0046_live_exam_controls.sql', 'live exam control tables and indexes',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table'
+       AND name IN ('live_exam_control_confirmations','live_exam_control_audit'))
+      AND (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='index'
+       AND name IN ('idx_live_exam_control_confirmations_lookup','idx_live_exam_control_audit_session_created'))),
+
+    ('0047_results_intervention_center.sql', 'intervention assignment column and tables',
+      EXISTS(SELECT 1 FROM pragma_table_info('assignments') WHERE name='intervention_group_id')
+      AND (SELECT COUNT(*)=5 FROM sqlite_master WHERE type='table'
+       AND name IN ('intervention_groups','intervention_group_members','intervention_notes','intervention_assignment_batches','intervention_audit'))),
+    ('0047_results_intervention_center.sql', 'intervention indexes',
+      (SELECT COUNT(*)=6 FROM sqlite_master WHERE type='index'
+       AND name IN (
+        'idx_intervention_groups_teacher_updated','idx_intervention_groups_class_skill',
+        'idx_intervention_members_student','idx_intervention_notes_group_created',
+        'idx_intervention_audit_group_created','idx_assignments_intervention_group'
+       ))),
+
+    ('0048_parent_digest_recovery.sql', 'parent digest and recovery tables',
+      (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='table'
+       AND name IN ('parent_contact_preferences','parent_contact_tokens','parent_digest_runs','parent_account_audit'))),
+    ('0048_parent_digest_recovery.sql', 'parent digest and recovery indexes',
+      (SELECT COUNT(*)=5 FROM sqlite_master WHERE type='index'
+       AND name IN (
+        'idx_parent_contact_preferences_digest_due','idx_parent_contact_tokens_lookup',
+        'idx_parent_contact_tokens_link_created','idx_parent_digest_runs_status_updated',
+        'idx_parent_account_audit_link_created'
+       ))),
+
+    ('0049_gift_shop_governance.sql', 'gift shop governance columns and settings',
+      (SELECT COUNT(*)=9 FROM pragma_table_info('gift_catalog_items')
+       WHERE name IN ('stock_total','stock_remaining','low_stock_threshold','weekly_limit_per_student',
+        'scope_type','school_id','class_id','grade_level','created_by'))
+      AND (SELECT COUNT(*)=10 FROM pragma_table_info('gift_orders')
+       WHERE name IN ('item_id','school_id','grade_level','week_key','approved_by','approved_at',
+        'cancelled_by','cancelled_at','transition_actor','transition_request_id'))
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='gift_shop_scope_settings')),
+    ('0049_gift_shop_governance.sql', 'gift shop governance triggers and indexes',
+      (SELECT COUNT(*)=6 FROM sqlite_master WHERE type='trigger' AND name IN (
+        'trg_gift_order_purchase_guard','trg_gift_order_purchase_commit','trg_gift_order_transition_guard',
+        'trg_gift_order_approved','trg_gift_order_delivered','trg_gift_order_cancelled'))
+      AND (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_gift_catalog_scope_stock','idx_gift_orders_student_item_week',
+        'idx_gift_scope_settings_lookup','idx_gift_events_request'))),
+    ('0050_notification_preferences.sql', 'notification preference columns and table',
+      (SELECT COUNT(*)=6 FROM pragma_table_info('notifications')
+       WHERE name IN ('severity','dedupe_key','available_at','read_at','clicked_at','sent_at'))
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='notification_preferences')),
+    ('0050_notification_preferences.sql', 'notification delivery indexes',
+      (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_notifications_window_dedupe','idx_notifications_delivery_feed',
+        'idx_notifications_metrics','idx_notification_preferences_role'))),
+    ('0051_pagination_indexes.sql', 'bounded collection cursor indexes',
+      (SELECT COUNT(*)=9 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_results_cursor','idx_results_quiz_cursor','idx_results_class_cursor',
+        'idx_students_class_name_cursor','idx_teachers_admin_cursor',
+        'idx_gift_orders_class_cursor','idx_gift_orders_student_cursor',
+        'idx_gift_orders_status_cursor','idx_notifications_feed_cursor'))),
+    ('0052_auth_sessions_security_events.sql', 'session and security event tables',
+      EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='auth_sessions')
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='security_events')
+      AND EXISTS(SELECT 1 FROM pragma_table_info('students') WHERE name='token_version')),
+    ('0052_auth_sessions_security_events.sql', 'session and security event indexes',
+      (SELECT COUNT(*)=6 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_auth_sessions_user_created','idx_auth_sessions_active_expiry','idx_auth_sessions_retention',
+        'idx_security_events_user_created','idx_security_events_type_created','idx_security_events_retention'))),
+    ('0053_webauthn_passkeys.sql', 'webauthn credential and challenge tables',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table' AND name IN (
+        'webauthn_credentials','webauthn_challenges'))),
+    ('0053_webauthn_passkeys.sql', 'webauthn indexes',
+      (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_webauthn_credentials_user_created','idx_webauthn_credentials_active',
+        'idx_webauthn_challenges_owner_expiry','idx_webauthn_challenges_retention'))),
+    ('0054_feature_rollout_control_plane.sql', 'feature rollout tables',
+      (SELECT COUNT(*)=3 FROM sqlite_master WHERE type='table' AND name IN (
+        'feature_flags','feature_flag_rules','feature_flag_audit'))),
+    ('0054_feature_rollout_control_plane.sql', 'feature rollout indexes and seeds',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_feature_flag_audit_flag_created','idx_feature_flag_audit_actor_created'))
+      AND EXISTS(SELECT 1 FROM feature_flags WHERE flag_key='unified_notifications_v1')
+      AND EXISTS(SELECT 1 FROM feature_flags WHERE flag_key='ai_assistant_enabled'))
 ), summary AS (
   SELECT
     migration,

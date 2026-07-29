@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { useAuthStore } from '../../../../stores/useAuthStore';
+import { useAuthStore } from '../../../../../stores/authStore';
 import { useResultReportDelivery } from '../../hooks/useResultReportDelivery';
 import { DeliveryStep } from './DeliveryStep';
 import { DeliverySummary } from './DeliverySummary';
@@ -34,7 +34,7 @@ export const ResultReportDeliveryWizard: React.FC<ResultReportDeliveryWizardProp
   onClose,
   requestIdFactory,
 }) => {
-  const teacherName = useAuthStore((state) => state.fullName) || '';
+  const teacherName = useAuthStore((state) => state.teacherName) || '';
   const controller = useResultReportDelivery({
     isOpen,
     className,

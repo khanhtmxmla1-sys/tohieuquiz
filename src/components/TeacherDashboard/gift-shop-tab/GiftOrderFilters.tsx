@@ -21,11 +21,11 @@ export const GiftOrderFilters = ({
   classFilter,
   setClassFilter,
 }: Props) => {
-  const hasFilters = Boolean(searchTerm || classFilter || statusFilter !== 'VOUCHER_ISSUED');
+  const hasFilters = Boolean(searchTerm || classFilter || statusFilter !== 'PENDING');
   const clearFilters = () => {
     setSearchTerm('');
     setClassFilter('');
-    setStatusFilter('VOUCHER_ISSUED');
+    setStatusFilter('PENDING');
   };
 
   return (

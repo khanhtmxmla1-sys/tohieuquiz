@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { Gift, X, Loader2 } from 'lucide-react';
 import { useGamificationStore } from '../../stores/useGamificationStore';
 import { useClassroomStore } from '../../stores/useClassroomStore';
 import { ShopItem } from '../../types/gamification.types';
+import { useReducedExperience } from '../../hooks/useReducedExperience';
 
 interface ShopModalProps {
     isOpen: boolean;
@@ -49,6 +50,7 @@ const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose }) => {
     const { studentSession } = useClassroomStore();
     const [activeTab, setActiveTab] = useState<TabType>('Clothing');
     const [purchasedItemId, setPurchasedItemId] = useState<string | null>(null);
+    const { reduceVisuals } = useReducedExperience();
 
     // Filter items based on active tab
     const filteredItems = useMemo(() => {
@@ -129,8 +131,12 @@ const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose }) => {
                 <div className="flex-1 overflow-y-auto px-6 pb-8 custom-scrollbar">
                     {filteredItems.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-                            <div className="w-24 h-24 mb-4 opacity-50 grayscale">
-                                <img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Shopping%20bags/3D/shopping_bags_3d.png" alt="Empty Shop" className="w-full h-full object-contain" />
+                            <div className="w-24 h-24 mb-4 opacity-50 grayscale flex items-center justify-center">
+                                {reduceVisuals ? (
+                                    <Gift className="h-16 w-16" aria-hidden="true" />
+                                ) : (
+                                    <img src="https://cdn.jsdelivr.net/gh/microsoft/fluentui-emoji@main/assets/Shopping%20bags/3D/shopping_bags_3d.png" alt="Empty Shop" className="w-full h-full object-contain" />
+                                )}
                             </div>
                             <p className="text-lg font-bold">Chưa có vật phẩm trong mục này.</p>
                         </div>
@@ -149,11 +155,15 @@ const ShopModal: React.FC<ShopModalProps> = ({ isOpen, onClose }) => {
                                     >
                                         {/* Image Display Area */}
                                         <div className={`w-full aspect-square rounded-[20px] ${cardBgs[bgIdx]} flex items-center justify-center p-6 mb-4 relative`}>
-                                            <img
-                                                src={getItemImage(item)}
-                                                alt={item.name}
-                                                className="w-full h-full object-contain drop-shadow-xl hover:scale-110 transition-transform duration-300"
-                                            />
+                                            {reduceVisuals ? (
+                                                <Gift className="h-20 w-20 text-slate-500" aria-hidden="true" />
+                                            ) : (
+                                                <img
+                                                    src={getItemImage(item)}
+                                                    alt={item.name}
+                                                    className="w-full h-full object-contain drop-shadow-xl hover:scale-110 transition-transform duration-300"
+                                                />
+                                            )}
                                             {owned && (
                                                 <div className="absolute top-3 right-3 bg-emerald-500 text-white p-1 rounded-full shadow-lg">
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>

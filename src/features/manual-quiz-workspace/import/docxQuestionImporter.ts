@@ -1,4 +1,4 @@
-import mammoth from 'mammoth';
+
 import { QuestionType } from '../../../types';
 import type { ManualQuizQuestion } from '../types/manualQuizWorkspace.types';
 import {
@@ -116,6 +116,7 @@ const readArrayBuffer = (file: File): Promise<ArrayBuffer> => {
 };
 
 export const importQuestionDocx = async (file: File): Promise<QuestionImportResult> => {
+    const mammoth = await import('mammoth');
     const arrayBuffer = await readArrayBuffer(file);
     const runtimeBuffer = (globalThis as typeof globalThis & {
         Buffer?: { from(value: ArrayBuffer): unknown };

@@ -7,7 +7,7 @@ export const teacherRoutes: RouteRegistry = {
         method: 'GET', auth: 'session', path: () => adminBase,
         query: (payload) => new URLSearchParams(Object.entries({
             search: payload.search || '', role: payload.role || '', status: payload.status || '',
-            page: String(payload.page || 1), pageSize: String(payload.pageSize || 25),
+            cursor: payload.cursor || '', limit: String(payload.limit || payload.pageSize || 25),
         }).filter(([, value]) => value !== '')),
     },
     create_teacher: { method: 'POST', auth: 'session', path: () => adminBase },
@@ -38,6 +38,36 @@ export const teacherRoutes: RouteRegistry = {
     change_password: {
         method: 'POST', auth: 'session', path: () => '/api/account/change-password',
         body: (_action, payload) => ({ currentPassword: payload.currentPassword, newPassword: payload.newPassword }),
+    },
+    get_account_passkeys: { method: 'GET', auth: 'session', path: () => '/api/account/passkeys' },
+    begin_passkey_registration: {
+        method: 'POST', auth: 'session', path: () => '/api/account/passkeys/register/options', body: () => ({}),
+    },
+    finish_passkey_registration: {
+        method: 'POST', auth: 'session', path: () => '/api/account/passkeys/register/verify',
+        body: (_action, payload) => ({ challengeId: payload.challengeId, response: payload.response, label: payload.label }),
+    },
+    revoke_account_passkey: {
+        method: 'DELETE', auth: 'session',
+        path: ({ credentialId }) => `/api/account/passkeys/${encodeURIComponent(credentialId)}`,
+    },
+    begin_passkey_authentication: {
+        method: 'POST', auth: 'public', path: () => '/api/passkeys/authenticate/options',
+        body: (_action, payload) => ({ username: payload.username }),
+    },
+    finish_passkey_authentication: {
+        method: 'POST', auth: 'public', path: () => '/api/passkeys/authenticate/verify',
+        body: (_action, payload) => ({ username: payload.username, challengeId: payload.challengeId, response: payload.response }),
+    },
+    get_account_sessions: { method: 'GET', auth: 'session', path: () => '/api/account/sessions' },
+    get_account_security_events: { method: 'GET', auth: 'session', path: () => '/api/account/security-events' },
+    revoke_account_session: {
+        method: 'POST', auth: 'session',
+        path: ({ sessionId }) => `/api/account/sessions/${encodeURIComponent(sessionId)}/revoke`,
+        body: () => ({}),
+    },
+    revoke_all_account_sessions: {
+        method: 'POST', auth: 'session', path: () => '/api/account/sessions/revoke-all', body: () => ({}),
     },
     logout_all: { method: 'POST', auth: 'session', path: () => '/api/account/logout-all', body: () => ({}) },
     login: { method: 'POST', auth: 'public', path: () => '/api/login' },

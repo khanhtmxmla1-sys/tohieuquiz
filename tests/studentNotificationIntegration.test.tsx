@@ -17,12 +17,14 @@ const notification = (
   id: `${type}-1`,
   type,
   priority: 'INFO',
+  severity: 'informational',
   title: `Tin ${type}`,
   body: null,
   actionUrl: null,
   data,
   isRead: false,
   createdAt: '2026-07-24T00:00:00.000Z',
+  availableAt: '2026-07-24T00:00:00.000Z',
   expiresAt: null,
 });
 
@@ -62,8 +64,8 @@ describe('student notification integration', () => {
       isRefreshing: false,
       isStale: false,
       error: null,
-      markRead: vi.fn().mockResolvedValue(undefined),
-      markAllRead: vi.fn().mockResolvedValue(undefined),
+      markRead: vi.fn().mockResolvedValue(true),
+      markAllRead: vi.fn().mockResolvedValue(true),
       refresh: vi.fn(),
     };
   });

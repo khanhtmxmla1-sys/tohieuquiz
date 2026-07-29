@@ -52,6 +52,11 @@ describe('Teacher dashboard sidebar accessibility', () => {
         expect(screen.queryByText(/IOE/i)).not.toBeInTheDocument();
     });
 
+    it('does not show Operations Center to teachers', () => {
+        renderSidebar();
+        expect(screen.queryByText('Operations Center')).not.toBeInTheDocument();
+    });
+
     it('keeps multiple navigation groups open and exposes accordion state', () => {
         renderSidebar();
 

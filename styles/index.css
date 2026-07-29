@@ -1,6 +1,7 @@
 /* TôHiệuQuiz - Modular CSS Entry Point */
 
 /* Design tokens & variables */
+@import '../src/styles/design-tokens.css';
 @import './tokens.css';
 
 /* All animations */

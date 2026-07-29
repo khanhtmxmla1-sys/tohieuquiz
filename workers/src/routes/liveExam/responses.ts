@@ -18,6 +18,7 @@ export function liveExamErrorResponse(
   });
 }
 
-export function calculateTimeRemaining(endsAt: string): number {
-  return Math.max(0, Math.floor((new Date(endsAt).getTime() - Date.now()) / 1000));
+export function calculateTimeRemaining(endsAt: string, referenceAt?: string): number {
+  const referenceTime = referenceAt ? Date.parse(referenceAt) : Date.now();
+  return Math.max(0, Math.floor((new Date(endsAt).getTime() - referenceTime) / 1000));
 }

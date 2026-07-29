@@ -1,13 +1,15 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, CheckCheck, X } from 'lucide-react';
+import { Bell, CheckCheck, Settings, X } from 'lucide-react';
 import {
   resolveNotificationTarget,
   type InboxNotification,
   type NotificationTarget,
 } from '../../../../shared/notifications.contract';
+import { recordNotificationClick } from '../notificationService';
 import { useNotificationInbox } from '../useNotificationInbox';
 import { NotificationListItem } from './NotificationListItem';
+import { NotificationPreferencesPanel } from './NotificationPreferencesPanel';
 
 interface NotificationCenterProps {
   enabled?: boolean;
@@ -23,6 +25,7 @@ export function NotificationCenter({
   const inbox = useNotificationInbox(enabled);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [viewportMobile, setViewportMobile] = useState(
     () => window.innerWidth < 768,
   );
@@ -56,15 +59,24 @@ export function NotificationCenter({
     };
   }, [isMobile, open]);
 
-  const close = () => setOpen(false);
+  const close = () => {
+    setOpen(false);
+    setPreferencesOpen(false);
+  };
   const openNotification = async (notification: InboxNotification) => {
-    if (!notification.isRead) await inbox.markRead(notification.id);
+    if (!notification.isRead) {
+      const confirmed = await inbox.markRead(notification.id);
+      if (!confirmed) return;
+    }
     const target = resolveNotificationTarget({
       type: notification.type,
       data: notification.data,
       actionUrl: notification.actionUrl,
     });
-    if (target) onNavigate?.(target);
+    if (target) {
+      try { await recordNotificationClick(notification.id); } catch { /* read state remains authoritative */ }
+      onNavigate?.(target);
+    }
     close();
   };
   const visibleItems = filter === 'unread'
@@ -87,6 +99,15 @@ export function NotificationCenter({
           <p className="text-xs text-slate-500">{inbox.unreadCount} chưa đọc</p>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="C?i ??t th?ng b?o"
+            aria-pressed={preferencesOpen}
+            className="rounded-full p-2 text-slate-600 hover:bg-slate-100"
+            onClick={() => setPreferencesOpen((current) => !current)}
+          >
+            <Settings aria-hidden="true" className="h-5 w-5" />
+          </button>
           {inbox.unreadCount > 0 && (
             <button
               type="button"
@@ -107,7 +128,7 @@ export function NotificationCenter({
           </button>
         </div>
       </header>
-      <div className="flex gap-2 border-b border-slate-100 px-4 py-2">
+      {!preferencesOpen && <div className="flex gap-2 border-b border-slate-100 px-4 py-2">
         {(['all', 'unread'] as const).map((value) => (
           <button
             key={value}
@@ -122,7 +143,10 @@ export function NotificationCenter({
             {value === 'all' ? 'Tất cả' : 'Chưa đọc'}
           </button>
         ))}
-      </div>
+      </div>}
+      {preferencesOpen ? (
+        <NotificationPreferencesPanel onClose={() => setPreferencesOpen(false)} />
+      ) : (
       <div className="max-h-[min(60vh,480px)] overflow-y-auto">
         {inbox.isLoading && inbox.items.length === 0 && (
           <p className="p-8 text-center text-sm text-slate-500">Đang tải...</p>
@@ -140,6 +164,7 @@ export function NotificationCenter({
           />
         ))}
       </div>
+      )}
     </section>
   );
 

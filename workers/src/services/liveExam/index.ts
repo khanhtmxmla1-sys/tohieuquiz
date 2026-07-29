@@ -10,10 +10,20 @@ export {
 } from './chatService';
 export { joinSession, getParticipants } from './participantService';
 export { updateActivity, markInactiveParticipants } from './activityService';
+export { getAnswerSnapshot, saveAnswerSnapshot, recordConnectionEvent } from './connectionEventService';
+export { getEffectiveParticipantEndsAt, loadParticipantDeadline, requireParticipantWorkWindow } from './deadlineService';
 export { calculateScoresAndClose, checkAndAutoCloseExpiredExams } from './scoringService';
 export { submitAnswers } from './submissionService';
 export { deleteLiveExam } from './sessionArchiveService';
-export { endExamEarly, openSession, startExam } from './sessionControlService';
+export {
+  endExamEarly,
+  extendParticipantTime,
+  openSession,
+  pauseExam,
+  prepareEndExamEarly,
+  resumeExam,
+  startExam,
+} from './sessionControlService';
 
 export type {
   CreateLiveExamParams,

@@ -408,7 +408,13 @@ describe('certificate worker authorization and integrity', () => {
     );
 
     expect(response.status).toBe(404);
-    expect(db.runs).toHaveLength(0);
+    expect(db.runs).toHaveLength(1);
+    expect(db.runs[0].sql).toContain('WHERE id = ? AND user_id = ? AND user_role = ?');
+    expect(db.runs[0].bindings.slice(1)).toEqual([
+      'notification-1',
+      'student-2',
+      'student',
+    ]);
   });
 
   it('keeps the certificate public aliases stable', () => {

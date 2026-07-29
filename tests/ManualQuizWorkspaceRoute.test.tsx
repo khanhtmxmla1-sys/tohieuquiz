@@ -23,6 +23,7 @@ vi.mock('../src/app/lazyViews', async (importOriginal) => {
     const { useAuthStore: useAuthStoreInStub } = await import('../stores/authStore');
     return {
         ...actual,
+        TeacherDashboard: () => <div>teacher-dashboard</div>,
         ManualQuizWorkspacePage: () => {
             const isLoggedIn = useAuthStoreInStub(state => state.isLoggedIn);
             const { quizId } = useParams();
@@ -79,11 +80,11 @@ describe('manual quiz workspace routes', () => {
         expect(await screen.findByTestId('manual-quiz-workspace', {}, { timeout: 3_000 })).toHaveAttribute('data-quiz-id', 'quiz-123');
     });
 
-    it('redirects direct workspace URLs to the legacy create surface when the flag is disabled', async () => {
+    it('redirects direct workspace URLs to canonical quiz management when the flag is disabled', async () => {
         renderRoute('/teacher/quizzes/manual/new', false);
 
-        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/'));
-        expect(screen.getByText('root-view')).toBeInTheDocument();
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/quizzes'));
+        expect(screen.getByText('teacher-dashboard')).toBeInTheDocument();
         expect(screen.queryByTestId('manual-quiz-workspace')).not.toBeInTheDocument();
     });
 

@@ -1,4 +1,5 @@
 import type { QuestionSkillMetadataFields } from '../shared/skillTaxonomy';
+import type { AiQuestionQualityPersistedSummary } from '../../shared/ai-question-quality.contract';
 
 /**
  * Domain Types
@@ -301,6 +302,13 @@ export type Question = (
     GeometryQuestion
 ) & QuestionMetadata;
 
+export interface QuizAiGenerationMetadata {
+    promptVersion?: string;
+    blueprintVersion?: number;
+    generationKind?: 'full' | 'trial';
+    qualitySummary?: AiQuestionQualityPersistedSummary;
+}
+
 export interface Quiz {
     id: string;
     title: string; // e.g., "Ôn tập Khoa học lớp 3: Không khí và Nước"
@@ -320,6 +328,7 @@ export interface Quiz {
     requireCode?: boolean; // Whether to require code to start quiz
     showOnHome?: boolean; // Whether to show on HomePage library
     isPractice?: boolean; // Whether this quiz is in practice mode
+    aiGeneration?: QuizAiGenerationMetadata;
     _assignmentData?: any; // Optional assignment metadata (avoid circular dependency)
 }
 

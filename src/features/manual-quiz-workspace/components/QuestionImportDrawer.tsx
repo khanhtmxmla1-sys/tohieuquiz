@@ -6,6 +6,14 @@ import type { ManualQuizQuestion } from '../types/manualQuizWorkspace.types';
 import { useManualQuizWorkspaceStore } from '../store/useManualQuizWorkspaceStore';
 import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 
+type DocxImporterModule = typeof import('../import/docxQuestionImporter');
+let docxImporterPromise: Promise<DocxImporterModule> | null = null;
+const loadQuestionImporter = (): Promise<DocxImporterModule> => {
+    docxImporterPromise ??= import('../import/docxQuestionImporter');
+    return docxImporterPromise;
+};
+export const preloadQuestionImporter = (): void => { void loadQuestionImporter(); };
+
 interface QuestionImportDrawerProps {
     open: boolean;
     onClose: () => void;
@@ -45,7 +53,7 @@ const QuestionImportDrawer: React.FC<QuestionImportDrawerProps> = ({ open, onClo
         setLastAddedIds([]);
         try {
             const imported = extension === 'docx'
-                ? await import('../import/docxQuestionImporter').then((module) => module.importQuestionDocx(file))
+                ? await loadQuestionImporter().then((module) => module.importQuestionDocx(file))
                 : await import('../import/spreadsheetQuestionImporter').then((module) => module.importQuestionSpreadsheet(file));
             setResult(imported);
         } catch (importError) {
@@ -79,7 +87,7 @@ const QuestionImportDrawer: React.FC<QuestionImportDrawerProps> = ({ open, onClo
 
                 <div className="border-b border-slate-200 bg-slate-50 p-4">
                     <input ref={inputRef} type="file" accept=".csv,.xlsx,.docx" aria-label="Chọn tệp câu hỏi" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void loadFile(file); }} />
-                    <button type="button" onClick={() => inputRef.current?.click()} className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-emerald-600 px-5 text-sm font-semibold text-white"><FileSpreadsheet className="h-4 w-4" /> Chọn tệp CSV, XLSX hoặc DOCX</button>
+                    <button type="button" onMouseEnter={preloadQuestionImporter} onFocus={preloadQuestionImporter} onClick={() => inputRef.current?.click()} className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-emerald-600 px-5 text-sm font-semibold text-white"><FileSpreadsheet className="h-4 w-4" /> Chọn tệp CSV, XLSX hoặc DOCX</button>
                     {fileName && <span className="ml-3 text-sm text-slate-600">{fileName}</span>}
                 </div>
 

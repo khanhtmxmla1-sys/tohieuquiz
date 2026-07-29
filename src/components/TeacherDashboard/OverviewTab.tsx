@@ -1,7 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { ResultDashboardSummary, ResultSummaryStatistics } from '../../../shared/result-summary.contract';
 import {
-    AlertCircle,
     Award,
     CheckCircle2,
     ClipboardList,
@@ -9,15 +8,17 @@ import {
     GraduationCap,
     PlusCircle,
     Radio,
-    RefreshCw,
     TrendingUp,
     UsersRound,
 } from 'lucide-react';
 import { useQuizStore } from '../../../stores/quizStore';
+import { Alert, Button, DataFreshnessNotice } from '../common';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useAuthStore } from '../../../stores/authStore';
 import { areClassNamesEqual } from '../../utils/classMatching';
 import { useTeacherDashboardUIStore } from '../../stores/useTeacherDashboardUIStore';
 import {
+    ActionCenterPanel,
     DashboardHero,
     MetricGrid,
     PerformancePanel,
@@ -95,9 +96,17 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     summaryLoadState,
     summaryError,
 }) => {
+    const { isOnline } = useOnlineStatus();
+    const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
     const authStore = useAuthStore();
     const quizStore = useQuizStore();
     const setActiveTab = useTeacherDashboardUIStore((state) => state.setActiveTab);
+
+    useEffect(() => {
+        if (resultsLoadState === 'success' || summaryLoadState === 'success') {
+            setLastUpdatedAt(Date.now());
+        }
+    }, [resultsLoadState, summaryLoadState, resultSummary]);
 
     const filteredResults = useMemo(() => (
         authStore.isAdmin || !authStore.teacherClass
@@ -166,48 +175,48 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             title: 'Tạo đề mới',
             description: 'Soạn đề từ nội dung có sẵn, PDF hoặc công cụ AI.',
             icon: <PlusCircle />,
-            iconClassName: 'text-[#0284C7]',
-            surfaceClassName: 'bg-[#F0F9FF]',
+            iconClassName: 'text-sky-600',
+            surfaceClassName: 'bg-sky-50',
         },
         {
             tab: 'assignments',
             title: 'Giao bài',
             description: 'Chọn lớp, đặt hạn nộp và gửi bài cho học sinh.',
             icon: <ClipboardList />,
-            iconClassName: 'text-[#7C3AED]',
-            surfaceClassName: 'bg-[#F5F3FF]',
+            iconClassName: 'text-violet-600',
+            surfaceClassName: 'bg-violet-50',
         },
         {
             tab: 'live-exam',
             title: 'Thi trực tiếp',
             description: 'Mở phòng thi và theo dõi tiến độ theo thời gian thực.',
             icon: <Radio />,
-            iconClassName: 'text-[#E76F51]',
-            surfaceClassName: 'bg-[#FFF4F1]',
+            iconClassName: 'text-orange-600',
+            surfaceClassName: 'bg-orange-50',
         },
         {
             tab: 'results',
             title: 'Xem kết quả',
             description: 'Xem điểm, bài nộp và phân tích mức độ hoàn thành.',
             icon: <FileText />,
-            iconClassName: 'text-[#0D8B67]',
-            surfaceClassName: 'bg-[#ECFDF5]',
+            iconClassName: 'text-emerald-700',
+            surfaceClassName: 'bg-emerald-50',
         },
         {
             tab: 'classes',
             title: 'Quản lý lớp',
             description: 'Cập nhật danh sách lớp và thông tin học sinh.',
             icon: <GraduationCap />,
-            iconClassName: 'text-[#0891B2]',
-            surfaceClassName: 'bg-[#ECFEFF]',
+            iconClassName: 'text-cyan-600',
+            surfaceClassName: 'bg-cyan-50',
         },
         {
             tab: 'certificates',
             title: 'Cấp chứng nhận',
             description: 'Tạo giấy chứng nhận từ các mẫu đã thiết lập.',
             icon: <Award />,
-            iconClassName: 'text-[#A16207]',
-            surfaceClassName: 'bg-[#FFFBEB]',
+            iconClassName: 'text-amber-700',
+            surfaceClassName: 'bg-amber-50',
         },
     ];
 
@@ -217,8 +226,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             value: visibleQuizzes.length,
             helper: `${scopeLabel} · ${recentQuizzes.length} đề mới nhất được hiển thị bên dưới`,
             icon: <FileText />,
-            iconClassName: 'text-[#0284C7]',
-            surfaceClassName: 'bg-[#F0F9FF]',
+            iconClassName: 'text-sky-600',
+            surfaceClassName: 'bg-sky-50',
         },
         {
             label: 'Điểm trung bình',
@@ -227,8 +236,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 ? `${statistics.passRate}% bài đạt từ 5 điểm trở lên`
                 : summaryFallbackText,
             icon: <TrendingUp />,
-            iconClassName: 'text-[#0D8B67]',
-            surfaceClassName: 'bg-[#ECFDF5]',
+            iconClassName: 'text-emerald-700',
+            surfaceClassName: 'bg-emerald-50',
         },
         {
             label: 'Tổng lượt nộp',
@@ -237,8 +246,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 ? `${resultSummary.uniqueCompletedWorks} bài hoàn thành · ${resultSummary.todaySubmissions} lượt hôm nay`
                 : summaryFallbackText,
             icon: <CheckCircle2 />,
-            iconClassName: 'text-[#7C3AED]',
-            surfaceClassName: 'bg-[#F5F3FF]',
+            iconClassName: 'text-violet-600',
+            surfaceClassName: 'bg-violet-50',
         },
         {
             label: 'Học sinh tham gia',
@@ -247,8 +256,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 ? 'Tính theo mã học sinh; dữ liệu cũ đối chiếu theo tên và lớp'
                 : summaryFallbackText,
             icon: <UsersRound />,
-            iconClassName: 'text-[#A16207]',
-            surfaceClassName: 'bg-[#FFFBEB]',
+            iconClassName: 'text-amber-700',
+            surfaceClassName: 'bg-amber-50',
         },
     ];
 
@@ -268,25 +277,29 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             />
 
             {showAlert && (
-                <div role="alert" className="flex flex-col gap-3 rounded-[14px] border border-[#F3B5A7] bg-[#FFF4F1] p-4 text-[#8E3F2E] sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-3">
-                        <AlertCircle aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-                        <div>
-                            <p className="font-semibold">{alertTitle}</p>
-                            <p className="mt-1 text-sm text-[#A9533E]">{alertMessage}</p>
-                        </div>
+                <Alert tone="danger" title={alertTitle} className="flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm text-orange-700">{alertMessage}</p>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => void onRetryResults()}
+                            disabled={!isOnline}
+                            title={!isOnline ? 'Cần kết nối mạng để thử lại.' : undefined}
+                        >
+                            Thử lại
+                        </Button>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => void onRetryResults()}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[10px] border border-[#F3B5A7] bg-white px-4 py-2 text-sm font-semibold text-[#8E3F2E] transition-colors hover:bg-[#FFEAE4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E76F51]"
-                    >
-                        <RefreshCw aria-hidden="true" className="size-4" />
-                        Thử lại
-                    </button>
-                </div>
+                </Alert>
             )}
 
+            <DataFreshnessNotice
+                staleAt={lastUpdatedAt}
+                isOffline={!isOnline}
+                isRefreshing={resultsLoadState === 'loading' || summaryLoadState === 'loading'}
+            />
+
+            <ActionCenterPanel />
             <QuickActionGrid actions={quickActions} onSelect={setActiveTab} />
             <MetricGrid metrics={metrics} isLoadingResults={isSummaryLoading} />
 

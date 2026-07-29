@@ -17,12 +17,14 @@ const item = (id: string, isRead = false): InboxNotification => ({
   id,
   type: 'system',
   priority: 'INFO',
+  severity: 'informational',
   title: `Thông báo ${id}`,
   body: null,
   actionUrl: null,
   data: {},
   isRead,
   createdAt: '2026-07-24T00:00:00.000Z',
+  availableAt: '2026-07-24T00:00:00.000Z',
   expiresAt: null,
 });
 
@@ -50,6 +52,7 @@ describe('useNotificationInbox', () => {
     service.fetchNotificationInbox.mockResolvedValue({
       items: [item('one')],
       nextCursor: null,
+      unreadCount: 1,
     });
     service.readNotification.mockResolvedValue(undefined);
     service.readAllNotifications.mockResolvedValue(undefined);
@@ -115,41 +118,38 @@ describe('useNotificationInbox', () => {
     expect(service.fetchNotificationInbox).toHaveBeenCalledTimes(3);
   });
 
-  it('optimistically marks one notification read and rolls back on failure', async () => {
+  it('keeps one notification unread until the server confirms the update', async () => {
     service.readNotification.mockRejectedValue(new Error('failed'));
     const { result } = renderHook(() => useNotificationInbox());
     await flushRequests();
     expect(result.current.unreadCount).toBe(1);
 
-    let pending: Promise<void>;
-    act(() => {
-      pending = result.current.markRead('one');
-    });
-    expect(result.current.unreadCount).toBe(0);
+    let confirmed = true;
     await act(async () => {
-      await pending!;
+      confirmed = await result.current.markRead('one');
     });
+    expect(confirmed).toBe(false);
     expect(result.current.unreadCount).toBe(1);
+    expect(result.current.items[0].isRead).toBe(false);
   });
 
-  it('optimistically marks all notifications read and rolls back on failure', async () => {
+  it('keeps all notifications unread until the server confirms the update', async () => {
     service.fetchNotificationInbox.mockResolvedValue({
       items: [item('one'), item('two')],
       nextCursor: null,
+      unreadCount: 2,
     });
     service.readAllNotifications.mockRejectedValue(new Error('failed'));
     const { result } = renderHook(() => useNotificationInbox());
     await flushRequests();
     expect(result.current.unreadCount).toBe(2);
 
-    let pending: Promise<void>;
-    act(() => {
-      pending = result.current.markAllRead();
-    });
-    expect(result.current.unreadCount).toBe(0);
+    let confirmed = true;
     await act(async () => {
-      await pending!;
+      confirmed = await result.current.markAllRead();
     });
+    expect(confirmed).toBe(false);
     expect(result.current.unreadCount).toBe(2);
+    expect(result.current.items.every((notification) => !notification.isRead)).toBe(true);
   });
 });

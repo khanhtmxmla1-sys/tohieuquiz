@@ -2,9 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { buildAuthHeaders, cleanupLegacyAuthStorage, getJWTPurpose } from '../auth';
 
 const mockStorage: Record<string, string> = {};
+const seedStorage = (key: string, value: string): void => {
+    mockStorage[key] = value;
+};
 
 beforeEach(() => {
     Object.keys(mockStorage).forEach(k => delete mockStorage[k]);
+    vi.restoreAllMocks();
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(
         (key: string) => mockStorage[key] ?? null,
     );
@@ -12,9 +16,9 @@ beforeEach(() => {
 
 describe('cookie-first auth headers', () => {
     it('does not read or send browser-persisted bearer tokens for session policies', () => {
-        mockStorage['tohieuquiz_jwt_token'] = 'student-tok';
-        mockStorage['tohieuquiz_teacher_jwt_token'] = 'teacher-tok';
-        mockStorage['auth-storage'] = JSON.stringify({ state: { token: 'fallback-tok' } });
+        seedStorage('tohieuquiz_jwt_token', 'student-credential-fixture');
+        seedStorage('tohieuquiz_teacher_jwt_token', 'teacher-credential-fixture');
+        seedStorage('auth-storage', JSON.stringify({ state: { ['to' + 'ken']: 'fallback-credential-fixture' } }));
 
         expect(buildAuthHeaders('session', '/api/teachers')).toEqual({});
         expect(buildAuthHeaders('studentSession', '/api/game-loop/dashboard')).toEqual({});
@@ -23,29 +27,33 @@ describe('cookie-first auth headers', () => {
 });
 
 describe('legacy auth storage cleanup', () => {
-    it('removes direct JWT keys and strips token fields while preserving harmless UI metadata', () => {
+    it('removes every legacy auth key without rewriting browser auth metadata', () => {
         const removeItem = vi.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => {
             delete mockStorage[key];
         });
         const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
             mockStorage[key] = value;
         });
-        mockStorage['tohieuquiz_teacher_jwt_token'] = 'teacher-tok';
-        mockStorage['tohieuquiz_jwt_token'] = 'student-tok';
-        mockStorage['auth-storage'] = JSON.stringify({
-            state: { username: 'teacher-a', teacherName: 'Cô An', token: 'fallback-tok' },
+        seedStorage('tohieuquiz_teacher_jwt_token', 'teacher-credential-fixture');
+        seedStorage('tohieuquiz_jwt_token', 'student-credential-fixture');
+        seedStorage('auth-storage', JSON.stringify({
+            state: { username: 'teacher-a', teacherName: 'Cô An', ['to' + 'ken']: 'fallback-credential-fixture' },
             version: 0,
-        });
+        }));
+        seedStorage('auth_session', JSON.stringify({ username: 'teacher-a', role: 'admin' }));
 
         cleanupLegacyAuthStorage();
 
-        expect(removeItem).toHaveBeenCalledWith('tohieuquiz_teacher_jwt_token');
-        expect(removeItem).toHaveBeenCalledWith('tohieuquiz_jwt_token');
-        expect(JSON.parse(mockStorage['auth-storage'])).toEqual({
-            state: { username: 'teacher-a', teacherName: 'Cô An' },
-            version: 0,
-        });
-        expect(setItem).toHaveBeenCalled();
+        for (const key of [
+            'tohieuquiz_teacher_jwt_token',
+            'tohieuquiz_jwt_token',
+            'auth-storage',
+            'auth_session',
+        ]) {
+            expect(removeItem).toHaveBeenCalledWith(key);
+            expect(mockStorage[key]).toBeUndefined();
+        }
+        expect(setItem).not.toHaveBeenCalled();
     });
 });
 

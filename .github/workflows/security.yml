@@ -25,11 +25,20 @@ jobs:
           node-version: 22.22.0
           cache: npm
 
-      - name: Install locked dependencies
+      - name: Install locked frontend dependencies
         run: npm ci --ignore-scripts
+
+      - name: Install locked Worker dependencies
+        run: npm ci --prefix workers --ignore-scripts
 
       - name: Scan repository for secrets and sensitive exports
         run: npm run security:scan
 
-      - name: Audit production dependencies
-        run: npm run audit:dependencies:enforce
+      - name: Scan reachable Git history
+        run: npm run security:history
+
+      - name: Enforce browser and API security policies
+        run: npm run security:policies
+
+      - name: Audit frontend and Worker production dependencies
+        run: npm run audit:dependencies:all:enforce

@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => {
             'vendor-icons': ['lucide-react'],
             'vendor-state': ['zustand'],
             'vendor-motion': ['framer-motion'],
+            'vendor-jszip': ['jszip'],
           },
         },
       },

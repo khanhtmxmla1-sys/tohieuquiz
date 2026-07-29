@@ -6,6 +6,12 @@ interface NotificationListItemProps {
   onOpen: (notification: InboxNotification) => void;
 }
 
+const severityLabel = {
+  critical: 'Kh?n c?p',
+  action_required: 'C?n h?nh ??ng',
+  informational: 'Th?ng tin',
+} as const;
+
 export function NotificationListItem({
   notification,
   onOpen,
@@ -28,7 +34,12 @@ export function NotificationListItem({
           ].join(' ')}
         />
         <span className="min-w-0">
-          <span className="block font-medium text-slate-900">{notification.title}</span>
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="font-medium text-slate-900">{notification.title}</span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+              {severityLabel[notification.severity]}
+            </span>
+          </span>
           {notification.body && (
             <span className="mt-1 line-clamp-2 block text-sm text-slate-600">
               {notification.body}

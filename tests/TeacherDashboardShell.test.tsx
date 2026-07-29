@@ -15,11 +15,16 @@ const mocks = vi.hoisted(() => ({
   invalidatePrefix: vi.fn(),
   showSuccess: vi.fn(),
   showError: vi.fn(),
+  location: { pathname: '/teacher/overview', search: '', key: 'test' },
 }));
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
-  return { ...actual, useNavigate: () => mocks.navigate };
+  return {
+    ...actual,
+    useNavigate: () => mocks.navigate,
+    useLocation: () => mocks.location,
+  };
 });
 
 vi.mock('../src/services/apiAdapter', () => ({ callApi: mocks.callApi }));
@@ -218,6 +223,8 @@ describe('TeacherDashboard shell contracts', () => {
     mocks.invalidatePrefix.mockReset();
     mocks.showSuccess.mockReset();
     mocks.showError.mockReset();
+    mocks.location.pathname = '/teacher/overview';
+    mocks.location.search = '';
   });
 
   afterEach(() => {
@@ -259,6 +266,30 @@ describe('TeacherDashboard shell contracts', () => {
     ).toHaveLength(2));
   });
 
+  it('derives the active tab from the URL and navigates sidebar actions through history', async () => {
+    mocks.location.pathname = '/teacher/classes';
+    useTeacherDashboardUIStore.setState({ activeTab: 'overview' });
+
+    render(<TeacherDashboard />);
+
+    expect(await screen.findByTestId('classes-tab')).toBeInTheDocument();
+    await waitFor(() => expect(useTeacherDashboardUIStore.getState().activeTab).toBe('classes'));
+
+    await click(screen.getByRole('button', { name: 'Sidebar kết quả' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/results');
+  });
+
+  it('uses the create query mode and returns to quiz management after saving', async () => {
+    mocks.location.pathname = '/teacher/quizzes';
+    mocks.location.search = '?mode=create';
+
+    render(<TeacherDashboard />);
+
+    expect(await screen.findByTestId('create-tab')).toBeInTheDocument();
+    await click(screen.getByRole('button', { name: 'Lưu đề thành công' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes');
+  });
+
   it('opens the mobile drawer from the header and removes the fixed bottom navigation', async () => {
     render(<TeacherDashboard />);
 
@@ -282,8 +313,7 @@ describe('TeacherDashboard shell contracts', () => {
     render(<TeacherDashboard />);
     expect(await screen.findByRole('button', { name: /^Thông báo/ })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Quản lý thông báo' }));
-    await waitFor(() => expect(useTeacherDashboardUIStore.getState().activeTab).toBe('announcements'));
-    expect(await screen.findByTestId('announcements-tab')).toBeInTheDocument();
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/announcements');
   });
 
   it('searches dashboard destinations and reports an unknown function', async () => {
@@ -292,8 +322,7 @@ describe('TeacherDashboard shell contracts', () => {
 
     fireEvent.change(search, { target: { value: 'điểm' } });
     fireEvent.submit(search.closest('form') as HTMLFormElement);
-    expect(await screen.findByTestId('results-tab')).toBeTruthy();
-    expect(useTeacherDashboardUIStore.getState().activeTab).toBe('results');
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/results');
 
     fireEvent.change(search, { target: { value: 'không tồn tại' } });
     fireEvent.submit(search.closest('form') as HTMLFormElement);
@@ -301,7 +330,7 @@ describe('TeacherDashboard shell contracts', () => {
   });
 
   it('passes only the teacher exact normalized class results to the results tab', async () => {
-    useTeacherDashboardUIStore.setState({ activeTab: 'results' });
+    mocks.location.pathname = '/teacher/results';
     render(<TeacherDashboard />);
 
     const content = await screen.findByTestId('results-tab');
@@ -311,15 +340,14 @@ describe('TeacherDashboard shell contracts', () => {
   });
 
   it('guards admin-only and disabled gift-shop tabs by returning to overview', async () => {
-    useTeacherDashboardUIStore.setState({ activeTab: 'announcements' });
+    mocks.location.pathname = '/teacher/announcements';
     render(<TeacherDashboard />);
-    await waitFor(() => expect(useTeacherDashboardUIStore.getState().activeTab).toBe('overview'));
-    expect(await screen.findByTestId('overview-tab')).toBeTruthy();
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith('/teacher/overview', { replace: true }));
 
-    await act(async () => {
-      useTeacherDashboardUIStore.getState().setActiveTab('gift-shop');
-    });
-    await waitFor(() => expect(useTeacherDashboardUIStore.getState().activeTab).toBe('overview'));
+    mocks.navigate.mockReset();
+    mocks.location.pathname = '/teacher/gift-shop';
+    render(<TeacherDashboard />);
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith('/teacher/overview', { replace: true }));
   });
 
   it('clears dashboard state and related sessions on logout', async () => {
@@ -348,7 +376,7 @@ describe('TeacherDashboard shell contracts', () => {
   });
 
   it('updates a quiz access code in uppercase and keeps the current quiz identity', async () => {
-    useTeacherDashboardUIStore.setState({ activeTab: 'manage' });
+    mocks.location.pathname = '/teacher/quizzes';
     render(<TeacherDashboard />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Quản lý mã' }));

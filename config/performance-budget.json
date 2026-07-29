@@ -1,0 +1,7 @@
+{
+  "initialJsGzipBytes": 204800,
+  "cssGzipBytes": 51200,
+  "lazyChunkGzipBytes": 135000,
+  "singleChunkMinifiedBytes": 500000,
+  "allowlist": []
+}

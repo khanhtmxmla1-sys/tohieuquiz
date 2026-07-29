@@ -1,12 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Gift, RotateCcw, ShoppingBag } from 'lucide-react';
 import { useAuthStore } from '../../../../stores/authStore';
 import { useGiftShopStore } from '../../../stores/useGiftShopStore';
+import { useBrowserSearchParams } from '../../../hooks/useBrowserSearchParams';
 import { GiftCatalogAdminSection } from './GiftCatalogAdminSection';
 import { GiftOrdersSection } from './GiftOrdersSection';
 import { GiftShopAuditSection } from './GiftShopAuditSection';
 import { GiftShopErrorBanner } from './GiftShopErrorBanner';
 import { GiftShopHeader } from './GiftShopHeader';
+import { GiftShopGovernancePanel } from './GiftShopGovernancePanel';
+import { GiftStockOverviewSection } from './GiftStockOverviewSection';
 import { useGiftCatalogEditor } from './useGiftCatalogEditor';
 import { useGiftOrderActions } from './useGiftOrderActions';
 import { useGiftShopFilters } from './useGiftShopFilters';
@@ -17,7 +20,12 @@ type GiftShopTabKey = 'orders' | 'catalog' | 'audit';
 const GiftShopTab: React.FC = () => {
   const authStore = useAuthStore();
   const store = useGiftShopStore();
-  const [activeTab, setActiveTab] = useState<GiftShopTabKey>('orders');
+  const [searchParams, setSearchParams] = useBrowserSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const initialTab: GiftShopTabKey = requestedTab === 'catalog' || requestedTab === 'audit'
+    ? requestedTab
+    : 'orders';
+  const [activeTab, setActiveTab] = useState<GiftShopTabKey>(initialTab);
   const filters = useGiftShopFilters({
     username: authStore.username,
     isAdmin: authStore.isAdmin,
@@ -29,6 +37,7 @@ const GiftShopTab: React.FC = () => {
     loadCatalog: store.loadCatalog,
     loadManagedOrders: store.loadManagedOrders,
     loadEventLogs: store.loadEventLogs,
+    loadSettings: store.loadSettings,
   });
   const catalogEditor = useGiftCatalogEditor({
     actor: filters.actor,
@@ -38,37 +47,60 @@ const GiftShopTab: React.FC = () => {
   const orderActions = useGiftOrderActions({
     actor: filters.actor,
     query: filters.query,
+    approveOrder: store.approveOrder,
     deliverOrder: store.deliverOrder,
     cancelOrder: store.cancelOrder,
   });
 
+  useEffect(() => {
+    if (requestedTab === 'catalog' || (authStore.isAdmin && requestedTab === 'audit')) {
+      setActiveTab(requestedTab);
+    } else if (requestedTab === 'orders' || (!authStore.isAdmin && requestedTab === 'audit')) {
+      setActiveTab('orders');
+    }
+  }, [requestedTab, authStore.isAdmin]);
+
+  const selectTab = (tab: GiftShopTabKey) => {
+    const allowedTab = tab === 'audit' && !authStore.isAdmin ? 'orders' : tab;
+    setActiveTab(allowedTab);
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', allowedTab);
+    if (allowedTab !== 'catalog') next.delete('stock');
+    setSearchParams(next);
+  };
+
+  const lowStockOnly = activeTab === 'catalog' && searchParams.get('stock') === 'low';
+  const visibleCatalog = useMemo(() => (
+    lowStockOnly
+      ? store.catalog.filter((item) => item.stockRemaining <= item.lowStockThreshold)
+      : store.catalog
+  ), [lowStockOnly, store.catalog]);
+
   const metrics = useMemo(() => {
     const today = new Date().toDateString();
     return {
-      pending: store.managedOrders.filter(order => order.status === 'VOUCHER_ISSUED').length,
+      pending: store.managedOrders.filter(order => order.status === 'PENDING').length,
       deliveredToday: store.managedOrders.filter(order => (
         order.status === 'DELIVERED'
         && new Date(order.deliveredAt || order.updatedAt).toDateString() === today
       )).length,
-      refunded: store.managedOrders.filter(order => order.status === 'CANCELLED_REFUNDED').length,
+      refunded: store.managedOrders.filter(order => order.status === 'CANCELLED').length,
       activeGifts: store.catalog.filter(item => item.isActive).length,
     };
   }, [store.managedOrders, store.catalog]);
 
   const metricCards = [
-    { label: 'Chờ trao quà', value: metrics.pending, note: 'Cần giáo viên xử lý', icon: ShoppingBag, className: 'border-amber-200 bg-amber-50 text-amber-900' },
+    { label: 'Chờ duyệt', value: metrics.pending, note: 'Cần giáo viên xác nhận', icon: ShoppingBag, className: 'border-amber-200 bg-amber-50 text-amber-900' },
     { label: 'Đã trao hôm nay', value: metrics.deliveredToday, note: 'Tính theo thiết bị hiện tại', icon: CheckCircle2, className: 'border-emerald-200 bg-emerald-50 text-emerald-900' },
     { label: 'Đã hoàn xu', value: metrics.refunded, note: 'Theo bộ lọc hiện tại', icon: RotateCcw, className: 'border-rose-200 bg-rose-50 text-rose-900' },
     { label: 'Quà đang hoạt động', value: metrics.activeGifts, note: 'Đang hiển thị cho học sinh', icon: Gift, className: 'border-sky-200 bg-sky-50 text-sky-900' },
   ];
 
-  const tabs: Array<{ key: GiftShopTabKey; label: string; badge?: number }> = authStore.isAdmin
-    ? [
-      { key: 'orders', label: 'Đơn đổi quà', badge: metrics.pending },
-      { key: 'catalog', label: 'Kho quà' },
-      { key: 'audit', label: 'Nhật ký' },
-    ]
-    : [{ key: 'orders', label: 'Đơn đổi quà', badge: metrics.pending }];
+  const tabs: Array<{ key: GiftShopTabKey; label: string; badge?: number }> = [
+    { key: 'orders', label: 'Đơn đổi quà', badge: metrics.pending },
+    { key: 'catalog', label: authStore.isAdmin ? 'Kho quà' : 'Tồn kho' },
+    ...(authStore.isAdmin ? [{ key: 'audit' as const, label: 'Nhật ký' }] : []),
+  ];
 
   return (
     <div className="space-y-5">
@@ -76,10 +108,19 @@ const GiftShopTab: React.FC = () => {
         isAdmin={authStore.isAdmin}
         isLoading={store.isLoading}
         onRefresh={refreshAll}
-        onAddGift={() => setActiveTab('catalog')}
+        onAddGift={() => selectTab('catalog')}
       />
 
       <GiftShopErrorBanner error={store.error} onClose={store.clearError} onRetry={refreshAll} />
+
+      <GiftShopGovernancePanel
+        isAdmin={authStore.isAdmin}
+        username={authStore.username || ''}
+        teacherClass={authStore.teacherClass}
+        settings={store.shopSettings}
+        pending={store.pendingAction?.type === 'settings'}
+        onUpdate={store.updateSettings}
+      />
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Tổng quan tiệm tạp hóa">
         {metricCards.map(({ label, value, note, icon: Icon, className }) => (
@@ -100,7 +141,7 @@ const GiftShopTab: React.FC = () => {
             key={tab.key}
             type="button"
             aria-current={activeTab === tab.key ? 'page' : undefined}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => selectTab(tab.key)}
             className={`min-h-11 shrink-0 rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500 ${
               activeTab === tab.key
                 ? 'bg-sky-600 text-white'
@@ -124,12 +165,15 @@ const GiftShopTab: React.FC = () => {
           isLoading={store.loading.managedOrders}
           pendingAction={store.pendingAction}
           filters={filters}
+          onApprove={orderActions.approve}
           onDeliver={orderActions.deliver}
           onCancel={orderActions.cancel}
         />
       )}
-      {authStore.isAdmin && activeTab === 'catalog' && (
-        <GiftCatalogAdminSection catalog={store.catalog} editor={catalogEditor} />
+      {activeTab === 'catalog' && (
+        authStore.isAdmin
+          ? <GiftCatalogAdminSection catalog={visibleCatalog} editor={catalogEditor} />
+          : <GiftStockOverviewSection catalog={visibleCatalog} lowStockOnly={lowStockOnly} />
       )}
       {authStore.isAdmin && activeTab === 'audit' && (
         <GiftShopAuditSection events={store.eventLogs} />

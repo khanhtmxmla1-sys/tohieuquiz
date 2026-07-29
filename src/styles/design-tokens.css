@@ -1,0 +1,48 @@
+:root {
+  --color-brand-primary: #2563eb;
+  --color-brand-primary-hover: #1d4ed8;
+  --color-brand-accent: #f59e0b;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-border: #cbd5e1;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-danger: #b91c1c;
+  --color-focus: #2563eb;
+
+  --font-sans: "Baloo 2", ui-sans-serif, system-ui, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  --elevation-1: 0 1px 2px rgb(15 23 42 / 0.08);
+  --elevation-2: 0 8px 24px rgb(15 23 42 / 0.12);
+  --elevation-3: 0 20px 48px rgb(15 23 42 / 0.18);
+  --focus-ring: 0 0 0 3px rgb(37 99 235 / 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

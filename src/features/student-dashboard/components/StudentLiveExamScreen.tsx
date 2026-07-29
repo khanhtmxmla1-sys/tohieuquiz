@@ -1,7 +1,8 @@
-import { Loader2 } from 'lucide-react';
+import { Loader2, PauseCircle } from 'lucide-react';
 import { WaitingRoomStudent } from '@/src/components/LiveExam/WaitingRoomStudent';
 import { LiveExamQuiz } from '@/src/components/LiveExam/LiveExamQuiz';
 import { ResultsRoom } from '@/src/components/LiveExam/ResultsRoom';
+import { LiveExamPreflightGate } from '@/src/features/live-exam/LiveExamPreflightGate';
 import { LiveExamSubmittedScreen } from './LiveExamSubmittedScreen';
 import type { StudentLiveExamController } from '../hooks/useStudentLiveExam';
 
@@ -12,6 +13,15 @@ export const StudentLiveExamScreen = ({ controller }: {
   if (!joinedExam) return null;
   if (stage === 'waiting') return <WaitingRoomStudent sessionId={joinedExam.sessionId}
     sessionTitle={joinedExam.sessionTitle} onExamStart={controller.markActive} />;
+  if (stage === 'paused') return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 text-center" role="status" aria-live="polite">
+        <PauseCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+        <h2 className="text-3xl font-bold text-slate-800 mb-2">Bài thi đang tạm dừng</h2>
+        <p className="text-slate-600">Đáp án của em đã được lưu. Đồng hồ sẽ tiếp tục khi giáo viên mở lại phòng thi.</p>
+      </div>
+    </div>
+  );
   if (stage === 'active' && (!joinedQuiz || controller.isPreparing)) return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 text-center">
@@ -25,9 +35,11 @@ export const StudentLiveExamScreen = ({ controller }: {
     </div>
   );
   if (stage === 'active' && joinedQuiz && status?.session?.endsAt) return (
-    <LiveExamQuiz sessionId={joinedExam.sessionId} questions={questions}
-      quizTitle={joinedExam.sessionTitle} duration={status.session.duration}
-      endsAt={status.session.endsAt} onComplete={controller.complete} />
+    <LiveExamPreflightGate>
+      <LiveExamQuiz sessionId={joinedExam.sessionId} questions={questions}
+        quizTitle={joinedExam.sessionTitle} duration={status.session.duration}
+        endsAt={status.session.endsAt} onComplete={controller.complete} />
+    </LiveExamPreflightGate>
   );
   if (stage === 'submitted') return <LiveExamSubmittedScreen submission={controller.submission} />;
   if (stage === 'results') return <ResultsRoom sessionId={joinedExam.sessionId}

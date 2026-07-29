@@ -5,6 +5,12 @@ export const NOTIFICATION_PRIORITIES = [
   'URGENT',
 ] as const;
 
+export const NOTIFICATION_SEVERITIES = [
+  'critical',
+  'action_required',
+  'informational',
+] as const;
+
 export const ANNOUNCEMENT_CHANNELS = [
   'CRITICAL_STRIP',
   'TICKER',
@@ -28,8 +34,27 @@ export const NOTIFICATION_TYPES = [
 ] as const;
 
 export type NotificationPriority = typeof NOTIFICATION_PRIORITIES[number];
+export type NotificationSeverity = typeof NOTIFICATION_SEVERITIES[number];
 export type AnnouncementChannel = typeof ANNOUNCEMENT_CHANNELS[number];
 export type NotificationType = typeof NOTIFICATION_TYPES[number];
+
+export interface NotificationPreferences {
+  criticalEnabled: true;
+  actionRequiredEnabled: boolean;
+  informationalEnabled: boolean;
+  quietHoursEnabled: boolean;
+  quietStart: string;
+  quietEnd: string;
+  timezoneOffsetMinutes: number;
+  typePreferences: Partial<Record<NotificationType, boolean>>;
+}
+
+export interface NotificationMetricBucket {
+  severity: NotificationSeverity;
+  sent: number;
+  read: number;
+  clicked: number;
+}
 
 export type NotificationTarget =
   | { kind: 'assignment'; assignmentId: string }
@@ -42,12 +67,14 @@ export interface InboxNotification {
   id: string;
   type: NotificationType;
   priority: NotificationPriority;
+  severity: NotificationSeverity;
   title: string;
   body: string | null;
   actionUrl: string | null;
   data: Record<string, unknown>;
   isRead: boolean;
   createdAt: string;
+  availableAt: string;
   expiresAt: string | null;
 }
 
@@ -62,6 +89,11 @@ export function isNotificationPriority(value: unknown): value is NotificationPri
     && NOTIFICATION_PRIORITIES.includes(value as NotificationPriority);
 }
 
+export function isNotificationSeverity(value: unknown): value is NotificationSeverity {
+  return typeof value === 'string'
+    && NOTIFICATION_SEVERITIES.includes(value as NotificationSeverity);
+}
+
 export function isAnnouncementChannel(value: unknown): value is AnnouncementChannel {
   return typeof value === 'string'
     && ANNOUNCEMENT_CHANNELS.includes(value as AnnouncementChannel);
@@ -74,12 +106,15 @@ export function isNotificationType(value: unknown): value is NotificationType {
 
 export function isSafeNotificationActionUrl(value: unknown): value is string {
   if (typeof value !== 'string' || value.length === 0 || value.length > 2048) return false;
-  if (value.startsWith('/') && !value.startsWith('//')) return true;
-  try {
-    return new URL(value).protocol === 'https:';
-  } catch {
-    return false;
-  }
+  if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\') || /[\u0000-\u001f]/u.test(value)) return false;
+  const pathname = value.split(/[?#]/u, 1)[0];
+  const allowed = [
+    '/', '/student', '/teacher', '/admin', '/dashboard', '/results', '/assignments',
+    '/certificates', '/gift-shop', '/live-exam', '/help', '/thu-vien', '/parent',
+    '/profile', '/notifications', '/homework', '/phieu', '/quizzes',
+  ];
+  return allowed.some((prefix) => pathname === prefix
+    || (prefix !== '/' && pathname.startsWith(`${prefix}/`)));
 }
 
 function payloadId(data: Record<string, unknown>, key: string): string | null {

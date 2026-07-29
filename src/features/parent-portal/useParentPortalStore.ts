@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type {
+  ParentContactPreferences,
+  ParentContactPreferencesInput,
   ParentDashboardPayload,
   ParentNotificationItem,
   ParentStudentProfile,
@@ -10,7 +12,9 @@ import * as parentPortalService from './parentPortalService';
 export interface ParentPortalState {
   session: ParentStudentProfile | null;
   dashboard: ParentDashboardPayload | null;
+  dashboardUpdatedAt: number | null;
   accessCodeMasked: string | null;
+  preferences: ParentContactPreferences | null;
   notifications: ParentNotificationItem[];
   unreadCount: number;
   isRestoring: boolean;
@@ -23,12 +27,17 @@ export interface ParentPortalState {
   loadDashboard(weekStart?: string): Promise<void>;
   loadNotifications(): Promise<void>;
   markNotificationRead(id: string): Promise<void>;
+  loadPreferences(): Promise<void>;
+  savePreferences(input: ParentContactPreferencesInput): Promise<boolean>;
+  requestEmailVerification(): Promise<boolean>;
 }
 
 const clearedProtectedState = {
   session: null,
   dashboard: null,
+  dashboardUpdatedAt: null,
   accessCodeMasked: null,
+  preferences: null,
   notifications: [] as ParentNotificationItem[],
   unreadCount: 0,
 };
@@ -36,7 +45,9 @@ const clearedProtectedState = {
 const messageOf = (error: unknown): string => (
   error instanceof Error ? error.message : 'Đã xảy ra lỗi. Vui lòng thử lại.'
 );
-const isUnauthorized = (error: unknown): boolean => error instanceof ApiError && error.status === 401;
+const isUnauthorized = (error: unknown): boolean => (
+  error instanceof ApiError && (error.status === 401 || error.status === 403)
+);
 
 export const useParentPortalStore = create<ParentPortalState>((set) => ({
   ...clearedProtectedState,
@@ -92,7 +103,7 @@ export const useParentPortalStore = create<ParentPortalState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const dashboard = await parentPortalService.getDashboard(weekStart);
-      set({ dashboard, isLoading: false });
+      set({ dashboard, dashboardUpdatedAt: Date.now(), isLoading: false });
     } catch (error) {
       if (isUnauthorized(error)) {
         set({ ...clearedProtectedState, isLoading: false, error: null });
@@ -117,6 +128,43 @@ export const useParentPortalStore = create<ParentPortalState>((set) => ({
       } else {
         set({ isLoading: false, error: messageOf(error) });
       }
+    }
+  },
+
+  loadPreferences: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const preferences = await parentPortalService.getPreferences();
+      set({ preferences, isLoading: false });
+    } catch (error) {
+      if (isUnauthorized(error)) set({ ...clearedProtectedState, isLoading: false, error: null });
+      else set({ isLoading: false, error: messageOf(error) });
+    }
+  },
+
+  savePreferences: async (input) => {
+    set({ isLoading: true, error: null });
+    try {
+      const preferences = await parentPortalService.updatePreferences(input);
+      set({ preferences, isLoading: false });
+      return true;
+    } catch (error) {
+      if (isUnauthorized(error)) set({ ...clearedProtectedState, isLoading: false, error: null });
+      else set({ isLoading: false, error: messageOf(error) });
+      return false;
+    }
+  },
+
+  requestEmailVerification: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      await parentPortalService.requestEmailVerification();
+      set({ isLoading: false });
+      return true;
+    } catch (error) {
+      if (isUnauthorized(error)) set({ ...clearedProtectedState, isLoading: false, error: null });
+      else set({ isLoading: false, error: messageOf(error) });
+      return false;
     }
   },
 

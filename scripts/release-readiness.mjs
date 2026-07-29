@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const KNOWN_FLAGS = new Set([
@@ -82,9 +82,33 @@ const readArg = (args, names, fallback) => {
   return fallback;
 };
 
+export const REQUIRED_RELEASE_CHECKS = [
+  'lint',
+  'typecheck-frontend',
+  'typecheck-strict',
+  'typecheck-workers',
+  'vitest-all-shards',
+  'coverage',
+  'build',
+  'performance-budget',
+  'security-root-workers',
+  'migration-contracts',
+  'cypress-v2',
+  'cypress-v3',
+];
+
+export function writeReleaseReadinessReport(outputPath, report) {
+  if (!outputPath) return;
+  const absolutePath = resolve(outputPath);
+  mkdirSync(dirname(absolutePath), { recursive: true });
+  writeFileSync(absolutePath, `${JSON.stringify(report, null, 2)}
+`, 'utf8');
+}
+
 export function runReleaseReadiness(args = process.argv.slice(2), env = process.env) {
   const dist = resolve(readArg(args, '--dist', 'dist'));
-  const baseRef = readArg(args, ['--base', '--base-ref'], 'origin/main');
+  const baseRef = readArg(args, ['--base', '--base-ref'], env.RELEASE_BASE_REF || 'origin/main');
+  const outputPath = readArg(args, '--output', env.RELEASE_READINESS_OUTPUT || '');
   const maxJsBytes = Number(readArg(args, '--max-js-bytes', '563200'));
   const errors = [];
 
@@ -113,12 +137,16 @@ export function runReleaseReadiness(args = process.argv.slice(2), env = process.
 
   const report = {
     status: errors.length === 0 ? 'ready' : 'blocked',
+    generatedAt: new Date().toISOString(),
     baseRef,
     maxJsBytes,
+    requiredChecks: REQUIRED_RELEASE_CHECKS,
     changedMigrations,
     errors,
   };
-  console.log(JSON.stringify(report, null, 2));
+  writeReleaseReadinessReport(outputPath, report);
+  process.stdout.write(`${JSON.stringify(report, null, 2)}
+`);
   return errors.length === 0 ? 0 : 1;
 }
 

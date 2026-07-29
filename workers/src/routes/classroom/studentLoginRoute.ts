@@ -12,5 +12,5 @@ export async function handleStudentLoginRoute(
     if (!body.username || !body.password) {
         return errorResponse('Missing username or password');
     }
-    return authenticateStudent(env, String(body.username), String(body.password));
+    return authenticateStudent(env, String(body.username), String(body.password), request);
 }

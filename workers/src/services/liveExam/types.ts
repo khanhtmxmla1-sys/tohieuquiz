@@ -21,6 +21,7 @@ export interface SubmitAnswersParams {
   liveExamId: string;
   studentId: string;
   answers: StudentAnswers;
+  idempotencyKey?: string;
 }
 
 export interface SubmissionScoreSummary {

@@ -40,6 +40,14 @@ export const useStudentAccount = (studentSession: StudentSession | null) => {
     }
   }, [logoutStudent]);
 
+  const clearDeviceData = useCallback(() => {
+    if (window.confirm('Xóa toàn bộ dữ liệu TôHiệuQuiz đã lưu trên thiết bị này và đăng xuất?')) {
+      logoutStudent();
+      useAuthStore.getState().logout();
+      toast.success('Đã xóa dữ liệu TôHiệuQuiz trên thiết bị này.');
+    }
+  }, [logoutStudent]);
+
   const submit = useCallback(async (event: FormEvent) => {
     event.preventDefault();
     setErrorMessage('');
@@ -85,6 +93,7 @@ export const useStudentAccount = (studentSession: StudentSession | null) => {
     open,
     close,
     logout,
+    clearDeviceData,
     submit,
     setCurrentPassword,
     setNewPassword,

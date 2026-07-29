@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ANNOUNCEMENT_CHANNELS,
   NOTIFICATION_PRIORITIES,
+  NOTIFICATION_SEVERITIES,
   NOTIFICATION_TYPES,
   isAnnouncementChannel,
   isNotificationPriority,
@@ -16,6 +17,11 @@ describe('unified notification contract', () => {
       'REMINDER',
       'IMPORTANT',
       'URGENT',
+    ]);
+    expect(NOTIFICATION_SEVERITIES).toEqual([
+      'critical',
+      'action_required',
+      'informational',
     ]);
     expect(ANNOUNCEMENT_CHANNELS).toEqual([
       'CRITICAL_STRIP',
@@ -78,6 +84,18 @@ describe('unified notification contract', () => {
       type: 'system',
       data: {},
       actionUrl: '//evil.example/path',
+    })).toBeNull();
+
+    expect(resolveNotificationTarget({
+      type: 'system',
+      data: {},
+      actionUrl: 'https://evil.example/path',
+    })).toBeNull();
+
+    expect(resolveNotificationTarget({
+      type: 'system',
+      data: {},
+      actionUrl: '/unknown-admin-surface',
     })).toBeNull();
   });
 });

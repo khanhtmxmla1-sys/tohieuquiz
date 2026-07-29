@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Archive, Loader2, Plus, RefreshCw, XCircle } from 'lucide-react';
 import { callApi } from '../../services/apiAdapter';
-import { getSystemSettings, saveSystemSettings } from '../../services/systemSettingsService';
-import { useAuthStore } from '../../../stores/authStore';
 import { showError, showSuccess } from '../../utils/toast';
+import { FeatureRolloutPanel } from '../../features/feature-rollout/FeatureRolloutPanel';
 import {
     AnnouncementComposer,
     type AnnouncementDraft,
@@ -37,18 +36,11 @@ const toLocalInput = (iso: string | null | undefined) => {
 };
 
 const AnnouncementSettings: React.FC = () => {
-    const auth = useAuthStore();
     const [items, setItems] = useState<AnnouncementItem[]>([]);
     const [form, setForm] = useState(emptyForm);
     const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
     const [announcementError, setAnnouncementError] = useState('');
-    const [settingsLoaded, setSettingsLoaded] = useState(false);
-    const [settingsDegraded, setSettingsDegraded] = useState(false);
-    const [settingsError, setSettingsError] = useState('');
-    const [aiEnabled, setAiEnabled] = useState(false);
-    const [unifiedNotificationsEnabled, setUnifiedNotificationsEnabled] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [savingSettings, setSavingSettings] = useState(false);
 
     const selectItem = (item: AnnouncementItem) => setForm({
         id: item.id, content: item.content || '', bannerTitle: item.bannerTitle || '', bannerSubtitle: item.bannerSubtitle || '',
@@ -79,24 +71,7 @@ const AnnouncementSettings: React.FC = () => {
         } finally { setLoadingAnnouncements(false); }
     };
 
-    const loadSettings = async () => {
-        setSettingsError(''); setSettingsLoaded(false);
-        try {
-            const data = await getSystemSettings();
-            setAiEnabled(data.aiAssistantEnabled);
-            setUnifiedNotificationsEnabled(data.unifiedNotificationsEnabled);
-            setSettingsDegraded(Boolean(data.degraded));
-            setSettingsLoaded(!data.degraded);
-            if (data.degraded) setSettingsError('Cấu hình tạm không khả dụng; Trợ lý AI đang được tắt an toàn.');
-        } catch (err) {
-            setAiEnabled(false); setSettingsDegraded(true);
-            setSettingsError(err instanceof Error ? err.message : 'Cấu hình tạm không khả dụng.');
-        }
-    };
-
-    useEffect(() => {
-        void Promise.allSettled([loadAnnouncements(), loadSettings()]);
-    }, []);
+    useEffect(() => { void loadAnnouncements(); }, []);
 
     const payload = (draft: AnnouncementDraft) => ({
         content: draft.content, bannerTitle: draft.bannerTitle, bannerSubtitle: draft.bannerSubtitle,
@@ -154,20 +129,6 @@ const AnnouncementSettings: React.FC = () => {
         finally { setSaving(false); }
     };
 
-    const saveSettings = async () => {
-        if (!settingsLoaded || settingsDegraded || !auth.username) return;
-        setSavingSettings(true);
-        try {
-            await saveSystemSettings({
-                actorUsername: auth.username,
-                aiAssistantEnabled: aiEnabled,
-                unifiedNotificationsEnabled,
-            });
-            showSuccess('Đã lưu cài đặt hệ thống.');
-        } catch (err) { showError(err instanceof Error ? err.message : 'Không thể lưu cài đặt.'); }
-        finally { setSavingSettings(false); }
-    };
-
     return <div className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -220,22 +181,7 @@ const AnnouncementSettings: React.FC = () => {
             </section>
         </div>
 
-        <section className="rounded-2xl border bg-white p-5 shadow-sm">
-            <h3 className="font-bold">Cài đặt phát hành</h3>
-            <p className="mt-1 text-sm text-slate-600">Bật hệ thống mới sau khi migration và worker đã được triển khai.</p>
-            {settingsError && <div className="my-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{settingsError} <button onClick={() => void loadSettings()} className="font-bold underline">Thử lại</button></div>}
-            <div className="my-4 grid gap-3 md:grid-cols-2">
-                <label className="flex items-center gap-3 rounded-xl border p-4">
-                    <input type="checkbox" checked={unifiedNotificationsEnabled} disabled={!settingsLoaded || settingsDegraded} onChange={(event) => setUnifiedNotificationsEnabled(event.target.checked)} className="h-5 w-5" />
-                    <span><strong className="block">Thông báo hợp nhất v1</strong><span className="text-sm text-slate-500">{unifiedNotificationsEnabled ? 'Đang dùng UI mới' : 'Đang dùng UI cũ'}</span></span>
-                </label>
-                <label className="flex items-center gap-3 rounded-xl border p-4">
-                    <input type="checkbox" checked={aiEnabled} disabled={!settingsLoaded || settingsDegraded} onChange={(event) => setAiEnabled(event.target.checked)} className="h-5 w-5" />
-                    <span><strong className="block">Trợ lý AI</strong><span className="text-sm text-slate-500">{aiEnabled ? 'Đang bật' : 'Đang tắt'}</span></span>
-                </label>
-            </div>
-            <button onClick={() => void saveSettings()} disabled={!settingsLoaded || settingsDegraded || savingSettings} className="rounded-xl bg-slate-800 px-4 py-2 font-semibold text-white disabled:opacity-40">{savingSettings ? 'Đang lưu…' : 'Lưu cài đặt hệ thống'}</button>
-        </section>
+        <FeatureRolloutPanel />
     </div>;
 };
 

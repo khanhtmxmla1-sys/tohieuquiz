@@ -7,6 +7,8 @@ import { verifyToken } from './middleware/auth';
 import { jsonResponse, errorResponse } from './utils/response';
 import { internalErrorResponse } from './utils/internalError';
 import { handleTeacherRoutes } from './routes/teachers';
+import { handleSecurityCenterRoutes } from './routes/securityCenter';
+import { handlePasskeyRoutes } from './routes/passkeys';
 import { handleQuizRoutes } from './routes/quizzes';
 import { handleQuizDraftRoutes } from './routes/quizDrafts';
 import { handleResultRoutes } from './routes/results';
@@ -43,12 +45,19 @@ import { handleResultReportRoutes } from './routes/resultReports';
 import { handleParentPortalRoutes } from './routes/parentPortal';
 import { handleNotificationRoutes } from './routes/notifications/route';
 import { handleClientErrorRoute } from './routes/clientErrors';
+import { handleClientTelemetryRoute } from './routes/clientTelemetry';
+import { handleActionCenterRoutes } from './routes/actionCenter';
+import { handleOperationsRoutes } from './routes/operations';
 import { Env } from './types';
 import { createWorkerFetch } from './router/createWorkerFetch';
 import { purgeExpiredRateLimits, rateLimit } from './middleware/rateLimit';
 import { mapQuestionForSave, mapAssignment, mapAssignments, handleValidateAnswers } from './utils/helpers';
 import { checkAndAutoCloseExpiredExams } from './services/liveExamService';
 import { createDueHomeworkReminders } from './parentPortal/deadlineReminderService';
+import { createParentEmailProvider } from './parentPortal/emailProvider';
+import { runWeeklyParentDigests } from './parentPortal/digestService';
+import { purgeExpiredAuthSecurityData } from './services/authSessionService';
+import { purgeExpiredWebAuthnChallenges } from './services/webauthnService';
 
 const fetch = createWorkerFetch({
     handleCors,
@@ -60,6 +69,8 @@ const fetch = createWorkerFetch({
     internalErrorResponse,
     rateLimit,
     handleTeacherRoutes,
+    handleSecurityCenterRoutes,
+    handlePasskeyRoutes,
     handleLogoutRoute,
     handleQuizDraftRoutes,
     handleQuizRoutes,
@@ -86,6 +97,9 @@ const fetch = createWorkerFetch({
     handleAdminCertificateRoutes,
     handleMathObservabilityRoutes,
     handleClientErrorRoute,
+    handleClientTelemetryRoute,
+    handleActionCenterRoutes,
+    handleOperationsRoutes,
     handlePhieuSubdomain,
     handlePublicPhieuApi,
     handleParentPortalRoutes,
@@ -107,7 +121,22 @@ export default {
             } catch (error) {
                 console.error('[Cron] Failed to purge expired rate limits:', error);
             }
+            try {
+                await purgeExpiredAuthSecurityData(env.DB, new Date());
+                await purgeExpiredWebAuthnChallenges(env.DB, new Date());
+            } catch (error) {
+                console.error('[Cron] Failed to purge expired auth security rows:', error);
+            }
             await createDueHomeworkReminders(env.DB, new Date());
+            return;
+        }
+
+        if (event.cron === '0 * * * *') {
+            try {
+                await runWeeklyParentDigests(env.DB, createParentEmailProvider(env), new Date());
+            } catch (error) {
+                console.error('[Cron] Parent digest run failed:', error);
+            }
             return;
         }
 

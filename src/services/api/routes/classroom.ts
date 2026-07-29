@@ -40,10 +40,12 @@ export const classroomRoutes: RouteRegistry = {
         method: 'GET',
         auth: 'session',
         path: () => '/api/students',
-        query: ({ classId, role }) => {
+        query: ({ classId, role, cursor, limit }) => {
             const q = new URLSearchParams();
             q.append('classId', classId);
             if (role) q.append('role', role);
+            if (cursor) q.append('cursor', String(cursor));
+            if (limit) q.append('limit', String(limit));
             return q;
         },
     },

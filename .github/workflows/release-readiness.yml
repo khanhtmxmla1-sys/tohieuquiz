@@ -1,6 +1,10 @@
-name: Release readiness (no deployment)
+name: Release readiness
 
 on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       base_ref:
@@ -14,7 +18,7 @@ permissions:
 
 concurrency:
   group: release-readiness-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: 22.22.0
@@ -23,7 +27,7 @@ jobs:
   core-gate:
     name: Core readiness gate
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     env:
       SITEMAP_SITE_URL: https://www.thtohieu.com
       VITE_FEATURE_GIFT_SHOP_V2: 'false'
@@ -31,6 +35,7 @@ jobs:
       VITE_FEATURE_AI_BLUEPRINT_V3: 'false'
       VITE_FEATURE_PARENT_PORTAL_V1: 'false'
       VITE_GIFT_SHOP_MODE: api
+      RELEASE_BASE_REF: ${{ inputs.base_ref || github.event.pull_request.base.sha || 'origin/main' }}
     steps:
       - name: Checkout candidate commit
         uses: actions/checkout@v6
@@ -53,10 +58,23 @@ jobs:
       - name: Run full verification
         run: npm run verify
 
-      - name: Run release-readiness policy
-        env:
-          RELEASE_BASE_REF: ${{ inputs.base_ref }}
-        run: npm run release:readiness -- --base="$RELEASE_BASE_REF"
+      - name: Enforce performance budget
+        run: npm run perf:budget
+
+      - name: Verify migration and rollback contracts
+        run: npm run test:run -- tests/d1MigrationLayout.test.ts tests/d1RollbackCoverage.test.ts tests/freshD1Bootstrap.test.ts
+
+      - name: Write release-readiness policy report
+        run: npm run release:readiness -- --base="$RELEASE_BASE_REF" --output=reports/release-readiness-policy.json
+
+      - name: Upload policy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-readiness-policy-${{ github.run_id }}
+          path: reports/release-readiness-policy.json
+          if-no-files-found: ignore
+          retention-days: 14
 
   e2e-stubbed:
     name: Cypress stubbed readiness
@@ -145,3 +163,54 @@ jobs:
           path: cypress/screenshots
           if-no-files-found: ignore
           retention-days: 7
+
+  release-ready:
+    name: Release ready
+    needs: [core-gate, e2e-stubbed, e2e-blueprint-v3]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Write aggregate readiness report
+        env:
+          CORE_RESULT: ${{ needs.core-gate.result }}
+          E2E_V2_RESULT: ${{ needs.e2e-stubbed.result }}
+          E2E_V3_RESULT: ${{ needs.e2e-blueprint-v3.result }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p reports
+          node <<'NODE'
+          const fs = require('node:fs');
+          const checks = {
+            coreGate: process.env.CORE_RESULT,
+            cypressV2: process.env.E2E_V2_RESULT,
+            cypressV3: process.env.E2E_V3_RESULT,
+          };
+          const status = Object.values(checks).every(value => value === 'success')
+            ? 'ready'
+            : 'blocked';
+          const report = {
+            status,
+            releaseSha: process.env.RELEASE_SHA,
+            checks,
+          };
+          fs.writeFileSync(
+            'reports/release-readiness.json',
+            `${JSON.stringify(report, null, 2)}\n`,
+            'utf8',
+          );
+          process.stdout.write(`${JSON.stringify(report)}\n`);
+          NODE
+
+      - name: Upload aggregate readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-readiness-${{ github.run_id }}
+          path: reports/release-readiness.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce ready status
+        run: |
+          node -e "const r=require('./reports/release-readiness.json'); if(r.status!=='ready') process.exit(1)"

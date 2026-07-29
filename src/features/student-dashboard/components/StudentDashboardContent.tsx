@@ -24,12 +24,15 @@ export const StudentDashboardContent = (props: StudentDashboardContentProps) => 
       unifiedNotificationsReady={notificationFlag.ready}
       unifiedNotificationsEnabled={notificationFlag.enabled}
       onSelectSection={props.onSelectSection}
+      onOpenAssignments={props.onOpenAssignments}
+      onOpenPractice={props.onOpenPractice}
       onOpenAssignment={props.assignments.openAssignment}
       onOpenResultReport={props.onOpenResultReport}
       onOpenGiftShop={props.onOpenGiftShop}
       onOpenLiveExam={props.onOpenLiveExam}
       onOpenAvatar={props.onOpenAvatar}
       onOpenChangePassword={props.onOpenChangePassword}
+      onClearDeviceData={props.onClearDeviceData}
       onLogout={props.onLogout}
     />
     {notificationFlag.ready && (

@@ -35,7 +35,16 @@
  *   npx cypress run --e2e --spec "cypress/e2e/gift-shop.cy.ts"
  */
 
-const STUDENT_SESSION_KEY = 'tohieuquiz_student_session';
+const teacherAuthStorageValue = JSON.stringify({
+  state: {
+    isLoggedIn: true,
+    username: 'admin',
+    teacherName: 'Quản trị Gift Shop',
+    isAdmin: true,
+    teacherClass: null,
+  },
+  version: 0,
+});
 
 const student = {
   studentId: 'student-an',
@@ -51,12 +60,12 @@ const student = {
 
 const timestamps = { createdAt: '2026-07-25T01:00:00.000Z', updatedAt: '2026-07-25T01:00:00.000Z' };
 
-const BISCUIT = { id: 'gift-banh', name: 'Bánh quy bơ', category: 'SNACK', priceCoins: 200, imageUrl: '', isActive: true, ...timestamps };
-const PEN = { id: 'gift-but', name: 'Bút bi bốn màu', category: 'SUPPLY', priceCoins: 300, imageUrl: '', isActive: true, ...timestamps };
+const BISCUIT = { id: 'gift-banh', name: 'Bánh quy bơ', category: 'SNACK', priceCoins: 200, imageUrl: '', isActive: true, stockTotal: 10, stockRemaining: 10, lowStockThreshold: 2, weeklyLimitPerStudent: 1, scopeType: 'SCHOOL', schoolId: 'admin', ...timestamps };
+const PEN = { id: 'gift-but', name: 'Bút bi bốn màu', category: 'SUPPLY', priceCoins: 300, imageUrl: '', isActive: true, stockTotal: 10, stockRemaining: 10, lowStockThreshold: 2, weeklyLimitPerStudent: 1, scopeType: 'SCHOOL', schoolId: 'admin', ...timestamps };
 // Đắt hơn số xu đang có (500) nên là mốc của thanh "cần thêm bao nhiêu xu".
-const MONITOR = { id: 'gift-lop-truong', name: 'Làm lớp trưởng một ngày', category: 'PRIVILEGE', priceCoins: 900, imageUrl: '', isActive: true, ...timestamps };
+const MONITOR = { id: 'gift-lop-truong', name: 'Làm lớp trưởng một ngày', category: 'PRIVILEGE', priceCoins: 900, imageUrl: '', isActive: true, stockTotal: 10, stockRemaining: 10, lowStockThreshold: 2, weeklyLimitPerStudent: 1, scopeType: 'SCHOOL', schoolId: 'admin', ...timestamps };
 // isActive false: học sinh không được thấy, dù cùng danh mục và thừa xu để đổi.
-const RETIRED = { id: 'gift-keo', name: 'Kẹo mút ngừng bán', category: 'SNACK', priceCoins: 50, imageUrl: '', isActive: false, ...timestamps };
+const RETIRED = { id: 'gift-keo', name: 'Kẹo mút ngừng bán', category: 'SNACK', priceCoins: 50, imageUrl: '', isActive: false, stockTotal: 10, stockRemaining: 10, lowStockThreshold: 2, weeklyLimitPerStudent: 1, scopeType: 'SCHOOL', schoolId: 'admin', ...timestamps };
 
 const CATALOG = [BISCUIT, PEN, MONITOR, RETIRED];
 
@@ -69,8 +78,8 @@ const pendingOrder = {
   className: student.className,
   itemSnapshot: BISCUIT,
   priceCoins: BISCUIT.priceCoins,
-  status: 'VOUCHER_ISSUED',
-  voucherCode: 'QUA-7HK2',
+  status: 'PENDING',
+  voucherCode: '',
   createdAt: '2026-07-25T02:00:00.000Z',
   updatedAt: '2026-07-25T02:00:00.000Z',
 };
@@ -78,16 +87,51 @@ const pendingOrder = {
 /**
  * @param seedOrders đơn đã có sẵn trước khi spec bắt đầu (phía giáo viên cần, phía học sinh không).
  */
-function installGiftShopApi(seedOrders: Array<typeof pendingOrder> = []) {
+function installGiftShopApi(seedOrders: Array<typeof pendingOrder> = [], accountMode: 'student' | 'admin' = 'admin') {
   // Copy từng đơn chứ không chỉ copy mảng: handler trao/hủy sửa `status` ngay trên object, nên
   // `[...seedOrders]` sẽ để test trước làm bẩn `pendingOrder` cho test sau (đơn "chờ trao" biến mất).
   const orders = seedOrders.map((order) => ({ ...order }));
 
   cy.intercept('GET', '**/api/system-settings*', { status: 'success', data: { aiAssistantEnabled: false } });
+  cy.intercept('GET', '**/api/account/me', accountMode === 'student'
+    ? {
+      statusCode: 401,
+      body: { status: 'error', message: 'Unauthorized' },
+    }
+    : {
+      statusCode: 200,
+      body: {
+        data: {
+          username: 'admin',
+          fullName: 'Qu?n tr? Gift Shop',
+          role: 'admin',
+          classes: [],
+          mustChangePassword: false,
+        },
+      },
+    }).as('teacherSession');
   cy.intercept('GET', '**/api/student-profile', { status: 'success', data: student }).as('studentProfile');
 
   cy.intercept('GET', '**/api/gift-shop/catalog', CATALOG).as('giftCatalog');
   cy.intercept('GET', '**/api/gift-shop/events', []).as('giftEvents');
+  let shopSetting = {
+    effective: { isOpen: true, closedReason: '', closedScope: null, schoolId: 'admin', classId: student.classId },
+    settings: [],
+  };
+  cy.intercept('GET', '**/api/gift-shop/settings', (req) => req.reply(shopSetting)).as('giftSettings');
+  cy.intercept('PUT', '**/api/gift-shop/settings', (req) => {
+    shopSetting = {
+      effective: {
+        isOpen: Boolean(req.body.isOpen),
+        closedReason: req.body.isOpen ? '' : String(req.body.closedReason || ''),
+        closedScope: req.body.isOpen ? null : req.body.scopeType,
+        schoolId: String(req.body.schoolId || 'admin'),
+        classId: String(req.body.classId || student.classId),
+      },
+      settings: [],
+    };
+    req.reply(shopSetting);
+  }).as('giftSettingsUpdate');
 
   // Một handler cho cả hai phía: có studentId là học sinh xem đơn của mình, còn lại là hàng đợi của
   // giáo viên và phải tôn trọng bộ lọc trạng thái — đó là thứ làm đơn biến mất khỏi hàng đợi sau khi trao.
@@ -98,7 +142,10 @@ function installGiftShopApi(seedOrders: Array<typeof pendingOrder> = []) {
       (!studentId || order.studentId === studentId)
       && (!status || status === 'ALL' || order.status === status)
     ));
-    req.reply(matched);
+    req.reply({
+      data: matched,
+      meta: { nextCursor: null, hasMore: false },
+    });
   }).as('giftOrders');
 
   cy.intercept('POST', '**/api/gift-shop/purchase', (req) => {
@@ -107,18 +154,26 @@ function installGiftShopApi(seedOrders: Array<typeof pendingOrder> = []) {
       ...pendingOrder,
       itemSnapshot: item,
       priceCoins: item.priceCoins,
-      status: 'VOUCHER_ISSUED',
+      status: 'PENDING',
     };
     orders.push(order);
     req.reply({
       orderId: order.id,
-      voucherCode: order.voucherCode,
+      voucherCode: '',
       newCoins: student.coins - item.priceCoins,
       status: order.status,
       idempotencyReplay: false,
       order,
     });
   }).as('giftPurchase');
+
+  cy.intercept('PATCH', '**/api/gift-shop/orders/*/approve', (req) => {
+    const orderId = req.url.split('/orders/')[1].split('/')[0];
+    const order = orders.find((entry) => entry.id === orderId)!;
+    order.status = 'APPROVED';
+    order.voucherCode = 'QUA-7HK2';
+    req.reply(order);
+  }).as('giftApprove');
 
   cy.intercept('PATCH', '**/api/gift-shop/orders/*/deliver', (req) => {
     const orderId = req.url.split('/orders/')[1].split('/')[0];
@@ -130,9 +185,9 @@ function installGiftShopApi(seedOrders: Array<typeof pendingOrder> = []) {
   cy.intercept('PATCH', '**/api/gift-shop/orders/*/cancel', (req) => {
     const orderId = req.url.split('/orders/')[1].split('/')[0];
     const order = orders.find((entry) => entry.id === orderId)!;
-    order.status = 'CANCELLED_REFUNDED';
+    order.status = 'CANCELLED';
     order.cancelReason = req.body.reason;
-    req.reply({ order, newCoins: student.coins, refundedCoins: order.priceCoins });
+    req.reply({ order, newCoins: student.coins, refundedCoins: order.priceCoins, idempotencyReplay: false });
   }).as('giftCancel');
 
   return { orders };
@@ -140,12 +195,13 @@ function installGiftShopApi(seedOrders: Array<typeof pendingOrder> = []) {
 
 const visitAsStudent = () => {
   cy.viewport(1440, 900);
-  cy.visit('/', {
+  cy.visit('/student/dashboard', {
     onBeforeLoad(win) {
-      win.localStorage.setItem(STUDENT_SESSION_KEY, JSON.stringify(student));
+      win.localStorage.setItem('tohieuquiz_student_restore_hint', '1');
     },
   });
   cy.wait('@studentProfile');
+  cy.location('pathname').should('eq', '/student/dashboard');
 };
 
 const openGiftShopAsStudent = () => {
@@ -159,11 +215,15 @@ const openGiftShopAsStudent = () => {
 
 const openGiftShopAsTeacher = () => {
   cy.viewport(1440, 900);
-  cy.visit('/?autologin=teacher');
-  // Sidebar gom nhóm và mặc định thu gọn: chưa mở "Tiện ích" thì mục tiệm tạp hóa chưa có trong DOM.
-  cy.contains('button', 'Tiện ích').click();
-  cy.contains('button', 'Tiệm tạp hóa').click();
+  cy.visit('/teacher/gift-shop?status=PENDING', {
+    onBeforeLoad(win) {
+      win.localStorage.setItem('auth-storage', teacherAuthStorageValue);
+    },
+  });
+  cy.wait('@teacherSession');
+  cy.location('pathname').should('eq', '/teacher/gift-shop');
   cy.wait('@giftOrders');
+  cy.contains('h2', 'Tiệm tạp hóa', { timeout: 20_000 }).should('be.visible');
 };
 
 /** Đổi bộ lọc trạng thái làm `query.status` đổi theo, `useGiftShopRefresh` tải lại danh sách. */
@@ -173,8 +233,8 @@ const filterOrdersBy = (label: string) => {
 };
 
 describe('Gift Shop V2 end-to-end contracts', () => {
-  it('lets a student spend coins and walk away with a voucher code', () => {
-    installGiftShopApi();
+  it('lets a student spend coins and submit a pending request without an early voucher', () => {
+    installGiftShopApi([], 'student');
     visitAsStudent();
     openGiftShopAsStudent();
     cy.wait('@giftCatalog');
@@ -196,22 +256,37 @@ describe('Gift Shop V2 end-to-end contracts', () => {
     });
 
     cy.contains('Đổi quà thành công').should('be.visible');
-    cy.contains('code', 'QUA-7HK2').should('be.visible');
+    cy.contains('Trạng thái: Chờ giáo viên duyệt').should('be.visible');
 
     cy.contains('button', 'Xem đơn của em').click();
     cy.get('header').contains('300 xu').should('be.visible');
-    // Lấy theo mã nhận quà chứ không theo tên quà: tên quà còn nằm ở thẻ trong danh mục bên trái.
-    cy.contains('article', 'QUA-7HK2').should('contain.text', 'Chờ giáo viên trao');
+    // Đơn mới chưa có voucher. Giới hạn kiểm tra trong khu vực đơn để không bắt nhầm thẻ catalog cùng tên món.
+    cy.contains('section', 'Đơn đổi quà của em').within(() => {
+      cy.contains('article', 'Bánh quy bơ').should('contain.text', 'Chờ giáo viên duyệt');
+      cy.contains('QUA-').should('not.exist');
+    });
   });
 
-  it('takes a delivered order out of the teacher queue', () => {
+  it('approves a pending order before delivering it', () => {
     installGiftShopApi([pendingOrder]);
     openGiftShopAsTeacher();
 
-    cy.contains('article', 'Chờ trao quà').should('contain.text', '1');
+    cy.contains('article', 'Chờ duyệt').should('contain.text', '1');
+    cy.contains('article', 'Nguyễn Văn An').within(() => {
+      cy.contains('Cấp sau khi duyệt').should('be.visible');
+      cy.contains('Bánh quy bơ').should('be.visible');
+      cy.contains('button', 'Duyệt đơn').click();
+    });
+
+    cy.wait('@giftApprove').its('request.body').should((body) => {
+      expect(body.username, 'giáo viên duyệt').to.equal('admin');
+      expect(body.isAdmin).to.equal(true);
+    });
+    cy.contains('Chưa có đơn phù hợp').should('be.visible');
+
+    filterOrdersBy('Chờ trao');
     cy.contains('article', 'Nguyễn Văn An').within(() => {
       cy.contains('QUA-7HK2').should('be.visible');
-      cy.contains('Bánh quy bơ').should('be.visible');
       cy.contains('button', 'Xác nhận đã trao').click();
     });
 
@@ -226,16 +301,28 @@ describe('Gift Shop V2 end-to-end contracts', () => {
       expect(body.isAdmin).to.equal(true);
     });
 
-    // Bộ lọc mặc định là VOUCHER_ISSUED, nên trao xong đơn phải rời hàng đợi.
     cy.contains('Chưa có đơn phù hợp').should('be.visible');
-    cy.contains('article', 'Chờ trao quà').should('contain.text', '0');
-
-    // Rời hàng đợi không có nghĩa là đã trao — lọc sang "Đã trao" để thấy đúng trạng thái mới.
     filterOrdersBy('Đã trao');
     cy.contains('article', 'QUA-7HK2').within(() => {
       cy.contains('Đã trao quà').should('be.visible');
       cy.contains('button', 'Xác nhận đã trao').should('not.exist');
     });
+  });
+
+  it('lets a teacher close the current shop scope with a reason', () => {
+    installGiftShopApi();
+    openGiftShopAsTeacher();
+
+    cy.contains('button', 'Tạm đóng tiệm').should('be.disabled');
+    cy.get('input[placeholder="Ví dụ: Đang kiểm kê phần thưởng"]').type('Đang kiểm kê kho quà');
+    cy.contains('button', 'Tạm đóng tiệm').click();
+
+    cy.wait('@giftSettingsUpdate').its('request.body').should((body) => {
+      expect(body.scopeType).to.equal('SCHOOL');
+      expect(body.isOpen).to.equal(false);
+      expect(body.closedReason).to.equal('Đang kiểm kê kho quà');
+    });
+    cy.contains('Tiệm đang tạm đóng').should('be.visible');
   });
 
   it('refuses to cancel an order without a reason, then refunds with one', () => {
@@ -259,7 +346,7 @@ describe('Gift Shop V2 end-to-end contracts', () => {
     cy.contains('Chưa có đơn phù hợp').should('be.visible');
 
     filterOrdersBy('Đã hủy');
-    cy.contains('article', 'QUA-7HK2').should('contain.text', 'Đã hủy và hoàn xu');
+    cy.contains('article', 'Nguyễn Văn An').should('contain.text', 'Đã hủy và hoàn xu');
     cy.contains('article', 'Đã hoàn xu').should('contain.text', '1');
   });
 });

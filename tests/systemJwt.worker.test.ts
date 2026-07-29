@@ -16,9 +16,9 @@ afterEach(() => {
 });
 
 describe('JWT security contract', () => {
-    it('issues HS256 tokens with issuer, audience, and a normalized session purpose', async () => {
+    it('issues HS256 tokens with issuer, audience, tokenVersion, and a normalized session purpose', async () => {
         const secret = 'a-test-secret-that-is-long-enough';
-        const token = await signJWT({ username: 'teacher-a', role: 'teacher' }, secret);
+        const token = await signJWT({ username: 'teacher-a', role: 'teacher', tokenVersion: 1 }, secret);
         const payload = await verifyJWT(token, secret, { allowLegacy: false });
 
         expect(payload).toMatchObject({
@@ -99,7 +99,7 @@ describe('teacher session version enforcement', () => {
 
         const current = await signJWT({ username: 'teacher-a', role: 'teacher', tokenVersion: 3, purpose: 'session' }, secret);
         const currentResult = await verifyJWTMiddleware(new Request('https://test/api/results', {
-            headers: { Authorization: `Bearer ${current}` },
+            headers: { Cookie: `auth_token=${current}` },
         }), env);
         expect(currentResult).not.toBeInstanceOf(Response);
     });

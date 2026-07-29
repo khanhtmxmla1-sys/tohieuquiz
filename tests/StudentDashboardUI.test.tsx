@@ -18,6 +18,10 @@ const dashboardBodySource = readFileSync(
   resolve(process.cwd(), 'src/features/student-dashboard/components/StudentDashboardBody.tsx'),
   'utf8',
 );
+const studentAssignmentsSource = readFileSync(
+  resolve(process.cwd(), 'src/features/student-dashboard/hooks/useStudentAssignments.ts'),
+  'utf8',
+);
 const dashboardSource = [
   dashboardShellSource,
   dashboardControllerSource,
@@ -38,7 +42,7 @@ describe('StudentDashboardUI responsive composition', () => {
   });
 
   it('keeps the page shell declarative and delegates orchestration to a controller', () => {
-    expect(dashboardShellSource).toContain('useStudentDashboardController()');
+    expect(dashboardShellSource).toContain('useStudentDashboardController(sessionId)');
     expect(dashboardShellSource).not.toContain('useClassroomStore');
     expect(dashboardShellSource).not.toContain('useHomeworkStore');
     expect(dashboardControllerSource).toContain('const studentSession = useClassroomStore');
@@ -64,12 +68,25 @@ describe('StudentDashboardUI responsive composition', () => {
     expect(assigned).toBeLessThan(rewards);
   });
 
-  it('wires the private result-report section and notification deep link through the controller', () => {
-    expect(dashboardControllerSource).toContain('openResultReport');
-    expect(dashboardControllerSource).toContain("setActiveSection('resultReports')");
+  it('wires private student sections and result reports through canonical URLs', () => {
+    expect(dashboardControllerSource).toContain('resolveStudentSectionFromLocation');
+    expect(dashboardControllerSource).toContain('navigate(getStudentSectionRoute(section))');
+    expect(dashboardControllerSource).toContain("getStudentRoute('results')");
+    expect(dashboardControllerSource).not.toContain("setView('shop')");
     expect(dashboardContentSource).toContain('<StudentResultReportsPage');
     expect(dashboardShellSource).toContain('selectedResultReportId={controller.selectedResultReportId}');
     expect(dashboardShellSource).toContain('onOpenResultReport={controller.openResultReport}');
+    expect(dashboardShellSource).toContain('useStudentDashboardController(sessionId)');
+  });
+
+  it('restores assignment, practice, and live-exam deep links from the route', () => {
+    expect(dashboardShellSource).toContain("location.pathname === '/student/assignments'");
+    expect(dashboardShellSource).toContain("location.pathname === '/student/practice'");
+    expect(dashboardShellSource).toContain("useParams<{ subjectId?: string; sessionId?: string }>()");
+    expect(dashboardControllerSource).toContain("getStudentRoute('liveExam', { sessionId })");
+    expect(studentAssignmentsSource).toContain("searchParams.get('page')");
+    expect(studentAssignmentsSource).toContain("getStudentRoute('assignments')");
+    expect(studentAssignmentsSource).toContain("navigate(`${getStudentRoute('assignments')}");
   });
 
   it('composes the expected main and sidebar regions', () => {

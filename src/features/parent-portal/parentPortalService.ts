@@ -1,6 +1,8 @@
 import type {
   ParentApiSuccess,
   ParentCertificateHistoryItem,
+  ParentContactPreferences,
+  ParentContactPreferencesInput,
   ParentDashboardPayload,
   ParentHistoryPage,
   ParentHomeworkHistoryItem,
@@ -37,6 +39,22 @@ export const logout = async (): Promise<void> => {
 };
 export const getDashboard = (weekStart?: string) => unwrap<ParentDashboardPayload>(
   'get_parent_dashboard', weekStart ? { weekStart } : {},
+);
+export const getPreferences = () => unwrap<ParentContactPreferences>('get_parent_preferences');
+export const updatePreferences = (input: ParentContactPreferencesInput) => unwrap<ParentContactPreferences>(
+  'update_parent_preferences', input as unknown as Record<string, unknown>,
+);
+export const requestEmailVerification = () => unwrap<{ requested: true }>(
+  'request_parent_email_verification',
+);
+export const verifyParentEmail = (token: string) => unwrap<{ verified: true }>(
+  'verify_parent_email', { token },
+);
+export const requestPinRecovery = (accessCode: string, email: string) => unwrap<{ requested: true }>(
+  'request_parent_pin_recovery', { accessCode, email },
+);
+export const confirmPinRecovery = (token: string, pin: string) => unwrap<{ reset: true }>(
+  'confirm_parent_pin_recovery', { token, pin },
 );
 export const listNotifications = (input: {
   kind?: ParentNotificationKind;

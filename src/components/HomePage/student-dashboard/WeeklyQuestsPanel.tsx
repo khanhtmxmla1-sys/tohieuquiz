@@ -7,6 +7,7 @@ export function WeeklyQuestsPanel({
   isLoading,
   errorMessage,
   claimingQuestId,
+  isOffline = false,
   onRetry,
   onClaim,
 }: WeeklyQuestsPanelProps) {
@@ -35,7 +36,7 @@ export function WeeklyQuestsPanel({
       ) : null}
 
       {!isLoading && errorMessage ? (
-        <DashboardSectionError message={errorMessage} onRetry={onRetry} />
+        <DashboardSectionError message={errorMessage} onRetry={onRetry} retryDisabled={isOffline} />
       ) : null}
 
       {!isLoading && !errorMessage && quests.length === 0 ? (
@@ -50,7 +51,7 @@ export function WeeklyQuestsPanel({
           {quests.map((quest) => {
             const percent = getWeeklyProgressPercent(quest.progress, quest.target);
             const isClaiming = claimingQuestId === quest.id;
-            const disabled = !quest.completed || quest.claimed || isClaiming;
+            const disabled = !quest.completed || quest.claimed || isClaiming || isOffline;
             const label = isClaiming
               ? 'Đang nhận...'
               : quest.claimed

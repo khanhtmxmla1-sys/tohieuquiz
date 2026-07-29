@@ -3,6 +3,7 @@ import { AlertTriangle, Clock3, Gift, X } from 'lucide-react';
 import type { GiftOrder } from '../../../types/giftShop.types';
 import type { GiftShopFiltersState } from './types';
 import { GiftOrderCard } from './GiftOrderCard';
+import { AccessibleVirtualList } from '../../common/AccessibleVirtualList';
 import { GiftOrderFilters } from './GiftOrderFilters';
 
 interface PendingAction {
@@ -16,6 +17,7 @@ interface Props {
   isLoading: boolean;
   pendingAction: PendingAction | null;
   filters: GiftShopFiltersState;
+  onApprove: (orderId: string) => Promise<void>;
   onDeliver: (orderId: string) => Promise<void>;
   onCancel: (orderId: string, reason: string) => Promise<void>;
 }
@@ -39,6 +41,7 @@ export const GiftOrdersSection = ({
   isLoading,
   pendingAction,
   filters,
+  onApprove,
   onDeliver,
   onCancel,
 }: Props) => {
@@ -61,7 +64,7 @@ export const GiftOrdersSection = ({
   }, [orders, normalizedSearch]);
 
   const priorityOrders = useMemo(() => orders
-    .filter((order) => order.status === 'VOUCHER_ISSUED')
+    .filter((order) => order.status === 'PENDING')
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     .slice(0, 3), [orders]);
 
@@ -95,7 +98,7 @@ export const GiftOrdersSection = ({
         setClassFilter={filters.setClassFilter}
       />
 
-      {priorityOrders.length > 0 && filters.statusFilter === 'VOUCHER_ISSUED' && (
+      {priorityOrders.length > 0 && filters.statusFilter === 'PENDING' && (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center gap-2 text-amber-900">
             <Clock3 className="h-4 w-4" aria-hidden="true" />
@@ -122,20 +125,25 @@ export const GiftOrdersSection = ({
             <p className="mt-1 text-sm text-slate-500">Thử đổi trạng thái, tên lớp hoặc từ khóa tìm kiếm.</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredOrders.map((order) => (
+          <AccessibleVirtualList
+            items={filteredOrders}
+            getKey={(order) => order.id}
+            ariaLabel="Danh s?ch ??n ??i qu?"
+            className="space-y-3"
+            itemHeight={250}
+            renderItem={(order) => (
               <GiftOrderCard
-                key={order.id}
                 order={order}
                 pending={pendingAction?.targetId === order.id}
+                onRequestApprove={(selectedOrder) => void onApprove(selectedOrder.id)}
                 onRequestDeliver={setDeliverOrder}
                 onRequestCancel={(selectedOrder) => {
                   setCancelReason('');
                   setCancelOrder(selectedOrder);
                 }}
               />
-            ))}
-          </div>
+            )}
+          />
         )}
       </div>
 

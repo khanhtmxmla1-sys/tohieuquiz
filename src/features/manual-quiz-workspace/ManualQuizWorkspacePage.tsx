@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useAuthStore } from '../../../stores/authStore';
 import { useQuizStore } from '../../../stores/quizStore';
-import { useTeacherDashboardUIStore } from '../../stores/useTeacherDashboardUIStore';
+import { getTeacherRoute } from '../../app/navigationRoutes';
 import ManualQuizWorkspaceGuard from './components/ManualQuizWorkspaceGuard';
 import DraftRecoveryDialog from './components/DraftRecoveryDialog';
 import DraftConflictDialog from './components/DraftConflictDialog';
@@ -25,6 +25,7 @@ import { useWorkspaceKeyboardShortcuts } from './hooks/useWorkspaceKeyboardShort
 import { useManualQuizWorkspaceStore } from './store/useManualQuizWorkspaceStore';
 import { validateManualQuiz } from './validation/manualQuizValidation';
 import { reportManualQuizTelemetry } from '../../services/telemetryService';
+import { getRemoteManualQuizDraft } from '../../services/manualQuizDraftService';
 import type {
     ManualQuizDraftEnvelope,
     ManualQuizNavigationState,
@@ -52,8 +53,6 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const availableQuiz = useQuizStore((state) =>
         quizId ? state.quizzes.find((quiz) => quiz.id === quizId) ?? null : null,
     );
-    const setView = useQuizStore((state) => state.setView);
-    const setActiveTab = useTeacherDashboardUIStore((state) => state.setActiveTab);
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const initializeFromSeed = useManualQuizWorkspaceStore((state) => state.initializeFromSeed);
     const initializeFromQuiz = useManualQuizWorkspaceStore((state) => state.initializeFromQuiz);
@@ -74,16 +73,19 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const [isQuestionImportOpen, setQuestionImportOpen] = useState(false);
     const [mobilePane, setMobilePane] = useState<WorkspaceMobilePane>('editor');
     const openedDraftRef = useRef<string | null>(null);
+    const requestedDraftId = useMemo(() => new URLSearchParams(location.search).get('draftId'), [location.search]);
+    const [remoteDraftStatus, setRemoteDraftStatus] = useState<'loading' | 'loaded' | 'error'>(
+        requestedDraftId ? 'loading' : 'loaded',
+    );
+    const [remoteDraftError, setRemoteDraftError] = useState('');
 
     const seed = navigationState?.manualQuizSeed ?? DEFAULT_SEED;
 
     const autosaveController = useManualQuizAutosave(envelope);
     const handlePublishSuccess = useCallback(() => {
-        setActiveTab('manage');
-        setView('teacher_dash');
         setValidationOpen(false);
-        navigate('/');
-    }, [navigate, setActiveTab, setView]);
+        navigate(getTeacherRoute('manage'));
+    }, [navigate]);
     const publishController = useManualQuizPublish({
         envelope,
         onSuccess: handlePublishSuccess,
@@ -139,7 +141,36 @@ const ManualQuizWorkspacePage: React.FC = () => {
     });
 
     useEffect(() => {
+        if (!username || !requestedDraftId || envelope || remoteDraftStatus !== 'loading') return;
+        const controller = new AbortController();
+        setRemoteDraftError('');
+
+        void getRemoteManualQuizDraft(requestedDraftId, controller.signal)
+            .then((record) => {
+                if (controller.signal.aborted) return;
+                hydrateEnvelope({
+                    ...(record.draft as ManualQuizDraftEnvelope),
+                    draftId: record.id,
+                    quizId: record.quizId,
+                    ownerUsername: record.ownerUsername,
+                    revision: record.revision,
+                    updatedAt: record.updatedAt,
+                });
+                setRemoteDraftStatus('loaded');
+                setRecoveryChecked(true);
+            })
+            .catch((error: unknown) => {
+                if (controller.signal.aborted) return;
+                setRemoteDraftError(error instanceof Error ? error.message : 'Không thể mở bản nháp đã chọn.');
+                setRemoteDraftStatus('error');
+            });
+
+        return () => controller.abort();
+    }, [envelope, hydrateEnvelope, remoteDraftStatus, requestedDraftId, username]);
+
+    useEffect(() => {
         if (!username || envelope || pendingRecovery || recoveryChecked) return;
+        if (requestedDraftId && remoteDraftStatus !== 'error') return;
 
         const latestDraft = findLatestLocalDraft(username, quizId);
         const workspaceStartedAt = navigationState?.workspaceStartedAt;
@@ -167,6 +198,8 @@ const ManualQuizWorkspacePage: React.FC = () => {
         pendingRecovery,
         quizId,
         recoveryChecked,
+        remoteDraftStatus,
+        requestedDraftId,
         seed,
         username,
     ]);
@@ -242,6 +275,16 @@ const ManualQuizWorkspacePage: React.FC = () => {
                 className="flex h-[100dvh] min-h-[640px] max-w-full flex-col overflow-x-hidden overflow-y-hidden bg-[#FFFDF7] font-['Be_Vietnam_Pro',sans-serif] text-[#172033]"
             >
                 <h1 className="sr-only">Phòng soạn đề thủ công</h1>
+                {remoteDraftStatus === 'loading' && (
+                    <div role="status" className="absolute inset-0 z-50 grid place-items-center bg-white/90 px-4 text-center font-semibold text-slate-700">
+                        Đang mở bản nháp đã chọn…
+                    </div>
+                )}
+                {remoteDraftError && (
+                    <div role="alert" className="border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">
+                        Không thể mở bản nháp đã chọn: {remoteDraftError}. Hệ thống đã chuyển sang bản nháp cục bộ hoặc đề mới an toàn.
+                    </div>
+                )}
                 <WorkspaceHeader onOpenValidation={openValidation} />
                 <div
                     data-testid="workspace-grid"

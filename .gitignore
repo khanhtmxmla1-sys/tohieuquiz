@@ -70,6 +70,9 @@ reports/dependency-audit*.json
 artifacts/dependency-audit/
 
 # Sensitive local exports and credentials
+tohieuquiz-d1-*.sql.gz.enc
+tohieuquiz-d1-*.manifest.json
+tohieuquiz-d1-*.restore-report.json
 data/migration/*
 !data/migration/README.md
 *.pem

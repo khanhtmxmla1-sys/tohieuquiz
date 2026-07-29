@@ -1,29 +1,21 @@
 import type { AuthPolicy } from './types';
 
-const LEGACY_DIRECT_TOKEN_KEYS = [
+const LEGACY_AUTH_STORAGE_KEYS = [
     'tohieuquiz_jwt_token',
     'tohieuquiz_teacher_jwt_token',
     'token',
     'jwt',
     'access_token',
+    'auth-storage',
+    'auth_session',
 ] as const;
 
 export function cleanupLegacyAuthStorage(): void {
     try {
-        LEGACY_DIRECT_TOKEN_KEYS.forEach(key => localStorage.removeItem(key));
-
-        const raw = localStorage.getItem('auth-storage');
-        if (raw) {
-            try {
-                const parsed = JSON.parse(raw);
-                if (parsed?.state && typeof parsed.state === 'object' && 'token' in parsed.state) {
-                    delete parsed.state.token;
-                    localStorage.setItem('auth-storage', JSON.stringify(parsed));
-                }
-            } catch {
-                localStorage.removeItem('auth-storage');
-            }
-        }
+        // Cookie-backed sessions are the only source of authentication truth.
+        // Remove the complete legacy auth payload rather than preserving browser
+        // metadata that could be mistaken for a valid or privileged session.
+        LEGACY_AUTH_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
     } catch {
         // Storage can be unavailable in privacy-restricted browser contexts.
     }

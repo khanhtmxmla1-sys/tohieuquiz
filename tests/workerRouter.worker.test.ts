@@ -13,6 +13,8 @@ const verifyTokenMock = vi.fn(() => unauthorized());
 
 const routeMocks = {
   handleTeacherRoutes: vi.fn(async () => null as Response | null),
+  handleSecurityCenterRoutes: vi.fn(async () => null as Response | null),
+  handlePasskeyRoutes: vi.fn(async () => null as Response | null),
   handleLogoutRoute: vi.fn(async () => null as Response | null),
   handleQuizDraftRoutes: vi.fn(async () => null as Response | null),
   handleQuizRoutes: vi.fn(async () => null as Response | null),
@@ -39,6 +41,9 @@ const routeMocks = {
   handleAdminCertificateRoutes: vi.fn(async () => null as Response | null),
   handleMathObservabilityRoutes: vi.fn(async () => null as Response | null),
   handleClientErrorRoute: vi.fn(async () => null as Response | null),
+  handleClientTelemetryRoute: vi.fn(async () => null as Response | null),
+  handleActionCenterRoutes: vi.fn(async () => null as Response | null),
+  handleOperationsRoutes: vi.fn(async () => null as Response | null),
   handlePhieuSubdomain: vi.fn(async () => null as Response | null),
   handlePublicPhieuApi: vi.fn(async () => null as Response | null),
   handleParentPortalRoutes: vi.fn(async () => unauthorized()),
@@ -128,9 +133,11 @@ describe('Worker root route dispatch', () => {
       event: 'worker_request_completed',
       requestId: 'req-health-1',
       route: '/api/health',
+      routeTemplate: '/api/health',
       method: 'GET',
       status: 200,
       durationMs: 25,
+      roleCategory: 'public',
     });
   });
 
@@ -146,6 +153,21 @@ describe('Worker root route dispatch', () => {
       expect.objectContaining({ failureMode: 'closed', maxRequests: 30 }),
     );
     expect(routeMocks.handleClientErrorRoute).toHaveBeenCalledOnce();
+    expect(verifyTokenMock).not.toHaveBeenCalled();
+  });
+
+  it('accepts sampled client telemetry before shared authentication with a fail-closed limiter', async () => {
+    routeMocks.handleClientTelemetryRoute.mockResolvedValueOnce(new Response('{}', { status: 202 }));
+
+    const response = await workerFetch(request('/api/client-telemetry', 'POST'), env);
+
+    expect(response.status).toBe(202);
+    expect(rateLimitMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      env,
+      expect.objectContaining({ failureMode: 'closed', maxRequests: 60 }),
+    );
+    expect(routeMocks.handleClientTelemetryRoute).toHaveBeenCalledOnce();
     expect(verifyTokenMock).not.toHaveBeenCalled();
   });
 
@@ -245,6 +267,44 @@ describe('Worker root route dispatch', () => {
       env,
       expect.objectContaining({ failureMode: 'closed', maxRequests: 20 }),
     );
+  });
+
+  it('dispatches the admin operations endpoint through the authenticated route chain', async () => {
+    verifyTokenMock.mockReturnValueOnce(null);
+    routeMocks.handleOperationsRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/admin/operations'), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handleOperationsRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/admin/operations', 'GET',
+    );
+  });
+
+  it('dispatches passkey routes before the teacher account handler', async () => {
+    verifyTokenMock.mockReturnValueOnce(null);
+    routeMocks.handlePasskeyRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/account/passkeys'), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handlePasskeyRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/account/passkeys', 'GET',
+    );
+    expect(routeMocks.handleTeacherRoutes).not.toHaveBeenCalled();
+  });
+
+  it('dispatches account session routes before the teacher account handler', async () => {
+    verifyTokenMock.mockReturnValueOnce(null);
+    routeMocks.handleSecurityCenterRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/account/sessions'), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handleSecurityCenterRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/account/sessions', 'GET',
+    );
+    expect(routeMocks.handleTeacherRoutes).not.toHaveBeenCalled();
   });
 
   it('fails closed for legacy admin teacher mutations', async () => {

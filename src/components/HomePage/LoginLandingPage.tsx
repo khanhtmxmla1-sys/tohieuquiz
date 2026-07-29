@@ -1,12 +1,13 @@
 import React, { useState, useEffect, Suspense } from 'react';
+import { useLocation } from 'react-router';
 import { useAuthStore } from '../../../stores/authStore';
 import { useClassroomStore } from '../../stores/useClassroomStore';
-import { useQuizStore } from '../../../stores/quizStore';
 import { showError, showConfirm } from '../../utils/toast';
 import PasswordChangeDialog from '../common/PasswordChangeDialog';
 import CurrentAnnouncementBanner from '../common/CurrentAnnouncementBanner';
 import { NotificationSurfaceStack } from '../../features/notifications/components';
 import { useUnifiedNotificationsFeatureFlag } from '../../features/notifications/useUnifiedNotificationsFeatureFlag';
+import { authenticateTeacherWithPasskey, passkeysSupported } from '../../services/passkeyService';
 
 // Sub-components
 import LandingHeader from './components/LandingHeader';
@@ -23,14 +24,18 @@ type SavedLoginAccount = {
 const SAVED_LOGIN_KEY = 'tohieuquiz_saved_login_v1';
 
 const LoginLandingPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'student' | 'teacher'>('student');
+    const location = useLocation();
+    const requestedRole = new URLSearchParams(location.search).get('login');
+    const [activeTab, setActiveTab] = useState<'student' | 'teacher'>(
+        requestedRole === 'teacher' ? 'teacher' : 'student',
+    );
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [pendingTeacher, setPendingTeacher] = useState<any | null>(null);
+    const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
     const authStore = useAuthStore();
     const classroomStore = useClassroomStore();
-    const quizStore = useQuizStore();
     const notificationFlag = useUnifiedNotificationsFeatureFlag();
 
     // Session Persistence
@@ -42,13 +47,17 @@ const LoginLandingPage: React.FC = () => {
             if (typeof saved.username === 'string' && saved.username.trim()) {
                 setUsername(saved.username.trim());
             }
-            if (saved.role === 'teacher' || saved.role === 'student') {
+            if (
+                requestedRole !== 'teacher'
+                && requestedRole !== 'student'
+                && (saved.role === 'teacher' || saved.role === 'student')
+            ) {
                 setActiveTab(saved.role);
             }
         } catch (error) {
             console.warn('Could not load saved login account:', error);
         }
-    }, []);
+    }, [requestedRole]);
 
     const isLoading = activeTab === 'teacher' ? authStore.isLoggingIn : classroomStore.isLoading;
 
@@ -67,48 +76,58 @@ const LoginLandingPage: React.FC = () => {
         }
     };
 
+    const acceptTeacherSession = (teacher: any): boolean => {
+        const tUsername = String(teacher?.username || '').trim();
+        const tFullNameRaw = String(teacher?.fullName || teacher?.fullname || teacher?.full_name || teacher?.name || '').trim();
+        const tFullName = tFullNameRaw || tUsername;
+        const isTeacherAdmin = String(teacher?.role || '').trim().toLowerCase() === 'admin';
+        const tClass = teacher?.class ? String(teacher.class).trim() : undefined;
+        if (!tUsername) return false;
+        if (teacher.requiresPasswordChange) {
+            authStore.loginPendingPasswordChange();
+            setPendingTeacher({ username: tUsername, fullName: tFullName, isAdmin: isTeacherAdmin, class: tClass });
+            return true;
+        }
+        authStore.loginSuccess(tUsername, tFullName, isTeacherAdmin, tClass);
+        return true;
+    };
+
     const handleTeacherLogin = async () => {
         authStore.loginStart();
         try {
             const { callApi } = await import('../../services/apiAdapter');
             const result = await callApi<{ status?: string; data?: any; message?: string }>('login', { username, password });
-            
-            if (result?.status === 'success' && result.data) {
-                const teacher = result.data;
-                const tUsername = String(teacher.username || '').trim();
-                const tFullNameRaw = String(teacher.fullName || teacher.fullname || teacher.full_name || teacher.name || '').trim();
-                const tFullName = tFullNameRaw || tUsername;
-                const isTeacherAdmin = String(teacher.role || '').trim().toLowerCase() === 'admin';
-                const tClass = teacher.class ? String(teacher.class).trim() : undefined;
-                if (teacher.requiresPasswordChange) {
-                    authStore.loginPendingPasswordChange();
-                    setPendingTeacher({
-                        username: tUsername,
-                        fullName: tFullName,
-                        isAdmin: isTeacherAdmin,
-                        class: tClass,
-                    });
-                    return;
-                }
-                
-                authStore.loginSuccess(tUsername, tFullName, isTeacherAdmin, tClass);
-                quizStore.setView('teacher_dash');
-                return;
-            }
+            if (result?.status === 'success' && result.data && acceptTeacherSession(result.data)) return;
             authStore.loginFailure();
-            showError(result?.message || 'Tên đăng nhập hoặc mật khẩu không đúng!');
+            showError(result?.message || 'T?n ??ng nh?p ho?c m?t kh?u kh?ng ??ng!');
         } catch (error) {
             console.error('Login error:', error);
             authStore.loginFailure();
-            showError('Có lỗi xảy ra khi kết nối. Vui lòng thử lại!');
+            showError('C? l?i x?y ra khi k?t n?i. Vui l?ng th? l?i!');
+        }
+    };
+
+    const handlePasskeyLogin = async () => {
+        if (!username.trim()) {
+            showError('H?y nh?p t?i kho?n gi?o vi?n tr??c.');
+            return;
+        }
+        authStore.loginStart();
+        setIsPasskeyLoading(true);
+        try {
+            const teacher = await authenticateTeacherWithPasskey<any>(username);
+            if (!acceptTeacherSession(teacher)) throw new Error('Ph?n h?i t?i kho?n kh?ng h?p l?.');
+        } catch (error) {
+            authStore.loginFailure();
+            showError(error instanceof Error ? error.message : 'Kh?ng th? ??ng nh?p b?ng passkey.');
+        } finally {
+            setIsPasskeyLoading(false);
         }
     };
 
     const handleStudentLogin = async () => {
         const success = await classroomStore.loginStudent({ username, password });
-        if (success) {
-            quizStore.setView('home');
-        } else {
+        if (!success) {
             showError('Tên đăng nhập hoặc mật khẩu học sinh không đúng!');
         }
     };
@@ -122,7 +141,6 @@ const LoginLandingPage: React.FC = () => {
                 }} onComplete={() => {
                     authStore.loginSuccess(pendingTeacher.username, pendingTeacher.fullName, pendingTeacher.isAdmin, pendingTeacher.class);
                     setPendingTeacher(null);
-                    quizStore.setView('teacher_dash');
                 }} />
             )}
             <LandingHeader />
@@ -147,6 +165,9 @@ const LoginLandingPage: React.FC = () => {
                         setPassword={setPassword}
                         isLoading={isLoading}
                         onSubmit={handleLogin}
+                        onPasskey={() => void handlePasskeyLogin()}
+                        isPasskeyLoading={isPasskeyLoading}
+                        passkeyAvailable={passkeysSupported()}
                     />
                 </Suspense>
             </main>

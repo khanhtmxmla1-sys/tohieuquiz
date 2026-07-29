@@ -19,7 +19,7 @@ describe('AI Tutor internal error handling', () => {
     const db = {
       prepare: () => ({
         bind: () => ({
-          all: async () => { throw new Error('D1_ERROR: no such table questions_private'); },
+          first: async () => { throw new Error('D1_ERROR: no such table questions_private'); },
         }),
       }),
     };
@@ -29,32 +29,34 @@ describe('AI Tutor internal error handling', () => {
         'Content-Type': 'application/json',
         'x-request-id': 'req-ai-tutor-1',
       },
-      body: JSON.stringify({ quizId: 'quiz-a', wrongQuestionIds: ['q-1'] }),
+      body: JSON.stringify({ resultId: 'result-a' }),
     });
 
     const response = await handleAiTutorRoutes(
       request,
-      { DB: db, JWT_SECRET: 'test', CLIPROXY_API: 'https://ai.test', CLIPROXY_TOKEN: 'test' } as any,
+      {
+        DB: db,
+        JWT_SECRET: 'test',
+        CLIPROXY_API: 'https://ai.test',
+        CLIPROXY_TOKEN: 'test',
+        AI_GATEWAY: { fetch: vi.fn() },
+      } as any,
       '/api/ai-tutor/diagnose',
       'POST',
     );
     const payload = await response!.json() as any;
 
     expect(response!.status).toBe(500);
-    expect(payload.message).toBe('Internal server error');
-    expect(payload.requestId).toBe('req-ai-tutor-1');
+    expect(payload.error).toMatchObject({ code: 'AI_TUTOR_FAILED', requestId: 'req-ai-tutor-1' });
     expect(JSON.stringify(payload)).not.toContain('questions_private');
     expect(errorSpy).toHaveBeenCalledTimes(1);
     const logged = JSON.parse(String(errorSpy.mock.calls[0][0]));
     expect(logged).toEqual(expect.objectContaining({
-      event: 'worker_request_failed',
+      event: 'ai_tutor_exception',
       requestId: 'req-ai-tutor-1',
-      route: '/api/ai-tutor/diagnose',
-      method: 'POST',
+      role: 'student',
+      model: 'gemini-2.0-flash',
       status: 500,
-      errorCode: 'INTERNAL_ERROR',
-      context: 'POST /api/ai-tutor/diagnose',
-      errorName: 'Error',
     }));
     expect(JSON.stringify(logged)).not.toContain('questions_private');
   });

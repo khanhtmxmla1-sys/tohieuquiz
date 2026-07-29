@@ -98,7 +98,7 @@ describe('backend auth transport integration', () => {
         }, 'a-test-secret-that-is-long-enough');
         const request = new Request('https://api.test/api/account/change-password', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            headers: { 'Content-Type': 'application/json', Cookie: `auth_token=${token}` },
             body: JSON.stringify({ currentPassword: 'TeacherPass123', newPassword: 'NewTeacherPass123' }),
         });
         const response = await handleTeacherRoutes(request, env('cookie'), '/api/account/change-password', 'POST');

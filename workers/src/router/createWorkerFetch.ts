@@ -1,5 +1,12 @@
 import type { Env } from '../types';
-import { getRequestId, logStructured, withRequestId, type StructuredLogSink } from '../utils/logger';
+import {
+  getRequestId,
+  logStructured,
+  normalizeLogRouteTemplate,
+  withRequestId,
+  type StructuredLogSink,
+} from '../utils/logger';
+import { findApiAuthorizationPolicy } from '../security/apiAuthorizationPolicy';
 
 interface RateLimitOptions {
   windowMs: number;
@@ -39,6 +46,8 @@ export interface WorkerFetchDependencies {
   logger?: StructuredLogSink;
   now?: () => number;
   handleTeacherRoutes: RouteHandler;
+  handleSecurityCenterRoutes: RouteHandler;
+  handlePasskeyRoutes: RouteHandler;
   handleLogoutRoute: SimpleRouteHandler;
   handleQuizDraftRoutes: RouteHandler;
   handleQuizRoutes: RouteHandler;
@@ -65,6 +74,9 @@ export interface WorkerFetchDependencies {
   handleAdminCertificateRoutes: RouteHandler;
   handleMathObservabilityRoutes: RouteHandler;
   handleClientErrorRoute: RouteHandler;
+  handleClientTelemetryRoute: RouteHandler;
+  handleActionCenterRoutes: RouteHandler;
+  handleOperationsRoutes: RouteHandler;
   handlePhieuSubdomain: SimpleRouteHandler;
   handlePublicPhieuApi: (
     db: Env['DB'],
@@ -92,6 +104,8 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     logger = console,
     now = Date.now,
     handleTeacherRoutes,
+    handleSecurityCenterRoutes,
+    handlePasskeyRoutes,
     handleLogoutRoute,
     handleQuizDraftRoutes,
     handleQuizRoutes,
@@ -118,6 +132,9 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     handleAdminCertificateRoutes,
     handleMathObservabilityRoutes,
     handleClientErrorRoute,
+    handleClientTelemetryRoute,
+    handleActionCenterRoutes,
+    handleOperationsRoutes,
     handlePhieuSubdomain,
     handlePublicPhieuApi,
     handleParentPortalRoutes,
@@ -168,9 +185,22 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
       if (clientErrorResponse) return addCors(clientErrorResponse, request, env);
     }
 
+    if (path === '/api/client-telemetry') {
+      const rateLimitResponse = await rateLimit(request, env, {
+        windowMs: 60 * 1000,
+        maxRequests: 60,
+        failureMode: 'closed',
+      });
+      if (rateLimitResponse) return addCors(rateLimitResponse, request, env);
+      const telemetryResponse = await handleClientTelemetryRoute(request, env, path, method);
+      if (telemetryResponse) return addCors(telemetryResponse, request, env);
+    }
+
     const isUnsafeMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
     const isLoginAttempt = method === 'POST'
-      && (path === '/api/login' || path === '/api/student-login');
+      && (path === '/api/login'
+        || path === '/api/student-login'
+        || path.startsWith('/api/passkeys/authenticate/'));
     if (isLoginAttempt) {
       const rateLimitResponse = await rateLimit(request, env, {
         windowMs: 60 * 1000,
@@ -181,7 +211,14 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     }
 
     const isParentLoginAttempt = method === 'POST'
-      && (path === '/api/parent/activate' || path === '/api/parent/login');
+      && [
+        '/api/parent/activate',
+        '/api/parent/login',
+        '/api/parent/preferences/email/request-verification',
+        '/api/parent/preferences/email/verify',
+        '/api/parent/recovery/request',
+        '/api/parent/recovery/confirm',
+      ].includes(path);
     if (isParentLoginAttempt) {
       const rateLimitResponse = await rateLimit(request, env, {
         windowMs: 5 * 60 * 1000,
@@ -255,7 +292,18 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     try {
       let response: Response | null = null;
 
-      if (
+      if (path === '/api/admin/operations') {
+        response = await handleOperationsRoutes(request, env, path, method);
+      } else if (path.startsWith('/api/account/passkeys')
+        || path.startsWith('/api/passkeys/authenticate')) {
+        response = await handlePasskeyRoutes(request, env, path, method);
+      } else if (path.startsWith('/api/account/sessions')
+        || path === '/api/account/security-events'
+        || path === '/api/account/logout-all') {
+        response = await handleSecurityCenterRoutes(request, env, path, method);
+      } else if (path.startsWith('/api/teacher/action-center')) {
+        response = await handleActionCenterRoutes(request, env, path, method);
+      } else if (
         path.startsWith('/api/teachers')
         || path.startsWith('/api/admin/teachers')
         || path.startsWith('/api/account')
@@ -329,7 +377,10 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
         response = await handleTeacherAiQuotaRoutes(request, env, path, method);
       } else if (path.startsWith('/api/live-exam')) {
         response = await handleLiveExamRoutes(request, env, path, method);
-      } else if (path.startsWith('/api/notifications')) {
+      } else if (
+        path.startsWith('/api/notifications')
+        || path === '/api/admin/notification-metrics'
+      ) {
         response = await handleNotificationRoutes(request, env, path, method);
       } else if (
         path.startsWith('/api/certificate-batches')
@@ -353,13 +404,27 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
 
     const response = await dispatch();
     const correlatedResponse = withRequestId(response, requestId);
+    const policy = findApiAuthorizationPolicy(path, method, { ignoreMethod: true });
+    const authorization = policy?.authorization;
+    const roleCategory = authorization === 'student-owned'
+      ? 'student'
+      : authorization === 'teacher-owned'
+        ? 'staff'
+        : authorization === 'admin-only'
+          ? 'admin'
+          : authorization === 'internal-only'
+            ? 'internal'
+            : authorization || 'unknown';
+    const routeTemplate = policy?.path || normalizeLogRouteTemplate(path);
     logStructured('info', {
       event: 'worker_request_completed',
       requestId,
-      route: path,
+      route: routeTemplate,
+      routeTemplate,
       method,
       status: response.status,
       durationMs: now() - startedAt,
+      roleCategory,
     }, logger);
     return correlatedResponse;
   };
