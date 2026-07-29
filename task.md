@@ -171,7 +171,11 @@
   - [x] Một màn hình hiển thị overall/component health, last checked, probe latency, metrics, refresh và runbook read-only.
   - [x] Biểu đồ status/latency lazy-load; cho phép sao chép request ID và release SHA, không hiển thị raw log hay thao tác phá hủy.
   - [x] Cypress Electron admin/teacher 2/2; full Vitest 355 file/1.653 test, coverage 4 file/32 test, lint, strict/frontend/Worker typecheck, build, security và dependency audit đều đạt.
-- [ ] Task 33 — Security Center/session management
+- [x] Task 33 ? Security Center/session management
+  - [x] JWT m?i c? `sessionId`; D1 migration/rollback `0052` l?u session metadata t?i thi?u v? security events, kh?ng l?u full IP ho?c raw user-agent.
+  - [x] Ng??i d?ng xem phi?n hi?n t?i/thi?t b? kh?c, thu h?i t?ng phi?n v? logout-all theo cutoff; request sau revoke b? 401, phi?n t?o sau cutoff kh?ng b? ?nh h??ng.
+  - [x] ??i/reset m?t kh?u, session revoke, logout-all v? login threshold ghi security event; retention 90 ng?y ???c purge b?ng cron.
+  - [x] UI Security Center n?m trong C?i ??t c? nh?n; Cypress Electron 1/1, targeted 5 file/24 test, full Vitest 356 file/1.653 test, coverage 4 file/32 test, lint, frontend/strict/Worker typecheck, build, security v? dependency audit ??u ??t.
 - [ ] Task 34 — Passkey/WebAuthn cho staff
 - [ ] Task 35 — Runtime feature rollout control plane
 

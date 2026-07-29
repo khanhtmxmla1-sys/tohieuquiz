@@ -827,11 +827,11 @@ interface AuthState {
 - Create security routes/service/UI.
 - Test: `tests/securityCenter.worker.test.ts`, `cypress/e2e/security-center.cy.ts`
 
-- [ ] JWT có sessionId; DB lưu metadata tối thiểu.
-- [ ] Xem/revoke một phiên/logout all.
-- [ ] Events: password change/reset/session revoke/login threshold/passkey changes.
-- [ ] Retention 90 ngày và purge cron.
-- [ ] Không hiển thị full IP cho user thường.
+- [x] JWT có sessionId; DB lưu metadata tối thiểu.
+- [x] Xem/revoke một phiên/logout all.
+- [x] Events: password change/reset/session revoke/login threshold/passkey changes.
+- [x] Retention 90 ngày và purge cron.
+- [x] Không hiển thị full IP cho user thường.
 
 **Acceptance:** Revoke làm request kế tiếp 401; logout all không revoke session tạo sau thao tác.
 
