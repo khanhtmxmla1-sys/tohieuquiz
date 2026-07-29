@@ -898,9 +898,10 @@ interface AuthState {
 - Modify: `DEPLOYMENT_CHECKLIST.md`
 - Test: `tests/releaseReadiness.test.ts`
 
-- [ ] Gate: typecheck frontend/workers, tests, coverage, build, perf budget, security root/workers, migrations, Cypress V2/V3.
-- [ ] Output machine-readable `ready|blocked`.
+- [x] Gate: typecheck frontend/workers, tests, coverage, build, perf budget, security root/workers, migrations, Cypress V2/V3.
+- [x] Output machine-readable `ready|blocked`.
 - [ ] Branch protection: PR required, checks required, stale approval dismissed, no force push/direct push.
+  - Blocker 29/07/2026: GitHub API HTTP 403 yêu cầu GitHub Pro hoặc repository public; chưa thay đổi remote settings.
 - [ ] CODEOWNERS cho security-sensitive paths nếu quy trình hỗ trợ.
 
 **Acceptance:** PR đỏ/direct push không merge vào main; gate không deploy.

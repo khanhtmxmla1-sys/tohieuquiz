@@ -1,0 +1,14 @@
+# Default repository ownership
+* @khanhtmxmla1-sys
+
+# CI, release and security-sensitive paths
+/.github/ @khanhtmxmla1-sys
+/SECURITY.md @khanhtmxmla1-sys
+/scripts/security-*.mjs @khanhtmxmla1-sys
+/scripts/release-readiness.mjs @khanhtmxmla1-sys
+/workers/migrations/ @khanhtmxmla1-sys
+/workers/rollbacks/ @khanhtmxmla1-sys
+/workers/src/middleware/ @khanhtmxmla1-sys
+/workers/src/security/ @khanhtmxmla1-sys
+/workers/src/utils/jwt.ts @khanhtmxmla1-sys
+/workers/wrangler.toml @khanhtmxmla1-sys
