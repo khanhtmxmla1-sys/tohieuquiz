@@ -351,14 +351,16 @@ interface AuthState {
 - Create: `docs/operations/d1-backup-restore.md`
 - Test: `tests/d1BackupScripts.test.ts`
 
-- [ ] Loại FTS virtual/shadow tables khỏi export.
-- [ ] Script từ chối ghi dump trong repo.
-- [ ] Mã hóa/nén ở storage an toàn ngoài repo.
-- [ ] Diễn tập Time Travel vào DB staging riêng.
-- [ ] Verify schema, row counts, login/API smoke và rebuild FTS.
-- [ ] Ghi RPO/RTO thực tế.
+- [x] Loại FTS virtual/shadow tables khỏi export.
+- [x] Script từ chối ghi dump trong repo.
+- [x] Mã hóa/nén ở storage an toàn ngoài repo.
+- [x] Diễn tập Time Travel vào DB staging riêng.
+- [x] Verify schema, row counts, login/API smoke và rebuild FTS.
+- [x] Ghi RPO/RTO thực tế.
 
-**Acceptance:** Restore staging hoàn chỉnh vượt smoke test, không có dump trong Git/artifact công khai.
+**Acceptance:** Đạt ngày 29/07/2026 trên D1 staging APAC riêng; Time Travel, encrypted export, isolated restore và authenticated HTTP smoke đều đạt, không có dump hoặc credential trong Git/artifact công khai.
+
+**Evidence:** `docs/operations/d1-restore-rehearsal-2026-07-29.md`
 
 **Commit:** `ops(d1): add backup and restore rehearsal`
 
@@ -1178,7 +1180,7 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 
 ## Batch 4 Execution Record — 2026-07-28
 
-### Task 12 — Local D1 backup and restore rehearsal complete; remote staging pending
+### Task 12 — Local and remote staging D1 restore rehearsal complete
 
 - Added `workers/scripts/list-backup-tables.cjs`, `export-d1-tablewise.cjs`, `verify-d1-restore.cjs`, `tests/d1BackupScripts.test.ts` and `docs/operations/d1-backup-restore.md`.
 - Table discovery reads `sqlite_master`; regular data export excludes Cloudflare/SQLite system tables, the `rag_chunks_fts` virtual table and all five FTS shadow tables.
@@ -1190,7 +1192,10 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - TDD evidence: initial 6/6 failures because the scripts did not exist; final backup suite 10/10 passed. D1 backup/migration/rollback/fresh-bootstrap group passed 4 files and 23 tests.
 - Full Vitest passed: **310/310 files and 1,469/1,469 tests**, 398.28 seconds reported by Vitest and 400.18 seconds wrapper time.
 - Full lint, frontend typecheck, strict typecheck, Workers typecheck, security/history/policy gates, root/Workers dependency audits, production build and performance budget passed.
-- Still open by design: create a separate remote staging D1 database, capture a Time Travel bookmark/restore, run authenticated HTTP smoke and record staging RPO/RTO. No remote D1, production database, secret, deployment or cloud resource was changed in this batch.
+- Remote completion on 2026-07-29 used a dedicated APAC staging D1 with synthetic records only. Time Travel restore completed in **14.68 seconds**, removed the staging-only marker and preserved the synthetic admin/class/quiz/result snapshot.
+- A fresh encrypted remote backup exported **81 regular tables** in **47.833 seconds**. Isolated local restore completed in **18.627 seconds** with `schemaOk: true`, zero missing tables, zero row-count mismatches, FTS parity and controlled RPO **0 seconds**.
+- Authenticated staging HTTP smoke passed teacher login, quiz listing, class listing and results retrieval with HTTP 200. Production row data and production bindings were not used. Redacted evidence is stored in `docs/operations/d1-restore-rehearsal-2026-07-29.md`.
+- Final verification after the portable fingerprint fix passed **371 files / 1,704 tests**, coverage **4 files / 32 tests**, lint, frontend/strict/Workers typechecks, production build, security/history/policy gates and root/Workers dependency audits.
 
 ## Batch 3 Execution Record — 2026-07-28
 

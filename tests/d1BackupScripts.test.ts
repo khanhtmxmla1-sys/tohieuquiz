@@ -65,6 +65,31 @@ describe('D1 backup table classification', () => {
     );
   });
 
+  it('ignores SQL comments while preserving comment-like text inside string literals', () => {
+    const { normalizeSchemaSql, schemaFingerprint } = require('../workers/scripts/list-backup-tables.cjs');
+    const remote = [{
+      name: 'demo',
+      type: 'table',
+      tbl_name: 'demo',
+      sql: `CREATE TABLE demo (
+        id TEXT PRIMARY KEY, -- remote D1 preserves this comment
+        note TEXT NOT NULL DEFAULT '-- keep this literal',
+        label TEXT /* comment removed by local import */ DEFAULT '/* keep this too */'
+      )`,
+    }];
+    const local = [{
+      ...remote[0],
+      sql: "CREATE TABLE demo ( id TEXT PRIMARY KEY, note TEXT NOT NULL DEFAULT '-- keep this literal', label TEXT DEFAULT '/* keep this too */' )",
+    }];
+
+    const normalized = normalizeSchemaSql(remote[0].sql);
+    expect(normalized).not.toContain('remote D1 preserves this comment');
+    expect(normalized).not.toContain('comment removed by local import');
+    expect(normalized).toContain("'-- keep this literal'");
+    expect(normalized).toContain("'/* keep this too */'");
+    expect(schemaFingerprint(remote)).toBe(schemaFingerprint(local));
+  });
+
   it('builds an explicit local Wrangler query with an isolated persistence directory', () => {
     const { buildListTablesArgs } = require('../workers/scripts/list-backup-tables.cjs');
     const args = buildListTablesArgs({

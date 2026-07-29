@@ -127,6 +127,67 @@ function classifyTableEntries(entries) {
   };
 }
 
+function stripSqlComments(sql) {
+  const source = String(sql || '');
+  let output = '';
+  let quoteEnd = '';
+
+  for (let index = 0; index < source.length; index += 1) {
+    const current = source[index];
+    const next = source[index + 1];
+
+    if (quoteEnd) {
+      output += current;
+      if (current !== quoteEnd) continue;
+      if (next === quoteEnd) {
+        output += next;
+        index += 1;
+      } else {
+        quoteEnd = '';
+      }
+      continue;
+    }
+
+    if (current === "'" || current === '"' || current === '`') {
+      quoteEnd = current;
+      output += current;
+      continue;
+    }
+    if (current === '[') {
+      quoteEnd = ']';
+      output += current;
+      continue;
+    }
+    if (current === '-' && next === '-') {
+      output += ' ';
+      index += 1;
+      while (index + 1 < source.length && source[index + 1] !== '\n' && source[index + 1] !== '\r') {
+        index += 1;
+      }
+      continue;
+    }
+    if (current === '/' && next === '*') {
+      output += ' ';
+      index += 1;
+      while (index + 1 < source.length) {
+        if (source[index] === '*' && source[index + 1] === '/') {
+          index += 1;
+          break;
+        }
+        index += 1;
+      }
+      continue;
+    }
+    output += current;
+  }
+
+  return output;
+}
+
+function normalizeSchemaSql(sql) {
+  return stripSqlComments(sql).replace(/\s+/g, ' ').trim();
+}
+
 function schemaFingerprint(entries, classification = classifyTableEntries(entries)) {
   const excludedObjects = new Set([
     ...classification.shadowTables,
@@ -141,7 +202,7 @@ function schemaFingerprint(entries, classification = classifyTableEntries(entrie
       entry.type,
       entry.name,
       entry.tbl_name || '',
-      String(entry.sql).replace(/\s+/g, ' ').trim(),
+      normalizeSchemaSql(entry.sql),
     ].join(':'))
     .sort()
     .join('\n');
@@ -199,8 +260,10 @@ module.exports = {
   classifyTableEntries,
   listBackupTables,
   normalizeMode,
+  normalizeSchemaSql,
   parseCliArgs,
   parseWranglerJson,
   runWrangler,
   schemaFingerprint,
+  stripSqlComments,
 };

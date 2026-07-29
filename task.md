@@ -11,9 +11,9 @@
 | A — Baseline & Governance | Task 1–3 | `feat/modernization-integration` | Tasks 1–3 hoàn tất |
 | B — Security/API/Privacy | Task 4–11 | `feat/modernization-integration` | Tasks 4–9 và 11 hoàn tất; Task 10 code/config đạt, observation production còn mở |
 | C — UI Foundation | Task 13–16 | `feat/modernization-integration` | Tasks 13–16 hoàn tất trong phạm vi đã mở |
-| D — Database/Operations | Task 12, 30–31 | `feat/modernization-integration` | Task 12 local implementation/rehearsal đạt; remote staging Time Travel còn mở |
+| D — Database/Operations | Task 12, 30–31 | `feat/modernization-integration` | Tasks 12, 30 và 31 hoàn tất |
 | E — Performance/CI/Test | Task 27–28 | `feat/modernization-integration` | Tasks 27–28 hoàn tất |
-| F — Product Features | Task 18–26, 32–35 | `feat/modernization-integration` | Task 18 hoàn tất; Tasks 19–26 và 32–35 còn mở |
+| F — Product Features | Task 18–26, 32–35 | `feat/modernization-integration` | Tasks 18–26 và 32–35 hoàn tất |
 | G — Production Release | Task 38 | Chỉ chạy sau owner approval | Không thực thi tự động |
 
 ## Wave 0 — Baseline và quản trị phạm vi
@@ -47,7 +47,7 @@
 - [x] Task 11 — Security gate cho root và Workers
   - [x] Audit production dependencies root + Workers, cài Worker lockfile trong CI và Dependabot hàng tuần.
   - [x] Git-history secret scan, CSP/CORS/browser-auth và migration rollback gates chạy fail-closed.
-- [ ] Task 12 — Backup D1 và restore rehearsal *(local-isolated complete; remote staging evidence pending)*
+- [x] Task 12 — Backup D1 và restore rehearsal
   - [x] Liệt kê table từ `sqlite_master`; loại `_cf_*`, `sqlite_*`, FTS virtual và toàn bộ FTS shadow tables.
   - [x] Chặn output/archive/manifest/report trong repository; thêm ignore defense-in-depth.
   - [x] Export data-only: local state dùng streaming `node:sqlite`, remote chỉ chạy khi có `--remote --confirm-remote <database>`.
@@ -55,7 +55,11 @@
   - [x] Restore sang D1 local state hoàn toàn mới; canonical schema + data import + FTS rebuild.
   - [x] Kiểm tra schema gồm table/index/trigger, row count 59 bảng, auth/API DB-contract smoke và FTS source/index parity.
   - [x] Rehearsal cuối: backup 2,135 giây; restore 13,57 giây; controlled RPO 0 giây; 0 missing table và 0 row-count mismatch.
-  - [ ] Tạo database staging remote riêng, chạy D1 Time Travel và authenticated HTTP smoke bằng owner-approved cloud operation.
+  - [x] Dedicated APAC staging D1 đã hoàn tất Time Travel và authenticated HTTP smoke; không đọc hoặc sửa dữ liệu production.
+  - [x] Remote encrypted export 81 bảng đạt trong 47,833 giây; fresh local restore đạt trong 18,627 giây, `schemaOk: true`, 0 missing table, 0 row-count mismatch và RPO kiểm soát 0 giây.
+  - [x] Time Travel restore đạt trong 14,68 giây; marker staging bị loại bỏ, dữ liệu synthetic admin/lớp/đề/kết quả vẫn nguyên vẹn; login/quizzes/classes/results đều HTTP 200.
+  - [x] Bằng chứng đã redact tại `docs/operations/d1-restore-rehearsal-2026-07-29.md`; UUID, bookmark đầy đủ, credential và archive không được đưa vào Git.
+  - [x] Verification cuối: full Vitest 371 file/1.704 test, coverage 4 file/32 test; lint, frontend/strict/Worker typecheck, build, security/history/policy và dependency audit đều đạt.
 
 ## Wave 2 — Nền tảng UI/UX
 

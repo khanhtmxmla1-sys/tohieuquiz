@@ -26,6 +26,8 @@ The exporter:
 
 The restore verifier creates the canonical schema first, imports regular table data, rebuilds `rag_chunks_fts`, compares every row count and schema fingerprint, and runs auth/API database-contract smoke queries.
 
+Schema fingerprints ignore SQL comments because remote D1 can preserve comments in `sqlite_master` while a local SQLite import omits them. Quoted string and identifier content remains part of the fingerprint.
+
 ## Local isolated rehearsal
 
 Run from `workers/`. Both persistence directories and the backup directory must be outside the repository.
@@ -74,6 +76,12 @@ npx wrangler d1 time-travel restore $stagingDb --config wrangler.toml --bookmark
 ```
 
 After restoration, repeat schema/row-count checks against staging and run authenticated HTTP smoke tests for teacher login, quiz listing, class listing and results retrieval. Record the bookmark, operator, start/end timestamps, observed RPO/RTO and evidence location. Never include tokens, password hashes, row contents or raw dumps in the record.
+
+## Completed remote rehearsal - 2026-07-29
+
+The dedicated APAC staging rehearsal completed successfully. Time Travel removed a staging-only marker while preserving the synthetic admin/class/quiz/result snapshot. The encrypted remote export covered 81 regular tables; the fresh local restore returned `ok: true`, `schemaOk: true`, zero missing tables and zero row-count mismatches. Authenticated teacher login plus quiz, class and results read paths all returned HTTP 200.
+
+Redacted evidence and observed RPO/RTO are recorded in [`d1-restore-rehearsal-2026-07-29.md`](./d1-restore-rehearsal-2026-07-29.md). Full bookmarks, UUIDs, credentials and archives are deliberately not stored in Git.
 
 ## Retention and access
 
