@@ -160,7 +160,12 @@
 
 ## Wave 5 — Vận hành và bảo mật nâng cao
 
-- [ ] Task 31 — Operations Center backend
+- [x] Task 31 — Operations Center backend
+  - [x] Admin snapshot bao phủ API, D1, migration, Queue, DLQ, R2, AI, certificate processing, backup evidence và feature flags.
+  - [x] Mỗi component có `healthy|degraded|unavailable|unknown`, checkedAt, latency, summary, code và metrics cardinality thấp.
+  - [x] Từng probe có timeout riêng; lỗi dependency không làm hỏng toàn snapshot và không rò raw error, secret hoặc binding ID.
+  - [x] Route `/api/admin/operations` chỉ cho admin, `Cache-Control: no-store`; teacher bị từ chối.
+  - [x] Targeted 4 file/49 test; full Vitest 354 file/1.649 test, coverage 4 file/32 test, lint, typecheck, build, security và dependency audit đều đạt.
 - [ ] Task 32 — Operations Center UI
 - [ ] Task 33 — Security Center/session management
 - [ ] Task 34 — Passkey/WebAuthn cho staff

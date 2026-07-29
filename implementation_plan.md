@@ -787,10 +787,10 @@ interface AuthState {
 - Modify: Worker index/auth matrix.
 - Test: `tests/operationsRoutes.worker.test.ts`
 
-- [ ] Snapshot API/D1/migration/Queue/DLQ/R2/AI/certificates/backup/flags.
-- [ ] Admin-only; không trả secret/binding IDs/raw errors.
-- [ ] Component status healthy/degraded/unavailable/unknown + checkedAt.
-- [ ] Timeout từng dependency để endpoint tổng không treo.
+- [x] Snapshot API/D1/migration/Queue/DLQ/R2/AI/certificates/backup/flags.
+- [x] Admin-only; không trả secret/binding IDs/raw errors.
+- [x] Component status healthy/degraded/unavailable/unknown + checkedAt.
+- [x] Timeout từng dependency để endpoint tổng không treo.
 
 **Acceptance:** Một dependency hỏng chỉ làm component degraded; endpoint vẫn hữu ích.
 

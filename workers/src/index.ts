@@ -45,6 +45,7 @@ import { handleNotificationRoutes } from './routes/notifications/route';
 import { handleClientErrorRoute } from './routes/clientErrors';
 import { handleClientTelemetryRoute } from './routes/clientTelemetry';
 import { handleActionCenterRoutes } from './routes/actionCenter';
+import { handleOperationsRoutes } from './routes/operations';
 import { Env } from './types';
 import { createWorkerFetch } from './router/createWorkerFetch';
 import { purgeExpiredRateLimits, rateLimit } from './middleware/rateLimit';
@@ -92,6 +93,7 @@ const fetch = createWorkerFetch({
     handleClientErrorRoute,
     handleClientTelemetryRoute,
     handleActionCenterRoutes,
+    handleOperationsRoutes,
     handlePhieuSubdomain,
     handlePublicPhieuApi,
     handleParentPortalRoutes,

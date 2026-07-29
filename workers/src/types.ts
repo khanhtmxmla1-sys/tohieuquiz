@@ -11,6 +11,10 @@ export interface Env {
     AUTH_MIGRATION_MODE?: 'compat' | 'enforce';
     AUTH_TOKEN_TRANSPORT_MODE?: 'compat' | 'cookie';
     ENVIRONMENT?: 'production' | 'development' | 'test';
+    APP_RELEASE?: string;
+    OPERATIONS_PROBE_TIMEOUT_MS?: string;
+    LAST_D1_BACKUP_AT?: string;
+    LAST_D1_RESTORE_DRILL_AT?: string;
     ALLOWED_ORIGINS?: string;
     ANNOUNCEMENT_IMAGE_HOSTS?: string;
     PARENT_EMAIL_PROVIDER?: 'disabled' | 'http';
@@ -25,6 +29,7 @@ export interface Env {
     R2_PUBLIC_URL: string;
     // Task 1.4: Cloudflare Queues binding
     CERTIFICATE_QUEUE: Queue<{ batchId: string }>;
+    CERTIFICATE_DLQ?: Queue;
     CERT_IMAGES: R2Bucket;           // R2 bucket for rendered certificate PNGs
 }
 

@@ -63,6 +63,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('client-error-ingest', '/api/client-errors', 'internal-only', ['none'], 'origin guard, rate limit and sanitizer', { match: 'exact', methods: ['POST'] }),
   policy('client-telemetry-ingest', '/api/client-telemetry', 'internal-only', ['none'], 'origin guard, sampling, rate limit and telemetry sanitizer', { match: 'exact', methods: ['POST'] }),
 
+  policy('admin-operations', '/api/admin/operations', 'admin-only', ['none'], 'admin identity and dependency-safe probes', { match: 'exact', methods: ['GET'] }),
   policy('admin-all', '/api/admin/', 'admin-only', ['route-handler'], 'route-specific requireAdmin checks'),
   policy('admin-teachers', '/api/admin/teachers', 'admin-only', ['route-handler'], 'teacher requireAdmin checks'),
   policy('admin-notification-metrics', '/api/admin/notification-metrics', 'admin-only', ['route-handler'], 'notification metrics requireAdmin checks', { match: 'exact', methods: ['GET'] }),

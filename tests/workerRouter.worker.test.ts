@@ -40,6 +40,8 @@ const routeMocks = {
   handleMathObservabilityRoutes: vi.fn(async () => null as Response | null),
   handleClientErrorRoute: vi.fn(async () => null as Response | null),
   handleClientTelemetryRoute: vi.fn(async () => null as Response | null),
+  handleActionCenterRoutes: vi.fn(async () => null as Response | null),
+  handleOperationsRoutes: vi.fn(async () => null as Response | null),
   handlePhieuSubdomain: vi.fn(async () => null as Response | null),
   handlePublicPhieuApi: vi.fn(async () => null as Response | null),
   handleParentPortalRoutes: vi.fn(async () => unauthorized()),
@@ -262,6 +264,18 @@ describe('Worker root route dispatch', () => {
       expect.any(Request),
       env,
       expect.objectContaining({ failureMode: 'closed', maxRequests: 20 }),
+    );
+  });
+
+  it('dispatches the admin operations endpoint through the authenticated route chain', async () => {
+    verifyTokenMock.mockReturnValueOnce(null);
+    routeMocks.handleOperationsRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/admin/operations'), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handleOperationsRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/admin/operations', 'GET',
     );
   });
 

@@ -74,6 +74,7 @@ export interface WorkerFetchDependencies {
   handleClientErrorRoute: RouteHandler;
   handleClientTelemetryRoute: RouteHandler;
   handleActionCenterRoutes: RouteHandler;
+  handleOperationsRoutes: RouteHandler;
   handlePhieuSubdomain: SimpleRouteHandler;
   handlePublicPhieuApi: (
     db: Env['DB'],
@@ -129,6 +130,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     handleClientErrorRoute,
     handleClientTelemetryRoute,
     handleActionCenterRoutes,
+    handleOperationsRoutes,
     handlePhieuSubdomain,
     handlePublicPhieuApi,
     handleParentPortalRoutes,
@@ -284,7 +286,9 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     try {
       let response: Response | null = null;
 
-      if (path.startsWith('/api/teacher/action-center')) {
+      if (path === '/api/admin/operations') {
+        response = await handleOperationsRoutes(request, env, path, method);
+      } else if (path.startsWith('/api/teacher/action-center')) {
         response = await handleActionCenterRoutes(request, env, path, method);
       } else if (
         path.startsWith('/api/teachers')
