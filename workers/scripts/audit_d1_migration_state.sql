@@ -355,7 +355,15 @@ WITH checks(migration, check_name, ok) AS (
         'idx_results_cursor','idx_results_quiz_cursor','idx_results_class_cursor',
         'idx_students_class_name_cursor','idx_teachers_admin_cursor',
         'idx_gift_orders_class_cursor','idx_gift_orders_student_cursor',
-        'idx_gift_orders_status_cursor','idx_notifications_feed_cursor')))
+        'idx_gift_orders_status_cursor','idx_notifications_feed_cursor'))),
+    ('0052_auth_sessions_security_events.sql', 'session and security event tables',
+      EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='auth_sessions')
+      AND EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='security_events')
+      AND EXISTS(SELECT 1 FROM pragma_table_info('students') WHERE name='token_version')),
+    ('0052_auth_sessions_security_events.sql', 'session and security event indexes',
+      (SELECT COUNT(*)=6 FROM sqlite_master WHERE type='index' AND name IN (
+        'idx_auth_sessions_user_created','idx_auth_sessions_active_expiry','idx_auth_sessions_retention',
+        'idx_security_events_user_created','idx_security_events_type_created','idx_security_events_retention')))
 ), summary AS (
   SELECT
     migration,

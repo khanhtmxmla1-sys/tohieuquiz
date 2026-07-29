@@ -3,6 +3,7 @@ import { signJWT } from '../utils/jwt';
 import { buildAuthSessionData, withAuthCookie } from '../utils/authSession';
 import { errorResponse, hashPassword, jsonResponse, verifyPassword } from '../utils/response';
 import { mapLoginPet, mapLoginShopItem } from './studentLoginMappers';
+import { createAuthSession } from '../services/authSessionService';
 
 const STUDENT_SESSION_QUERY = `
         SELECT
@@ -41,7 +42,8 @@ export const loadStudentSessionData = async (env: Env, username: string) => {
 export const authenticateStudent = async (
     env: Env,
     username: string,
-    password: string
+    password: string,
+    request: Request = new Request('https://session.local/api/student-login'),
 ): Promise<Response> => {
     const student = await env.DB.prepare(STUDENT_SESSION_QUERY).bind(username).first<any>();
     const passwordCheck = student
@@ -66,10 +68,17 @@ export const authenticateStudent = async (
         console.error('[Student Login] JWT_SECRET not configured');
         return errorResponse('Authentication service unavailable', 503);
     }
+    const tokenVersion = Number(student.token_version || 1);
+    const session = await createAuthSession(env.DB, request, {
+        username: student.username,
+        role: 'student',
+        tokenVersion,
+    });
     const token = await signJWT({
         id: student.id, username: student.username, role: 'student',
         fullName: student.full_name, classId: student.class_id,
-        tokenVersion: 0,
+        tokenVersion,
+        sessionId: session.id,
     }, env.JWT_SECRET, '7d');
     const response = jsonResponse({
         status: 'success',

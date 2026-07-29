@@ -2,6 +2,7 @@
 // Validates JWT tokens and attaches user context to requests.
 
 import { Env } from '../types';
+import { assertActiveAuthSession } from '../services/authSessionService';
 import { errorResponse } from '../utils/response';
 import {
     extractJWTWithTransport,
@@ -71,6 +72,13 @@ export async function verifyJWTMiddleware(
     }
 
     if (mode === 'enforce' && payload.tokenVersion === undefined) {
+        return errorResponse('Unauthorized: Session has been revoked', 401);
+    }
+
+    if (payload.sessionId) {
+        const active = await assertActiveAuthSession(env.DB, payload);
+        if (!active) return errorResponse('Unauthorized: Session has been revoked', 401);
+    } else if (env.AUTH_SESSION_MODE === 'enforce') {
         return errorResponse('Unauthorized: Session has been revoked', 401);
     }
 

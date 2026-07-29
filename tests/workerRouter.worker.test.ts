@@ -13,6 +13,7 @@ const verifyTokenMock = vi.fn(() => unauthorized());
 
 const routeMocks = {
   handleTeacherRoutes: vi.fn(async () => null as Response | null),
+  handleSecurityCenterRoutes: vi.fn(async () => null as Response | null),
   handleLogoutRoute: vi.fn(async () => null as Response | null),
   handleQuizDraftRoutes: vi.fn(async () => null as Response | null),
   handleQuizRoutes: vi.fn(async () => null as Response | null),
@@ -277,6 +278,19 @@ describe('Worker root route dispatch', () => {
     expect(routeMocks.handleOperationsRoutes).toHaveBeenCalledWith(
       expect.any(Request), env, '/api/admin/operations', 'GET',
     );
+  });
+
+  it('dispatches account session routes before the teacher account handler', async () => {
+    verifyTokenMock.mockReturnValueOnce(null);
+    routeMocks.handleSecurityCenterRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/account/sessions'), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handleSecurityCenterRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/account/sessions', 'GET',
+    );
+    expect(routeMocks.handleTeacherRoutes).not.toHaveBeenCalled();
   });
 
   it('fails closed for legacy admin teacher mutations', async () => {

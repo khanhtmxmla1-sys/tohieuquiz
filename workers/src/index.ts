@@ -7,6 +7,7 @@ import { verifyToken } from './middleware/auth';
 import { jsonResponse, errorResponse } from './utils/response';
 import { internalErrorResponse } from './utils/internalError';
 import { handleTeacherRoutes } from './routes/teachers';
+import { handleSecurityCenterRoutes } from './routes/securityCenter';
 import { handleQuizRoutes } from './routes/quizzes';
 import { handleQuizDraftRoutes } from './routes/quizDrafts';
 import { handleResultRoutes } from './routes/results';
@@ -54,6 +55,7 @@ import { checkAndAutoCloseExpiredExams } from './services/liveExamService';
 import { createDueHomeworkReminders } from './parentPortal/deadlineReminderService';
 import { createParentEmailProvider } from './parentPortal/emailProvider';
 import { runWeeklyParentDigests } from './parentPortal/digestService';
+import { purgeExpiredAuthSecurityData } from './services/authSessionService';
 
 const fetch = createWorkerFetch({
     handleCors,
@@ -65,6 +67,7 @@ const fetch = createWorkerFetch({
     internalErrorResponse,
     rateLimit,
     handleTeacherRoutes,
+    handleSecurityCenterRoutes,
     handleLogoutRoute,
     handleQuizDraftRoutes,
     handleQuizRoutes,
@@ -114,6 +117,11 @@ export default {
                 if (purged > 0) console.log(`[Cron] Purged ${purged} expired rate limit rows`);
             } catch (error) {
                 console.error('[Cron] Failed to purge expired rate limits:', error);
+            }
+            try {
+                await purgeExpiredAuthSecurityData(env.DB, new Date());
+            } catch (error) {
+                console.error('[Cron] Failed to purge expired auth security rows:', error);
             }
             await createDueHomeworkReminders(env.DB, new Date());
             return;

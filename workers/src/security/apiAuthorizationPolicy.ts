@@ -78,6 +78,9 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('parent-delivery', '/api/parent-delivery', 'teacher-owned', ['classId', 'studentId'], 'teacher class-scope guard'),
 
   policy('logout', '/api/logout', 'authenticated', ['session'], 'logout session handler', { match: 'exact', methods: ['POST'] }),
+  policy('account-sessions', '/api/account/sessions', 'authenticated', ['session'], 'session owner scope and server-side revocation'),
+  policy('account-security-events', '/api/account/security-events', 'authenticated', ['session'], 'security event owner scope', { match: 'exact', methods: ['GET'] }),
+  policy('account-logout-all', '/api/account/logout-all', 'authenticated', ['session'], 'session owner scope and cutoff revocation', { match: 'exact', methods: ['POST'] }),
   policy('teachers', '/api/teachers', 'authenticated', ['session', 'route-handler'], 'teacher JWT and role checks'),
   policy('account', '/api/account', 'authenticated', ['session'], 'account JWT checks'),
   policy('teacher-action-center', '/api/teacher/action-center', 'teacher-owned', ['session', 'classId'], 'teacher/admin role and scoped aggregate queries', { match: 'exact', methods: ['GET'] }),

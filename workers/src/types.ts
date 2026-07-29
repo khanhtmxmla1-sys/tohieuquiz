@@ -10,6 +10,7 @@ export interface Env {
     JWT_SECRET: string;
     AUTH_MIGRATION_MODE?: 'compat' | 'enforce';
     AUTH_TOKEN_TRANSPORT_MODE?: 'compat' | 'cookie';
+    AUTH_SESSION_MODE?: 'compat' | 'enforce';
     ENVIRONMENT?: 'production' | 'development' | 'test';
     APP_RELEASE?: string;
     OPERATIONS_PROBE_TIMEOUT_MS?: string;

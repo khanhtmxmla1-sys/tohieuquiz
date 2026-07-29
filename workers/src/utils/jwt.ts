@@ -25,6 +25,7 @@ export interface JWTPayload {
     classId?: string;
     school_id?: string;
     tokenVersion?: number;
+    sessionId?: string;
     purpose?: 'session' | 'password_change';
     iss?: string;
     aud?: string | string[];
@@ -81,7 +82,8 @@ function isValidAuthPayload(
     if (!isOptionalString(payload.id, 128)
         || !isOptionalString(payload.fullName, 256)
         || !isOptionalString(payload.classId, 128)
-        || !isOptionalString(payload.school_id, 128)) return false;
+        || !isOptionalString(payload.school_id, 128)
+        || !isOptionalString(payload.sessionId, 128)) return false;
     if (payload.tokenVersion !== undefined
         && (!Number.isInteger(payload.tokenVersion) || Number(payload.tokenVersion) < 0)) return false;
 

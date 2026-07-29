@@ -39,6 +39,16 @@ export const teacherRoutes: RouteRegistry = {
         method: 'POST', auth: 'session', path: () => '/api/account/change-password',
         body: (_action, payload) => ({ currentPassword: payload.currentPassword, newPassword: payload.newPassword }),
     },
+    get_account_sessions: { method: 'GET', auth: 'session', path: () => '/api/account/sessions' },
+    get_account_security_events: { method: 'GET', auth: 'session', path: () => '/api/account/security-events' },
+    revoke_account_session: {
+        method: 'POST', auth: 'session',
+        path: ({ sessionId }) => `/api/account/sessions/${encodeURIComponent(sessionId)}/revoke`,
+        body: () => ({}),
+    },
+    revoke_all_account_sessions: {
+        method: 'POST', auth: 'session', path: () => '/api/account/sessions/revoke-all', body: () => ({}),
+    },
     logout_all: { method: 'POST', auth: 'session', path: () => '/api/account/logout-all', body: () => ({}) },
     login: { method: 'POST', auth: 'public', path: () => '/api/login' },
     logout: { method: 'POST', auth: 'session', path: () => '/api/logout' },

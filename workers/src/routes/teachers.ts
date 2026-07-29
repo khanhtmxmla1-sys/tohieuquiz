@@ -14,6 +14,11 @@ import {
 import { checkLoginLimit, clearLoginFailures, recordLoginFailure } from '../utils/loginRateLimit';
 import { auditStatement, writeAuditLog } from '../utils/audit';
 import { collectionLimit, decodeCollectionCursor, encodeCollectionCursor } from '../utils/cursorPagination';
+import {
+    createAuthSession,
+    recordSecurityEvent,
+    revokeAllAuthSessions,
+} from '../services/authSessionService';
 
 type TeacherRow = {
     username: string;
@@ -45,7 +50,17 @@ async function passwordMatches(password: string, stored: string): Promise<{ vali
     return { valid: stored === password || stored === legacyHash, legacy: true };
 }
 
-async function createSessionToken(teacher: TeacherRow, env: Env, purpose: 'session' | 'password_change'): Promise<string> {
+async function createSessionToken(
+    request: Request,
+    teacher: TeacherRow,
+    env: Env,
+    purpose: 'session' | 'password_change',
+): Promise<string> {
+    const session = await createAuthSession(env.DB, request, {
+        username: teacher.username,
+        role: teacher.role === 'admin' ? 'admin' : 'teacher',
+        tokenVersion: Number(teacher.token_version),
+    }, { purpose, ttlSeconds: purpose === 'password_change' ? 15 * 60 : 7 * 24 * 60 * 60 });
     return signJWT({
         id: teacher.username,
         username: teacher.username,
@@ -54,6 +69,7 @@ async function createSessionToken(teacher: TeacherRow, env: Env, purpose: 'sessi
         classId: teacher.class,
         school_id: teacher.username,
         tokenVersion: Number(teacher.token_version),
+        sessionId: session.id,
         purpose,
     }, env.JWT_SECRET, purpose === 'password_change' ? '15m' : '7d');
 }
@@ -89,7 +105,16 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
         if (!username || !password) return errorResponse('Thiếu tên đăng nhập hoặc mật khẩu.');
 
         const limited = await checkLoginLimit(request, env, username);
-        if (limited) return limited;
+        if (limited) {
+            await recordSecurityEvent(db, {
+                username: username || 'unknown',
+                role: 'teacher',
+                eventType: 'LOGIN_FAILURE_THRESHOLD',
+                severity: 'action_required',
+                requestId: requestId(request),
+            });
+            return limited;
+        }
 
         const teacher = await db.prepare('SELECT * FROM teachers WHERE username = ? LIMIT 1')
             .bind(username).first<TeacherRow>();
@@ -105,7 +130,7 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
         if (limiterError) return limiterError;
         const requiresPasswordChange = match.legacy || Number(teacher.must_change_password) === 1;
         const purpose = requiresPasswordChange ? 'password_change' : 'session';
-        const jwtToken = await createSessionToken(teacher, env, purpose);
+        const jwtToken = await createSessionToken(request, teacher, env, purpose);
         if (!requiresPasswordChange) {
             await db.prepare('UPDATE teachers SET last_login_at = ?, updated_at = ? WHERE username = ?')
                 .bind(new Date().toISOString(), new Date().toISOString(), username).run();
@@ -149,8 +174,22 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
                 password_changed_at = ?, last_login_at = ?, updated_at = ?
             WHERE username = ?
         `).bind(encoded, nextVersion, now, now, now, teacher.username).run();
+        await revokeAllAuthSessions(db, user, {
+            requestId: requestId(request),
+            cutoff: new Date(now),
+            reason: 'password_changed',
+        });
         const updated = { ...teacher, password: encoded, must_change_password: 0, token_version: nextVersion };
-        const token = await createSessionToken(updated, env, 'session');
+        const token = await createSessionToken(request, updated, env, 'session');
+        await recordSecurityEvent(db, {
+            username: teacher.username,
+            role: teacher.role === 'admin' ? 'admin' : 'teacher',
+            eventType: 'PASSWORD_CHANGED',
+            actorUsername: teacher.username,
+            requestId: requestId(request),
+            sessionId: user.sessionId || null,
+            now: new Date(now),
+        });
         await writeAuditLog(db, {
             actorUsername: teacher.username,
             action: 'ACCOUNT_PASSWORD_CHANGED',
@@ -186,9 +225,15 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
     }
 
     if (path === '/api/account/logout-all' && method === 'POST') {
-        const now = new Date().toISOString();
+        const cutoff = new Date();
+        const now = cutoff.toISOString();
         await db.prepare('UPDATE teachers SET token_version = token_version + 1, updated_at = ? WHERE username = ?')
             .bind(now, user.username).run();
+        await revokeAllAuthSessions(db, user, {
+            requestId: requestId(request),
+            cutoff,
+            reason: 'logout_all',
+        });
         await writeAuditLog(db, {
             actorUsername: user.username,
             action: 'ACCOUNT_LOGOUT_ALL',
@@ -358,6 +403,25 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
             );
         }
         await db.batch(statements);
+        for (const credential of credentials) {
+            const targetUser = { username: credential.username, role: 'teacher' as const };
+            await revokeAllAuthSessions(db, targetUser, {
+                actorUsername: user.username,
+                requestId: requestId(request),
+                cutoff: new Date(now),
+                reason: 'password_reset',
+            });
+            await recordSecurityEvent(db, {
+                username: credential.username,
+                role: 'teacher',
+                eventType: 'PASSWORD_RESET',
+                severity: 'action_required',
+                actorUsername: user.username,
+                requestId: requestId(request),
+                now: new Date(now),
+                metadata: { bulk: true },
+            });
+        }
 
         return noStore(jsonResponse({ status: 'success', data: {
             count: credentials.length,
@@ -417,6 +481,22 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
                 targetId: targetUsername, requestId: requestId(request),
             }),
         ]);
+        const targetRole = target.role === 'admin' ? 'admin' as const : 'teacher' as const;
+        await revokeAllAuthSessions(db, { username: targetUsername, role: targetRole }, {
+            actorUsername: user.username,
+            requestId: requestId(request),
+            cutoff: new Date(now),
+            reason: 'password_reset',
+        });
+        await recordSecurityEvent(db, {
+            username: targetUsername,
+            role: targetRole,
+            eventType: 'PASSWORD_RESET',
+            severity: 'action_required',
+            actorUsername: user.username,
+            requestId: requestId(request),
+            now: new Date(now),
+        });
         return noStore(jsonResponse({ status: 'success', data: { temporaryPassword } }));
     }
 
