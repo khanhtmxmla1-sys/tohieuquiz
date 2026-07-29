@@ -193,7 +193,13 @@
   - [x] CODEOWNERS, desired-state branch protection và runbook xác minh/rollback đã được thêm.
   - [x] Branch protection remote đã được reconcile và xác minh qua GitHub API trên `main`: bắt buộc pull request, 1 approval, CODEOWNERS, dismiss stale approvals, conversation resolution, strict required checks, enforce admins, cấm force-push và cấm xóa nhánh; không có ruleset bypass.
   - [x] Targeted 5 file/26 test; full Vitest 349 file/1.634 test, coverage 4 file/32 test, lint, typecheck, build, security và dependency audit đều đạt.
-- [ ] Task 37 — Production smoke và staged rollout automation
+- [x] Task 37 — Production smoke và staged rollout automation
+  - [x] Smoke read-only bao phủ apex/canonical/parent/API domains, security headers, immutable asset, same-origin health, exact CORS, hostile origin và auth guard.
+  - [x] Dùng dedicated GitHub Environment secrets cho admin/teacher/student/parent; kiểm tra một read path mỗi role, không đưa credential vào CLI, screenshot hoặc report.
+  - [x] Rollout runtime theo chuỗi admin-only → 5% teacher → pilot class → 25% → 100%, có cửa sổ quan sát 24–48 giờ, single-field PATCH, compensation và rollback stage trước.
+  - [x] Stop conditions chặn rollout khi 5xx >1%, client errors >2x baseline, p95 +30%, data corruption hoặc auth anomaly; artifact JSON `ready|blocked|observing` được redact.
+  - [x] AI smoke chỉ đọc quota/feature resolution; Queue/certificate mutation bị cấm trên production và chỉ cho phép namespace `staging|test`.
+  - [x] Cypress public production 3/3; targeted sau cùng 5 file/23 test; full Vitest 371 file/1.702 test, coverage 4 file/32 test, lint, typecheck, build, security/history/policy và dependency audit đều đạt.
 - [ ] Task 38 — Cleanup production, release notes và maintenance calendar
 
 ## Verification bắt buộc

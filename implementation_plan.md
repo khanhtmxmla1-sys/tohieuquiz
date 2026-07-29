@@ -918,12 +918,12 @@ interface AuthState {
 - Create/modify: `.github/workflows/production-smoke.yml`, `scripts/run-production-smoke.mjs`
 - Create: `docs/operations/staged-rollout.md`
 
-- [ ] Smoke frontend domains, headers, API health, CORS, hostile origin, auth guard và one-read-path mỗi role.
-- [ ] AI smoke khi rollout AI; Queue/certificate mutation chỉ staging/test namespace.
-- [ ] Rollout: admin-only → 5% teachers → pilot class → 25% → 100%.
-- [ ] Mỗi bước theo dõi 24–48 giờ.
-- [ ] Stop: 5xx >1%, client errors >2x baseline, p95 +30%, data corruption hoặc auth anomaly.
-- [ ] Failure artifacts phải redacted.
+- [x] Smoke frontend domains, headers, API health, CORS, hostile origin, auth guard và one-read-path mỗi role.
+- [x] AI smoke khi rollout AI; Queue/certificate mutation chỉ staging/test namespace.
+- [x] Rollout: admin-only → 5% teachers → pilot class → 25% → 100%.
+- [x] Mỗi bước theo dõi 24–48 giờ.
+- [x] Stop: 5xx >1%, client errors >2x baseline, p95 +30%, data corruption hoặc auth anomaly.
+- [x] Failure artifacts phải redacted.
 
 **Acceptance:** Workflow nhận URL input, không rò credential và rollback procedure rõ.
 
