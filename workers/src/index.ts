@@ -50,6 +50,8 @@ import { purgeExpiredRateLimits, rateLimit } from './middleware/rateLimit';
 import { mapQuestionForSave, mapAssignment, mapAssignments, handleValidateAnswers } from './utils/helpers';
 import { checkAndAutoCloseExpiredExams } from './services/liveExamService';
 import { createDueHomeworkReminders } from './parentPortal/deadlineReminderService';
+import { createParentEmailProvider } from './parentPortal/emailProvider';
+import { runWeeklyParentDigests } from './parentPortal/digestService';
 
 const fetch = createWorkerFetch({
     handleCors,
@@ -110,6 +112,15 @@ export default {
                 console.error('[Cron] Failed to purge expired rate limits:', error);
             }
             await createDueHomeworkReminders(env.DB, new Date());
+            return;
+        }
+
+        if (event.cron === '0 * * * *') {
+            try {
+                await runWeeklyParentDigests(env.DB, createParentEmailProvider(env), new Date());
+            } catch (error) {
+                console.error('[Cron] Parent digest run failed:', error);
+            }
             return;
         }
 

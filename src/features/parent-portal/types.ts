@@ -2,6 +2,8 @@ export type {
   ParentApiError,
   ParentApiSuccess,
   ParentCertificateHistoryItem,
+  ParentContactPreferences,
+  ParentContactPreferencesInput,
   ParentDashboardPayload,
   ParentHistoryPage,
   ParentHomeworkHistoryItem,

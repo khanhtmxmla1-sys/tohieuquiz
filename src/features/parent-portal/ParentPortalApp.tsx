@@ -8,6 +8,9 @@ import ParentDashboardPage from './pages/ParentDashboardPage';
 import ParentLoginPage from './pages/ParentLoginPage';
 import ParentNotificationsPage from './pages/ParentNotificationsPage';
 import ParentProfilePage from './pages/ParentProfilePage';
+import ParentRecoveryConfirmPage from './pages/ParentRecoveryConfirmPage';
+import ParentRecoveryRequestPage from './pages/ParentRecoveryRequestPage';
+import ParentVerifyEmailPage from './pages/ParentVerifyEmailPage';
 import ParentResultDetailPage from './pages/ParentResultDetailPage';
 import ParentResultsPage from './pages/ParentResultsPage';
 import { useParentPortalStore } from './useParentPortalStore';
@@ -75,6 +78,9 @@ export default function ParentPortalApp() {
       <Route path="/" element={<Navigate to={session ? '/dashboard' : '/login'} replace />} />
       <Route path="/activate" element={<ParentActivatePage />} />
       <Route path="/login" element={<ParentLoginPage />} />
+      <Route path="/recover" element={<ParentRecoveryRequestPage />} />
+      <Route path="/recover/confirm" element={<ParentRecoveryConfirmPage />} />
+      <Route path="/verify-email" element={<ParentVerifyEmailPage />} />
       <Route path="/dashboard" element={<ProtectedPage><ParentDashboardPage /></ProtectedPage>} />
       <Route path="/notifications" element={<ProtectedPage><ParentNotificationsPage /></ProtectedPage>} />
       <Route path="/results" element={<ProtectedPage><ParentResultsPage /></ProtectedPage>} />

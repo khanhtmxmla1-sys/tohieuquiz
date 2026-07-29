@@ -116,7 +116,14 @@
   - [x] Ghi chú riêng chỉ giáo viên truy cập; group, note và assignment batch đều có audit actor/request/metadata.
   - [x] Từ nhóm đến giao bài chỉ 2 thao tác; tạo assignment cá nhân idempotent, tái dùng bài toàn lớp đang mở và chặn trùng/cross-group replay.
   - [x] Targeted regression 9 file/47 test; Cypress Electron 1/1; full Vitest 337 file/1.581 test, lint, frontend/strict/Worker typecheck, build và security audit đạt.
-- [ ] Task 24 — Parent digest/preferences/account recovery
+- [x] Task 24 — Parent digest/preferences/account recovery
+  - [x] Migration D1 `0048` lưu preferences, token hash single-use, digest run idempotent và audit; có schema canonical, registry, audit query và rollback.
+  - [x] Email provider adapter fail-closed: mặc định tắt, chỉ gửi khi provider HTTPS và SPF/DKIM/DMARC đều sẵn sàng; secret chỉ cấu hình phía Worker.
+  - [x] Email verification hết hạn sau 24 giờ; recovery hết hạn sau 30 phút; token chỉ lưu SHA-256 hash, replay bị chặn và reset PIN tăng `token_version` để vô hiệu hóa phiên cũ.
+  - [x] Phụ huynh cấu hình email, loại thông báo, opt-in bản tin tuần, ngày/giờ gửi và khung giờ yên lặng; có thể bỏ chọn toàn bộ loại email.
+  - [x] Digest tuần chỉ lưu/gửi số liệu tổng hợp, tối đa ba nội dung cần hỗ trợ và ba gợi ý tại nhà; không chứa tên, lớp, email, ID kết quả, câu hỏi hoặc đáp án.
+  - [x] UI có cài đặt liên lạc, xác minh email, “Quên PIN?”, yêu cầu recovery generic và đặt PIN mới; token bị loại khỏi URL sau khi dùng, không persist vào localStorage.
+  - [x] Targeted regression 7 file/44 test; Cypress Parent Portal 4/4; full Vitest 341 file/1.599 test và coverage 4 file/32 test đạt; lint, strict/Worker typecheck, build, security và dependency audit đạt.
 - [ ] Task 25 — Gift Shop governance
 - [ ] Task 26 — Notification preference/dedupe/quiet hours
 

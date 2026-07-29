@@ -6,6 +6,9 @@ TôHiệuQuiz treats the Worker and D1 as the source of truth. Browser persisten
 |---|---|---|---|
 | JWT, refresh token, password, API key | Credential | Forbidden | HttpOnly cookie or server secret only |
 | Student profile, class, results, assignments | Personal | Memory/session only | Clear on logout and account switch |
+| Parent email and communication preferences | Personal | Memory only | D1 is authoritative; clear on logout |
+| Parent verification/recovery token | Credential | Forbidden | Raw token only in one-time URL/POST; D1 stores SHA-256 hash |
+| Parent digest payload | Sensitive aggregate | Never persisted in browser | Minimized aggregate only; no identity, IDs, questions or answers |
 | Coins, pet, inventory, orders | Personal | Memory only | Reload from authenticated API |
 | Teacher/admin authorization | Sensitive | Memory only | Server profile decides role |
 | Public quiz catalogue | Public/display | Optional session cache | Bounded TTL and account namespace |

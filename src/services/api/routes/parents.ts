@@ -72,6 +72,25 @@ export const parentRoutes: RouteRegistry = {
   parent_logout: {
     method: 'POST', auth: 'public', path: () => '/api/parent/logout', body: () => ({}),
   },
+  get_parent_preferences: {
+    method: 'GET', auth: 'public', path: () => '/api/parent/preferences',
+  },
+  update_parent_preferences: {
+    method: 'PUT', auth: 'public', path: () => '/api/parent/preferences',
+  },
+  request_parent_email_verification: {
+    method: 'POST', auth: 'public', path: () => '/api/parent/preferences/email/request-verification',
+    body: () => ({}),
+  },
+  verify_parent_email: {
+    method: 'POST', auth: 'public', path: () => '/api/parent/preferences/email/verify',
+  },
+  request_parent_pin_recovery: {
+    method: 'POST', auth: 'public', path: () => '/api/parent/recovery/request',
+  },
+  confirm_parent_pin_recovery: {
+    method: 'POST', auth: 'public', path: () => '/api/parent/recovery/confirm',
+  },
   get_parent_dashboard: {
     method: 'GET', auth: 'public', path: () => '/api/parent/dashboard',
     query: payload => {

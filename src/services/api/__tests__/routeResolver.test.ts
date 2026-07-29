@@ -22,6 +22,15 @@ describe('resolveApiRoute', () => {
         expect(route.path({})).toBe('/api/teacher/action-center');
     });
 
+    it('resolves parent preference and recovery routes through the independent parent cookie', () => {
+        expect(resolveApiRoute('get_parent_preferences')).toMatchObject({ method: 'GET', auth: 'public' });
+        expect(resolveApiRoute('get_parent_preferences').path({})).toBe('/api/parent/preferences');
+        expect(resolveApiRoute('request_parent_email_verification').path({})).toBe('/api/parent/preferences/email/request-verification');
+        expect(resolveApiRoute('verify_parent_email').path({})).toBe('/api/parent/preferences/email/verify');
+        expect(resolveApiRoute('request_parent_pin_recovery').path({})).toBe('/api/parent/recovery/request');
+        expect(resolveApiRoute('confirm_parent_pin_recovery').path({})).toBe('/api/parent/recovery/confirm');
+    });
+
     it('resolves result dashboard summary as a protected GET', () => {
         const route = resolveApiRoute('get_results_summary');
         expect(route).toMatchObject({ method: 'GET', auth: 'session' });

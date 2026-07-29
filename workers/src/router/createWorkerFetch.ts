@@ -183,7 +183,14 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     }
 
     const isParentLoginAttempt = method === 'POST'
-      && (path === '/api/parent/activate' || path === '/api/parent/login');
+      && [
+        '/api/parent/activate',
+        '/api/parent/login',
+        '/api/parent/preferences/email/request-verification',
+        '/api/parent/preferences/email/verify',
+        '/api/parent/recovery/request',
+        '/api/parent/recovery/confirm',
+      ].includes(path);
     if (isParentLoginAttempt) {
       const rateLimitResponse = await rateLimit(request, env, {
         windowMs: 5 * 60 * 1000,

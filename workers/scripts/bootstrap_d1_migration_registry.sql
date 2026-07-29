@@ -53,4 +53,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0044_create_ai_tutor_usage.sql'),
   ('0045_live_exam_reconnect.sql'),
   ('0046_live_exam_controls.sql'),
-  ('0047_results_intervention_center.sql');
+  ('0047_results_intervention_center.sql'),
+  ('0048_parent_digest_recovery.sql');

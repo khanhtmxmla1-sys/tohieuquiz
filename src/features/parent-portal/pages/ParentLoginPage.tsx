@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { KeyRound } from 'lucide-react';
-import { Navigate, useNavigate } from 'react-router';
+import { Link, Navigate, useNavigate } from 'react-router';
 import { useParentPortalStore } from '../useParentPortalStore';
 
 export default function ParentLoginPage() {
@@ -65,6 +65,7 @@ export default function ParentLoginPage() {
           >
             {isLoading ? 'Đang đăng nhập…' : 'Đăng nhập'}
           </button>
+          <Link to="/recover" className="block text-center text-sm font-semibold text-indigo-700 hover:underline">Quên PIN?</Link>
         </form>
       </section>
     </div>

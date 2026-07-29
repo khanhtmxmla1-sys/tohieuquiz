@@ -13,6 +13,14 @@ export interface Env {
     ENVIRONMENT?: 'production' | 'development' | 'test';
     ALLOWED_ORIGINS?: string;
     ANNOUNCEMENT_IMAGE_HOSTS?: string;
+    PARENT_EMAIL_PROVIDER?: 'disabled' | 'http';
+    PARENT_EMAIL_API_URL?: string;
+    PARENT_EMAIL_API_TOKEN?: string;
+    PARENT_EMAIL_FROM?: string;
+    PARENT_EMAIL_PUBLIC_BASE_URL?: string;
+    PARENT_EMAIL_SPF_READY?: string;
+    PARENT_EMAIL_DKIM_READY?: string;
+    PARENT_EMAIL_DMARC_READY?: string;
     OG_IMAGES: R2Bucket;
     R2_PUBLIC_URL: string;
     // Task 1.4: Cloudflare Queues binding

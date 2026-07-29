@@ -9,6 +9,9 @@ const service = vi.hoisted(() => ({
   getDashboard: vi.fn(),
   listNotifications: vi.fn(),
   markNotificationRead: vi.fn(),
+  getPreferences: vi.fn(),
+  updatePreferences: vi.fn(),
+  requestEmailVerification: vi.fn(),
 }));
 
 vi.mock('../parentPortalService', () => service);
@@ -25,6 +28,9 @@ const notification = {
 const reset = () => useParentPortalStore.setState({
   session: null,
   dashboard: null,
+  dashboardUpdatedAt: null,
+  accessCodeMasked: null,
+  preferences: null,
   notifications: [],
   unreadCount: 0,
   isRestoring: false,
@@ -77,6 +83,29 @@ describe('parent portal store', () => {
     expect(useParentPortalStore.getState().dashboard?.metrics.averageScore).toBe(8);
     expect(useParentPortalStore.getState().notifications[0].isRead).toBe(true);
     expect(useParentPortalStore.getState().unreadCount).toBe(0);
+  });
+
+  it('loads, updates and verifies communication preferences without browser persistence', async () => {
+    const preferences = {
+      email: 'parent@example.com', emailVerifiedAt: null, weeklyDigestEnabled: false,
+      digestWeekday: 1, digestHour: 19, timezone: 'Asia/Ho_Chi_Minh',
+      quietHoursEnabled: true, quietHoursStart: '21:00', quietHoursEnd: '07:00',
+      emailKinds: ['quiz_result'], emailRolloutReady: true, updatedAt: null,
+    };
+    service.getPreferences.mockResolvedValue(preferences);
+    service.updatePreferences.mockResolvedValue({ ...preferences, weeklyDigestEnabled: true });
+    service.requestEmailVerification.mockResolvedValue({ requested: true });
+
+    await useParentPortalStore.getState().loadPreferences();
+    await expect(useParentPortalStore.getState().savePreferences({
+      email: preferences.email, weeklyDigestEnabled: true, digestWeekday: 1, digestHour: 19,
+      quietHoursEnabled: true, quietHoursStart: '21:00', quietHoursEnd: '07:00',
+      emailKinds: ['quiz_result'],
+    })).resolves.toBe(true);
+    await expect(useParentPortalStore.getState().requestEmailVerification()).resolves.toBe(true);
+
+    expect(useParentPortalStore.getState().preferences?.weeklyDigestEnabled).toBe(true);
+    expect(localStorage.getItem('parent-portal-storage')).toBeNull();
   });
 
   it('clears all protected data after any parent endpoint returns 401', async () => {

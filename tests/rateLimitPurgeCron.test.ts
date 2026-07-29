@@ -96,6 +96,14 @@ describe('daily cron purges expired rate limit rows', () => {
     expect(executed.some((entry) => /FROM hw_assignments/i.test(entry.sql))).toBe(true);
   });
 
+  it('runs the disabled hourly digest gate without duplicating live-exam maintenance', async () => {
+    const { DB, executed } = createRecordingDb();
+
+    await runCron('0 * * * *', DB);
+
+    expect(executed).toHaveLength(0);
+  });
+
   it('leaves the per-minute and weekly crons alone', async () => {
     const { DB, executed } = createRecordingDb();
 

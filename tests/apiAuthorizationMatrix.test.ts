@@ -33,6 +33,10 @@ const routeSamples = [
   ['/api/admin/math-audit', 'GET', 'admin-only'],
   ['/api/client-errors', 'POST', 'internal-only'],
   ['/api/parent/dashboard', 'GET', 'student-owned'],
+  ['/api/parent/preferences', 'GET', 'student-owned'],
+  ['/api/parent/preferences/email/verify', 'POST', 'public'],
+  ['/api/parent/recovery/request', 'POST', 'public'],
+  ['/api/parent/recovery/confirm', 'POST', 'public'],
   ['/api/parent-links', 'POST', 'teacher-owned'],
   ['/api/result-reports/batches/batch-1/retry', 'POST', 'teacher-owned'],
 ] as const;

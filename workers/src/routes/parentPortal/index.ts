@@ -4,6 +4,7 @@ import { handleParentAuthRoutes } from './authRoutes';
 import { handleParentDashboardRoutes } from './dashboardRoutes';
 import { handleParentHistoryRoutes } from './historyRoutes';
 import { handleParentNotificationRoutes } from './notificationRoutes';
+import { handleParentPreferenceRecoveryRoutes } from './preferenceRecoveryRoutes';
 import { handleTeacherAnnouncementRoutes } from './teacherAnnouncementRoutes';
 import { handleTeacherLinkRoutes } from './teacherLinkRoutes';
 
@@ -15,6 +16,9 @@ export async function handleParentPortalRoutes(
 ): Promise<Response> {
   const authResponse = await handleParentAuthRoutes(request, env, path, method);
   if (authResponse) return authResponse;
+
+  const preferenceRecoveryResponse = await handleParentPreferenceRecoveryRoutes(request, env, path, method);
+  if (preferenceRecoveryResponse) return preferenceRecoveryResponse;
 
   const dashboardResponse = await handleParentDashboardRoutes(request, env, path, method);
   if (dashboardResponse) return dashboardResponse;

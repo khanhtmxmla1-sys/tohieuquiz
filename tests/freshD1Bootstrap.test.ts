@@ -31,6 +31,10 @@ describe('fresh D1 bootstrap contract', () => {
       'parent_activation_tokens',
       'parent_class_announcements',
       'parent_notifications',
+      'parent_contact_preferences',
+      'parent_contact_tokens',
+      'parent_digest_runs',
+      'parent_account_audit',
       'ai_tutor_daily_usage',
       'ai_tutor_reservations',
       // Thiếu bảng này thì mọi endpoint đăng nhập trả 503 (limiter chạy failureMode 'closed').
@@ -78,8 +82,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(46);
-    expect(migrationNames.at(-1)).toBe('0047_results_intervention_center.sql');
+    expect(migrationNames).toHaveLength(47);
+    expect(migrationNames.at(-1)).toBe('0048_parent_digest_recovery.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);

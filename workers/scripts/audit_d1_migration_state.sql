@@ -314,6 +314,17 @@ WITH checks(migration, check_name, ok) AS (
         'idx_intervention_groups_teacher_updated','idx_intervention_groups_class_skill',
         'idx_intervention_members_student','idx_intervention_notes_group_created',
         'idx_intervention_audit_group_created','idx_assignments_intervention_group'
+       ))),
+
+    ('0048_parent_digest_recovery.sql', 'parent digest and recovery tables',
+      (SELECT COUNT(*)=4 FROM sqlite_master WHERE type='table'
+       AND name IN ('parent_contact_preferences','parent_contact_tokens','parent_digest_runs','parent_account_audit'))),
+    ('0048_parent_digest_recovery.sql', 'parent digest and recovery indexes',
+      (SELECT COUNT(*)=5 FROM sqlite_master WHERE type='index'
+       AND name IN (
+        'idx_parent_contact_preferences_digest_due','idx_parent_contact_tokens_lookup',
+        'idx_parent_contact_tokens_link_created','idx_parent_digest_runs_status_updated',
+        'idx_parent_account_audit_link_created'
        )))
 ), summary AS (
   SELECT

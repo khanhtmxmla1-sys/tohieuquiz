@@ -92,6 +92,49 @@ export interface ParentHistoryPage<T> {
   totalPages: number;
 }
 
+export const PARENT_DIGEST_WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+export type ParentDigestWeekday = typeof PARENT_DIGEST_WEEKDAYS[number];
+
+export interface ParentContactPreferences {
+  email: string | null;
+  emailVerifiedAt: string | null;
+  weeklyDigestEnabled: boolean;
+  digestWeekday: ParentDigestWeekday;
+  digestHour: number;
+  timezone: 'Asia/Ho_Chi_Minh';
+  quietHoursEnabled: boolean;
+  quietHoursStart: string;
+  quietHoursEnd: string;
+  emailKinds: ParentNotificationKind[];
+  emailRolloutReady: boolean;
+  updatedAt: string | null;
+}
+
+export interface ParentContactPreferencesInput {
+  email: string | null;
+  weeklyDigestEnabled: boolean;
+  digestWeekday: ParentDigestWeekday;
+  digestHour: number;
+  quietHoursEnabled: boolean;
+  quietHoursStart: string;
+  quietHoursEnd: string;
+  emailKinds: ParentNotificationKind[];
+}
+
+export interface ParentDigestSnapshot {
+  weekStart: string;
+  weekEnd: string;
+  completedQuizzes: number;
+  averageScore: number;
+  pendingAssignments: number;
+  supportAreas: Array<{
+    subject: string;
+    correctRate: number;
+    confidence: 'low' | 'medium' | 'high';
+  }>;
+  homeSuggestions: string[];
+}
+
 export interface ParentDashboardPayload {
   student: ParentStudentProfile;
   period: {
