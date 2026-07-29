@@ -740,11 +740,11 @@ interface AuthState {
 - Test: `tests/paginationContracts.test.ts`
 - Create: `scripts/benchmark-list-endpoints.mjs`
 
-- [ ] Default page 25, max 100; stable cursor.
-- [ ] Không endpoint quản trị trả toàn bộ rows vô hạn.
-- [ ] Đo `EXPLAIN QUERY PLAN` trước/sau index.
-- [ ] Virtualize DOM >100 items mà vẫn accessible.
-- [ ] URL giữ filter/sort/page/cursor.
+- [x] Default page 25, max 100; stable cursor.
+- [x] Không endpoint quản trị trả toàn bộ rows vô hạn.
+- [x] Đo `EXPLAIN QUERY PLAN` trước/sau index.
+- [x] Virtualize DOM >100 items mà vẫn accessible.
+- [x] URL giữ filter/sort/page/cursor.
 
 **Acceptance:** Dataset staging 10k rows đạt p95 mục tiêu <500ms cho core list reads.
 

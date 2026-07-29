@@ -145,7 +145,12 @@
 
 - [x] Task 27 — Bundle analyzer và performance budget CI
 - [x] Task 28 — Lazy-load DOCX/PDF/worksheet/chart
-- [ ] Task 29 — Pagination, virtualization và indexes
+- [x] Task 29 — Pagination, virtualization và indexes
+  - [x] Results, Students, Teachers và Gift Shop Orders dùng stable cursor; mặc định 25 và giới hạn tối đa 100 rows mỗi request.
+  - [x] Client tải theo trang có giới hạn; filter/sort/page/cursor được giữ trong URL ở Teacher Management.
+  - [x] Danh sách trên 100 items dùng virtualization có `role=list`, `aria-setsize` và `aria-posinset`.
+  - [x] Migration/rollback `0051` bổ sung index cursor cho results, students, teachers, gift orders và notifications; schema/registry/audit đã đồng bộ.
+  - [x] Benchmark SQLite 10.000 rows đạt p95 khoảng 0,03–0,06 ms; targeted 9 file/51 test, full verify, coverage, build và security đều đạt.
 - [x] Task 30 — Web Vitals, API latency và alerting
   - [x] Frontend thu thập LCP/INP/CLS qua `web-vitals`, lấy mẫu tối đa 10% và chỉ gửi pathname, release, metric/rating, request ID; không query, PII, câu hỏi hoặc đáp án.
   - [x] Worker telemetry endpoint giới hạn 4 KB, allowlist CLS/INP/LCP, rate limit fail-closed và structured log có request correlation.
