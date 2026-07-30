@@ -1,6 +1,6 @@
 # TôHiệuQuiz — Kế hoạch hoàn thiện dự án (ROADMAP)
 
-> Cập nhật: **30/07/2026**. Tasks 1–37 đã hoàn tất trên `main`; Task 38 đang ở bước release-prep và chưa thực hiện cleanup production.
+> Cập nhật: **30/07/2026**. Tasks 1–38 đã hoàn tất trên `main`; modernization release `v1.0.0` đã đóng bằng cleanup được review, smoke 15/15 và release evidence.
 > Trạng thái hạ tầng chi tiết: `docs/deployment/CURRENT_PROGRESS.md`. Quy ước kiểm thử E2E: `docs/testing/e2e.md`.
 
 ## Tình trạng các giai đoạn
@@ -13,7 +13,7 @@
 | 3 | CI/CD tự động | ✅ Xong, branch protection đã bắt buộc |
 | 4 | Hạ tầng Cloudflare/Vercel & deploy | ✅ Xong; email provider là tích hợp tùy chọn đang fail-closed |
 | 5 | Kiểm thử production & rollout cờ | ✅ Nền tảng rollout/smoke hoàn tất; audience từng tính năng là quyết định sản phẩm |
-| 6 | Modernization release closeout | 🔄 Task 38 prep đạt; chờ backup, cleanup và smoke hậu cleanup |
+| 6 | Modernization release closeout | ✅ Task 38 hoàn tất; backup, cleanup, smoke và `v1.0.0` evidence đã đóng |
 
 Quality gate hiện tại (đo ngày 26/07/2026, với tất cả cờ bật ở local):
 
@@ -71,7 +71,7 @@ Quality gate hiện tại (đo ngày 26/07/2026, với tất cả cờ bật ở
 - [x] `tests/d1RollbackCoverage.test.ts` — **mới**, ép mọi migration rủi ro cao phải có rollback, chặn rollback mồ côi, và kiểm tra thứ tự DROP an toàn với khoá ngoại.
 - [x] Branch protection `main` đã được reconcile và xác minh: PR + approval + CODEOWNERS + strict checks + conversation resolution; cấm force-push/deletion.
 
-## Giai đoạn 4 — Hạ tầng & deploy ✅ (còn 1 hạng mục)
+## Giai đoạn 4 — Hạ tầng & deploy ✅ (còn tích hợp tùy chọn)
 
 Chi tiết và bằng chứng: `docs/deployment/CURRENT_PROGRESS.md`.
 
@@ -82,14 +82,12 @@ Vercel project + Git integration + biến môi trường, custom domains và smo
 Còn lại:
 
 - [x] Dịch vụ AI thật tại `ai.thtohieu.com/v1`, Bearer token mới và `CLIPROXY_TOKEN` production — xong 27/07/2026.
-- [ ] Email provider (SPF/DKIM/DMARC), monitoring, Cloudinary production.
+- [ ] Email provider (SPF/DKIM/DMARC) và Cloudinary production là tích hợp tùy chọn; monitoring nền tảng đã hoàn tất.
 - [x] Tài khoản quản trị đầu tiên trong D1 — xong 26/07/2026 (phiên 3).
 
 ## Giai đoạn 5 — Rollout production 🔄
 
-**Điều kiện tiên quyết đã xong (26/07/2026, phiên 3):** tài khoản quản trị đầu tiên `admin` đã
-tồn tại trong D1 production, cùng bộ tài khoản kiểm thử `test.gv1` / `test.hs1` / `test.hs2` và
-lớp "Lớp Test 1". Mật khẩu **không** lưu trong repo — xem `docs/deployment/CURRENT_PROGRESS.md`.
+**Điều kiện tiên quyết đã xong (26/07/2026, phiên 3):** tài khoản quản trị đầu tiên `admin` đã tồn tại trong D1 production. Bộ fixtures `test.gv1` / `test.hs1` / `test.hs2` và lớp "Lớp Test 1" chỉ phục vụ nghiệm thu, sau đó đã được Task 38 xóa có bookmark, audit và smoke hậu cleanup. Mật khẩu **không** lưu trong repo — xem `docs/deployment/CURRENT_PROGRESS.md`.
 
 ### Lỗi chặn phát hiện khi tạo tài khoản: đăng nhập production trả 503
 
@@ -168,14 +166,14 @@ MULTIPLE_SELECT, ORDERING, UNDERLINE), còn lại giữ nguyên chuỗi. Chốt 
    rồi gửi lại đúng cả hai.
 2. [ ] **Gift Shop V2** — `gift-shop.cy.ts` (3/3 pass) đã khoá luồng đổi quà → trao → hủy và hoàn xu
    trước khi bật; cờ frontend nên cần redeploy Vercel với `VITE_FEATURE_GIFT_SHOP_V2=true`.
-3. [ ] **AI Quiz V2** — chỉ sau khi có AI proxy thật; theo dõi chi phí và quota giáo viên.
+3. [ ] **AI Quiz V2** — AI proxy production đã sẵn sàng; chỉ rollout sau quyết định sản phẩm và phải theo dõi chi phí/quota giáo viên.
 4. [ ] **AI Blueprint V3**.
 5. [ ] **Parent Portal V1** — kèm truyền thông tới phụ huynh; theo dõi rate-limit đăng nhập.
 
 Cờ frontend cần redeploy Vercel với env mới để bật/tắt (vài phút). Cờ server đổi tức thì.
 
 ### Kết thúc
-- [ ] Cập nhật `CHANGELOG.md`, tag release `v1.0.0`.
+- [x] Cập nhật `CHANGELOG.md`, merge final evidence và phát hành tag/GitHub Release `v1.0.0`.
 - [x] Chuyển theo dõi dài hạn thành `docs/operations/maintenance-calendar.md`.
 
 ---
@@ -184,8 +182,8 @@ Cờ frontend cần redeploy Vercel với env mới để bật/tắt (vài phú
 
 | Rủi ro | Ảnh hưởng | Phương án |
 |---|---|---|
-| Chưa có AI proxy thật | Chặn rollout AI V2/V3 | Bật Unified Notifications và Gift Shop trước |
-| Dữ liệu test còn trong production | Lẫn với dữ liệu thật khi khai trương | Task 38 dry-run đã đạt; chỉ execute sau bookmark + PR review, giữ nguyên owner/smoke accounts |
+| Chi phí/quota khi rollout AI V2/V3 | Có thể tăng chi phí hoặc gây quota rejection | Rollout theo audience nhỏ, theo dõi AI metrics và rollback bằng control plane |
+| ~~Dữ liệu test còn trong production~~ | Đã xử lý | Task 38 dùng private bookmark + transactional cleanup + audit; giữ nguyên owner/smoke accounts và smoke 15/15 sau cleanup |
 | ~~Bảng `rate_limits` phình dần~~ | Đã xử lý | Cron `0 23 * * *` gọi `purgeExpiredRateLimits()`, xoá bản ghi cũ hơn 24h |
 | `quiz.cy.ts` đang skip | Mất phủ luồng home/login | Viết lại theo UI hiện tại hoặc restub như `parent-portal.cy.ts` |
 | ~~2 spec live đã lỗi thời so với UI~~ | Đã xử lý | Sửa xong, **13/13 pass** trên production; xem `docs/testing/e2e.md` |
