@@ -29,7 +29,7 @@ The script is dry-run by default. A production write requires both exact confirm
 
 It also requires the bare `--write` flag. Boolean-looking values such as `--write false` are rejected.
 
-The D1 mutation is one transaction. The script then verifies that:
+The D1 mutation uses Cloudflare D1.batch() through a localhost-only remote development session. The temporary Worker validates a random bearer token and the exact payload hash, executes the prepared statements as one transactional batch, then the local process stops the session and deletes all temporary files. The script then verifies that:
 
 - the approved teacher, students and old class are absent;
 - protected owners still exist;
