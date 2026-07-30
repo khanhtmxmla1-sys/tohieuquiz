@@ -1,19 +1,7 @@
-import type { Env } from '../types';
 import { clearJWTCookie, createJWTCookie } from './jwt';
 
-type AuthTransportEnv = Pick<Env, 'AUTH_TOKEN_TRANSPORT_MODE'>;
-
-export function getAuthTokenTransportMode(env: AuthTransportEnv): 'compat' | 'cookie' {
-    return env.AUTH_TOKEN_TRANSPORT_MODE === 'compat' ? 'compat' : 'cookie';
-}
-
-export function buildAuthSessionData<T extends Record<string, unknown>>(
-    env: AuthTransportEnv,
-    data: T,
-    token: string,
-): T & { token?: string } {
-    if (getAuthTokenTransportMode(env) === 'cookie') return { ...data };
-    return { ...data, token };
+export function buildAuthSessionData<T extends Record<string, unknown>>(data: T): T {
+    return { ...data };
 }
 
 function replaceResponseHeaders(response: Response, setCookie: string): Response {

@@ -308,15 +308,17 @@ interface AuthState {
 - Test: `tests/cookieAuthClients.test.ts`, `tests/legacyJwtMigration.worker.test.ts`
 - Create: `docs/deployment/auth-cookie-enforcement.md`
 
-- [x] Ghi metric legacy Bearer/JWT usage mà không log token hoặc username.
-- [ ] Điều kiện chuyển: 0 request legacy hợp lệ trong 72 giờ production liên tục; cần bằng chứng log thực tế.
-- [x] Đổi checked-in `AUTH_MIGRATION_MODE="enforce"` bằng commit config riêng; chưa deploy production.
-- [ ] Sau 48 giờ enforce production ổn định, xóa legacy/browser Bearer fallback bằng commit riêng.
-- [x] Rollback auth-validation duy nhất: đổi env về `compat`; cookie transport vẫn giữ nguyên.
+- [x] Ghi metric legacy Bearer/JWT usage mà không log token hoặc username trong giai đoạn migration.
+- [x] Gate 72 giờ được đóng sớm theo owner risk override ngày 2026-07-30; không khẳng định đủ thời lượng hoặc đủ aggregate analytics.
+- [x] Production đã chuyển cookie-only enforce lúc 2026-07-30 13:05:51 UTC+7.
+- [x] Gate enforce 48 giờ được đóng sớm theo owner risk override khoảng 2026-07-30 13:21 UTC+7.
+- [x] Chuẩn bị commit riêng xóa Bearer extraction, legacy claims, readable response token, telemetry và hai flag compat.
+- [x] Rollback sau removal là redeploy Worker version/commit đã review trước đó; không tái tạo ad-hoc Bearer fallback.
+- [ ] Review, merge, deploy và xác minh production hậu deploy.
 
-**Acceptance:** JWT thiếu issuer/audience/tokenVersion bị từ chối; UI vẫn login/refresh/logout bằng cookie.
+**Acceptance:** JWT thiếu issuer/audience/tokenVersion bị từ chối; UI vẫn login/refresh/logout bằng cookie; obsolete compat properties không thể bật lại hành vi cũ.
 
-**Commit:** `security(auth): enforce registered JWT claims`
+**Commit:** `security(auth): remove legacy compatibility path`
 
 ## Task 11: Security gate cho root và Workers
 
@@ -1208,17 +1210,20 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - The four baseline assertion drifts were aligned. The fresh canonical D1 schema now includes the two AI Tutor quota tables introduced by migration `0044`, preventing new databases from missing those tables.
 - The first enforce-mode full regression exposed seven stale Bearer fixtures in Smart Assignment and Weakness Profile. They were converted to current cookie JWT fixtures, their targeted 9/9 tests passed, and the full suite then passed.
 - Batch 3 work was committed in separate recovery points. No push, merge, production deployment, production migration, secret change or production database operation was performed.
-- Task 10 remains intentionally open until real production evidence proves zero accepted legacy traffic for 72 continuous hours and a later 48-hour enforce stability window supports deleting the compatibility path.
+- Task 10 remains open only for review, merge, deployment and post-deploy verification of the separate compatibility-removal commit.
 
-### Task 10 — Cookie enforcement implementation complete; production observation pending
+### Task 10 — Compatibility removal prepared for review
 
-- Checked-in Worker defaults now use `AUTH_MIGRATION_MODE="enforce"` and cookie transport; no deployment or secret change was performed.
-- Enforce mode rejects Bearer transport and JWTs missing issuer, audience or `tokenVersion`; student login now issues `tokenVersion: 0`.
-- Compat mode remains behind the explicit rollback flag and emits `auth_legacy_session_accepted` metadata without token, username, payload, body or query string.
-- TDD evidence: the migration suite first failed 5 assertions for config, Bearer enforcement, student token version and telemetry, then all 5 files/22 tests passed.
-- Workers typecheck and targeted lint passed. Runbook: `docs/deployment/auth-cookie-enforcement.md`.
-- MCP review's console heuristic was accepted for the required structured migration metric; its exact schema is tested to exclude token and username values.
-- Still open: 72-hour zero-legacy production evidence and the later 48-hour stable-window removal of the compat code path.
+- Production was promoted to cookie-only enforce at `2026-07-30 13:05:51 UTC+7`; protected smoke passed 15/15 checks.
+- The release owner instructed early closure of the observation gates at approximately `2026-07-30 13:21 UTC+7`. This is documented as risk acceptance, not as completion of 72/48 continuous hours or proof of aggregate analytics.
+- Branch `security/remove-auth-compat` removes Bearer extraction, claim-less legacy JWT verification, the `allowLegacy` option, accepted-legacy telemetry, readable response tokens and both auth compatibility flags.
+- `AUTH_SESSION_MODE` remains because it controls D1-backed session enforcement rather than legacy token compatibility.
+- TDD evidence: the new contract first failed 6 assertions across 4 files, then the expanded auth regression passed 6 files/24 tests.
+- Full regression exposed one stale Bearer fixture in announcement audience tests; it was changed to the current auth cookie and its 8/8 tests passed.
+- All four Vitest shards passed: 374 files and 1,722 tests. Workers typecheck, lint, security checks, zero-vulnerability dependency audits and production build passed.
+- Runbook: `docs/deployment/auth-cookie-enforcement.md`; risk record: `docs/operations/releases/2026-07-30-auth-compat-removal-prep.md`.
+- No merge, Worker deployment, D1 operation or secret change is included in this preparation step.
+- Still open: final diff review, commit/PR, merge, deployment and protected production smoke after deployment.
 
 ### Task 3 — Authorization matrix enforced
 

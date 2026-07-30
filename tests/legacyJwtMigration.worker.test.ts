@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SignJWT } from 'jose';
 import { verifyJWTMiddleware } from '../workers/src/middleware/jwtAuth';
 import { handleLogoutRoute } from '../workers/src/routes/logout';
-import { getAuthTokenTransportMode } from '../workers/src/utils/authSession';
 import { JWT_AUDIENCE, JWT_ISSUER, signJWT } from '../workers/src/utils/jwt';
 
 const secret = 'a-test-secret-that-is-long-enough';
@@ -22,11 +21,10 @@ const activeTeacherDb = (tokenVersion = 3) => ({
   })),
 });
 
-const env = (mode: 'compat' | 'enforce', tokenVersion = 3) => ({
+const env = (tokenVersion = 3, overrides: Record<string, unknown> = {}) => ({
   DB: activeTeacherDb(tokenVersion),
   JWT_SECRET: secret,
-  AUTH_MIGRATION_MODE: mode,
-  AUTH_TOKEN_TRANSPORT_MODE: 'cookie',
+  ...overrides,
 } as any);
 
 const cookieRequest = (token: string, path = '/api/results') => new Request(`https://test${path}`, {
@@ -48,29 +46,28 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('JWT migration enforcement', () => {
-  it('keeps checked deployment defaults on enforce and cookie-only transport', () => {
+describe('JWT cookie enforcement after compatibility removal', () => {
+  it('removes migration and token transport compatibility flags from deployment config', () => {
     const config = readFileSync('workers/wrangler.toml', 'utf8');
-    expect(config).toContain('AUTH_MIGRATION_MODE = "enforce"');
-    expect(config).toContain('AUTH_TOKEN_TRANSPORT_MODE = "cookie"');
-    expect(getAuthTokenTransportMode({})).toBe('cookie');
+    expect(config).not.toContain('AUTH_MIGRATION_MODE');
+    expect(config).not.toContain('AUTH_TOKEN_TRANSPORT_MODE');
   });
 
-  it('rejects browser Bearer transport in enforce mode but accepts the same current token from the cookie', async () => {
+  it('rejects browser Bearer transport but accepts the same current token from the cookie', async () => {
     const token = await signJWT({
       username: 'teacher-a', role: 'teacher', tokenVersion: 3, purpose: 'session',
     }, secret);
 
-    const bearerResult = await verifyJWTMiddleware(bearerRequest(token), env('enforce'));
+    const bearerResult = await verifyJWTMiddleware(bearerRequest(token), env());
     expect(bearerResult).toBeInstanceOf(Response);
     expect((bearerResult as Response).status).toBe(401);
 
-    const cookieResult = await verifyJWTMiddleware(cookieRequest(token), env('enforce'));
+    const cookieResult = await verifyJWTMiddleware(cookieRequest(token), env());
     expect(cookieResult).not.toBeInstanceOf(Response);
     expect(cookieResult).toMatchObject({ user: { username: 'teacher-a', tokenVersion: 3 } });
   });
 
-  it('rejects enforce-mode cookies missing issuer, audience, or tokenVersion', async () => {
+  it('rejects cookies missing issuer, audience, or tokenVersion', async () => {
     const missingIssuer = await signedToken(
       { username: 'student-a', role: 'student', purpose: 'session', tokenVersion: 0 },
       { audience: true },
@@ -85,45 +82,41 @@ describe('JWT migration enforcement', () => {
     );
 
     for (const token of [missingIssuer, missingAudience, missingVersion]) {
-      const result = await verifyJWTMiddleware(cookieRequest(token), env('enforce'));
+      const result = await verifyJWTMiddleware(cookieRequest(token), env());
       expect(result).toBeInstanceOf(Response);
       expect((result as Response).status).toBe(401);
     }
   });
 
-  it('accepts a compat legacy Bearer session and emits only safe migration metadata', async () => {
+  it('cannot re-enable Bearer or legacy claims with obsolete compatibility flags', async () => {
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const current = await signJWT({
+      username: 'teacher-a', role: 'teacher', tokenVersion: 3, purpose: 'session',
+    }, secret);
     const legacy = await signedToken({ username: 'teacher-a', role: 'teacher' });
-
-    const result = await verifyJWTMiddleware(bearerRequest(legacy), env('compat'));
-    expect(result).not.toBeInstanceOf(Response);
-
-    expect(infoSpy).toHaveBeenCalledTimes(1);
-    const logged = JSON.parse(String(infoSpy.mock.calls[0][0]));
-    expect(logged).toEqual({
-      event: 'auth_legacy_session_accepted',
-      requestId: 'req-legacy-1',
-      route: '/api/results',
-      method: 'GET',
-      transport: 'bearer',
-      legacyClaims: true,
-      missingTokenVersion: true,
-      role: 'teacher',
+    const obsoleteCompatEnv = env(3, {
+      AUTH_MIGRATION_MODE: 'compat',
+      AUTH_TOKEN_TRANSPORT_MODE: 'compat',
     });
-    expect(JSON.stringify(logged)).not.toContain('teacher-a');
-    expect(JSON.stringify(logged)).not.toContain(legacy);
+
+    for (const request of [bearerRequest(current), cookieRequest(legacy)]) {
+      const result = await verifyJWTMiddleware(request, obsoleteCompatEnv);
+      expect(result).toBeInstanceOf(Response);
+      expect((result as Response).status).toBe(401);
+    }
+    expect(infoSpy).not.toHaveBeenCalled();
   });
 
   it('supports cookie restore and clears the cookie on logout without returning a readable token', async () => {
     const token = await signJWT({
       id: 'student-a', username: 'student-a', role: 'student', tokenVersion: 0,
     }, secret);
-    const restored = await verifyJWTMiddleware(cookieRequest(token, '/api/student-profile'), env('enforce'));
+    const restored = await verifyJWTMiddleware(cookieRequest(token, '/api/student-profile'), env());
     expect(restored).toMatchObject({ user: { id: 'student-a', role: 'student', tokenVersion: 0 } });
 
     const logout = await handleLogoutRoute(
       new Request('https://test/api/logout', { method: 'POST', headers: { Cookie: `auth_token=${token}` } }),
-      env('enforce'),
+      env(),
     );
     expect(logout.headers.get('Set-Cookie')).toContain('Max-Age=0');
     expect(logout.headers.get('Cache-Control')).toBe('no-store');

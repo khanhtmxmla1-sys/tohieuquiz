@@ -121,13 +121,13 @@ export async function handlePasskeyRoutes(
         .bind(new Date().toISOString(), new Date().toISOString(), staff.username).run();
       return withAuthCookie(noStore(jsonResponse({
         status: 'success',
-        data: buildAuthSessionData(env, {
+        data: buildAuthSessionData({
           username: staff.username,
           fullName: staff.full_name,
           role: staff.role,
           class: staff.class,
           requiresPasswordChange: false,
-        }, token),
+        }),
       })), token);
     } catch (error) {
       logVerificationFailure(error, request);

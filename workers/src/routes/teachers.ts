@@ -138,13 +138,13 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
 
         return withAuthCookie(jsonResponse({
             status: 'success',
-            data: buildAuthSessionData(env, {
+            data: buildAuthSessionData({
                 username: teacher.username,
                 fullName: teacher.full_name,
                 role: teacher.role,
                 class: teacher.class,
                 requiresPasswordChange,
-            }, jwtToken),
+            }),
         }), jwtToken, requiresPasswordChange ? 15 * 60 : undefined);
     }
 
@@ -199,7 +199,7 @@ export async function handleTeacherRoutes(request: Request, env: Env, path: stri
         });
         return withAuthCookie(jsonResponse({
             status: 'success',
-            data: buildAuthSessionData(env, {}, token),
+            data: buildAuthSessionData({}),
         }), token);
     }
 

@@ -62,14 +62,13 @@ class Statement {
     async run() { return { success: true }; }
 }
 
-const env = (mode: 'compat' | 'cookie') => ({
+const env = (overrides: Record<string, unknown> = {}) => ({
     DB: {
         prepare: (sql: string) => new Statement(sql),
         batch: async () => [],
     },
     JWT_SECRET: 'a-test-secret-that-is-long-enough',
-    AUTH_MIGRATION_MODE: 'enforce',
-    AUTH_TOKEN_TRANSPORT_MODE: mode,
+    ...overrides,
 } as any);
 
 const loginRequest = () => new Request('https://api.test/api/login', {
@@ -78,21 +77,21 @@ const loginRequest = () => new Request('https://api.test/api/login', {
     body: JSON.stringify({ username: 'teacher-a', password: 'TeacherPass123' }),
 });
 
-describe('backend auth transport integration', () => {
-    it('returns a rollback token only in compat mode', async () => {
-        const compat = await handleTeacherRoutes(loginRequest(), env('compat'), '/api/login', 'POST');
-        const cookie = await handleTeacherRoutes(loginRequest(), env('cookie'), '/api/login', 'POST');
-        const compatBody = await compat.json() as any;
-        const cookieBody = await cookie.json() as any;
+describe('backend cookie-only auth integration', () => {
+    it('never returns a readable token even when obsolete compatibility flags are supplied', async () => {
+        const response = await handleTeacherRoutes(loginRequest(), env({
+            AUTH_MIGRATION_MODE: 'compat',
+            AUTH_TOKEN_TRANSPORT_MODE: 'compat',
+        }), '/api/login', 'POST');
+        const body = await response.json() as any;
 
-        expect(compatBody.data.token).toEqual(expect.any(String));
-        expect(cookieBody.data.token).toBeUndefined();
-        expect(cookieBody.data).toMatchObject({ username: 'teacher-a', fullName: 'Cô An' });
-        expect(cookie.headers.get('Set-Cookie')).toContain('SameSite=Lax');
-        expect(cookie.headers.get('Cache-Control')).toBe('no-store');
+        expect(body.data.token).toBeUndefined();
+        expect(body.data).toMatchObject({ username: 'teacher-a', fullName: 'Cô An' });
+        expect(response.headers.get('Set-Cookie')).toContain('SameSite=Lax');
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
     });
 
-    it('changes a password with the cookie-mode response omitting the replacement token', async () => {
+    it('changes a password while omitting the replacement token from the response', async () => {
         const token = await signJWT({
             username: 'teacher-a', role: 'teacher', tokenVersion: 2, purpose: 'session',
         }, 'a-test-secret-that-is-long-enough');
@@ -101,14 +100,14 @@ describe('backend auth transport integration', () => {
             headers: { 'Content-Type': 'application/json', Cookie: `auth_token=${token}` },
             body: JSON.stringify({ currentPassword: 'TeacherPass123', newPassword: 'NewTeacherPass123' }),
         });
-        const response = await handleTeacherRoutes(request, env('cookie'), '/api/account/change-password', 'POST');
+        const response = await handleTeacherRoutes(request, env(), '/api/account/change-password', 'POST');
         expect((await response.json() as any).data.token).toBeUndefined();
         expect(response.headers.get('Set-Cookie')).toContain('auth_token=');
         expect(response.headers.get('Cache-Control')).toBe('no-store');
     });
 
-    it('issues a student cookie without exposing the token in cookie mode', async () => {
-        const response = await authenticateStudent(env('cookie'), 'student-a', 'StudentPass123');
+    it('issues a student cookie without exposing the token', async () => {
+        const response = await authenticateStudent(env(), 'student-a', 'StudentPass123');
         const body = await response.json() as any;
         expect(body.data.token).toBeUndefined();
         expect(body.data).toMatchObject({ studentId: 'student-1', username: 'student-a' });

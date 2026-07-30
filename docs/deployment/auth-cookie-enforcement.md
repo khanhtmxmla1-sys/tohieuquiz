@@ -1,99 +1,77 @@
 # Auth Cookie Enforcement Runbook
 
-## Status
+## Current status
 
-The repository default is now:
+Browser authentication is permanently cookie-only in the current source contract:
 
-```text
-AUTH_MIGRATION_MODE="enforce"
-AUTH_TOKEN_TRANSPORT_MODE="cookie"
-```
+- only the host-only `auth_token` cookie is accepted;
+- `Authorization: Bearer` is ignored by browser-session authentication;
+- JWT verification always requires HS256, the expected issuer and audience;
+- middleware rejects tokens without a non-negative `tokenVersion`;
+- login, passkey, password-change and student-login responses never expose a readable token;
+- logout reads only the auth cookie, revokes its session when present and clears the cookie.
 
-This checked-in configuration is a desired deployment state only. Committing it does not deploy the Worker, change a Cloudflare secret, migrate production data or prove the production observation windows below.
+`AUTH_MIGRATION_MODE` and `AUTH_TOKEN_TRANSPORT_MODE` have been removed from source types and checked deployment configuration. `AUTH_SESSION_MODE` remains a separate session-record rollout control and is not part of the removed Bearer/legacy compatibility path.
 
-## Security contract
+## Compatibility removal
 
-In `enforce` mode:
+The separate compatibility-removal change deletes:
 
-- Browser authentication is accepted only from the host-only `auth_token` cookie.
-- Bearer headers are ignored by the browser-session middleware.
-- JWTs must use HS256 and include the expected issuer, audience and a non-negative `tokenVersion`.
-- Teacher/admin `tokenVersion` must equal the current D1 account version.
-- Student sessions are issued with `tokenVersion: 0`; missing versions are rejected.
-- Login and password-change responses do not expose a readable token while cookie transport is active.
-- Logout clears the HttpOnly cookie and returns `Cache-Control: no-store`.
+- Bearer token extraction for browser sessions;
+- claim-less legacy JWT verification and the `allowLegacy` option;
+- the `auth_legacy_session_accepted` telemetry path;
+- the response-body token fallback;
+- the two environment flags that could re-enable those behaviors.
 
-In explicit `compat` mode:
+Supplying obsolete `AUTH_MIGRATION_MODE=compat` or `AUTH_TOKEN_TRANSPORT_MODE=compat` properties at runtime has no effect after this change.
 
-- Existing Bearer sessions and legacy claim sets can be accepted temporarily.
-- Accepted legacy usage emits one structured migration event.
-- Token values, usernames, payloads, passwords and full URLs are never logged.
+## Production gate record
 
-## Migration metric
+Production was promoted to auth enforce at **2026-07-30 13:05:51 UTC+7**. The normal runbook called for a continuous 48-hour enforce observation window through **2026-08-01 13:05:51 UTC+7**.
 
-Accepted compatibility traffic emits:
+At approximately **2026-07-30 13:21 UTC+7**, the release owner explicitly instructed the team to close the gate early and continue, accepting the risk that the full observation window and aggregate analytics evidence were incomplete. Record this as an owner risk override, not as proof that 48 continuous hours elapsed.
 
-```json
-{
-  "event": "auth_legacy_session_accepted",
-  "requestId": "request metadata only",
-  "route": "/api/route-without-query",
-  "method": "GET",
-  "transport": "bearer",
-  "legacyClaims": true,
-  "missingTokenVersion": true,
-  "role": "teacher"
-}
-```
+The compatibility-removal commit is prepared for review only. It does not merge itself, deploy a Worker, change production configuration or migrate D1.
 
-Use the `event` field as the metric key. Count accepted events by hour and separately group `transport`, `legacyClaims`, `missingTokenVersion` and `role`. Do not add username, student ID, token, JWT payload, request body or query-string fields to this event.
+## Verification requirements
 
-## Rollout gates
+Before merge:
 
-### Before changing a deployed environment to enforce
+1. Verify Bearer and claim-less legacy tokens remain rejected even when obsolete compat properties are supplied.
+2. Verify current cookie tokens restore admin, teacher and student sessions.
+3. Verify password-change-required staff can complete the cookie flow.
+4. Verify login and password-change responses omit readable tokens.
+5. Run Workers typecheck, lint, security checks and production build.
+6. Review the diff as a security-sensitive authentication change.
 
-1. Keep the deployed environment in `compat` while current clients use cookie transport.
-2. Confirm `auth_legacy_session_accepted` has **zero accepted events for 72 continuous hours**.
-3. Confirm login, session restore/account profile, password change and logout smoke tests pass using cookies only.
-4. Confirm 401/403 rate, login success rate and protected-route latency have no unexplained regression.
-5. Obtain the release owner's approval before deploying the checked-in `enforce` configuration.
+After any later deployment:
 
-The 72-hour condition cannot be satisfied by unit tests or local logs. Record exact UTC start/end timestamps and the production log query in the release evidence.
+- run the protected production smoke for admin, teacher, student and parent;
+- watch login success, expected 401/403 behavior, 5xx and protected-route latency;
+- check security events and auth sessions;
+- rollback immediately if a confirmed authentication regression appears.
 
-### After enforce deployment
+## Emergency rollback after compatibility removal
 
-For at least 48 continuous hours:
+The compatibility flags no longer exist. Rollback is therefore version-based:
 
-- watch login success and 401/403 rates;
-- verify teacher, student and admin account restore flows;
-- verify password-change-required accounts can complete the cookie flow;
-- verify logout clears the cookie;
-- verify no client starts sending Authorization headers.
+1. Redeploy the last reviewed known-good Worker version or commit through the normal release path.
+2. Keep browser token persistence disabled and continue using the HttpOnly cookie.
+3. Do not rotate or reveal `JWT_SECRET` unless a separate secret-compromise incident requires it.
+4. Record the incident identifier, failing metric, affected release, UTC rollback time and restored version.
 
-Only after that 48-hour window is stable may a later change delete the compat Bearer/legacy-claims code path. That deletion is intentionally not part of this local implementation commit.
-
-## Emergency rollback
-
-The supported auth-validation rollback is a single configuration change:
-
-```text
-AUTH_MIGRATION_MODE="compat"
-```
-
-Redeploy the Worker through the normal reviewed release path. Do not rotate or reveal `JWT_SECRET`, do not re-enable browser token persistence, and do not add tokens back to login response bodies. Keep `AUTH_TOKEN_TRANSPORT_MODE="cookie"` during this rollback.
-
-Rollback is appropriate only for a confirmed authentication compatibility incident. Record the incident ID, deploy SHA, UTC rollback time and the metric that triggered rollback.
+Do not recreate an ad-hoc Bearer fallback inside production during an incident. Fix the regression in a reviewed change or restore the previous reviewed Worker version.
 
 ## Verification commands
 
-Run from the integration worktree before requesting deployment approval:
+Run from the isolated compatibility-removal worktree:
 
 ```text
-npm run test:run -- tests/legacyJwtMigration.worker.test.ts tests/authTransport.worker.test.ts tests/authRouteTransport.worker.test.ts tests/systemJwt.worker.test.ts tests/cookieAuthClients.test.ts
+npm run test:run -- tests/authTransport.worker.test.ts tests/authRouteTransport.worker.test.ts tests/legacyJwtMigration.worker.test.ts tests/systemJwt.worker.test.ts tests/cookieAuthClients.test.ts tests/authSessionService.worker.test.ts
 npm run typecheck:workers
 npm run lint
 npm run security:check
 npm run build
 ```
 
-No production action is authorized by this document alone.
+No production deployment is authorized by this document alone.

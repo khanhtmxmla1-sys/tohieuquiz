@@ -103,7 +103,7 @@ const request = (
   ...init,
   headers: {
     ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-    ...(authenticated ? { Authorization: 'Bearer test-token' } : {}),
+    ...(authenticated ? { Cookie: 'auth_token=test-token' } : {}),
     ...(init.headers || {}),
   },
 });

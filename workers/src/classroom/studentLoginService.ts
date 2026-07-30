@@ -82,7 +82,7 @@ export const authenticateStudent = async (
     }, env.JWT_SECRET, '7d');
     const response = jsonResponse({
         status: 'success',
-        data: buildAuthSessionData(env, toStudentSessionData(student, shopItems.results || []), token),
+        data: buildAuthSessionData(toStudentSessionData(student, shopItems.results || [])),
     });
     return withAuthCookie(response, token);
 };
