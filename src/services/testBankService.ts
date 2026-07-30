@@ -1,8 +1,7 @@
 import type { Question } from '../types';
-// Constant API URL
+import { getWorkersApiBaseUrl } from './api/config';
 
-// Dùng tạm url gốc nếu system không có apiConfig export standard
-const API_BASE_URL = import.meta.env.VITE_WORKER_URL || 'http://localhost:8787';
+const testBankUrl = (path: string): string => `${getWorkersApiBaseUrl()}${path}`;
 
 export interface TestBankItem {
     id: string;
@@ -16,7 +15,10 @@ export const testBankService = {
     async getTestBank(teacherId: string): Promise<TestBankItem[]> {
         let response: Response;
         try {
-            response = await fetch(API_BASE_URL + '/api/test-bank/teacher/' + teacherId);
+            response = await fetch(
+                testBankUrl(`/api/test-bank/teacher/${encodeURIComponent(teacherId)}`),
+                { credentials: 'include' },
+            );
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
             throw new Error(`Lỗi kết nối đến server ngân hàng câu hỏi: ${msg}`);
@@ -33,8 +35,9 @@ export const testBankService = {
 
         let response: Response;
         try {
-            response = await fetch(API_BASE_URL + '/api/test-bank', {
+            response = await fetch(testBankUrl('/api/test-bank'), {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     id,
@@ -59,8 +62,9 @@ export const testBankService = {
     async deleteQuestion(id: string): Promise<boolean> {
         let response: Response;
         try {
-            response = await fetch(API_BASE_URL + '/api/test-bank/' + id, {
-                method: 'DELETE'
+            response = await fetch(testBankUrl(`/api/test-bank/${encodeURIComponent(id)}`), {
+                method: 'DELETE',
+                credentials: 'include',
             });
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : String(err);
