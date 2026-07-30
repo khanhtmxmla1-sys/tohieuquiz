@@ -36,14 +36,15 @@
 - [x] Task 7 — Loại StudentSession khỏi localStorage
 - [x] Task 8 — Thu hẹp CacheService
 - [x] Task 9 — Hợp nhất teacher auth store
-- [ ] Task 10 — Chuyển auth compat → enforce *(observation gates closed early by owner override; removal commit prepared for review)*
+- [x] Task 10 — Chuyển auth compat → enforce *(hoàn tất 2026-07-30; observation gates được đóng sớm theo owner risk override)*
   - [x] Production chạy cookie-only enforce từ 2026-07-30 13:05:51 UTC+7; smoke sau deploy đạt 15/15 checks.
   - [x] JWT thiếu issuer/audience/tokenVersion bị từ chối; student token mới có `tokenVersion: 0`.
   - [x] Gate 72 giờ và gate enforce 48 giờ được owner chỉ đạo đóng sớm ngày 2026-07-30; ghi nhận là risk override, không coi là đủ thời lượng hoặc đủ aggregate analytics.
-  - [x] Nhánh `security/remove-auth-compat` loại Bearer extraction, legacy JWT acceptance, legacy telemetry, readable response token và hai flag compat.
+  - [x] PR #20 loại Bearer extraction, legacy JWT acceptance, legacy telemetry, readable response token và hai flag compat; merge commit `8a9c12e`.
   - [x] TDD RED 6 failures → GREEN auth 6 file/24 test; sửa thêm fixture announcement cookie-only 8/8; full regression 374 file/1.722 test đạt.
-  - [x] Rollback sau khi removal được deploy chuyển sang redeploy Worker version/commit đã review trước đó; không còn runtime compat flag.
-  - [ ] Review, merge, deploy commit riêng và chạy production smoke/telemetry hậu deploy.
+  - [x] Worker version `96705980-78e2-4b5b-89f2-883a989dfec7` chạy 100% traffic từ 2026-07-30 15:09:07 UTC+7; rollback version `2003f752-22fd-4503-a05f-6c377ebfc08a` được giữ.
+  - [x] Production smoke hậu deploy đạt 15/15; admin/teacher/student tạo session D1 mới, parent cookie login/read đạt, không có security event mới và 20 probe health/guard không có 5xx.
+  - [x] Không chạy D1 migration, không thay đổi secrets và không tái tạo runtime compat flag.
 - [x] Task 11 — Security gate cho root và Workers
   - [x] Audit production dependencies root + Workers, cài Worker lockfile trong CI và Dependabot hàng tuần.
   - [x] Git-history secret scan, CSP/CORS/browser-auth và migration rollback gates chạy fail-closed.
