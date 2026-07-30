@@ -46,6 +46,7 @@ const routeSamples = [
   ['/api/gift-shop/orders/order-1/approve', 'PATCH', 'teacher-owned'],
   ['/api/gift-shop/catalog/gift-1', 'DELETE', 'admin-only'],
   ['/api/gift-shop/events', 'GET', 'admin-only'],
+  ['/api/media/uploads', 'POST', 'authenticated'],
 ] as const;
 
 describe('API authorization matrix', () => {

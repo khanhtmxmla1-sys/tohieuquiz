@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import imageCompression from 'browser-image-compression';
-import { uploadToCloudinary } from '../../../services/cloudinaryService';
+import { uploadMedia } from '../../../services/mediaUploadService';
 import { IMAGE_CONFIG } from '../homework.constants';
 
 interface UploadState {
@@ -46,9 +46,10 @@ export const useHomeworkUpload = () => {
         progress: 40 
       }));
 
-      // 2. Upload Phase
-      // Note: We use the existing shared cloudinaryService
-      const secureUrl = await uploadToCloudinary(compressedFile);
+      // 2. Authenticated R2 upload phase
+      const secureUrl = await uploadMedia(compressedFile, {
+        purpose: 'homework-assignment',
+      });
 
       setState(prev => ({ 
         ...prev, 

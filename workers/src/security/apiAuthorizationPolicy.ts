@@ -122,6 +122,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('certificates', '/api/certificates', 'authenticated', ['studentId', 'classId', 'batchId', 'route-handler'], 'certificate ownership checks'),
   policy('certificate-batches', '/api/certificate-batches', 'teacher-owned', ['studentId', 'classId', 'batchId'], 'certificate batch ownership'),
   policy('notifications', '/api/notifications', 'authenticated', ['session', 'studentId'], 'notification recipient scope'),
+  policy('media-upload', '/api/media/uploads', 'authenticated', ['session', 'route-handler'], 'JWT role, purpose, MIME, signature and size checks', { match: 'exact', methods: ['POST'] }),
   policy('homework', '/api/homework', 'authenticated', ['studentId', 'classId', 'route-handler'], 'homework ownership checks'),
   policy('analytics', '/api/analytics', 'teacher-owned', ['classId', 'quizId'], 'teacher/admin scope'),
   policy('phieu', '/api/phieu', 'teacher-owned', ['resultId', 'classId', 'batchId'], 'phieu ownership checks'),

@@ -8,7 +8,7 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import { ImageLibraryItem } from '../../../types';
 import { Image, Upload, X, Loader2 } from 'lucide-react';
-import { uploadToCloudinary } from '../../../services/cloudinaryService';
+import { uploadMedia } from '../../../services/mediaUploadService';
 
 const MAX_IMAGE_SIZE_MB = 5;
 const MAX_IMAGE_COUNT = 20;
@@ -52,7 +52,7 @@ export const ImageLibrary: React.FC<ImageLibraryProps> = ({
             }
 
             try {
-                const imageUrl = await uploadToCloudinary(file);
+                const imageUrl = await uploadMedia(file, { purpose: 'quiz-question' });
                 newImages.push({
                     id: `img-${Date.now()}-${i}`,
                     name: file.name,

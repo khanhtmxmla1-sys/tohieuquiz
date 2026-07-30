@@ -82,7 +82,8 @@ Vercel project + Git integration + biến môi trường, custom domains và smo
 Còn lại:
 
 - [x] Dịch vụ AI thật tại `ai.thtohieu.com/v1`, Bearer token mới và `CLIPROXY_TOKEN` production — xong 27/07/2026.
-- [ ] Email provider (SPF/DKIM/DMARC) và Cloudinary production là tích hợp tùy chọn; monitoring nền tảng đã hoàn tất.
+- [ ] Email provider (SPF/DKIM/DMARC) là tích hợp tùy chọn còn lại; monitoring nền tảng đã hoàn tất.
+- [ ] Phát hành luồng upload media Worker → R2 lên production; phần mã, kiểm thử và security gates đã hoàn tất trên nhánh tính năng.
 - [x] Tài khoản quản trị đầu tiên trong D1 — xong 26/07/2026 (phiên 3).
 
 ## Giai đoạn 5 — Rollout production 🔄

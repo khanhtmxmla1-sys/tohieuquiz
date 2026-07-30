@@ -10,7 +10,7 @@ import { createNotification } from '../services/notificationWriter';
 
 type AssignmentRow = Record<string, any>;
 
-const HOMEWORK_MEDIA_HOSTS = new Set(['res.cloudinary.com']);
+const HOMEWORK_MEDIA_HOSTS = new Set(['assets.thtohieu.com', 'res.cloudinary.com']);
 const ASSIGNMENT_STATUSES = new Set(['DRAFT', 'OPEN', 'CLOSED', 'ARCHIVED']);
 
 function parseJson<T>(value: unknown, fallback: T): T {

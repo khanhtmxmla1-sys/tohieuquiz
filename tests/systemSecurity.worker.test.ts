@@ -178,6 +178,8 @@ describe('system security password storage', () => {
 
         expect(corsHeaders(official, production)['Access-Control-Allow-Origin']).toBe('https://www.thtohieu.com');
         expect(corsHeaders(official, production)['Access-Control-Expose-Headers']).toContain('x-request-id');
+        expect(corsHeaders(official, production)['Access-Control-Allow-Headers']).toContain('X-File-Name');
+        expect(corsHeaders(official, production)['Access-Control-Allow-Headers']).toContain('X-Media-Purpose');
         expect(corsHeaders(preview, production)['Access-Control-Allow-Origin']).toBe(preview.headers.get('Origin'));
         expect(corsHeaders(productionAlias, production)['Access-Control-Allow-Origin']).toBe(productionAlias.headers.get('Origin'));
         expect(corsHeaders(apiOrigin, production)['Access-Control-Allow-Origin']).toBe('https://api.thtohieu.com');

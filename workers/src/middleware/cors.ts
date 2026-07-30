@@ -59,7 +59,7 @@ export function corsHeaders(request: Request, env: Env = {} as Env): Record<stri
     const origin = request.headers.get('Origin') || '';
     const headers: Record<string, string> = {
         'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-File-Name, X-Media-Purpose',
         'Access-Control-Allow-Credentials': 'true',
         'Access-Control-Expose-Headers': 'x-request-id',
         'Access-Control-Max-Age': '86400',

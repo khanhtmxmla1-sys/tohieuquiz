@@ -82,6 +82,25 @@ describe('canonical homework authorization and deadlines', () => {
     expect(response.status).toBe(409);
   });
 
+  it('accepts new R2 asset URLs for student homework submissions', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', classId: 'class-a' };
+    const db = new Database();
+    const response = await handleHomeworkRoutes(new Request('https://test/api/homework/assignments/hw-1/submissions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileUrls: ['https://assets.thtohieu.com/media/homework-submission/student/2026/07/file.png'],
+        idempotencyKey: 'r2-request-1',
+      }),
+    }), env(db), '/api/homework/assignments/hw-1/submissions', 'POST');
+
+    expect(response.status).toBe(201);
+    const insert = db.executed.find(statement => statement.sql.includes('INSERT INTO hw_submissions'));
+    expect(insert?.bindings).toContain(JSON.stringify([
+      'https://assets.thtohieu.com/media/homework-submission/student/2026/07/file.png',
+    ]));
+  });
+
   it('returns the existing row for an idempotent retry', async () => {
     currentUser = { id: 'student-a', username: 'student-a', role: 'student', classId: 'class-a' };
     const db = new Database();

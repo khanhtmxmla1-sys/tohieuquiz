@@ -25,6 +25,7 @@ import { handleSystemSettingsRoutes } from './routes/systemSettings';
 import { handleAnalyticsRoutes } from './routes/analytics';
 import { handleMathObservabilityRoutes } from './routes/mathObservability';
 import { handleHomeworkRoutes } from './routes/homework';
+import { handleMediaUploadRoutes } from './routes/mediaUploads';
 import {
   createBatch,
   getBatches,
@@ -88,6 +89,7 @@ const fetch = createWorkerFetch({
     handleResultReportRoutes,
     handlePhieuRoutes,
     handleHomeworkRoutes,
+    handleMediaUploadRoutes,
     handleAnalyticsRoutes,
     handleTestBankRoutes,
     handleTeacherAiQuotaRoutes,

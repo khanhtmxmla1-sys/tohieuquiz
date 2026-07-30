@@ -8,9 +8,9 @@ const mediaMocks = vi.hoisted(() => ({
     upload: vi.fn(),
 }));
 
-vi.mock('../src/services/cloudinaryService', () => ({
+vi.mock('../src/services/mediaUploadService', () => ({
     compressImageForUpload: mediaMocks.compress,
-    uploadToCloudinary: mediaMocks.upload,
+    uploadMedia: mediaMocks.upload,
 }));
 
 const Harness = () => {
@@ -48,7 +48,7 @@ beforeEach(() => {
     mediaMocks.upload.mockImplementation(async (_file: File, options?: { onProgress?: (value: number) => void }) => {
         options?.onProgress?.(50);
         options?.onProgress?.(100);
-        return 'https://res.cloudinary.com/demo/image/upload/question.webp';
+        return 'https://assets.thtohieu.com/media/quiz-question/question.webp';
     });
 });
 
@@ -82,13 +82,17 @@ describe('MediaDropzone', () => {
         expect(await screen.findByRole('progressbar', { name: 'Tiến độ tải Ảnh câu hỏi' })).toHaveAttribute('value', '55');
         expect(mediaMocks.compress).toHaveBeenCalledTimes(1);
         expect(mediaMocks.upload).toHaveBeenCalledTimes(1);
+        expect(mediaMocks.upload).toHaveBeenCalledWith(
+            expect.any(File),
+            expect.objectContaining({ purpose: 'quiz-question' }),
+        );
 
         await act(async () => {
-            resolveUpload('https://res.cloudinary.com/demo/image/upload/final.webp');
+            resolveUpload('https://assets.thtohieu.com/media/quiz-question/final.webp');
         });
-        expect(screen.getByTestId('media-value')).toHaveTextContent('https://res.cloudinary.com/demo/image/upload/final.webp');
+        expect(screen.getByTestId('media-value')).toHaveTextContent('https://assets.thtohieu.com/media/quiz-question/final.webp');
         expect(screen.getByTestId('media-value').textContent).not.toContain('data:image');
-        expect(screen.getByRole('img', { name: 'Ảnh câu hỏi' })).toHaveAttribute('src', expect.stringContaining('cloudinary.com'));
+        expect(screen.getByRole('img', { name: 'Ảnh câu hỏi' })).toHaveAttribute('src', expect.stringContaining('assets.thtohieu.com'));
     });
 
     it('uploads an image pasted from clipboard', async () => {
@@ -103,13 +107,13 @@ describe('MediaDropzone', () => {
         });
 
         await waitFor(() => expect(mediaMocks.upload).toHaveBeenCalledTimes(1));
-        expect(screen.getByTestId('media-value')).toHaveTextContent('cloudinary.com');
+        expect(screen.getByTestId('media-value')).toHaveTextContent('assets.thtohieu.com');
     });
 
     it('supports retry after failure without losing the selected file', async () => {
         mediaMocks.upload
             .mockRejectedValueOnce(new Error('Mạng bị gián đoạn'))
-            .mockResolvedValueOnce('https://res.cloudinary.com/demo/retry.webp');
+            .mockResolvedValueOnce('https://assets.thtohieu.com/media/quiz-question/retry.webp');
         render(<Harness />);
 
         fireEvent.change(screen.getByLabelText('Chọn ảnh Ảnh câu hỏi'), {

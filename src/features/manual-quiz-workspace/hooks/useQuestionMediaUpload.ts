@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 import {
     compressImageForUpload,
-    uploadToCloudinary,
-} from '../../../services/cloudinaryService';
+    uploadMedia,
+} from '../../../services/mediaUploadService';
 
 export const MAX_QUESTION_IMAGE_BYTES = 10 * 1024 * 1024;
 export const QUESTION_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
@@ -55,7 +55,8 @@ export const useQuestionMediaUpload = ({ onUploaded }: UseQuestionMediaUploadOpt
             });
             setStatus('uploading');
             setProgress(30);
-            const url = await uploadToCloudinary(compressed, {
+            const url = await uploadMedia(compressed, {
+                purpose: 'quiz-question',
                 onProgress: (value) => setProgress(Math.min(100, 30 + Math.round(value))),
             });
             onUploaded(url);
