@@ -4,7 +4,7 @@ import { X, Upload, Camera, Send, CheckCircle2, AlertCircle, FileText, Trophy, B
 import { motion } from 'framer-motion';
 import { useHomeworkStore } from '../stores/useHomeworkStore';
 import MathSpan from '../../../components/common/MathSpan';
-import { uploadToCloudinary } from '../../../services/cloudinaryService';
+import { uploadMedia } from '../../../services/mediaUploadService';
 
 interface HomeworkSubmissionModalProps {
   assignment: HomeworkAssignment;
@@ -280,15 +280,17 @@ export const HomeworkSubmissionModal: React.FC<HomeworkSubmissionModalProps> = (
     
     setIsSubmitting(true);
     try {
-      // 1. Upload to Cloudinary first
-      const cloudinaryUrls = await Promise.all(selectedFiles.map(uploadToCloudinary));
+      // 1. Upload through the authenticated Worker into R2.
+      const mediaUrls = await Promise.all(selectedFiles.map((file) => uploadMedia(file, {
+        purpose: 'homework-submission',
+      })));
       
       // 2. Submit to backend with real URL and student name
       await submitHomework({
         assignment_id: assignment.id,
         student_id: studentId,
         student_name: studentName,
-        file_urls: cloudinaryUrls,
+        file_urls: mediaUrls,
         idempotency_key: crypto.randomUUID(),
         status: 'SUBMITTED'
       });

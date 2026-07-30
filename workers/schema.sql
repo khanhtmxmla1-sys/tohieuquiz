@@ -1097,7 +1097,7 @@ CREATE TABLE IF NOT EXISTS hw_submissions (
   student_id TEXT NOT NULL,
   student_name TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'SUBMITTED', -- SUBMITTED, AI_REVIEW, GRADED
-  file_urls TEXT DEFAULT '[]', -- JSON array of image links (Cloudinary)
+  file_urls TEXT DEFAULT '[]', -- JSON array of media links (R2/CDN; legacy Cloudinary URLs remain readable)
   student_note TEXT DEFAULT '',
   teacher_feedback TEXT DEFAULT '',
   ai_evaluation TEXT DEFAULT '',

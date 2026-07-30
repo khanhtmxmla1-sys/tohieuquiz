@@ -45,7 +45,7 @@ CI đã có bước chặn tự động: job `build` trong `.github/workflows/ci
 - [x] Liên kết repository mới — Git integration đã xác nhận bằng deploy tự động từ `main`.
 - [x] Production branch là `main`.
 - [x] Điền `VITE_WORKERS_API_URL` (để trống, dùng rewrite `/api`) và các feature flag.
-- [ ] Cấu hình Cloudinary mới hoặc chuyển upload sang R2.
+- [ ] Phát hành upload media qua Worker xác thực + R2 (`media/` trên `assets.thtohieu.com`); mã và release gates đã hoàn tất, còn deploy Worker + frontend.
 - [ ] Kiểm tra preview deployment không gọi API của hệ thống nguồn.
 
 ## 5. Email, AI và monitoring

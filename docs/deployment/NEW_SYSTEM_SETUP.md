@@ -80,7 +80,6 @@ Tạo ngẫu nhiên và cấp qua secret store:
 - `CLIPROXY_TOKEN`
 - Email API key
 - Webhook secrets
-- Cloudinary credentials nếu sử dụng
 
 Mọi secret của TôHiệuQuiz phải khác hoàn toàn hệ thống nguồn.
 

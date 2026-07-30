@@ -65,6 +65,7 @@ export interface WorkerFetchDependencies {
   handleResultReportRoutes: RouteHandler;
   handlePhieuRoutes: RouteHandler;
   handleHomeworkRoutes: RouteHandler;
+  handleMediaUploadRoutes: RouteHandler;
   handleAnalyticsRoutes: RouteHandler;
   handleTestBankRoutes: RouteHandler;
   handleTeacherAiQuotaRoutes: RouteHandler;
@@ -123,6 +124,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     handleResultReportRoutes,
     handlePhieuRoutes,
     handleHomeworkRoutes,
+    handleMediaUploadRoutes,
     handleAnalyticsRoutes,
     handleTestBankRoutes,
     handleTeacherAiQuotaRoutes,
@@ -362,6 +364,14 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
         response = await handleResultReportRoutes(request, env, path, method);
       } else if (path.startsWith('/api/phieu')) {
         response = await handlePhieuRoutes(request, env, path, method);
+      } else if (path === '/api/media/uploads') {
+        const rateLimitResponse = await rateLimit(request, env, {
+          windowMs: 60 * 1000,
+          maxRequests: 20,
+          failureMode: 'closed',
+        });
+        if (rateLimitResponse) return addCors(rateLimitResponse, request, env);
+        response = await handleMediaUploadRoutes(request, env, path, method);
       } else if (path.startsWith('/api/homework')) {
         const rateLimitResponse = await rateLimit(request, env, {
           windowMs: 60 * 1000,

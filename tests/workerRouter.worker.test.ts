@@ -32,6 +32,7 @@ const routeMocks = {
   handleResultReportRoutes: vi.fn(async () => null as Response | null),
   handlePhieuRoutes: vi.fn(async () => null as Response | null),
   handleHomeworkRoutes: vi.fn(async () => null as Response | null),
+  handleMediaUploadRoutes: vi.fn(async () => null as Response | null),
   handleAnalyticsRoutes: vi.fn(async () => null as Response | null),
   handleTestBankRoutes: vi.fn(async () => null as Response | null),
   handleTeacherAiQuotaRoutes: vi.fn(async () => null as Response | null),
@@ -211,6 +212,23 @@ describe('Worker root route dispatch', () => {
     expect(response.status).toBe(401);
     expect(routeMocks.handleMathObservabilityRoutes).toHaveBeenCalledOnce();
     expect(routeMocks.handlePhieuSubdomain).not.toHaveBeenCalled();
+  });
+
+  it('routes authenticated media uploads through a fail-closed limiter', async () => {
+    verifyTokenMock.mockReturnValueOnce(null);
+    routeMocks.handleMediaUploadRoutes.mockResolvedValueOnce(new Response('{}', { status: 201 }));
+
+    const response = await workerFetch(request('/api/media/uploads', 'POST'), env);
+
+    expect(response.status).toBe(201);
+    expect(rateLimitMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      env,
+      expect.objectContaining({ failureMode: 'closed', maxRequests: 20 }),
+    );
+    expect(routeMocks.handleMediaUploadRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/media/uploads', 'POST',
+    );
   });
 
   it('still routes gamification mutations to JWT authentication', async () => {
