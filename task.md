@@ -14,7 +14,7 @@
 | D — Database/Operations | Task 12, 30–31 | `feat/modernization-integration` | Tasks 12, 30 và 31 hoàn tất |
 | E — Performance/CI/Test | Task 27–28 | `feat/modernization-integration` | Tasks 27–28 hoàn tất |
 | F — Product Features | Task 18–26, 32–35 | `feat/modernization-integration` | Tasks 18–26 và 32–35 hoàn tất |
-| G — Production Release | Task 38 | `ops/task38-release` | Đang chuẩn bị: script/test/dry-run đạt; chưa chạy cleanup production |
+| G — Production Release | Task 38 | `ops/task38-release` | Hoàn tất: backup, cleanup, smoke, release evidence và `v1.0.0` |
 
 ## Wave 0 — Baseline và quản trị phạm vi
 
@@ -205,12 +205,15 @@
   - [x] Stop conditions chặn rollout khi 5xx >1%, client errors >2x baseline, p95 +30%, data corruption hoặc auth anomaly; artifact JSON `ready|blocked|observing` được redact.
   - [x] AI smoke chỉ đọc quota/feature resolution; Queue/certificate mutation bị cấm trên production và chỉ cho phép namespace `staging|test`.
   - [x] Cypress public production 3/3; targeted sau cùng 5 file/23 test; full Vitest 371 file/1.702 test, coverage 4 file/32 test, lint, typecheck, build, security/history/policy và dependency audit đều đạt.
-- [ ] Task 38 — Cleanup production, release notes và maintenance calendar
+- [x] Task 38 — Cleanup production, release notes và maintenance calendar *(hoàn tất 2026-07-30)*
   - [x] Cleanup script mặc định dry-run, xác nhận kép, transaction/idempotency, row counts, audit và R2 cleanup đã có test.
   - [x] Production dry-run khớp snapshot; giữ `smoke.student`, `thienkhanh`, `tongminhkhanh` và các owner accounts.
-  - [x] Runbook, maintenance calendar, changelog và hồ sơ v1.0.0 dạng PREPARED đã được tạo.
-  - [ ] Capture Time Travel bookmark ngay trước cleanup, merge PR prep, chạy write và production smoke 15/15.
-  - [ ] Cập nhật hồ sơ RELEASED, merge final evidence và tạo tag `v1.0.0`.
+  - [x] PR #23 merge commit `e8282a7` đưa script/runbook/calendar/release-prep lên `main`; PR #24 merge commit `cb6b41b` chuyển remote mutation sang transactional `D1.batch()` sau khi Wrangler chặn `BEGIN` trước mutation.
+  - [x] Private Time Travel bookmark được capture ngay trước cleanup; chỉ SHA-256 `f697567421542d29407f8d1176140fb69a6bb80359cd5da9fd9d2f62b490a5d1` được ghi, full bookmark lưu ngoài repository.
+  - [x] Cleanup request `task38-686977b3-12a7-4a5e-a356-c081f13cb458` áp dụng 72 statements/65 changes; xóa đúng fixtures/artifacts đã duyệt, giữ owner/smoke accounts, chuyển `smoke.student` và `thienkhanh` sang `Lớp Smoke Production`, xóa hai PNG test private R2 và tạo đúng một audit record.
+  - [x] Hậu kiểm idempotent trả `up-to-date`; health 10/10 HTTP 200, guard 10/10 HTTP 401, không quan sát 5xx.
+  - [x] Production smoke run `30535769458` trên `main@cb6b41b` đạt trạng thái `ready`, 15/15 checks cho admin, teacher, student, parent và public shell.
+  - [x] Hồ sơ được chuyển sang `RELEASED`; final evidence merge commit là nguồn của tag và GitHub Release `v1.0.0`.
 
 ## Verification bắt buộc
 

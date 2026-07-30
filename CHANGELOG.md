@@ -4,13 +4,9 @@ Tất cả thay đổi đáng chú ý của sản phẩm được ghi lại tạ
 
 ## [Unreleased]
 
-### Operations
+Chưa có thay đổi chưa phát hành.
 
-- Chuẩn bị Task 38 với cleanup script production mặc định dry-run, xác nhận kép, transaction D1, hậu kiểm và dọn R2 idempotent.
-- Thêm lịch bảo trì tuần/tháng/quý và hồ sơ xác minh release `v1.0.0`.
-- Việc xóa production, smoke hậu cleanup và tag release chỉ được ghi hoàn tất sau khi có bằng chứng thực tế.
-
-## [1.0.0] — Pending verification
+## [1.0.0] — 2026-07-30
 
 ### Added
 
@@ -33,7 +29,7 @@ Tất cả thay đổi đáng chú ý của sản phẩm được ghi lại tạ
 
 - Student profile/session persistence khỏi `localStorage` và cache bền vững cho dữ liệu cá nhân.
 - Duplicate teacher auth store, readable auth token trong response, legacy JWT claims và browser Bearer extraction.
-- Test fixtures production được Task 38 phê duyệt sau khi backup, dry-run, review và smoke hoàn tất.
+- Test fixtures production `test.gv1`, `test.hs1`, `test.hs2`, `Lớp Test 1` và linked artifacts đã được xóa bằng transactional `D1.batch()` sau bookmark, dry-run, review và smoke 15/15.
 
 ### Security
 

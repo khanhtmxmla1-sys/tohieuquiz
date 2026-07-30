@@ -944,11 +944,11 @@ interface AuthState {
 - Create: `docs/releases/v1.0.0-modernization-verification.md`
 - Create: `docs/operations/maintenance-calendar.md`
 
-- [ ] Backup/bookmark trước cleanup.
-- [ ] Dry-run và xóa đúng `test.gv1`, `test.hs1`, `test.hs2`, `Lớp Test 1` cùng artifacts test; không xóa `tongminhkhanh` hoặc owner-created data chưa xác nhận.
+- [x] Backup/bookmark trước cleanup.
+- [x] Dry-run và xóa đúng `test.gv1`, `test.hs1`, `test.hs2`, `Lớp Test 1` cùng artifacts test; không xóa `tongminhkhanh` hoặc owner-created data chưa xác nhận.
 - [x] Cleanup script idempotent, có row counts/audit.
-- [ ] Full smoke sau cleanup.
-- [ ] Ghi release SHA, Worker/Vercel versions, migrations, flags, metrics và rollback points.
+- [x] Full smoke sau cleanup.
+- [x] Ghi release SHA/tag reference, Worker/Vercel versions, migrations, flags, metrics và rollback points.
 - [x] Lịch: security hàng tuần, backup verify hàng tháng, restore rehearsal hàng quý, AI/R2 cost hàng tuần.
 
 **Acceptance:** Production không còn dữ liệu test đã xác định và release record có đầy đủ bằng chứng.
@@ -1263,4 +1263,4 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 
 ## Explicitly blocked in this execution batch
 
-Tasks 1–37 have acceptance evidence on `main`. Task 38 remains open only for the pre-cleanup bookmark, reviewed production write, post-cleanup smoke, final release evidence and tag. Real email delivery remains an external product dependency and is not a modernization release blocker because the provider path is fail-closed.
+Tasks 1–38 have acceptance evidence on `main`. Task 38 completed the private bookmark, reviewed transactional cleanup, post-cleanup smoke, final release evidence and `v1.0.0` publication. Real email delivery remains an external product dependency and is not a modernization release blocker because the provider path is fail-closed.

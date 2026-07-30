@@ -6,7 +6,7 @@ function read(path: string): string {
 }
 
 describe('modernization plan status', () => {
-  it('keeps every Task 1–37 acceptance checkbox complete', () => {
+  it('keeps every Task 1–38 acceptance checkbox complete', () => {
     const plan = read('implementation_plan.md');
     const headings = [...plan.matchAll(/^## Task\s+(\d+):[^\n]*$/gm)];
     expect(headings).toHaveLength(38);
@@ -16,17 +16,18 @@ describe('modernization plan status', () => {
       const start = headings[index].index!;
       const end = headings[index + 1]?.index ?? plan.length;
       const block = plan.slice(start, end);
-      if (taskNumber <= 37) {
-        expect(block, `Task ${taskNumber} still has an unchecked acceptance item`).not.toMatch(/^- \[ \]/m);
-      }
+      expect(block, `Task ${taskNumber} still has an unchecked acceptance item`).not.toMatch(/^- \[ \]/m);
     }
   });
 
-  it('keeps Task 38 open until production cleanup and final smoke finish', () => {
+  it('keeps Task 38 and the final release evidence closed', () => {
     const task = read('task.md');
-    expect(task).toContain('- [ ] Task 38 — Cleanup production, release notes và maintenance calendar');
-    expect(task).toContain('chưa chạy cleanup production');
-    expect(task).toContain('Cập nhật hồ sơ RELEASED');
+    const release = read('docs/releases/v1.0.0-modernization-verification.md');
+    expect(task).toContain('- [x] Task 38 — Cleanup production, release notes và maintenance calendar');
+    expect(task).toContain('Production smoke run `30535769458`');
+    expect(release).toContain('**State:** RELEASED');
+    expect(release).not.toMatch(/^- \[ \]/m);
+    expect(release).not.toContain('PREPARED');
   });
 
   it('does not reintroduce the known Task 33 mojibake', () => {
