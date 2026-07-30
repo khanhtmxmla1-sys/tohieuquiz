@@ -28,7 +28,7 @@ export const testBankService = {
             throw new Error('Không thể tải ngân hàng câu hỏi');
         }
         const data = await response.json() as { items?: TestBankItem[] };
-        return data.items || [];
+        return data.items ?? [];
     },
 
     async saveQuestion(teacherId: string, question: Question, tags: string[] = []): Promise<string> {
