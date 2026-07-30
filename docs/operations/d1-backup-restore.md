@@ -7,7 +7,7 @@
 - `verify-d1-restore.cjs` is local-only and rejects `--remote`.
 - Backup archives, manifests and restore state must be outside the Git repository. The scripts reject repository paths before writing.
 - Never put a passphrase in CLI arguments, files, shell history, `.env`, logs or CI artifacts. Supply it through `D1_BACKUP_PASSPHRASE` or another explicitly named environment variable.
-- No production mutation is part of this runbook. Time Travel commands below are only for a dedicated staging database whose name is not `tohieuquiz-db`.
+- Backup and restore rehearsal commands are read-only for production. Approved production schema changes must use the dry-run-first [safe migration wrapper](./d1-safe-migrations.md) after a fresh encrypted backup and Time Travel bookmark.
 
 ## Backup format
 
@@ -82,6 +82,10 @@ After restoration, repeat schema/row-count checks against staging and run authen
 The dedicated APAC staging rehearsal completed successfully. Time Travel removed a staging-only marker while preserving the synthetic admin/class/quiz/result snapshot. The encrypted remote export covered 81 regular tables; the fresh local restore returned `ok: true`, `schemaOk: true`, zero missing tables and zero row-count mismatches. Authenticated teacher login plus quiz, class and results read paths all returned HTTP 200.
 
 Redacted evidence and observed RPO/RTO are recorded in [`d1-restore-rehearsal-2026-07-29.md`](./d1-restore-rehearsal-2026-07-29.md). Full bookmarks, UUIDs, credentials and archives are deliberately not stored in Git.
+
+## Safe production migrations
+
+Do not invoke `wrangler d1 migrations apply` directly for this repository until its file-splitting behavior has been revalidated against the current migration set. Use [`apply-d1-migrations-safe.cjs`](./d1-safe-migrations.md), review the dry-run pending list, require exact remote confirmation, and verify the registry after every file.
 
 ## Retention and access
 

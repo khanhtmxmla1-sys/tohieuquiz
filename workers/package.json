@@ -27,7 +27,9 @@
         "db:apply:metadata-backfill:local": "node scripts/apply-question-metadata-backfill.cjs --write",
         "db:apply:metadata-backfill:remote": "node scripts/apply-question-metadata-backfill.cjs --remote --write",
         "rag:sync": "node scripts/rag-sync.cjs",
-        "rag:sync:remote": "node scripts/rag-sync.cjs --remote"
+        "rag:sync:remote": "node scripts/rag-sync.cjs --remote",
+        "db:migrations:safe:dry-run": "node scripts/apply-d1-migrations-safe.cjs",
+        "db:migrations:safe:apply": "node scripts/apply-d1-migrations-safe.cjs --write"
     },
     "dependencies": {
         "@resvg/resvg-wasm": "^2.6.2",

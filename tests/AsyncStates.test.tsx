@@ -236,7 +236,7 @@ describe('standardized async and offline states', () => {
             id: 'assignment-1',
             attemptCount: 0,
             maxAttempts: 1,
-            deadline: '2026-07-30T00:00:00.000Z',
+            deadline: '2099-12-31T23:59:59.000Z',
           },
         } as never]}
         isLoading={false}
