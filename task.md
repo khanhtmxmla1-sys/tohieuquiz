@@ -9,7 +9,7 @@
 | Stream | Phạm vi | Branch/worktree | Trạng thái |
 |---|---|---|---|
 | A — Baseline & Governance | Task 1–3 | `feat/modernization-integration` | Tasks 1–3 hoàn tất |
-| B — Security/API/Privacy | Task 4–11 | `feat/modernization-integration` | Tasks 4–9 và 11 hoàn tất; Task 10 code/config đạt, observation production còn mở |
+| B — Security/API/Privacy | Task 4–11 | `feat/modernization-integration` | Tasks 4–11 hoàn tất; Task 10 đóng theo owner risk override và đã xác minh production hậu deploy |
 | C — UI Foundation | Task 13–16 | `feat/modernization-integration` | Tasks 13–16 hoàn tất trong phạm vi đã mở |
 | D — Database/Operations | Task 12, 30–31 | `feat/modernization-integration` | Tasks 12, 30 và 31 hoàn tất |
 | E — Performance/CI/Test | Task 27–28 | `feat/modernization-integration` | Tasks 27–28 hoàn tất |
@@ -272,7 +272,7 @@
 - [x] Bốn assertion drift của baseline đã được xử lý; canonical `workers/schema.sql` đã đồng bộ hai bảng quota AI Tutor của migration `0044`.
 - [x] Bảy fixture Bearer cũ trong Smart Assignment/Weakness Profile đã chuyển sang cookie JWT enforce và 9/9 test mục tiêu đạt.
 - [x] Mỗi task lớn của Batch 3 đã có commit riêng; chưa push, merge, deploy, migration production, đổi secret hoặc sửa production DB.
-- [ ] Task 10 vẫn chờ bằng chứng production 72 giờ không có legacy request và 48 giờ enforce ổn định trước khi xóa compat path.
+- [x] Task 10 sau Batch 3 đã được review, merge và deploy; hai observation gate được đóng sớm theo owner risk override, production smoke hậu deploy đạt 15/15 và compat path đã bị loại bỏ.
 
 ## File matrix của batch hiện tại
 
