@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import type { ResultDashboardSummary, ResultSummaryStatistics } from '../../../shared/result-summary.contract';
 import {
     Award,
@@ -12,11 +12,11 @@ import {
     UsersRound,
 } from 'lucide-react';
 import { useQuizStore } from '../../../stores/quizStore';
-import { Alert, Button, DataFreshnessNotice } from '../common';
+import { Alert, Button } from '../common';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useAuthStore } from '../../../stores/authStore';
 import { areClassNamesEqual } from '../../utils/classMatching';
-import { useTeacherDashboardUIStore } from '../../stores/useTeacherDashboardUIStore';
+import type { TeacherDashboardTab } from '../../stores/useTeacherDashboardUIStore';
 import {
     ActionCenterPanel,
     DashboardHero,
@@ -38,6 +38,7 @@ interface OverviewTabProps {
     resultSummary: ResultDashboardSummary | null;
     summaryLoadState: ResultsLoadState;
     summaryError?: string | null;
+    onSelectTab: (tab: TeacherDashboardTab) => void;
 }
 
 const EMPTY_SUMMARY_STATISTICS: ResultSummaryStatistics = {
@@ -95,18 +96,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     resultSummary,
     summaryLoadState,
     summaryError,
+    onSelectTab,
 }) => {
     const { isOnline } = useOnlineStatus();
-    const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
     const authStore = useAuthStore();
     const quizStore = useQuizStore();
-    const setActiveTab = useTeacherDashboardUIStore((state) => state.setActiveTab);
-
-    useEffect(() => {
-        if (resultsLoadState === 'success' || summaryLoadState === 'success') {
-            setLastUpdatedAt(Date.now());
-        }
-    }, [resultsLoadState, summaryLoadState, resultSummary]);
 
     const filteredResults = useMemo(() => (
         authStore.isAdmin || !authStore.teacherClass
@@ -272,8 +266,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 todaySubmissionCount={resultSummary?.todaySubmissions ?? '—'}
                 passRate={resultSummary ? statistics.passRate : '—'}
                 uniqueStudents={resultSummary?.uniqueStudents ?? '—'}
-                onCreateQuiz={() => setActiveTab('create')}
-                onViewResults={() => setActiveTab('results')}
+                onCreateQuiz={() => onSelectTab('create')}
+                onViewResults={() => onSelectTab('results')}
             />
 
             {showAlert && (
@@ -293,14 +287,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 </Alert>
             )}
 
-            <DataFreshnessNotice
-                staleAt={lastUpdatedAt}
-                isOffline={!isOnline}
-                isRefreshing={resultsLoadState === 'loading' || summaryLoadState === 'loading'}
-            />
-
             <ActionCenterPanel />
-            <QuickActionGrid actions={quickActions} onSelect={setActiveTab} />
+            <QuickActionGrid actions={quickActions} onSelect={onSelectTab} />
             <MetricGrid metrics={metrics} isLoadingResults={isSummaryLoading} />
 
             <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] xl:gap-5">
@@ -309,14 +297,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                     submissions={recentActivities}
                     isLoading={isInitialResultsLoading}
                     hasError={resultsLoadState === 'error'}
-                    onViewAll={() => setActiveTab('results')}
+                    onViewAll={() => onSelectTab('results')}
                 />
             </div>
 
             <RecentQuizzesPanel
                 quizzes={recentQuizzes}
-                onCreateQuiz={() => setActiveTab('create')}
-                onManageQuizzes={() => setActiveTab('manage')}
+                onCreateQuiz={() => onSelectTab('create')}
+                onManageQuizzes={() => onSelectTab('manage')}
             />
         </div>
     );

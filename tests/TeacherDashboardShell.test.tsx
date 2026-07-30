@@ -83,6 +83,7 @@ vi.mock('../src/components/TeacherDashboard/OverviewTab', () => ({
     summaryLoadState,
     summaryError,
     onRetryResults,
+    onSelectTab,
   }: any) => (
     <div data-testid="overview-tab">
       <span data-testid="overview-results-state">{resultsLoadState}:{resultsError || ''}</span>
@@ -90,6 +91,7 @@ vi.mock('../src/components/TeacherDashboard/OverviewTab', () => ({
         {summaryLoadState}:{summaryError || ''}:{resultSummary?.totalSubmissions ?? ''}
       </span>
       <button onClick={onRetryResults}>Thử lại kết quả</button>
+      <button onClick={() => onSelectTab('create')}>Tổng quan tạo đề</button>
     </div>
   ),
 }));
@@ -277,6 +279,26 @@ describe('TeacherDashboard shell contracts', () => {
 
     await click(screen.getByRole('button', { name: 'Sidebar kết quả' }));
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/results');
+  });
+
+  it('navigates overview create actions through the canonical URL', async () => {
+    render(<TeacherDashboard />);
+
+    await click(await screen.findByRole('button', { name: 'Tổng quan tạo đề' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes?mode=create');
+  });
+
+  it('preserves the selected quiz when opening the edit screen', async () => {
+    mocks.location.pathname = '/teacher/quizzes';
+    mocks.location.search = '';
+    const view = render(<TeacherDashboard />);
+
+    await click(await screen.findByRole('button', { name: 'Sửa đề' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes?mode=create');
+
+    mocks.location.search = '?mode=create';
+    view.rerender(<TeacherDashboard />);
+    expect(await screen.findByTestId('create-tab')).toHaveTextContent('Phân số');
   });
 
   it('uses the create query mode and returns to quiz management after saving', async () => {

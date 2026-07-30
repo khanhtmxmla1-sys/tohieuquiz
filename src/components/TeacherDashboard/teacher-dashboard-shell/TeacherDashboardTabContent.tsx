@@ -11,6 +11,7 @@ import { TeacherDashboardFeatureTabs } from './TeacherDashboardFeatureTabs';
 interface TeacherDashboardTabContentProps {
   activeTab: TeacherDashboardTab;
   setActiveTab: (tab: TeacherDashboardTab) => void;
+  selectTab: (tab: TeacherDashboardTab) => void;
   resultsLoadState: ResultsLoadState;
   resultsLoadError: string | null;
   loadTeacherResults: () => Promise<void>;

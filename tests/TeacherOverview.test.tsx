@@ -5,7 +5,6 @@ import type { ResultDashboardSummary } from '../shared/result-summary.contract';
 import OverviewTab from '../src/components/TeacherDashboard/OverviewTab';
 import { useAuthStore } from '../stores/authStore';
 import { useQuizStore } from '../stores/quizStore';
-import { useTeacherDashboardUIStore } from '../src/stores/useTeacherDashboardUIStore';
 
 const makeResult = (
     id: string,
@@ -64,6 +63,7 @@ const renderOverview = (
         resultSummary={summaryFixture}
         summaryLoadState="success"
         summaryError={null}
+        onSelectTab={vi.fn()}
         {...overrides}
     />,
 );
@@ -79,7 +79,6 @@ describe('TeacherDashboard OverviewTab', () => {
             isAdmin: false,
             teacherClass: '3A',
         });
-        useTeacherDashboardUIStore.setState({ activeTab: 'overview' });
         useQuizStore.setState({
             quizzes: [
                 {
@@ -147,6 +146,10 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(heroSection?.className).not.toContain('gradient');
         expect(heroSection?.className).not.toContain('shadow');
         expect(screen.getByText('Theo dõi tiến độ học tập của lớp, tạo và giao bài, đồng thời xem nhanh kết quả của học sinh ngay tại đây.')).toBeTruthy();
+        const resultsButton = within(heroSection as HTMLElement).getByRole('button', { name: 'Xem kết quả' });
+        expect(resultsButton.className).toContain('bg-slate-100');
+        expect(resultsButton.className).toContain('text-slate-900');
+        expect(screen.queryByText(/Dữ liệu đã sẵn sàng/i)).not.toBeInTheDocument();
     });
 
     it('gives quick actions subtle depth, icon surfaces and a highlighted primary action', () => {
@@ -205,18 +208,20 @@ describe('TeacherDashboard OverviewTab', () => {
         ['Quản lý lớp', 'classes'],
         ['Cấp chứng nhận', 'certificates'],
     ] as const)('opens %s from the quick action area', (label, expectedTab) => {
-        renderOverview();
+        const onSelectTab = vi.fn();
+        renderOverview({ onSelectTab });
 
         const quickActionsHeading = screen.getByRole('heading', { name: 'Bạn muốn làm gì?' });
         const quickActionsSection = quickActionsHeading.closest('section');
         expect(quickActionsSection).toBeTruthy();
 
         fireEvent.click(within(quickActionsSection as HTMLElement).getByRole('button', { name: new RegExp(label, 'i') }));
-        expect(useTeacherDashboardUIStore.getState().activeTab).toBe(expectedTab);
+        expect(onSelectTab).toHaveBeenCalledWith(expectedTab);
     });
 
     it('shows recent quizzes and opens the quiz management tab', () => {
-        renderOverview();
+        const onSelectTab = vi.fn();
+        renderOverview({ onSelectTab });
 
         expect(screen.getByRole('heading', { name: 'Đề kiểm tra gần đây' })).toBeTruthy();
         expect(screen.getAllByText('Đề lớp 3A').length).toBeGreaterThan(0);
@@ -226,7 +231,7 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(recentQuizzesSection).toBeTruthy();
 
         fireEvent.click(within(recentQuizzesSection as HTMLElement).getAllByRole('button', { name: /^Quản lý/i })[0]);
-        expect(useTeacherDashboardUIStore.getState().activeTab).toBe('manage');
+        expect(onSelectTab).toHaveBeenCalledWith('manage');
     });
 
     it('does not fall back to the paginated result array when summary loading fails', () => {

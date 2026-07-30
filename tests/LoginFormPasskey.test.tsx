@@ -22,12 +22,13 @@ describe('LoginForm passkey option', () => {
   it('shows passkey only for the teacher tab and does not submit the password form', () => {
     const onPasskey = vi.fn();
     renderForm('teacher', onPasskey);
-    fireEvent.click(screen.getByRole('button', { name: '??ng nh?p b?ng passkey' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập bằng passkey' }));
     expect(onPasskey).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('hoặc')).toBeInTheDocument();
   });
 
   it('does not expose staff passkeys to the student tab', () => {
     renderForm('student');
-    expect(screen.queryByRole('button', { name: '??ng nh?p b?ng passkey' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Đăng nhập bằng passkey' })).not.toBeInTheDocument();
   });
 });

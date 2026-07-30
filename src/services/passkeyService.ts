@@ -34,7 +34,7 @@ export const getAccountPasskeys = async (): Promise<AccountPasskey[]> => {
 };
 
 export const registerAccountPasskey = async (label: string): Promise<AccountPasskey> => {
-  if (!passkeysSupported()) throw new Error('Tr?nh duy?t ho?c thi?t b? n?y ch?a h? tr? passkey.');
+  if (!passkeysSupported()) throw new Error('Trình duyệt hoặc thiết bị này chưa hỗ trợ passkey.');
   const begin = await callApi<{ status: string; data: RegistrationOptionsResponse }>('begin_passkey_registration');
   const credential = await startRegistration({ optionsJSON: begin.data.options });
   const finish = await callApi<{ status: string; data: AccountPasskey }>('finish_passkey_registration', {
@@ -51,8 +51,8 @@ export const revokeAccountPasskey = async (credentialId: string): Promise<void> 
 
 export const authenticateTeacherWithPasskey = async <T = unknown>(username: string): Promise<T> => {
   const normalized = username.trim();
-  if (!normalized) throw new Error('H?y nh?p t?i kho?n gi?o vi?n tr??c.');
-  if (!passkeysSupported()) throw new Error('Tr?nh duy?t ho?c thi?t b? n?y ch?a h? tr? passkey.');
+  if (!normalized) throw new Error('Hãy nhập tài khoản giáo viên trước.');
+  if (!passkeysSupported()) throw new Error('Trình duyệt hoặc thiết bị này chưa hỗ trợ passkey.');
   const begin = await callApi<{ status: string; data: AuthenticationOptionsResponse }>('begin_passkey_authentication', {
     username: normalized,
   });

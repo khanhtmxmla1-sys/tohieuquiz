@@ -68,16 +68,20 @@ const DashboardHero: React.FC<DashboardHeroProps> = ({
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                         <Button
                             type="button"
+                            variant="primary"
+                            size="sm"
                             onClick={onCreateQuiz}
-                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
+                            className="rounded-[10px] px-4"
                         >
                             <FilePlus2 aria-hidden="true" className="size-5" />
                             Tạo đề mới
                         </Button>
                         <Button
                             type="button"
+                            variant="secondary"
+                            size="sm"
                             onClick={onViewResults}
-                            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
+                            className="rounded-[10px] px-4"
                         >
                             Xem kết quả
                             <ArrowRight aria-hidden="true" className="size-4" />
