@@ -1,5 +1,6 @@
 import {
     MAX_MANUAL_QUIZ_DRAFT_BYTES,
+    hasMeaningfulManualQuizDraftContent,
     isValidManualQuizDraftId,
     parsePutManualQuizDraftRequest,
     utf8ByteLength,
@@ -148,6 +149,25 @@ export async function handleQuizDraftRoutes(
                     message: 'Bản nháp trên máy chủ không còn tồn tại.',
                     current: null,
                 }, 409);
+            }
+
+            if (!hasMeaningfulManualQuizDraftContent(parsed.value.draft)) {
+                const normalizedDraft: ManualQuizDraftPayload = {
+                    ...parsed.value.draft,
+                    draftId,
+                    ownerUsername: user.username,
+                    revision: 0,
+                    updatedAt: now,
+                };
+                return jsonResponse({
+                    id: draftId,
+                    ownerUsername: user.username,
+                    quizId: normalizedDraft.quizId,
+                    revision: 0,
+                    draft: normalizedDraft,
+                    createdAt: now,
+                    updatedAt: now,
+                } satisfies ManualQuizDraftRecord);
             }
 
             const revision = 1;

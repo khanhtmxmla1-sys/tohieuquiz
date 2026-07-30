@@ -1,6 +1,7 @@
 export const MANUAL_QUIZ_DRAFT_SCHEMA_VERSION = 1 as const;
 export const MAX_MANUAL_QUIZ_DRAFT_BYTES = 1_000_000;
 export const MAX_MANUAL_QUIZ_DRAFT_QUESTIONS = 300;
+export const DEFAULT_MANUAL_QUIZ_DRAFT_TITLE = 'Đề kiểm tra mới';
 
 export interface ManualQuizDraftQuizPayload {
     id: string;
@@ -63,6 +64,32 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 
 const isFinitePositive = (value: unknown): value is number =>
     typeof value === 'number' && Number.isFinite(value) && value > 0;
+
+const normalizedString = (value: unknown): string =>
+    typeof value === 'string' ? value.trim() : '';
+
+export const hasMeaningfulManualQuizDraftContent = (draft: ManualQuizDraftPayload): boolean => {
+    const { quiz } = draft;
+    const title = normalizedString(quiz.title);
+    const classLevel = normalizedString(quiz.classLevel);
+    const category = normalizedString(quiz.category);
+    const accessCode = normalizedString(quiz.accessCode);
+    const hasTags = Array.isArray(quiz.tags)
+        ? quiz.tags.some((tag) => normalizedString(tag).length > 0)
+        : false;
+
+    return normalizedString(draft.quizId).length > 0
+        || quiz.questions.length > 0
+        || (title.length > 0 && title !== DEFAULT_MANUAL_QUIZ_DRAFT_TITLE)
+        || (classLevel.length > 0 && classLevel !== '3')
+        || (category.length > 0 && category !== 'toan')
+        || quiz.timeLimit !== 15
+        || hasTags
+        || quiz.requireCode === true
+        || accessCode.length > 0
+        || quiz.showOnHome === false
+        || draft.targetPoints !== 10;
+};
 
 export const utf8ByteLength = (value: string): number => new TextEncoder().encode(value).byteLength;
 

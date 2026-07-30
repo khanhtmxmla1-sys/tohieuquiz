@@ -1,3 +1,4 @@
+import { DEFAULT_MANUAL_QUIZ_DRAFT_TITLE } from '../../../shared/manual-quiz-draft.contract';
 import {
   TEACHER_ACTION_CENTER_MAX_ITEMS,
   type TeacherActionCenter,
@@ -100,25 +101,57 @@ const loadDrafts = async (
   const ownerScope = actor.role === 'admin' ? '' : 'AND owner_username = ?';
   const bindings: unknown[] = [now.toISOString()];
   if (username) bindings.push(username);
-  bindings.push(now.toISOString());
-  if (username) bindings.push(username);
+  bindings.push(DEFAULT_MANUAL_QUIZ_DRAFT_TITLE);
 
   return await db.prepare(`
     /* action-center:drafts */
+    WITH normalized_drafts AS (
+      SELECT
+        id,
+        owner_username,
+        updated_at,
+        expires_at,
+        CASE WHEN json_valid(draft_json) = 1 THEN draft_json ELSE '{}' END AS draft_payload
+      FROM quiz_drafts
+      WHERE (expires_at IS NULL OR datetime(expires_at) > datetime(?))
+        ${ownerScope}
+    ),
+    actionable_drafts AS (
+      SELECT id, owner_username, updated_at, expires_at
+      FROM normalized_drafts
+      WHERE (
+        TRIM(COALESCE(json_extract(draft_payload, '$.quizId'), '')) <> ''
+        OR COALESCE(json_array_length(json_extract(draft_payload, '$.quiz.questions')), 0) > 0
+        OR (
+          TRIM(COALESCE(json_extract(draft_payload, '$.quiz.title'), '')) <> ''
+          AND TRIM(COALESCE(json_extract(draft_payload, '$.quiz.title'), '')) <> ?
+        )
+        OR (
+          TRIM(COALESCE(json_extract(draft_payload, '$.quiz.classLevel'), '')) <> ''
+          AND TRIM(COALESCE(json_extract(draft_payload, '$.quiz.classLevel'), '')) <> '3'
+        )
+        OR (
+          TRIM(COALESCE(json_extract(draft_payload, '$.quiz.category'), '')) <> ''
+          AND TRIM(COALESCE(json_extract(draft_payload, '$.quiz.category'), '')) <> 'toan'
+        )
+        OR COALESCE(CAST(json_extract(draft_payload, '$.quiz.timeLimit') AS REAL), 15) <> 15
+        OR COALESCE(json_array_length(json_extract(draft_payload, '$.quiz.tags')), 0) > 0
+        OR COALESCE(json_extract(draft_payload, '$.quiz.requireCode'), 0) = 1
+        OR TRIM(COALESCE(json_extract(draft_payload, '$.quiz.accessCode'), '')) <> ''
+        OR COALESCE(json_extract(draft_payload, '$.quiz.showOnHome'), 1) = 0
+        OR COALESCE(CAST(json_extract(draft_payload, '$.targetPoints') AS REAL), 10) <> 10
+      )
+    )
     SELECT
       COUNT(*) AS action_count,
       MAX(updated_at) AS next_at,
       (
         SELECT id
-        FROM quiz_drafts latest
-        WHERE (latest.expires_at IS NULL OR datetime(latest.expires_at) > datetime(?))
-          ${actor.role === 'admin' ? '' : 'AND latest.owner_username = ?'}
-        ORDER BY datetime(latest.updated_at) DESC
+        FROM actionable_drafts
+        ORDER BY datetime(updated_at) DESC
         LIMIT 1
       ) AS next_id
-    FROM quiz_drafts
-    WHERE (expires_at IS NULL OR datetime(expires_at) > datetime(?))
-      ${ownerScope}
+    FROM actionable_drafts
   `).bind(...bindings).first<CountRow>() || {};
 };
 

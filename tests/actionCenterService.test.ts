@@ -172,7 +172,7 @@ describe('loadTeacherActionCenter', () => {
       CREATE TABLE students (id TEXT PRIMARY KEY, class_id TEXT, archived_at TEXT);
       CREATE TABLE assignments (id TEXT PRIMARY KEY, class_id TEXT, student_id TEXT, deadline TEXT, status TEXT);
       CREATE TABLE results (assignment_id TEXT, student_id TEXT);
-      CREATE TABLE quiz_drafts (id TEXT PRIMARY KEY, owner_username TEXT, updated_at TEXT, expires_at TEXT);
+      CREATE TABLE quiz_drafts (id TEXT PRIMARY KEY, owner_username TEXT, draft_json TEXT, updated_at TEXT, expires_at TEXT);
       CREATE TABLE gift_orders (id TEXT PRIMARY KEY, class_id TEXT, status TEXT, created_at TEXT);
       CREATE TABLE gift_catalog_items (
         id TEXT PRIMARY KEY, is_active INTEGER, stock_remaining INTEGER, low_stock_threshold INTEGER,
@@ -187,8 +187,9 @@ describe('loadTeacherActionCenter', () => {
         ('assignment-b', 'class-b', '', '2026-07-29T08:00:00.000Z', 'OPEN');
       INSERT INTO results VALUES ('assignment-a', 'student-a1');
       INSERT INTO quiz_drafts VALUES
-        ('draft-a', 'teacher-a', '2026-07-28T07:00:00.000Z', NULL),
-        ('draft-b', 'teacher-b', '2026-07-28T07:30:00.000Z', NULL);
+        ('draft-a', 'teacher-a', '{"schemaVersion":1,"quiz":{"title":"Đề Toán","classLevel":"3","category":"toan","timeLimit":15,"questions":[],"tags":[],"requireCode":false,"showOnHome":true},"targetPoints":10}', '2026-07-28T07:00:00.000Z', NULL),
+        ('draft-a-empty-newer', 'teacher-a', '{"schemaVersion":1,"quiz":{"title":"Đề kiểm tra mới","classLevel":"3","category":"toan","timeLimit":15,"questions":[],"tags":[],"requireCode":false,"showOnHome":true},"targetPoints":10}', '2026-07-28T07:45:00.000Z', NULL),
+        ('draft-b', 'teacher-b', '{"schemaVersion":1,"quiz":{"title":"Đề Văn","classLevel":"4","category":"ngu-van","timeLimit":20,"questions":[],"tags":[],"requireCode":false,"showOnHome":true},"targetPoints":10}', '2026-07-28T07:30:00.000Z', NULL);
       INSERT INTO gift_orders VALUES
         ('gift-a', 'class-a', 'PENDING', '2026-07-28T06:00:00.000Z'),
         ('gift-b', 'class-b', 'PENDING', '2026-07-28T06:30:00.000Z');

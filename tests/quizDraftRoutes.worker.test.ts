@@ -159,6 +159,35 @@ describe('quiz draft worker routes', () => {
         expect(db.row?.owner_username).toBe('teacher-a');
     });
 
+    it('acknowledges an empty placeholder draft without creating a database row', async () => {
+        currentUser = { username: 'teacher-a', role: 'teacher' };
+        const db = new FakeDatabase();
+        const emptyDraft = draft({
+            quiz: {
+                ...draft().quiz,
+                title: 'Đề kiểm tra mới',
+                classLevel: '3',
+                category: 'toan',
+                timeLimit: 15,
+                questions: [],
+                tags: [],
+                requireCode: false,
+                showOnHome: true,
+            },
+        });
+
+        const response = await handleQuizDraftRoutes(
+            request('/api/quiz-drafts/draft-1', 'PUT', { expectedRevision: 0, draft: emptyDraft }),
+            env(db), '/api/quiz-drafts/draft-1', 'PUT',
+        );
+        const payload = await responseJson(response);
+
+        expect(response.status).toBe(200);
+        expect(payload).toMatchObject({ id: 'draft-1', ownerUsername: 'teacher-a', revision: 0 });
+        expect(db.row).toBeNull();
+        expect(db.executed.some((statement) => statement.sql.includes('INSERT INTO quiz_drafts'))).toBe(false);
+    });
+
     it('allows the owner to read but forbids a different teacher', async () => {
         const db = new FakeDatabase();
         db.row = {
