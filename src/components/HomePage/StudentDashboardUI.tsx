@@ -10,11 +10,15 @@ import {
   useStudentDashboardController,
 } from '../../features/student-dashboard';
 import { isPracticeSubjectId } from '../../features/student-dashboard/model';
+import { useQuizStore } from '../../../stores/quizStore';
+import { StudentQuizView } from '../../app/StudentQuizView';
 
 const StudentDashboardUI = () => {
   const location = useLocation();
   const { subjectId, sessionId } = useParams<{ subjectId?: string; sessionId?: string }>();
   const controller = useStudentDashboardController(sessionId);
+  const quizView = useQuizStore((state) => state.view);
+  const selectedQuiz = useQuizStore((state) => state.selectedQuiz);
   const {
     studentSession, liveExam, practice, activeSection, giftShopEnabled,
     assignments, attendance, rewards, account,
@@ -35,6 +39,7 @@ const StudentDashboardUI = () => {
 
   if (liveExam.shouldRenderScreen) return <StudentLiveExamScreen controller={liveExam} />;
   if (!studentSession) return null;
+  if (quizView === 'student' && selectedQuiz) return <StudentQuizView />;
   if (assignments.reviewState) {
     return (
       <ResultScreen

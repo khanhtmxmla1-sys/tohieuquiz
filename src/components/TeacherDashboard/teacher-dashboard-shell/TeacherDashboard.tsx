@@ -36,10 +36,13 @@ const TeacherDashboard = () => {
   const accountGate = useTeacherAccountGate();
   const bootstrap = useTeacherDashboardBootstrap();
   const navigateToTab = useCallback((tab: TeacherDashboardTab) => {
-    if (tab === 'create') setEditingQuiz(null);
     navigate(getTeacherRoute(tab));
   }, [navigate]);
-  const dashboardSearch = useDashboardSearch(navigateToTab);
+  const selectTab = useCallback((tab: TeacherDashboardTab) => {
+    if (tab === 'create') setEditingQuiz(null);
+    navigateToTab(tab);
+  }, [navigateToTab]);
+  const dashboardSearch = useDashboardSearch(selectTab);
   const accessCode = useAccessCodeEditor();
   const runLegacyLogout = useTeacherLogout(setLegacyActiveTab, clearAssignmentComposerDraft);
   const logout = () => {
@@ -59,7 +62,6 @@ const TeacherDashboard = () => {
   );
 
   const displayName = getTeacherDisplayName(authStore.teacherName, authStore.username);
-  const selectTab = navigateToTab;
 
   return (
     <TeacherDashboardLayout

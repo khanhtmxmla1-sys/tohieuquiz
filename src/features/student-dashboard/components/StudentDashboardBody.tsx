@@ -3,16 +3,14 @@ import {
   AssignedWorkSection, LearningProgressPanel, RewardSidebar, StudentDashboardHero,
   SubjectPracticeGrid, WeeklyQuestsPanel,
 } from '@/src/components/HomePage/student-dashboard';
-import { DataFreshnessNotice } from '@/src/components/common';
 import type { StudentDashboardContentProps } from './content.types';
 
 export const StudentDashboardBody = ({
   studentSession, assignments, attendance, practice, rewards,
-  giftShopEnabled, isOnline, dashboardUpdatedAt, onOpenGiftShop, onOpenBadges, onSelectHomework,
+  giftShopEnabled, isOnline, onOpenGiftShop, onOpenBadges, onSelectHomework,
   onOpenPrimaryLearning,
 }: StudentDashboardContentProps) => (
   <div className="flex flex-col gap-8 md:gap-10">
-    <DataFreshnessNotice staleAt={dashboardUpdatedAt} isOffline={!isOnline} />
     <StudentDashboardHero
       firstName={studentSession.fullName.split(' ').pop() || studentSession.fullName}
       hasReadyAssignment={assignments.hasReadyAssignment}

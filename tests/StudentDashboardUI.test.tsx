@@ -45,6 +45,8 @@ describe('StudentDashboardUI responsive composition', () => {
     expect(dashboardShellSource).toContain('useStudentDashboardController(sessionId)');
     expect(dashboardShellSource).not.toContain('useClassroomStore');
     expect(dashboardShellSource).not.toContain('useHomeworkStore');
+    expect(dashboardShellSource).toContain("quizView === 'student' && selectedQuiz");
+    expect(dashboardShellSource).toContain('<StudentQuizView />');
     expect(dashboardControllerSource).toContain('const studentSession = useClassroomStore');
     expect(dashboardControllerSource).toContain('const homeworkSubmission = selectedHomework');
   });
@@ -54,6 +56,7 @@ describe('StudentDashboardUI responsive composition', () => {
     expect(dashboardSource).toContain('student-dashboard');
     expect(dashboardSource).toContain('max-w-[1180px]');
     expect(dashboardSource).toContain('xl:grid-cols-[minmax(0,1.9fr)_minmax(300px,0.9fr)]');
+    expect(dashboardBodySource).not.toContain('<DataFreshnessNotice');
   });
 
   it('keeps assigned work before all gamification in mobile DOM order', () => {

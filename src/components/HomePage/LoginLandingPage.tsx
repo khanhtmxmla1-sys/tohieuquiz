@@ -99,27 +99,27 @@ const LoginLandingPage: React.FC = () => {
             const result = await callApi<{ status?: string; data?: any; message?: string }>('login', { username, password });
             if (result?.status === 'success' && result.data && acceptTeacherSession(result.data)) return;
             authStore.loginFailure();
-            showError(result?.message || 'T?n ??ng nh?p ho?c m?t kh?u kh?ng ??ng!');
+            showError(result?.message || 'Tên đăng nhập hoặc mật khẩu không đúng!');
         } catch (error) {
             console.error('Login error:', error);
             authStore.loginFailure();
-            showError('C? l?i x?y ra khi k?t n?i. Vui l?ng th? l?i!');
+            showError('Có lỗi xảy ra khi kết nối. Vui lòng thử lại!');
         }
     };
 
     const handlePasskeyLogin = async () => {
         if (!username.trim()) {
-            showError('H?y nh?p t?i kho?n gi?o vi?n tr??c.');
+            showError('Hãy nhập tài khoản giáo viên trước.');
             return;
         }
         authStore.loginStart();
         setIsPasskeyLoading(true);
         try {
             const teacher = await authenticateTeacherWithPasskey<any>(username);
-            if (!acceptTeacherSession(teacher)) throw new Error('Ph?n h?i t?i kho?n kh?ng h?p l?.');
+            if (!acceptTeacherSession(teacher)) throw new Error('Phản hồi tài khoản không hợp lệ.');
         } catch (error) {
             authStore.loginFailure();
-            showError(error instanceof Error ? error.message : 'Kh?ng th? ??ng nh?p b?ng passkey.');
+            showError(error instanceof Error ? error.message : 'Không thể đăng nhập bằng passkey.');
         } finally {
             setIsPasskeyLoading(false);
         }

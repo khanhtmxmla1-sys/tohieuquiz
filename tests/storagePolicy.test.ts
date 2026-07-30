@@ -14,9 +14,11 @@ describe('browser storage policy', () => {
         });
     });
 
-    it('allows only a non-identifying restore hint to persist locally', () => {
-        expect(classifyStorageKey(StorageKeys.STUDENT_SESSION_RESTORE_HINT)).toMatchObject({
-            classification: 'display', persistence: 'local-safe', clearOnLogout: true,
-        });
+    it('allows only non-identifying restore hints to persist locally', () => {
+        for (const key of [StorageKeys.STUDENT_SESSION_RESTORE_HINT, StorageKeys.TEACHER_SESSION_RESTORE_HINT]) {
+            expect(classifyStorageKey(key)).toMatchObject({
+                classification: 'display', persistence: 'local-safe', clearOnLogout: true,
+            });
+        }
     });
 });

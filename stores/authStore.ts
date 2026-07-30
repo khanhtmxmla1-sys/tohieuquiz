@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { callApi } from '../src/services/apiAdapter';
+import { StorageKeys } from '../src/constants/storageKeys';
 
 export type AuthSessionStatus = 'anonymous' | 'checking' | 'authenticated';
 
@@ -28,7 +29,7 @@ interface AuthState {
   loginPendingPasswordChange: () => void;
   logoutLocal: () => void;
   logout: () => Promise<void>;
-  restoreSession: () => Promise<void>;
+  restoreSession: (force?: boolean) => Promise<void>;
   resetError: () => void;
 }
 
@@ -48,16 +49,19 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   loginStart: () => set({ status: 'checking', isLoggingIn: true, loginError: false }),
 
-  loginSuccess: (username, name, isAdmin, teacherClass) => set({
-    status: 'authenticated',
-    isLoggedIn: true,
-    username,
-    teacherName: name,
-    isAdmin,
-    teacherClass: teacherClass || null,
-    isLoggingIn: false,
-    loginError: false,
-  }),
+  loginSuccess: (username, name, isAdmin, teacherClass) => {
+    localStorage.setItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT, '1');
+    set({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username,
+      teacherName: name,
+      isAdmin,
+      teacherClass: teacherClass || null,
+      isLoggingIn: false,
+      loginError: false,
+    });
+  },
 
   loginFailure: () => set({ ...anonymousState, loginError: true }),
 
@@ -66,12 +70,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   logoutLocal: () => {
     localStorage.removeItem('auth-storage');
     localStorage.removeItem('auth_session');
+    localStorage.removeItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT);
     set(anonymousState);
   },
 
   logout: async () => {
     localStorage.removeItem('auth-storage');
     localStorage.removeItem('auth_session');
+    localStorage.removeItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT);
     set(anonymousState);
     try {
       await callApi('logout');
@@ -80,14 +86,21 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  restoreSession: async () => {
+  restoreSession: async (force = false) => {
+    const shouldRestore = force
+      || localStorage.getItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT) === '1';
     localStorage.removeItem('auth-storage');
     localStorage.removeItem('auth_session');
+    if (!shouldRestore) {
+      set(anonymousState);
+      return;
+    }
     set({ ...anonymousState, status: 'checking' });
     try {
       const response = await callApi<AuthProfileResponse>('get_account_profile');
       const profile = response.data;
       if (!profile?.username) throw new Error('INVALID_ACCOUNT_PROFILE');
+      localStorage.setItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT, '1');
       set({
         status: 'authenticated',
         isLoggedIn: true,
@@ -99,6 +112,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         loginError: false,
       });
     } catch {
+      localStorage.removeItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT);
       set(anonymousState);
     }
   },

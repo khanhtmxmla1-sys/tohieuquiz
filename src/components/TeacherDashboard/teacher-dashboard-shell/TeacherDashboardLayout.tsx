@@ -65,6 +65,7 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
         <TeacherDashboardTabContent
           activeTab={props.activeTab}
           setActiveTab={props.setActiveTab}
+          selectTab={props.selectTab}
           resultsLoadState={props.resultsLoadState}
           resultsLoadError={props.resultsLoadError}
           loadTeacherResults={props.loadTeacherResults}

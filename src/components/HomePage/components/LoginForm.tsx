@@ -117,7 +117,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
 
                     {activeTab === 'teacher' && passkeyAvailable && onPasskey && (
                         <>
-                            <div className="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-wider text-slate-400"><span className="h-px flex-1 bg-slate-200" />ho?c<span className="h-px flex-1 bg-slate-200" /></div>
+                            <div className="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-wider text-slate-400"><span className="h-px flex-1 bg-slate-200" />hoặc<span className="h-px flex-1 bg-slate-200" /></div>
                             <button
                                 type="button"
                                 onClick={onPasskey}
@@ -125,7 +125,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-emerald-200 bg-white font-bold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-50"
                             >
                                 {isPasskeyLoading ? <Loader2 className="animate-spin" size={20} /> : <Fingerprint size={20} />}
-                                ??ng nh?p b?ng passkey
+                                Đăng nhập bằng passkey
                             </button>
                         </>
                     )}

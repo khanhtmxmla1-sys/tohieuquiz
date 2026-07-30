@@ -121,11 +121,18 @@ describe('App shell routing contracts', () => {
 
         await waitFor(() => expect(useQuizStore.getState().loadQuizzes).toHaveBeenCalledTimes(1));
         expect(mockedSettings).toHaveBeenCalledTimes(1);
+        expect(useAuthStore.getState().restoreSession).toHaveBeenCalledWith(false);
         expect(await screen.findByText('home-page')).toBeInTheDocument();
         expect(screen.getByText('footer-public')).toBeInTheDocument();
         expect(screen.getByText('chatbot')).toBeInTheDocument();
         expect(screen.getByTestId('analytics')).toBeInTheDocument();
         expect(screen.getByTestId('toaster')).toBeInTheDocument();
+    });
+
+    it('forces teacher cookie validation only on private teacher routes', async () => {
+        renderApp('/teacher/announcements');
+
+        await waitFor(() => expect(useAuthStore.getState().restoreSession).toHaveBeenCalledWith(true));
     });
 
     it('canonicalizes the legacy quiz query without dropping other parameters', async () => {

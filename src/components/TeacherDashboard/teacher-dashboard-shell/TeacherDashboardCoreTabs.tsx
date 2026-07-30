@@ -18,6 +18,7 @@ interface TeacherDashboardCoreTabsProps {
   editingQuiz: Quiz | null;
   setEditingQuiz: (quiz: Quiz | null) => void;
   setActiveTab: (tab: TeacherDashboardTab) => void;
+  selectTab: (tab: TeacherDashboardTab) => void;
   openAccessCodeEditor: (quizId: string, currentCode: string) => void;
   removeQuiz: any;
   createQuiz: any;
@@ -34,6 +35,7 @@ export const TeacherDashboardCoreTabs = (props: TeacherDashboardCoreTabsProps) =
         resultSummary={props.resultSummary}
         summaryLoadState={props.summaryLoadState}
         summaryError={props.summaryLoadError}
+        onSelectTab={props.selectTab}
       />
     )}
     {props.activeTab === 'results' && (

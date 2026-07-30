@@ -5,6 +5,7 @@ const { callApi } = vi.hoisted(() => ({ callApi: vi.fn() }));
 vi.mock('../src/services/apiAdapter', () => ({ callApi }));
 
 import { useAuthStore } from '../stores/authStore';
+import { StorageKeys } from '../src/constants/storageKeys';
 
 describe('canonical teacher auth store', () => {
   beforeEach(() => {
@@ -21,7 +22,17 @@ describe('canonical teacher auth store', () => {
     expect(localStorage.getItem('auth-storage')).toBeNull();
   });
 
+  it('can force server validation for a private teacher route without a restore hint', async () => {
+    callApi.mockResolvedValue({ data: { username: 'teacher-a', fullName: 'Cô A', role: 'teacher', teacherClass: '5A' } });
+
+    await useAuthStore.getState().restoreSession(true);
+
+    expect(callApi).toHaveBeenCalledWith('get_account_profile');
+    expect(useAuthStore.getState().status).toBe('authenticated');
+  });
+
   it('restores identity only from the server profile', async () => {
+    localStorage.setItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT, '1');
     callApi.mockResolvedValue({ data: { username: 'teacher-a', fullName: 'Cô A', role: 'teacher', teacherClass: '5A' } });
     await useAuthStore.getState().restoreSession();
     expect(useAuthStore.getState()).toMatchObject({ status: 'authenticated', isLoggedIn: true, username: 'teacher-a', teacherName: 'Cô A', isAdmin: false, teacherClass: '5A' });
@@ -33,5 +44,6 @@ describe('canonical teacher auth store', () => {
     const logout = useAuthStore.getState().logout();
     expect(useAuthStore.getState()).toMatchObject({ status: 'anonymous', isLoggedIn: false, isAdmin: false });
     await logout;
+    expect(localStorage.getItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT)).toBeNull();
   });
 });

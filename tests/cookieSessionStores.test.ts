@@ -26,14 +26,24 @@ beforeEach(() => {
 });
 
 describe('cookie-backed session stores', () => {
-  it('does not persist teacher authentication or authorization metadata', () => {
+  it('persists only a non-identifying teacher restore hint after login', () => {
     useAuthStore.getState().loginSuccess('teacher-a', 'Cô An', false, '3A');
     expect(localStorage.getItem('auth-storage')).toBeNull();
     expect(localStorage.getItem('auth_session')).toBeNull();
     expect(useAuthStore.getState()).not.toHaveProperty('token');
+    expect(localStorage.getItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT)).toBe('1');
+    expect(Object.values(localStorage).join('')).not.toContain('teacher-a');
+  });
+
+  it('does not probe the protected teacher profile without a restore hint', async () => {
+    await useAuthStore.getState().restoreSession();
+
+    expect(callApi).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().status).toBe('anonymous');
   });
 
   it('restores a teacher session by asking the server to validate the cookie', async () => {
+    localStorage.setItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT, '1');
     useAuthStore.setState({ isLoggedIn: false, username: null });
     callApi.mockResolvedValue({ data: { username: 'teacher-a', fullName: 'Cô An', role: 'admin' } });
 
@@ -43,6 +53,7 @@ describe('cookie-backed session stores', () => {
     expect(useAuthStore.getState()).toMatchObject({
       status: 'authenticated', isLoggedIn: true, username: 'teacher-a', teacherName: 'Cô An', isAdmin: true,
     });
+    expect(localStorage.getItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT)).toBe('1');
   });
 
   it('strips a compat token from student login data before persistence', async () => {

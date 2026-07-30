@@ -7,6 +7,7 @@ export const StorageKeys = {
     GAMIFICATION: 'tohieuquiz_gamification',
     STUDENT_SESSION: 'tohieuquiz_student_session',
     STUDENT_SESSION_RESTORE_HINT: 'tohieuquiz_student_restore_hint',
+    TEACHER_SESSION_RESTORE_HINT: 'tohieuquiz_teacher_restore_hint',
     AI_PROVIDER: 'ai_provider',
     GEN_AI_PROVIDER: 'gen_ai_provider',
 

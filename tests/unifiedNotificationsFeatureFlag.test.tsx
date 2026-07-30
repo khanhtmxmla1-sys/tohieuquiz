@@ -1,15 +1,21 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { NotificationSurfaceStack } from '../src/features/notifications/components';
 import { useUnifiedNotificationsFeatureFlag } from '../src/features/notifications/useUnifiedNotificationsFeatureFlag';
+import { useAuthStore } from '../stores/authStore';
+import { useClassroomStore } from '../src/stores/useClassroomStore';
 import { expectConsoleMessage, expectConsoleWarn } from './helpers/expectedConsole';
 
 const getSystemSettingsMock = vi.hoisted(() => vi.fn());
+const resolveRuntimeFeatureFlagMock = vi.hoisted(() => vi.fn());
 const getAnnouncementsMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../src/services/systemSettingsService', () => ({
   getSystemSettings: getSystemSettingsMock,
+}));
+vi.mock('../src/services/featureRolloutService', () => ({
+  resolveRuntimeFeatureFlag: resolveRuntimeFeatureFlagMock,
 }));
 
 vi.mock('../src/services/announcementService', async (importOriginal) => {
@@ -34,9 +40,37 @@ function FlaggedLayout() {
 }
 
 describe('unified notification rollout flag', () => {
+  beforeEach(() => {
+    useAuthStore.setState({ status: 'anonymous', isLoggedIn: false });
+    useClassroomStore.setState({ studentSession: null });
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+  });
+
+  it('uses the public setting while anonymous without personalized resolution', async () => {
+    getSystemSettingsMock.mockResolvedValue({
+      aiAssistantEnabled: true,
+      unifiedNotificationsEnabled: false,
+    });
+
+    render(<FlaggedLayout />);
+
+    expect(await screen.findByTestId('legacy-notifications')).toBeInTheDocument();
+    expect(resolveRuntimeFeatureFlagMock).not.toHaveBeenCalled();
+  });
+
+  it('uses personalized resolution after authentication', async () => {
+    useAuthStore.setState({ status: 'authenticated', isLoggedIn: true });
+    resolveRuntimeFeatureFlagMock.mockResolvedValue({ enabled: false });
+
+    render(<FlaggedLayout />);
+
+    expect(await screen.findByTestId('legacy-notifications')).toBeInTheDocument();
+    expect(resolveRuntimeFeatureFlagMock).toHaveBeenCalledWith('unified_notifications_v1');
+    expect(getSystemSettingsMock).not.toHaveBeenCalled();
   });
 
   it('renders only the legacy experience when the flag is off', async () => {
