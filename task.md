@@ -2,7 +2,7 @@
 
 **Plan nguồn:** `implementation_plan.md`
 **Chiến lược:** thực thi theo wave phụ thuộc, dùng worktree/branch riêng và chỉ đánh dấu `[x]` sau khi code + test đạt.
-**Quy tắc:** không deploy production; không sửa/xóa thay đổi riêng đang có trên `main`.
+**Quy tắc:** mọi thay đổi production cần owner approval, backup/rollback và smoke hậu triển khai; không sửa/xóa thay đổi riêng đang có trong workspace chính.
 
 ## Luồng thực thi song song
 
@@ -14,7 +14,7 @@
 | D — Database/Operations | Task 12, 30–31 | `feat/modernization-integration` | Tasks 12, 30 và 31 hoàn tất |
 | E — Performance/CI/Test | Task 27–28 | `feat/modernization-integration` | Tasks 27–28 hoàn tất |
 | F — Product Features | Task 18–26, 32–35 | `feat/modernization-integration` | Tasks 18–26 và 32–35 hoàn tất |
-| G — Production Release | Task 38 | Chỉ chạy sau owner approval | Không thực thi tự động |
+| G — Production Release | Task 38 | `ops/task38-release` | Đang chuẩn bị: script/test/dry-run đạt; chưa chạy cleanup production |
 
 ## Wave 0 — Baseline và quản trị phạm vi
 
@@ -176,11 +176,11 @@
   - [x] Một màn hình hiển thị overall/component health, last checked, probe latency, metrics, refresh và runbook read-only.
   - [x] Biểu đồ status/latency lazy-load; cho phép sao chép request ID và release SHA, không hiển thị raw log hay thao tác phá hủy.
   - [x] Cypress Electron admin/teacher 2/2; full Vitest 355 file/1.653 test, coverage 4 file/32 test, lint, strict/frontend/Worker typecheck, build, security và dependency audit đều đạt.
-- [x] Task 33 ? Security Center/session management
-  - [x] JWT m?i c? `sessionId`; D1 migration/rollback `0052` l?u session metadata t?i thi?u v? security events, kh?ng l?u full IP ho?c raw user-agent.
-  - [x] Ng??i d?ng xem phi?n hi?n t?i/thi?t b? kh?c, thu h?i t?ng phi?n v? logout-all theo cutoff; request sau revoke b? 401, phi?n t?o sau cutoff kh?ng b? ?nh h??ng.
-  - [x] ??i/reset m?t kh?u, session revoke, logout-all v? login threshold ghi security event; retention 90 ng?y ???c purge b?ng cron.
-  - [x] UI Security Center n?m trong C?i ??t c? nh?n; Cypress Electron 1/1, targeted 5 file/24 test, full Vitest 356 file/1.653 test, coverage 4 file/32 test, lint, frontend/strict/Worker typecheck, build, security v? dependency audit ??u ??t.
+- [x] Task 33 — Security Center/session management
+  - [x] JWT mới có `sessionId`; D1 migration/rollback `0052` lưu session metadata tối thiểu và security events, không lưu full IP hoặc raw user-agent.
+  - [x] Người dùng xem phiên hiện tại/thiết bị khác, thu hồi từng phiên và logout-all theo cutoff; request sau revoke bị 401, phiên tạo sau cutoff không bị ảnh hưởng.
+  - [x] Đổi/reset mật khẩu, session revoke, logout-all và login threshold ghi security event; retention 90 ngày được purge bằng cron.
+  - [x] UI Security Center nằm trong Cài đặt cá nhân; Cypress Electron 1/1, targeted 5 file/24 test, full Vitest 356 file/1.653 test, coverage 4 file/32 test, lint, frontend/strict/Worker typecheck, build, security và dependency audit đều đạt.
 - [x] Task 34 — Passkey/WebAuthn cho staff
   - [x] SimpleWebAuthn 13.3.0 được pin cho browser/Worker; RP ID `thtohieu.com`, exact origins, challenge SHA-256 single-use TTL 5 phút và signature counter CAS.
   - [x] Passkey chỉ dành cho teacher/admin, phát hành cùng sessionId/JWT/HttpOnly cookie như mật khẩu; mật khẩu vẫn là fallback và recovery path.
@@ -206,6 +206,11 @@
   - [x] AI smoke chỉ đọc quota/feature resolution; Queue/certificate mutation bị cấm trên production và chỉ cho phép namespace `staging|test`.
   - [x] Cypress public production 3/3; targeted sau cùng 5 file/23 test; full Vitest 371 file/1.702 test, coverage 4 file/32 test, lint, typecheck, build, security/history/policy và dependency audit đều đạt.
 - [ ] Task 38 — Cleanup production, release notes và maintenance calendar
+  - [x] Cleanup script mặc định dry-run, xác nhận kép, transaction/idempotency, row counts, audit và R2 cleanup đã có test.
+  - [x] Production dry-run khớp snapshot; giữ `smoke.student`, `thienkhanh`, `tongminhkhanh` và các owner accounts.
+  - [x] Runbook, maintenance calendar, changelog và hồ sơ v1.0.0 dạng PREPARED đã được tạo.
+  - [ ] Capture Time Travel bookmark ngay trước cleanup, merge PR prep, chạy write và production smoke 15/15.
+  - [ ] Cập nhật hồ sơ RELEASED, merge final evidence và tạo tag `v1.0.0`.
 
 ## Verification bắt buộc
 
@@ -261,7 +266,7 @@
 - [x] Encrypted archive không chứa `CREATE TABLE`, không có plaintext `.sql` trong backup directory và không có artifact D1 trong repository.
 - [x] Full Vitest: 310/310 file và 1.469/1.469 test; 398,28 giây theo Vitest, 400,18 giây wrapper.
 - [x] Full lint, frontend/strict/Workers typecheck, security gates, audits, build và performance budget đạt.
-- [ ] Remote staging Time Travel, authenticated HTTP smoke và staging RPO/RTO còn chờ cloud resource/owner approval.
+- [x] Remote staging Time Travel, authenticated HTTP smoke và staging RPO/RTO đã hoàn tất ngày 29/07/2026; bằng chứng redact nằm trong `docs/operations/d1-restore-rehearsal-2026-07-29.md`.
 
 ## Batch 3 — Final verification
 

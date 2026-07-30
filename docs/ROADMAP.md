@@ -1,6 +1,6 @@
 # TôHiệuQuiz — Kế hoạch hoàn thiện dự án (ROADMAP)
 
-> Cập nhật: **26/07/2026 (phiên 2)**. Định hướng: hoàn thiện & ổn định tính năng trước, rollout production sau.
+> Cập nhật: **30/07/2026**. Tasks 1–37 đã hoàn tất trên `main`; Task 38 đang ở bước release-prep và chưa thực hiện cleanup production.
 > Trạng thái hạ tầng chi tiết: `docs/deployment/CURRENT_PROGRESS.md`. Quy ước kiểm thử E2E: `docs/testing/e2e.md`.
 
 ## Tình trạng các giai đoạn
@@ -10,9 +10,10 @@
 | 0 | Dọn dẹp repo & nền tảng làm việc | ✅ Xong |
 | 1 | Nghiệm thu 5 tính năng đang tắt cờ | ✅ Xong (kiểm thử tự động) |
 | 2 | Đồng bộ tài liệu với thực tế | ✅ Xong |
-| 3 | CI/CD tự động | ✅ Xong (chờ bật branch protection) |
-| 4 | Hạ tầng Cloudflare/Vercel & deploy | ✅ Xong, trừ AI/email/monitoring |
-| 5 | Kiểm thử production & rollout cờ | 🔄 Đang chạy — đã có tài khoản, chờ nhịp bật cờ |
+| 3 | CI/CD tự động | ✅ Xong, branch protection đã bắt buộc |
+| 4 | Hạ tầng Cloudflare/Vercel & deploy | ✅ Xong; email provider là tích hợp tùy chọn đang fail-closed |
+| 5 | Kiểm thử production & rollout cờ | ✅ Nền tảng rollout/smoke hoàn tất; audience từng tính năng là quyết định sản phẩm |
+| 6 | Modernization release closeout | 🔄 Task 38 prep đạt; chờ backup, cleanup và smoke hậu cleanup |
 
 Quality gate hiện tại (đo ngày 26/07/2026, với tất cả cờ bật ở local):
 
@@ -68,7 +69,7 @@ Quality gate hiện tại (đo ngày 26/07/2026, với tất cả cờ bật ở
 - [x] Script mới: `cypress:run:stubbed`, `cypress:run:blueprint-v3`, `cypress:run:component`.
 - [x] Bổ sung 4 rollback migration còn thiếu: `0015`, `0016`, `0040`, `0042`.
 - [x] `tests/d1RollbackCoverage.test.ts` — **mới**, ép mọi migration rủi ro cao phải có rollback, chặn rollback mồ côi, và kiểm tra thứ tự DROP an toàn với khoá ngoại.
-- [ ] **Cần thao tác trên GitHub:** bật branch protection cho `main` (bắt buộc CI xanh trước khi merge).
+- [x] Branch protection `main` đã được reconcile và xác minh: PR + approval + CODEOWNERS + strict checks + conversation resolution; cấm force-push/deletion.
 
 ## Giai đoạn 4 — Hạ tầng & deploy ✅ (còn 1 hạng mục)
 
@@ -144,7 +145,7 @@ MULTIPLE_SELECT, ORDERING, UNDERLINE), còn lại giữ nguyên chuỗi. Chốt 
       **PNG thật 38.350 byte** từ bucket private, truy cập ẩn danh trả `401`. Gửi lại cùng
       `request_id` trả đúng batch cũ (idempotent).
 - [ ] Email xác minh / quên mật khẩu (sau khi có email provider).
-- [ ] Backup D1 + thử phục hồi. **Kế hoạch cũ không chạy được:** `wrangler d1 export` từ chối
+- [x] Backup D1 + thử phục hồi đã hoàn tất bằng Time Travel và encrypted tablewise export trên staging. **Kế hoạch cũ không chạy được:** `wrangler d1 export` từ chối
       toàn bộ database với lỗi `cannot export databases with Virtual Tables (fts5)` — do
       `rag_chunks_fts` (migration 0007). Hai đường thay thế đã kiểm chứng:
   - **Time Travel là đường phục hồi chính** — `wrangler d1 time-travel info tohieuquiz-db` chạy được
@@ -152,8 +153,7 @@ MULTIPLE_SELECT, ORDERING, UNDERLINE), còn lại giữ nguyên chuỗi. Chốt 
   - Export theo bảng vẫn khả thi: chỉ `rag_chunks_fts` là VIRTUAL (5 bảng `rag_chunks_fts_*` còn lại
     là shadow table của nó), nên `--table` cho từng bảng thật là được. Chỉ số FTS là dữ liệu dẫn xuất,
     dựng lại từ `rag_chunks` bằng migration 0007 + `workers/scripts/rag-sync.cjs`.
-    **Chưa chạy:** bản dump chứa hồ sơ học sinh/giáo viên và hash mật khẩu, cần chủ sở hữu chỉ định
-    đích lưu an toàn trước khi thực hiện.
+    Remote encrypted export và isolated restore đã chạy trên staging; production Task 38 dùng bookmark riêng lưu ngoài repository ngay trước cleanup.
 
 ### Thứ tự bật cờ (mỗi bước cách nhau 2–3 ngày, theo dõi 24–48h)
 
@@ -176,7 +176,7 @@ Cờ frontend cần redeploy Vercel với env mới để bật/tắt (vài phú
 
 ### Kết thúc
 - [ ] Cập nhật `CHANGELOG.md`, tag release `v1.0.0`.
-- [ ] Chuyển theo dõi dài hạn (chi phí AI, dung lượng R2, backup định kỳ) thành lịch vận hành.
+- [x] Chuyển theo dõi dài hạn thành `docs/operations/maintenance-calendar.md`.
 
 ---
 
@@ -185,10 +185,10 @@ Cờ frontend cần redeploy Vercel với env mới để bật/tắt (vài phú
 | Rủi ro | Ảnh hưởng | Phương án |
 |---|---|---|
 | Chưa có AI proxy thật | Chặn rollout AI V2/V3 | Bật Unified Notifications và Gift Shop trước |
-| Dữ liệu test còn trong production | Lẫn với dữ liệu thật khi khai trương | Xoá `test.gv1`, `test.hs1`, `test.hs2`, "Lớp Test 1" sau khi xong giai đoạn 5 |
+| Dữ liệu test còn trong production | Lẫn với dữ liệu thật khi khai trương | Task 38 dry-run đã đạt; chỉ execute sau bookmark + PR review, giữ nguyên owner/smoke accounts |
 | ~~Bảng `rate_limits` phình dần~~ | Đã xử lý | Cron `0 23 * * *` gọi `purgeExpiredRateLimits()`, xoá bản ghi cũ hơn 24h |
 | `quiz.cy.ts` đang skip | Mất phủ luồng home/login | Viết lại theo UI hiện tại hoặc restub như `parent-portal.cy.ts` |
 | ~~2 spec live đã lỗi thời so với UI~~ | Đã xử lý | Sửa xong, **13/13 pass** trên production; xem `docs/testing/e2e.md` |
 | ~~Không reset cuộn khi đổi route~~ | Đã xử lý | `useScrollReset` (`src/app/useScrollReset.ts`): PUSH/REPLACE về đầu trang, POP khôi phục vị trí đã lưu. Spec e2e assert `scrollY === 0` thay cho workaround cũ |
 | ~~Nút "quay lại" của giáo viên vẫn là PUSH~~ | Đã xử lý | `TeacherResultDetailPage.handleBack` dùng back thật khi `location.key !== 'default'`. `ManualQuizWorkspacePage.tsx:85` hoá ra **không** phải nút quay lại mà là điều hướng sau khi xuất bản (về tab Quản lý) — về đầu trang ở đó là đúng; nút quay lại thật của workspace (`WorkspaceHeader.tsx:39`) vốn đã là `navigate(-1)` |
-| Chưa bật branch protection | CI có thể bị bỏ qua khi merge | Bật trong GitHub Settings |
+| ~~Chưa bật branch protection~~ | Đã xử lý | `main` yêu cầu PR, approval, CODEOWNERS và strict required checks |
