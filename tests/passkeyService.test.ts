@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../src/services/api/errors';
 
 const mocks = vi.hoisted(() => ({
   callApi: vi.fn(), supports: vi.fn(), register: vi.fn(), authenticate: vi.fn(),
@@ -51,6 +52,15 @@ describe('passkey browser service', () => {
       username: 'teacher-a', challengeId: 'challenge-id', response: credential,
     });
     expect(JSON.stringify(mocks.callApi.mock.calls)).not.toMatch(/password/i);
+  });
+
+  it('maps a public passkey 401 to a passkey-specific message without exposing account state', async () => {
+    mocks.callApi.mockRejectedValueOnce(new ApiError('Phiên đăng nhập đã hết hạn.', 401));
+
+    await expect(authenticateTeacherWithPasskey('teacher-a')).rejects.toThrow(
+      'Không thể xác minh passkey. Hãy kiểm tra tài khoản đã đăng ký passkey hoặc đăng nhập bằng mật khẩu.',
+    );
+    expect(mocks.authenticate).not.toHaveBeenCalled();
   });
 
   it('fails locally when WebAuthn is unsupported and revokes by opaque credential ID', async () => {

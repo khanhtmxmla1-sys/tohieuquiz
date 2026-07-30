@@ -70,6 +70,10 @@ describe('TôHiệuQuiz production domain contract', () => {
     expect(sitemap).toContain('<loc>https://www.thtohieu.com/</loc>');
     expect(headers).toContain('https://api.thtohieu.com');
     expect(headers).toContain('https://assets.thtohieu.com');
+    for (const cspSource of ['https://static.cloudflareinsights.com', 'https://cloudflareinsights.com']) {
+      expect(vercel).toContain(cspSource);
+      expect(headers).toContain(cspSource);
+    }
   });
 
   it('uses the dedicated parent domain and keeps certificates private', () => {
