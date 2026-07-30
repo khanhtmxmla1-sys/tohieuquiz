@@ -110,11 +110,11 @@ export interface StoragePolicyEntry {
 export function classifyStorageKey(key: string): StoragePolicyEntry;
 ```
 
-- [ ] Phân loại hồ sơ, kết quả, lớp, quiz, gamification, AI, telemetry và preference.
-- [ ] JWT/password/token = `credential + forbidden`.
-- [ ] Hồ sơ học sinh/kết quả/danh sách lớp = `personal + memory/session`.
-- [ ] Chỉ preference không nhạy cảm được `local-safe`.
-- [ ] Test bắt buộc mọi `StorageKeys` có policy.
+- [x] Phân loại hồ sơ, kết quả, lớp, quiz, gamification, AI, telemetry và preference.
+- [x] JWT/password/token = `credential + forbidden`.
+- [x] Hồ sơ học sinh/kết quả/danh sách lớp = `personal + memory/session`.
+- [x] Chỉ preference không nhạy cảm được `local-safe`.
+- [x] Test bắt buộc mọi `StorageKeys` có policy.
 
 **Acceptance:** Không có storage key chưa phân loại.
 
@@ -169,10 +169,10 @@ export const AiTutorPracticeQuestionSchema = z.object({
 }).refine(v => v.options.includes(v.correctAnswer));
 ```
 
-- [ ] Thay request `quizId + wrongQuestionIds` bằng `resultId`.
-- [ ] Không trả trường `raw` trong lỗi parse/validation.
-- [ ] Chuẩn hóa error codes và giới hạn chuỗi/output.
-- [ ] Sửa prompt thống nhất 2–3 câu thực hành.
+- [x] Thay request `quizId + wrongQuestionIds` bằng `resultId`.
+- [x] Không trả trường `raw` trong lỗi parse/validation.
+- [x] Chuẩn hóa error codes và giới hạn chuỗi/output.
+- [x] Sửa prompt thống nhất 2–3 câu thực hành.
 
 **Acceptance:** Output AI luôn qua Zod trước khi trả browser.
 
@@ -190,11 +190,11 @@ export const AiTutorPracticeQuestionSchema = z.object({
 - Modify: `workers/src/routes/aiTutor.ts`
 - Test: `tests/aiTutorAuthorization.worker.test.ts`
 
-- [ ] Học sinh chỉ dùng kết quả của chính mình.
-- [ ] Giáo viên chỉ dùng kết quả thuộc quiz/lớp mình quản lý; admin theo quyền toàn trường.
-- [ ] Server tự suy ra câu sai từ result/answers đã lưu.
-- [ ] Giảm dữ liệu prompt; không gửi tên, username, lớp nếu không cần.
-- [ ] Trả 404 chung cho resource không tồn tại/không thuộc quyền.
+- [x] Học sinh chỉ dùng kết quả của chính mình.
+- [x] Giáo viên chỉ dùng kết quả thuộc quiz/lớp mình quản lý; admin theo quyền toàn trường.
+- [x] Server tự suy ra câu sai từ result/answers đã lưu.
+- [x] Giảm dữ liệu prompt; không gửi tên, username, lớp nếu không cần.
+- [x] Trả 404 chung cho resource không tồn tại/không thuộc quyền.
 
 **Acceptance:** Student A và Teacher A không truy cập dữ liệu ngoài ownership.
 
@@ -213,12 +213,12 @@ export const AiTutorPracticeQuestionSchema = z.object({
 - Create: `workers/rollbacks/0044_drop_ai_tutor_usage.sql`
 - Test: `tests/aiTutorQuota.worker.test.ts`, `tests/aiTutorLogging.worker.test.ts`
 
-- [ ] Gọi AI qua `env.AI_GATEWAY.fetch(...)`.
-- [ ] Quota mặc định: học sinh 5/ngày, giáo viên 30/ngày, admin 100/ngày.
-- [ ] Reservation idempotent theo request/user/result.
-- [ ] Release quota khi upstream lỗi.
-- [ ] Log chỉ requestId, role, workflow, model, status, latency; không prompt/output/PII.
-- [ ] Rate limit riêng theo account và IP.
+- [x] Gọi AI qua `env.AI_GATEWAY.fetch(...)`.
+- [x] Quota mặc định: học sinh 5/ngày, giáo viên 30/ngày, admin 100/ngày.
+- [x] Reservation idempotent theo request/user/result.
+- [x] Release quota khi upstream lỗi.
+- [x] Log chỉ requestId, role, workflow, model, status, latency; không prompt/output/PII.
+- [x] Rate limit riêng theo account và IP.
 
 **Acceptance:** AI Tutor có quota, idempotency và không lộ nội dung học sinh.
 
@@ -237,11 +237,11 @@ export const AiTutorPracticeQuestionSchema = z.object({
 - Create: `src/security/clearUserBrowserData.ts`
 - Test: `tests/studentSessionStorage.test.ts`, `tests/browserDataCleanup.test.ts`
 
-- [ ] Giữ session trong Zustand memory; reload gọi profile endpoint bằng cookie.
-- [ ] Chỉ có thể lưu cờ không định danh để thử restore.
-- [ ] Coins/pet từ localStorage không là nguồn sự thật.
-- [ ] Logout/account switch xóa toàn bộ dữ liệu user-scoped.
-- [ ] Thêm chức năng “Xóa dữ liệu trên thiết bị này”.
+- [x] Giữ session trong Zustand memory; reload gọi profile endpoint bằng cookie.
+- [x] Chỉ có thể lưu cờ không định danh để thử restore.
+- [x] Coins/pet từ localStorage không là nguồn sự thật.
+- [x] Logout/account switch xóa toàn bộ dữ liệu user-scoped.
+- [x] Thêm chức năng “Xóa dữ liệu trên thiết bị này”.
 
 **Acceptance:** Sau logout không còn tên/lớp/avatar/coins/results/assignments trong browser storage.
 
@@ -257,10 +257,10 @@ export const AiTutorPracticeQuestionSchema = z.object({
 - Modify: `src/services/CacheService.ts` và callers.
 - Test: `tests/cacheStoragePolicy.test.ts`
 
-- [ ] Mặc định cache = memory.
-- [ ] Public quizzes có thể session; results/teachers/students/parent data chỉ memory.
-- [ ] Namespace cache theo account/session.
-- [ ] Invalidate toàn bộ namespace khi logout hoặc 401/403.
+- [x] Mặc định cache = memory.
+- [x] Public quizzes có thể session; results/teachers/students/parent data chỉ memory.
+- [x] Namespace cache theo account/session.
+- [x] Invalidate toàn bộ namespace khi logout hoặc 401/403.
 
 **Acceptance:** Test fail khi dữ liệu personal được ghi localStorage.
 
@@ -288,10 +288,10 @@ interface AuthState {
 }
 ```
 
-- [ ] Server profile/session endpoint là nguồn sự thật.
-- [ ] localStorage không quyết định authenticated/admin state.
-- [ ] Logout luôn clear client state kể cả request server lỗi.
-- [ ] Xóa store cũ khi toàn repo không còn import.
+- [x] Server profile/session endpoint là nguồn sự thật.
+- [x] localStorage không quyết định authenticated/admin state.
+- [x] Logout luôn clear client state kể cả request server lỗi.
+- [x] Xóa store cũ khi toàn repo không còn import.
 
 **Acceptance:** Sửa localStorage không mở được dashboard admin.
 
@@ -330,11 +330,11 @@ interface AuthState {
 - Modify: `scripts/dependency-audit-report.mjs`, `package.json`, `.github/workflows/security.yml`, `.github/workflows/ci.yml`
 - Test: `tests/securityWorkflowConfig.test.ts`
 
-- [ ] Audit production dependencies ở root và `workers/`.
-- [ ] CI cài worker lockfile bằng `npm ci --prefix workers --ignore-scripts`.
-- [ ] Quét secret cả Git history nhưng không in giá trị.
-- [ ] Gate CSP/CORS/browser JWT/migration rollback.
-- [ ] Cấu hình Dependabot root + workers hàng tuần.
+- [x] Audit production dependencies ở root và `workers/`.
+- [x] CI cài worker lockfile bằng `npm ci --prefix workers --ignore-scripts`.
+- [x] Quét secret cả Git history nhưng không in giá trị.
+- [x] Gate CSP/CORS/browser JWT/migration rollback.
+- [x] Cấu hình Dependabot root + workers hàng tuần.
 
 **Acceptance:** Vulnerability production ở một trong hai lockfile làm workflow fail.
 
@@ -381,9 +381,9 @@ interface AuthState {
 - Create: `docs/design/design-system.md`
 - Test: `tests/designTokens.test.ts`
 
-- [ ] Chốt semantic colors, typography, spacing 4px, radius và shadow hierarchy.
-- [ ] Áp dụng token cho primitive mới, chưa rewrite toàn UI.
-- [ ] Test contrast và cấm hex mới trong `src/components/common`.
+- [x] Chốt semantic colors, typography, spacing 4px, radius và shadow hierarchy.
+- [x] Áp dụng token cho primitive mới, chưa rewrite toàn UI.
+- [x] Test contrast và cấm hex mới trong `src/components/common`.
 
 **Acceptance:** Token được import toàn app mà không phá layout.
 
@@ -400,11 +400,11 @@ interface AuthState {
 - Create: `Input.tsx`, `Alert.tsx`, `Skeleton.tsx`, `AsyncState.tsx`, `EmptyState.tsx`
 - Test: `tests/commonPrimitives.test.tsx`, `cypress/component/common-primitives.cy.tsx`
 
-- [ ] Button hit area ≥44px, focus rõ, loading có `aria-busy`.
-- [ ] Input luôn có label/description/error IDs.
-- [ ] Alert không truyền trạng thái chỉ bằng màu.
-- [ ] AsyncState gom loading/error/empty/retry.
-- [ ] Pilot ở Teacher Overview trước.
+- [x] Button hit area ≥44px, focus rõ, loading có `aria-busy`.
+- [x] Input luôn có label/description/error IDs.
+- [x] Alert không truyền trạng thái chỉ bằng màu.
+- [x] AsyncState gom loading/error/empty/retry.
+- [x] Pilot ở Teacher Overview trước.
 
 **Acceptance:** Axe không có violation nghiêm trọng.
 
@@ -421,11 +421,11 @@ interface AuthState {
 - Create: `useFocusTrap.ts`, `useBodyScrollLock.ts`
 - Test: `tests/ModalAccessibility.test.tsx`, `cypress/component/modal-accessibility.cy.tsx`
 
-- [ ] Portal, `role=dialog`, `aria-modal`, labelled/described IDs.
-- [ ] Focus trap, Escape, focus return, backdrop policy.
-- [ ] Body scroll lock có scrollbar compensation.
-- [ ] Close button có `aria-label="Đóng"`.
-- [ ] Giữ mobile sheet/fullscreen contract.
+- [x] Portal, `role=dialog`, `aria-modal`, labelled/described IDs.
+- [x] Focus trap, Escape, focus return, backdrop policy.
+- [x] Body scroll lock có scrollbar compensation.
+- [x] Close button có `aria-label="Đóng"`.
+- [x] Giữ mobile sheet/fullscreen contract.
 
 **Acceptance:** Keyboard-only mở–dùng–đóng modal, không focus/scroll nền.
 
@@ -442,10 +442,10 @@ interface AuthState {
 - Create: `src/components/common/SupportError.tsx`
 - Test: `tests/apiErrorPresentation.test.tsx`
 
-- [ ] Chuẩn hóa `AppError {code,message,requestId,retryable,status}`.
-- [ ] 401/403/429/5xx có hành động đúng, không retry vô hạn.
-- [ ] Cho copy requestId, không copy payload/query nhạy cảm.
-- [ ] Không hiển thị stack/raw error ở production.
+- [x] Chuẩn hóa `AppError {code,message,requestId,retryable,status}`.
+- [x] 401/403/429/5xx có hành động đúng, không retry vô hạn.
+- [x] Cho copy requestId, không copy payload/query nhạy cảm.
+- [x] Không hiển thị stack/raw error ở production.
 
 **Acceptance:** Mọi lỗi API chính có mã hỗ trợ và retry hợp lý.
 
@@ -462,11 +462,11 @@ interface AuthState {
 - Modify: Teacher Overview, Results, Classes, Student Dashboard, Parent Portal.
 - Test: `tests/AsyncStates.test.tsx`, `cypress/e2e/offline-states.cy.ts`
 
-- [ ] Skeleton giảm CLS.
-- [ ] Empty state có lý do và CTA.
-- [ ] Có stale timestamp nhưng không dùng stale data sau 401/403.
-- [ ] Offline chặn thao tác cần server nhưng giữ draft hợp lệ.
-- [ ] `aria-live` cho trạng thái quan trọng.
+- [x] Skeleton giảm CLS.
+- [x] Empty state có lý do và CTA.
+- [x] Có stale timestamp nhưng không dùng stale data sau 401/403.
+- [x] Offline chặn thao tác cần server nhưng giữ draft hợp lệ.
+- [x] `aria-live` cho trạng thái quan trọng.
 
 **Acceptance:** Năm màn hình pilot không còn blank screen.
 
@@ -589,11 +589,11 @@ interface AuthState {
 - Modify: activity/submit/timing routes, `LiveExamQuiz.tsx`, `ActiveExamMonitor.tsx`
 - Test: `tests/liveExamReconnect.worker.test.ts`, `cypress/e2e/live-exam-reconnect.cy.ts`
 
-- [ ] Autosave delta có attemptVersion/idempotency.
-- [ ] Reconnect lấy authoritative answers/timer từ server.
-- [ ] Event log không chứa answer content.
-- [ ] Teacher thấy online/reconnecting/offline/lastSeen.
-- [ ] Gia hạn cá nhân, pause room, end early hai bước + audit.
+- [x] Autosave delta có attemptVersion/idempotency.
+- [x] Reconnect lấy authoritative answers/timer từ server.
+- [x] Event log không chứa answer content.
+- [x] Teacher thấy online/reconnecting/offline/lastSeen.
+- [x] Gia hạn cá nhân, pause room, end early hai bước + audit.
 
 **Acceptance:** Mất mạng 60 giây rồi quay lại không mất đáp án hoặc tạo submission trùng.
 
@@ -610,11 +610,11 @@ interface AuthState {
 - Create: `src/components/teacher/ResultsView/InterventionPanel.tsx`
 - Test: `tests/interventionService.test.ts`, `cypress/e2e/results-intervention.cy.ts`
 
-- [ ] Nhóm skill weakness có minimum sample/confidence.
-- [ ] First-vs-latest attempt và xu hướng 4 tuần.
-- [ ] Copy dùng “Cần hỗ trợ ở…”, không gắn nhãn tiêu cực công khai.
-- [ ] Teacher tạo group, private note và smart assignment.
-- [ ] Audit note/group/assignment.
+- [x] Nhóm skill weakness có minimum sample/confidence.
+- [x] First-vs-latest attempt và xu hướng 4 tuần.
+- [x] Copy dùng “Cần hỗ trợ ở…”, không gắn nhãn tiêu cực công khai.
+- [x] Teacher tạo group, private note và smart assignment.
+- [x] Audit note/group/assignment.
 
 **Acceptance:** Từ nhóm yếu → tạo assignment trong tối đa 3 bước; note chỉ giáo viên thấy.
 
@@ -631,11 +631,11 @@ interface AuthState {
 - Create frontend pages.
 - Test: `tests/parentDigestService.test.ts`, `cypress/e2e/parent-preferences.cy.ts`
 
-- [ ] Provider sau interface; secret không vào frontend.
-- [ ] Token hash ở DB, single-use, TTL 30 phút/24 giờ tùy loại.
-- [ ] Digest: hoàn thành, cần hỗ trợ, gợi ý tại nhà; tối thiểu hóa PII.
-- [ ] Preferences theo loại, quiet hours, weekly opt-in.
-- [ ] SPF/DKIM/DMARC là rollout gate.
+- [x] Provider sau interface; secret không vào frontend.
+- [x] Token hash ở DB, single-use, TTL 30 phút/24 giờ tùy loại.
+- [x] Digest: hoàn thành, cần hỗ trợ, gợi ý tại nhà; tối thiểu hóa PII.
+- [x] Preferences theo loại, quiet hours, weekly opt-in.
+- [x] SPF/DKIM/DMARC là rollout gate.
 
 **Acceptance:** Token replay bị từ chối và email payload không chứa dữ liệu thừa.
 
@@ -651,11 +651,11 @@ interface AuthState {
 - Modify gift shop Worker/frontend routes/components.
 - Test: `tests/giftShopGovernance.worker.test.ts`, existing E2E.
 
-- [ ] Catalog theo school/class/grade.
-- [ ] Weekly limit và stock/coins update atomic.
-- [ ] State machine pending/approved/delivered/cancelled; transition sai = 409.
-- [ ] Hủy có reason; refund idempotent; audit actor.
-- [ ] Low-stock vào Action Center; cho đóng shop theo lớp/trường.
+- [x] Catalog theo school/class/grade.
+- [x] Weekly limit và stock/coins update atomic.
+- [x] State machine pending/approved/delivered/cancelled; transition sai = 409.
+- [x] Hủy có reason; refund idempotent; audit actor.
+- [x] Low-stock vào Action Center; cho đóng shop theo lớp/trường.
 
 **Acceptance:** Concurrent purchase không âm stock/coins; cancel lặp không refund hai lần.
 
@@ -704,10 +704,10 @@ interface AuthState {
 }
 ```
 
-- [ ] Sinh machine-readable bundle report.
-- [ ] CI fail khi vượt budget; allowlist phải có lý do và expiry.
-- [ ] Báo top contributors/route owner.
-- [ ] Không tăng warning limit để che lỗi.
+- [x] Sinh machine-readable bundle report.
+- [x] CI fail khi vượt budget; allowlist phải có lý do và expiry.
+- [x] Báo top contributors/route owner.
+- [x] Không tăng warning limit để che lỗi.
 
 **Acceptance:** Inject chunk giả lớn làm gate fail.
 
@@ -723,11 +723,11 @@ interface AuthState {
 - Modify DOCX importer, `WorksheetExportModal.tsx`, PDF export, analytics routes, `lazyViews.ts`, `vite.config.ts`.
 - Test: `tests/heavyFeatureLazyLoading.test.tsx` và import/export E2E.
 
-- [ ] Word/Excel libs chỉ tải sau khi chọn import.
-- [ ] jsPDF/html2canvas/dom-to-image chỉ tải khi export.
-- [ ] Recharts chỉ tải analytics tab.
-- [ ] Điều tra Tooltip/shared chunk và tránh barrel import nặng.
-- [ ] Preload khi hover/focus CTA, không preload home.
+- [x] Word/Excel libs chỉ tải sau khi chọn import.
+- [x] jsPDF/html2canvas/dom-to-image chỉ tải khi export.
+- [x] Recharts chỉ tải analytics tab.
+- [x] Điều tra Tooltip/shared chunk và tránh barrel import nặng.
+- [x] Preload khi hover/focus CTA, không preload home.
 
 **Acceptance:** Không chunk >500 KB minified; initial route không tải document/chart code.
 
@@ -853,11 +853,11 @@ interface AuthState {
 - Create: `docs/security/passkey-threat-model.md`
 - Test registration/auth/replay/wrong-origin fixtures.
 
-- [ ] RP ID `thtohieu.com`; exact allowed origins.
-- [ ] Challenge random, single-use, TTL 5 phút.
-- [ ] Verify origin, rpIdHash, flags, signature counter.
-- [ ] Passkey bổ sung password trước; recovery có audit.
-- [ ] Dùng thư viện WebAuthn được review/pin, không tự viết crypto parser.
+- [x] RP ID `thtohieu.com`; exact allowed origins.
+- [x] Challenge random, single-use, TTL 5 phút.
+- [x] Verify origin, rpIdHash, flags, signature counter.
+- [x] Passkey bổ sung password trước; recovery có audit.
+- [x] Dùng thư viện WebAuthn được review/pin, không tự viết crypto parser.
 
 **Acceptance:** Replay, wrong origin/RP ID, reused challenge và cloned counter bị từ chối.
 
@@ -876,12 +876,12 @@ interface AuthState {
 - Create: `FeatureRolloutPanel.tsx`
 - Test: `tests/featureFlagRules.test.ts`, `cypress/e2e/feature-rollout.cy.ts`
 
-- [ ] Audience admin/teacher/student/parent/all; percentage, allow users/classes, start/end.
-- [ ] Stable hash user+flag, không random mỗi request.
-- [ ] PATCH riêng field, không ghi đè nhiều flags.
-- [ ] UI preview audience/change summary/owner/reason/rollback.
-- [ ] Audit before/after/actor/requestId.
-- [ ] Stop conditions gắn 5xx/client errors/latency/support.
+- [x] Audience admin/teacher/student/parent/all; percentage, allow users/classes, start/end.
+- [x] Stable hash user+flag, không random mỗi request.
+- [x] PATCH riêng field, không ghi đè nhiều flags.
+- [x] UI preview audience/change summary/owner/reason/rollback.
+- [x] Audit before/after/actor/requestId.
+- [x] Stop conditions gắn 5xx/client errors/latency/support.
 
 **Acceptance:** Bật 5% giáo viên hoặc một lớp và rollback runtime không cần redeploy cho flag đã migrate.
 
@@ -904,8 +904,8 @@ interface AuthState {
 
 - [x] Gate: typecheck frontend/workers, tests, coverage, build, perf budget, security root/workers, migrations, Cypress V2/V3.
 - [x] Output machine-readable `ready|blocked`.
-- [ ] Branch protection: PR required, checks required, stale approval dismissed, no force push/direct push.
-  - Cập nhật 29/07/2026: repository đã chuyển sang public nên giới hạn gói đã được gỡ; GitHub CLI trên máy hiện trả HTTP 401 `Bad credentials`, vì vậy remote settings vẫn chưa được áp dụng/xác minh.
+- [x] Branch protection: PR required, checks required, stale approval dismissed, no force push/direct push.
+  - Xác minh 30/07/2026: branch protection trên `main` yêu cầu PR, 1 approval, CODEOWNERS, dismiss stale approvals, conversation resolution, strict required checks, enforce admins; force-push và branch deletion bị cấm.
 - [x] CODEOWNERS cho security-sensitive paths nếu quy trình hỗ trợ.
 
 **Acceptance:** PR đỏ/direct push không merge vào main; gate không deploy.
@@ -946,10 +946,10 @@ interface AuthState {
 
 - [ ] Backup/bookmark trước cleanup.
 - [ ] Dry-run và xóa đúng `test.gv1`, `test.hs1`, `test.hs2`, `Lớp Test 1` cùng artifacts test; không xóa `tongminhkhanh` hoặc owner-created data chưa xác nhận.
-- [ ] Cleanup script idempotent, có row counts/audit.
+- [x] Cleanup script idempotent, có row counts/audit.
 - [ ] Full smoke sau cleanup.
 - [ ] Ghi release SHA, Worker/Vercel versions, migrations, flags, metrics và rollback points.
-- [ ] Lịch: security hàng tuần, backup verify hàng tháng, restore rehearsal hàng quý, AI/R2 cost hàng tuần.
+- [x] Lịch: security hàng tuần, backup verify hàng tháng, restore rehearsal hàng quý, AI/R2 cost hàng tuần.
 
 **Acceptance:** Production không còn dữ liệu test đã xác định và release record có đầy đủ bằng chứng.
 
@@ -1263,4 +1263,4 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 
 ## Explicitly blocked in this execution batch
 
-Tasks requiring production observation, auth enforce observation window, D1 production restore rehearsal, branch-protection settings, staged rollout, passkey rollout, real email delivery or production data cleanup remain unchecked until their acceptance evidence exists.
+Tasks 1–37 have acceptance evidence on `main`. Task 38 remains open only for the pre-cleanup bookmark, reviewed production write, post-cleanup smoke, final release evidence and tag. Real email delivery remains an external product dependency and is not a modernization release blocker because the provider path is fail-closed.
