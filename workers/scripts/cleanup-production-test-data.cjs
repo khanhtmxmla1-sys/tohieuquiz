@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const {
   parseCliArgs,
   parseWranglerJson,
@@ -13,6 +14,7 @@ const {
 
 const CLEANUP_CONFIRMATION = 'task38-test-fixtures';
 const AUDIT_ID = 'audit-task38-production-test-cleanup-v1';
+const PRODUCTION_DATABASE_ID = '527fd53b-b69c-4373-9512-b0f23a96c42d';
 const FIXTURES = Object.freeze({
   teacher: Object.freeze({ username: 'test.gv1', role: 'teacher' }),
   students: Object.freeze([
@@ -470,6 +472,48 @@ function deleteR2Objects(options, runner = runWrangler) {
   return { deleted, missing };
 }
 
+function executeRemoteBatchViaHelper(options, sql) {
+  const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'tohieuquiz-task38-batch-input-'));
+  const inputPath = path.join(tempDirectory, 'batch-input.json');
+  try {
+    fs.writeFileSync(inputPath, `${JSON.stringify({
+      cwd: options.cwd,
+      databaseName: options.database,
+      databaseId: PRODUCTION_DATABASE_ID,
+      sql,
+    })}\n`, { encoding: 'utf8', mode: 0o600 });
+    const helperPath = path.join(__dirname, 'run-d1-remote-batch.cjs');
+    const result = spawnSync(process.execPath, [helperPath, '--input', inputPath], {
+      cwd: options.cwd,
+      encoding: 'utf8',
+      maxBuffer: 16 * 1024 * 1024,
+      windowsHide: true,
+    });
+    if (result.status !== 0) {
+      throw new Error(result.stderr || result.stdout || 'D1 remote batch helper failed.');
+    }
+    return JSON.parse(result.stdout.trim());
+  } finally {
+    fs.rmSync(tempDirectory, { recursive: true, force: true });
+  }
+}
+
+function executeCleanupTransaction(options, sql, dependencies = {}) {
+  if (options.mode === 'remote') {
+    const executeRemoteBatch = dependencies.executeRemoteBatch || executeRemoteBatchViaHelper;
+    return executeRemoteBatch(options, sql);
+  }
+  const runner = dependencies.runWrangler || runWrangler;
+  const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'tohieuquiz-task38-cleanup-'));
+  const sqlPath = path.join(tempDirectory, 'cleanup.sql');
+  try {
+    fs.writeFileSync(sqlPath, sql, { encoding: 'utf8', mode: 0o600 });
+    runner(buildExecuteArgs(options, sqlPath), { cwd: options.cwd });
+    return { ok: true, statementCount: undefined, changes: undefined };
+  } finally {
+    fs.rmSync(tempDirectory, { recursive: true, force: true });
+  }
+}
 function persistReport(reportPath, report) {
   if (!reportPath) return;
   fs.mkdirSync(path.dirname(reportPath), { recursive: true });
@@ -506,17 +550,11 @@ function cleanupProductionTestData(rawOptions, dependencies = {}) {
   }
 
   if (before.state === 'ready') {
-    const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'tohieuquiz-task38-cleanup-'));
-    const sqlPath = path.join(tempDirectory, 'cleanup.sql');
-    try {
-      fs.writeFileSync(sqlPath, buildCleanupSql({ requestId, now }), {
-        encoding: 'utf8',
-        mode: 0o600,
-      });
-      runner(buildExecuteArgs(options, sqlPath), { cwd: options.cwd });
-    } finally {
-      fs.rmSync(tempDirectory, { recursive: true, force: true });
-    }
+    report.transaction = executeCleanupTransaction(
+      options,
+      buildCleanupSql({ requestId, now }),
+      { runWrangler: runner, executeRemoteBatch: dependencies.executeRemoteBatch },
+    );
   }
 
   const after = validateSnapshot(readSnapshot(options, runner));
@@ -552,12 +590,15 @@ module.exports = {
   AUDIT_ID,
   CLEANUP_CONFIRMATION,
   FIXTURES,
+  PRODUCTION_DATABASE_ID,
   buildCleanupSql,
   buildExecuteArgs,
   buildQueryArgs,
   buildSnapshotQuery,
   cleanupProductionTestData,
   deleteR2Objects,
+  executeCleanupTransaction,
+  executeRemoteBatchViaHelper,
   groupSnapshotRows,
   normalizeOptions,
   quoteSqlLiteral,
