@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ManualQuizDraftRecord } from '../../../../shared/manual-quiz-draft.contract';
+import {
+    hasMeaningfulManualQuizDraftContent,
+    type ManualQuizDraftRecord,
+} from '../../../../shared/manual-quiz-draft.contract';
 import {
     ManualQuizDraftConflictError,
     putRemoteManualQuizDraft,
@@ -106,6 +109,11 @@ export const useRemoteManualQuizAutosave = (
         }
 
         if (contentHash === lastRemoteContentHashRef.current) return undefined;
+        if (envelope.revision === 0 && !hasMeaningfulManualQuizDraftContent(envelope)) {
+            if (!browserIsOnline()) setSaveStatus('offline');
+            else if (lastSavedHashRef.current === fullHash) setSaveStatus('saved');
+            return undefined;
+        }
         if (!browserIsOnline()) {
             setSaveStatus('offline');
             return undefined;
@@ -120,6 +128,10 @@ export const useRemoteManualQuizAutosave = (
             const latestFullHash = getManualQuizDraftHash(current);
             const latestContentHash = getManualQuizDraftContentHash(current);
             if (latestContentHash !== contentHash || latestFullHash !== fullHash) return;
+            if (current.revision === 0 && !hasMeaningfulManualQuizDraftContent(current)) {
+                setSaveStatus('saved');
+                return;
+            }
             if (lastSavedHashRef.current !== latestFullHash) {
                 setRemoteRetryTick((value) => value + 1);
                 return;
@@ -227,6 +239,10 @@ export const useRemoteManualQuizAutosave = (
         persistImmediately(current);
         if (!browserIsOnline()) {
             setSaveStatus('offline');
+            return;
+        }
+        if (current.revision === 0 && !hasMeaningfulManualQuizDraftContent(current)) {
+            setSaveStatus('saved');
             return;
         }
         forceImmediateRemoteRef.current = true;

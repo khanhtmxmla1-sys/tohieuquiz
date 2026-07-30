@@ -1,3 +1,4 @@
+import { hasMeaningfulManualQuizDraftContent } from '../../../../shared/manual-quiz-draft.contract';
 import type { ManualQuizDraftEnvelope } from '../types/manualQuizWorkspace.types';
 import {
     deserializeManualQuizDraft,
@@ -127,7 +128,7 @@ export const findLatestLocalDraft = (
     for (const item of index) {
         if (quizId && item.quizId !== quizId) continue;
         const draft = loadLocalDraft(ownerUsername, item.draftId);
-        if (draft) return draft;
+        if (draft && hasMeaningfulManualQuizDraftContent(draft)) return draft;
     }
     return null;
 };

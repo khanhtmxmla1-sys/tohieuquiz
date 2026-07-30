@@ -100,6 +100,32 @@ describe('remote manual quiz autosave', () => {
         expect(screen.getByTestId('remote-status')).toHaveTextContent('saved');
     });
 
+    it('keeps a new placeholder draft local until the teacher adds meaningful content', async () => {
+        useManualQuizWorkspaceStore.getState().reset();
+        useManualQuizWorkspaceStore.getState().initializeFromSeed({
+            title: 'Đề kiểm tra mới',
+            classLevel: '3',
+            category: 'toan',
+            timeLimit: 15,
+            tags: [],
+            requireCode: false,
+            showOnHome: true,
+        }, 'teacher-a');
+        putRemoteMock.mockImplementation(async () => serverRecord(1, 'Đề đã bắt đầu soạn'));
+        render(<AutosaveHarness />);
+
+        await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+
+        expect(putRemoteMock).not.toHaveBeenCalled();
+        expect(screen.getByTestId('remote-status')).toHaveTextContent('saved');
+
+        act(() => useManualQuizWorkspaceStore.getState().updateQuiz({ title: 'Đề đã bắt đầu soạn' }));
+        await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+
+        expect(putRemoteMock).toHaveBeenCalledTimes(1);
+        expect(putRemoteMock.mock.calls[0][0].quiz.title).toBe('Đề đã bắt đầu soạn');
+    });
+
     it('keeps editing offline and syncs the latest draft immediately when online returns', async () => {
         setOnline(false);
         putRemoteMock.mockImplementation(async () => serverRecord(1, 'Bản mới nhất'));

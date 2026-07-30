@@ -81,6 +81,36 @@ describe('manual quiz local draft repository', () => {
         expect(findLatestLocalDraft('teacher-a')?.draftId).toBe('old');
     });
 
+    it('skips empty placeholder drafts when recovering the latest local work', () => {
+        const meaningfulDraft = makeEnvelope({
+            draftId: 'meaningful',
+            updatedAt: '2026-07-21T09:00:00.000Z',
+        });
+        const emptyDraft = makeEnvelope({
+            draftId: 'empty-latest',
+            updatedAt: '2026-07-21T10:00:00.000Z',
+            selectedQuestionId: null,
+            quiz: {
+                ...makeEnvelope().quiz,
+                title: 'Đề kiểm tra mới',
+                classLevel: '3',
+                category: 'toan',
+                timeLimit: 15,
+                questions: [],
+                tags: [],
+                requireCode: false,
+                accessCode: undefined,
+                showOnHome: true,
+            },
+        });
+
+        saveLocalDraft(meaningfulDraft);
+        saveLocalDraft(emptyDraft);
+
+        expect(findLatestLocalDraft('teacher-a')?.draftId).toBe('meaningful');
+        expect(loadLocalDraft('teacher-a', 'empty-latest')).toEqual(emptyDraft);
+    });
+
     it('converts storage quota errors into a friendly typed error', () => {
         const original = Storage.prototype.setItem;
         const quota = new DOMException('Quota exceeded', 'QuotaExceededError');
