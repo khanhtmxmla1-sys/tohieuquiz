@@ -8,8 +8,6 @@ export interface Env {
     CLIPROXY_API: string;
     CLIPROXY_TOKEN: string;
     JWT_SECRET: string;
-    AUTH_MIGRATION_MODE?: 'compat' | 'enforce';
-    AUTH_TOKEN_TRANSPORT_MODE?: 'compat' | 'cookie';
     AUTH_SESSION_MODE?: 'compat' | 'enforce';
     WEBAUTHN_ALLOWED_ORIGINS?: string;
     ENVIRONMENT?: 'production' | 'development' | 'test';

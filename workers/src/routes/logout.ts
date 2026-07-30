@@ -8,11 +8,9 @@ import { extractJWTFromRequest, verifyJWT } from '../utils/jwt';
 import { revokeAuthSession } from '../services/authSessionService';
 
 export async function handleLogoutRoute(request: Request, env: Env): Promise<Response> {
-    const token = extractJWTFromRequest(request, { allowBearer: env.AUTH_MIGRATION_MODE === 'compat' });
+    const token = extractJWTFromRequest(request);
     if (token && env.JWT_SECRET) {
-        const payload = await verifyJWT(token, env.JWT_SECRET, {
-            allowLegacy: env.AUTH_MIGRATION_MODE === 'compat',
-        });
+        const payload = await verifyJWT(token, env.JWT_SECRET);
         if (payload?.sessionId) {
             await revokeAuthSession(env.DB, payload, payload.sessionId, {
                 actorUsername: payload.username,

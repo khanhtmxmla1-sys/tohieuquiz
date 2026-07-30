@@ -19,7 +19,7 @@ describe('JWT security contract', () => {
     it('issues HS256 tokens with issuer, audience, tokenVersion, and a normalized session purpose', async () => {
         const secret = 'a-test-secret-that-is-long-enough';
         const token = await signJWT({ username: 'teacher-a', role: 'teacher', tokenVersion: 1 }, secret);
-        const payload = await verifyJWT(token, secret, { allowLegacy: false });
+        const payload = await verifyJWT(token, secret);
 
         expect(payload).toMatchObject({
             username: 'teacher-a',
@@ -30,7 +30,7 @@ describe('JWT security contract', () => {
         });
     });
 
-    it('accepts a claim-less legacy token only while legacy mode is explicitly enabled', async () => {
+    it('rejects claim-less legacy tokens unconditionally', async () => {
         const secret = 'a-test-secret-that-is-long-enough';
         const key = new TextEncoder().encode(secret);
         const legacy = await new SignJWT({ username: 'teacher-a', role: 'teacher' })
@@ -39,11 +39,7 @@ describe('JWT security contract', () => {
             .setExpirationTime('5m')
             .sign(key);
 
-        await expect(verifyJWT(legacy, secret, { allowLegacy: true })).resolves.toMatchObject({
-            username: 'teacher-a',
-            purpose: 'session',
-        });
-        await expect(verifyJWT(legacy, secret, { allowLegacy: false })).resolves.toBeNull();
+        await expect(verifyJWT(legacy, secret)).resolves.toBeNull();
     });
 
     it('rejects non-HS256 algorithms and malformed auth payloads', async () => {
@@ -65,8 +61,8 @@ describe('JWT security contract', () => {
             .setExpirationTime('5m')
             .sign(key);
 
-        await expect(verifyJWT(hs384, secret, { allowLegacy: false })).resolves.toBeNull();
-        await expect(verifyJWT(missingRole, secret, { allowLegacy: false })).resolves.toBeNull();
+        await expect(verifyJWT(hs384, secret)).resolves.toBeNull();
+        await expect(verifyJWT(missingRole, secret)).resolves.toBeNull();
         expectConsoleMessage(errorSpy, 'Verification failed');
     });
 
@@ -83,21 +79,20 @@ describe('JWT security contract', () => {
 });
 
 describe('teacher session version enforcement', () => {
-    it('rejects legacy JWTs in enforce mode and accepts the current token version', async () => {
+    it('rejects Bearer transport and accepts the current cookie token version', async () => {
         const secret = 'a-test-secret-that-is-long-enough';
         const db = {
             prepare: () => ({ bind: () => ({ first: async () => ({ status: 'ACTIVE', token_version: 3, must_change_password: 0 }) }) }),
         };
-        const env = { DB: db, JWT_SECRET: secret, AUTH_MIGRATION_MODE: 'enforce' } as any;
-
-        const legacy = await signJWT({ username: 'teacher-a', role: 'teacher' }, secret);
-        const legacyResult = await verifyJWTMiddleware(new Request('https://test/api/results', {
-            headers: { Authorization: `Bearer ${legacy}` },
-        }), env);
-        expect(legacyResult).toBeInstanceOf(Response);
-        expect((legacyResult as Response).status).toBe(401);
+        const env = { DB: db, JWT_SECRET: secret } as any;
 
         const current = await signJWT({ username: 'teacher-a', role: 'teacher', tokenVersion: 3, purpose: 'session' }, secret);
+        const bearerResult = await verifyJWTMiddleware(new Request('https://test/api/results', {
+            headers: { Authorization: `Bearer ${current}` },
+        }), env);
+        expect(bearerResult).toBeInstanceOf(Response);
+        expect((bearerResult as Response).status).toBe(401);
+
         const currentResult = await verifyJWTMiddleware(new Request('https://test/api/results', {
             headers: { Cookie: `auth_token=${current}` },
         }), env);
@@ -109,11 +104,13 @@ describe('teacher session version enforcement', () => {
         const db = {
             prepare: () => ({ bind: () => ({ first: async () => ({ status: 'ACTIVE', token_version: 1, must_change_password: 1 }) }) }),
         };
-        const env = { DB: db, JWT_SECRET: secret, AUTH_MIGRATION_MODE: 'compat' } as any;
-        const legacy = await signJWT({ username: 'teacher-a', role: 'teacher' }, secret);
+        const env = { DB: db, JWT_SECRET: secret } as any;
+        const current = await signJWT({
+            username: 'teacher-a', role: 'teacher', tokenVersion: 1, purpose: 'password_change',
+        }, secret);
 
         const blocked = await verifyJWTMiddleware(new Request('https://test/api/account/me', {
-            headers: { Authorization: `Bearer ${legacy}` },
+            headers: { Cookie: `auth_token=${current}` },
         }), env);
         expect(blocked).toBeInstanceOf(Response);
         expect((blocked as Response).status).toBe(403);
@@ -121,7 +118,7 @@ describe('teacher session version enforcement', () => {
 
         const allowed = await verifyJWTMiddleware(new Request('https://test/api/account/change-password', {
             method: 'POST',
-            headers: { Authorization: `Bearer ${legacy}` },
+            headers: { Cookie: `auth_token=${current}` },
         }), env);
         expect(allowed).not.toBeInstanceOf(Response);
     });

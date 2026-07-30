@@ -5,46 +5,13 @@ import { Env } from '../types';
 import { assertActiveAuthSession } from '../services/authSessionService';
 import { errorResponse } from '../utils/response';
 import {
-    extractJWTWithTransport,
-    hasRegisteredJWTClaims,
+    extractJWTFromRequest,
     verifyJWT,
     type JWTPayload,
-    type JWTTransport,
 } from '../utils/jwt';
 
 export interface AuthenticatedRequest extends Request {
     user?: JWTPayload;
-}
-
-function authMigrationMode(env: Env): 'compat' | 'enforce' {
-    return env.AUTH_MIGRATION_MODE === 'compat' ? 'compat' : 'enforce';
-}
-
-function requestId(request: Request): string {
-    return request.headers.get('x-request-id')
-        || request.headers.get('cf-ray')
-        || crypto.randomUUID();
-}
-
-function logAcceptedLegacySession(
-    request: Request,
-    payload: JWTPayload,
-    transport: JWTTransport,
-): void {
-    const legacyClaims = !hasRegisteredJWTClaims(payload);
-    const missingTokenVersion = payload.tokenVersion === undefined;
-    if (transport !== 'bearer' && !legacyClaims && !missingTokenVersion) return;
-
-    console.info(JSON.stringify({
-        event: 'auth_legacy_session_accepted',
-        requestId: requestId(request),
-        route: new URL(request.url).pathname,
-        method: request.method,
-        transport,
-        legacyClaims,
-        missingTokenVersion,
-        role: payload.role,
-    }));
 }
 
 /** Verify JWT token and return user context or an error response. */
@@ -52,10 +19,9 @@ export async function verifyJWTMiddleware(
     request: Request,
     env: Env,
 ): Promise<{ user: JWTPayload } | Response> {
-    const mode = authMigrationMode(env);
-    const extracted = extractJWTWithTransport(request, { allowBearer: mode === 'compat' });
+    const token = extractJWTFromRequest(request);
 
-    if (!extracted) {
+    if (!token) {
         return errorResponse('Unauthorized: Missing authentication token', 401);
     }
 
@@ -64,14 +30,12 @@ export async function verifyJWTMiddleware(
         return errorResponse('Authentication service unavailable', 503);
     }
 
-    const payload = await verifyJWT(extracted.token, env.JWT_SECRET, {
-        allowLegacy: mode === 'compat',
-    });
+    const payload = await verifyJWT(token, env.JWT_SECRET);
     if (!payload) {
         return errorResponse('Unauthorized: Invalid or expired token', 401);
     }
 
-    if (mode === 'enforce' && payload.tokenVersion === undefined) {
+    if (payload.tokenVersion === undefined) {
         return errorResponse('Unauthorized: Session has been revoked', 401);
     }
 
@@ -107,14 +71,9 @@ export async function verifyJWTMiddleware(
             return errorResponse('Password change required', 403);
         }
 
-        if (payload.tokenVersion !== undefined
-            && payload.tokenVersion !== Number(account.token_version)) {
+        if (payload.tokenVersion !== Number(account.token_version)) {
             return errorResponse('Unauthorized: Session has been revoked', 401);
         }
-    }
-
-    if (mode === 'compat') {
-        logAcceptedLegacySession(request, payload, extracted.transport);
     }
 
     return { user: payload };

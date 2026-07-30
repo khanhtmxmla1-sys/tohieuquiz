@@ -7,27 +7,17 @@ import {
     withClearedAuthCookie,
 } from '../workers/src/utils/authSession';
 
-describe('auth token transport modes', () => {
-    it('keeps a short rollback window in compat mode without changing identity fields', () => {
+describe('cookie-only auth transport', () => {
+    it('never exposes a signed token in session response data', () => {
         expect(buildAuthSessionData(
-            { AUTH_TOKEN_TRANSPORT_MODE: 'compat' },
             { username: 'teacher-a', role: 'teacher' },
-            'signed-token',
-        )).toEqual({ username: 'teacher-a', role: 'teacher', token: 'signed-token' });
-    });
-
-    it('never exposes the signed token in cookie mode', () => {
-        expect(buildAuthSessionData(
-            { AUTH_TOKEN_TRANSPORT_MODE: 'cookie' },
-            { username: 'teacher-a', role: 'teacher' },
-            'signed-token',
         )).toEqual({ username: 'teacher-a', role: 'teacher' });
     });
 
-    it('keeps the checked deployment config on cookie transport while registered claims are enforced', () => {
+    it('removes auth compatibility flags from checked deployment config', () => {
         const config = readFileSync('workers/wrangler.toml', 'utf8');
-        expect(config).toContain('AUTH_TOKEN_TRANSPORT_MODE = "cookie"');
-        expect(config).toContain('AUTH_MIGRATION_MODE = "enforce"');
+        expect(config).not.toContain('AUTH_TOKEN_TRANSPORT_MODE');
+        expect(config).not.toContain('AUTH_MIGRATION_MODE');
     });
 
     it('sets and clears HttpOnly auth cookies with no-store responses', () => {

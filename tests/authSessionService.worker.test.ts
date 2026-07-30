@@ -88,7 +88,6 @@ describe('auth session lifecycle', () => {
     const env = {
       DB: db,
       JWT_SECRET: 'a-test-secret-that-is-long-enough',
-      AUTH_MIGRATION_MODE: 'enforce',
       AUTH_SESSION_MODE: 'enforce',
     } as any;
 
