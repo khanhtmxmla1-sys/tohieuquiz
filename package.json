@@ -45,7 +45,8 @@
     "release:readiness": "node scripts/release-readiness.mjs",
     "perf:analyze": "node scripts/analyze-bundle.mjs",
     "perf:budget": "node scripts/analyze-bundle.mjs --check",
-    "perf:collections": "node scripts/benchmark-list-endpoints.mjs"
+    "perf:collections": "node scripts/benchmark-list-endpoints.mjs",
+    "d1:migrations:safe": "node workers/scripts/apply-d1-migrations-safe.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
