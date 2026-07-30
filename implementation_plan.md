@@ -314,7 +314,7 @@ interface AuthState {
 - [x] Gate enforce 48 giờ được đóng sớm theo owner risk override khoảng 2026-07-30 13:21 UTC+7.
 - [x] Chuẩn bị commit riêng xóa Bearer extraction, legacy claims, readable response token, telemetry và hai flag compat.
 - [x] Rollback sau removal là redeploy Worker version/commit đã review trước đó; không tái tạo ad-hoc Bearer fallback.
-- [ ] Review, merge, deploy và xác minh production hậu deploy.
+- [x] PR #20 được review/approve, merge tại `8a9c12e`, deploy Worker version `96705980-78e2-4b5b-89f2-883a989dfec7` và xác minh production hậu deploy.
 
 **Acceptance:** JWT thiếu issuer/audience/tokenVersion bị từ chối; UI vẫn login/refresh/logout bằng cookie; obsolete compat properties không thể bật lại hành vi cũ.
 
@@ -1210,20 +1210,21 @@ Mỗi PR phải có: task link, security/UX impact, test evidence, migration/rol
 - The four baseline assertion drifts were aligned. The fresh canonical D1 schema now includes the two AI Tutor quota tables introduced by migration `0044`, preventing new databases from missing those tables.
 - The first enforce-mode full regression exposed seven stale Bearer fixtures in Smart Assignment and Weakness Profile. They were converted to current cookie JWT fixtures, their targeted 9/9 tests passed, and the full suite then passed.
 - Batch 3 work was committed in separate recovery points. No push, merge, production deployment, production migration, secret change or production database operation was performed.
-- Task 10 remains open only for review, merge, deployment and post-deploy verification of the separate compatibility-removal commit.
+- At the end of Batch 3, Task 10 remained open only for review, merge, deployment and post-deploy verification of the separate compatibility-removal commit.
 
-### Task 10 — Compatibility removal prepared for review
+### Task 10 — Compatibility removal deployed
 
 - Production was promoted to cookie-only enforce at `2026-07-30 13:05:51 UTC+7`; protected smoke passed 15/15 checks.
 - The release owner instructed early closure of the observation gates at approximately `2026-07-30 13:21 UTC+7`. This is documented as risk acceptance, not as completion of 72/48 continuous hours or proof of aggregate analytics.
-- Branch `security/remove-auth-compat` removes Bearer extraction, claim-less legacy JWT verification, the `allowLegacy` option, accepted-legacy telemetry, readable response tokens and both auth compatibility flags.
-- `AUTH_SESSION_MODE` remains because it controls D1-backed session enforcement rather than legacy token compatibility.
-- TDD evidence: the new contract first failed 6 assertions across 4 files, then the expanded auth regression passed 6 files/24 tests.
-- Full regression exposed one stale Bearer fixture in announcement audience tests; it was changed to the current auth cookie and its 8/8 tests passed.
-- All four Vitest shards passed: 374 files and 1,722 tests. Workers typecheck, lint, security checks, zero-vulnerability dependency audits and production build passed.
-- Runbook: `docs/deployment/auth-cookie-enforcement.md`; risk record: `docs/operations/releases/2026-07-30-auth-compat-removal-prep.md`.
-- No merge, Worker deployment, D1 operation or secret change is included in this preparation step.
-- Still open: final diff review, commit/PR, merge, deployment and protected production smoke after deployment.
+- PR #20 was approved and merged with merge commit `8a9c12e8abc0c48f0218256cba75f7d6daff5660` after CI, security, release-readiness and Vercel checks passed.
+- The deployed contract removes Bearer extraction, claim-less legacy JWT verification, the `allowLegacy` option, accepted-legacy telemetry, readable response tokens and both auth compatibility flags. `AUTH_SESSION_MODE` remains because it controls D1-backed session enforcement.
+- Worker version `96705980-78e2-4b5b-89f2-883a989dfec7` received 100% traffic at `2026-07-30 15:09:07 UTC+7`; previous enforce version `2003f752-22fd-4503-a05f-6c377ebfc08a` remains the reviewed rollback target.
+- Post-deploy production smoke run `30525655292` reported `ready` with 15/15 checks, including cookie-authenticated admin, teacher, student and parent reads.
+- D1 recorded one new admin, teacher and student session during smoke; no new `security_events` row was emitted. Ten health probes returned 200 and ten unauthenticated protected-route probes returned 401, with zero observed 5xx.
+- TDD evidence: the new contract first failed 6 assertions across 4 files, then the expanded auth regression passed 6 files/24 tests. The announcement cookie fixture passed 8/8 and all four Vitest shards passed: 374 files and 1,722 tests.
+- Workers typecheck, lint, security checks, zero-vulnerability dependency audits, production build, main CI and release-readiness passed.
+- No D1 migration, production data mutation beyond normal smoke sessions, or secret change occurred. Task 10 is complete.
+- Runbook: `docs/deployment/auth-cookie-enforcement.md`; preparation record: `docs/operations/releases/2026-07-30-auth-compat-removal-prep.md`; production record: `docs/operations/releases/2026-07-30-auth-compat-removal-production.md`.
 
 ### Task 3 — Authorization matrix enforced
 

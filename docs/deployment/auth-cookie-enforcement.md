@@ -31,25 +31,27 @@ Production was promoted to auth enforce at **2026-07-30 13:05:51 UTC+7**. The no
 
 At approximately **2026-07-30 13:21 UTC+7**, the release owner explicitly instructed the team to close the gate early and continue, accepting the risk that the full observation window and aggregate analytics evidence were incomplete. Record this as an owner risk override, not as proof that 48 continuous hours elapsed.
 
-The compatibility-removal commit is prepared for review only. It does not merge itself, deploy a Worker, change production configuration or migrate D1.
+PR #20 was approved and merged at commit `8a9c12e8abc0c48f0218256cba75f7d6daff5660`. Worker version `96705980-78e2-4b5b-89f2-883a989dfec7` was promoted to 100% traffic at **2026-07-30 15:09:07 UTC+7**. The previous enforce version `2003f752-22fd-4503-a05f-6c377ebfc08a` remains the reviewed rollback target. No D1 migration or secret change was part of this release.
 
-## Verification requirements
+## Release verification completed
 
 Before merge:
 
-1. Verify Bearer and claim-less legacy tokens remain rejected even when obsolete compat properties are supplied.
-2. Verify current cookie tokens restore admin, teacher and student sessions.
-3. Verify password-change-required staff can complete the cookie flow.
-4. Verify login and password-change responses omit readable tokens.
-5. Run Workers typecheck, lint, security checks and production build.
-6. Review the diff as a security-sensitive authentication change.
+1. Bearer and claim-less legacy tokens were verified rejected even when obsolete compat properties were supplied.
+2. Current cookie tokens restored admin, teacher and student sessions.
+3. Password-change-required staff completed the cookie flow in regression coverage.
+4. Login and password-change responses omitted readable tokens.
+5. Workers typecheck, lint, security checks, dependency audits and production build passed.
+6. The security-sensitive diff was reviewed and PR #20 was approved.
 
-After any later deployment:
+After deployment:
 
-- run the protected production smoke for admin, teacher, student and parent;
-- watch login success, expected 401/403 behavior, 5xx and protected-route latency;
-- check security events and auth sessions;
-- rollback immediately if a confirmed authentication regression appears.
+- production smoke run `30525655292` passed 15/15 checks for public pages, CORS, guards and authenticated admin, teacher, student and parent reads;
+- D1 recorded fresh admin, teacher and student sessions and no new security event during smoke;
+- ten health probes returned 200 and ten unauthenticated protected-route probes returned 401, with zero observed 5xx;
+- the Worker remained at 100% on version `96705980-78e2-4b5b-89f2-883a989dfec7` after verification.
+
+Continue normal monitoring and rollback immediately if a confirmed authentication regression appears.
 
 ## Emergency rollback after compatibility removal
 
