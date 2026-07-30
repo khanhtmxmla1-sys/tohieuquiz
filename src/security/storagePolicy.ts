@@ -16,7 +16,7 @@ const MINUTE = 60_000;
 
 export const storagePolicy: readonly StoragePolicyEntry[] = [
     { keyPattern: /^tohieuquiz_student_session$/, classification: 'personal', persistence: 'forbidden', clearOnLogout: true, rationale: 'Legacy complete student profile; cleanup-only.' },
-    { keyPattern: /^tohieuquiz_student_restore_hint$/, classification: 'display', persistence: 'local-safe', clearOnLogout: true, maximumTtlMs: 7 * 24 * 60 * MINUTE, rationale: 'Non-identifying boolean used to validate the HttpOnly cookie.' },
+    { keyPattern: /^tohieuquiz_(student|teacher)_restore_hint$/, classification: 'display', persistence: 'local-safe', clearOnLogout: true, maximumTtlMs: 7 * 24 * 60 * MINUTE, rationale: 'Non-identifying boolean used to decide whether an HttpOnly session cookie should be validated.' },
     { keyPattern: /^tohieuquiz_gamification$/, classification: 'personal', persistence: 'forbidden', clearOnLogout: true, rationale: 'Coins, pets and inventory are server-authoritative.' },
     { keyPattern: /^(ai_provider|gen_ai_provider)$/, classification: 'display', persistence: 'local-safe', clearOnLogout: false, rationale: 'Non-secret UI preference only.' },
     { keyPattern: /^__cache_test__$/, classification: 'public', persistence: 'session', clearOnLogout: true, maximumTtlMs: MINUTE, rationale: 'Ephemeral capability probe.' },

@@ -176,6 +176,7 @@ const installSession = (win: Window) => {
   win.localStorage.setItem('auth-storage', authStorageValue);
   win.localStorage.setItem('tohieuquiz_teacher_dashboard_ui', dashboardStorageValue);
   win.localStorage.setItem('tohieuquiz-store', quizStorageValue);
+  win.localStorage.setItem('tohieuquiz_teacher_restore_hint', '1');
 };
 
 const interceptBootstrap = () => {
@@ -271,7 +272,7 @@ const interceptAi = (mode: AiMode) => {
 const visitCreateTab = (mode: AiMode) => {
   interceptBootstrap();
   interceptAi(mode);
-  cy.visit('/', { onBeforeLoad: installSession });
+  cy.visit('/teacher/quizzes?mode=create', { onBeforeLoad: installSession });
   cy.contains('Tạo đề kiểm tra mới', { timeout: 15_000 }).should('be.visible');
   cy.contains(/^Dạng câu hỏi(?: & ma trận)?$/).should('be.visible');
   cy.contains('5/5 lượt còn lại').should('be.visible');
