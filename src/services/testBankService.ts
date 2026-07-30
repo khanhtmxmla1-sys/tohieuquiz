@@ -1,6 +1,7 @@
 import type { Question } from '../types';
 import { getWorkersApiBaseUrl } from './api/config';
 
+// Keep protected test-bank traffic on the canonical API resolver; production uses same-origin /api.
 const testBankUrl = (path: string): string => `${getWorkersApiBaseUrl()}${path}`;
 
 export interface TestBankItem {
