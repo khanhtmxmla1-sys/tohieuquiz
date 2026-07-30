@@ -14,11 +14,18 @@
 - The merge happened while required CI/release checks were still running. The retry must not merge until every required PR check is complete and successful.
 - Production verification after the blocked attempt still found the old `TestBankBrowser` chunk containing `localhost:8787`; therefore the fix was not considered released.
 
-## Retry gate
+## Second production attempt
 
-- [ ] PR approval recorded from a CODEOWNER.
+- Retry PR #29 passed every CI, security, Cypress and release-readiness gate before merge.
+- Merge commit `8fa6e59d0852737692fc85a623d8280ca9956241` was still blocked by Vercel as deployment `G2VBqt98gfQxuzPNyavGh39Tp9vT`.
+- Both blocked merge commits were created by `tongminhkhanh`; the previous successful production merge `fead913040baef03a30e619fa392986e325d231b` was created by `khanhtmxmla1-sys`.
+- The final retry must be approved and merged by `khanhtmxmla1-sys`, the account associated with the successful Vercel production project.
+
+## Final retry gate
+
+- [ ] PR opened by `tongminhkhanh` and approved by CODEOWNER `khanhtmxmla1-sys`.
 - [ ] ESLint, frontend/Worker typecheck, all four Vitest shards, coverage, production build, security, Cypress and release-readiness are successful.
-- [ ] Merge only after the final pending check becomes successful.
+- [ ] Merge only after the final pending check becomes successful, using the `khanhtmxmla1-sys` GitHub account.
 - [ ] Vercel production deployment for the new merge commit is successful.
 - [ ] Production JavaScript contains the question-bank route with cookie credentials and contains no `localhost:8787` fallback.
 - [ ] Read-only production smoke passes.
