@@ -1,0 +1,21 @@
+{
+  "name": "TôHiệuQuiz Brand Icons",
+  "version": "1.0.0",
+  "format": "webp",
+  "width": 192,
+  "height": 192,
+  "icons": [
+    { "name": "overview", "file": "overview.webp" },
+    { "name": "quiz-create", "file": "quiz-create.webp" },
+    { "name": "quiz-management", "file": "quiz-management.webp" },
+    { "name": "assignment", "file": "assignment.webp" },
+    { "name": "classroom", "file": "classroom.webp" },
+    { "name": "live-exam", "file": "live-exam.webp" },
+    { "name": "learning-results", "file": "learning-results.webp" },
+    { "name": "certificate", "file": "certificate.webp" },
+    { "name": "parent-portal", "file": "parent-portal.webp" },
+    { "name": "notification", "file": "notification.webp" },
+    { "name": "gift-shop", "file": "gift-shop.webp" },
+    { "name": "settings", "file": "settings.webp" }
+  ]
+}
