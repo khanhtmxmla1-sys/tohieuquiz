@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Library, Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
+import { ModuleIcon } from '../../../components/common';
 import { testBankService, type TestBankItem } from '../../../services/testBankService';
 import type { Question } from '../../../types';
 import TestBankBrowser, { cloneQuestionFromBank } from './TestBankBrowser';
@@ -63,7 +64,7 @@ export const TestBankModal: React.FC<TestBankModalProps> = ({ isOpen, onClose, o
             <section role="dialog" aria-modal="true" aria-label="Ngân hàng câu hỏi cá nhân" className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
                 <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 lg:px-6">
                     <div className="flex items-start gap-3">
-                        <span className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-700"><Library className="h-5 w-5" /></span>
+                        <ModuleIcon name="question-bank" size="md" priority />
                         <div><h2 className="text-xl font-semibold text-slate-900">Ngân hàng câu hỏi cá nhân</h2><p className="mt-1 text-sm text-slate-600">Tìm, lọc và chọn nhiều câu hỏi đã lưu.</p></div>
                     </div>
                     <button type="button" aria-label="Đóng ngân hàng câu hỏi" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>

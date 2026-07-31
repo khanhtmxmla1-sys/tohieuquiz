@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Library, Search, Trash2 } from 'lucide-react';
+import { Search, Trash2 } from 'lucide-react';
+import { ModuleIcon } from '../../../components/common';
 import MathSpan from '../../../components/common/MathSpan';
 import { QuestionType, type Question } from '../../../types';
 import type { TestBankItem } from '../../../services/testBankService';
@@ -92,7 +93,10 @@ const TestBankBrowser: React.FC<TestBankBrowserProps> = ({ items, loading = fals
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 p-4">
                 {loading ? <div role="status" className="grid min-h-48 place-items-center text-sm text-slate-500">Đang tải kho câu hỏi…</div> : filteredItems.length === 0 ? (
-                    <div className="flex min-h-48 flex-col items-center justify-center text-center text-slate-500"><Library className="mb-3 h-10 w-10 text-slate-300" /><p className="font-medium">Không có câu hỏi phù hợp.</p></div>
+                    <div className="flex min-h-48 flex-col items-center justify-center text-center text-slate-500">
+                        <ModuleIcon name="question-bank" size="lg" />
+                        <p className="mt-3 font-medium">Không có câu hỏi phù hợp.</p>
+                    </div>
                 ) : (
                     <div className="grid gap-3 lg:grid-cols-2">
                         {filteredItems.map((item) => {

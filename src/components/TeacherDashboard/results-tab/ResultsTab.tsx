@@ -9,9 +9,8 @@ import { useResultsTabActions } from './useResultsTabActions';
 import { ResultsToolbar } from './ResultsToolbar';
 import { ResultsListSection } from './ResultsListSection';
 import { QuestionAnalysisSection } from './QuestionAnalysisSection';
-import { ResultsEmptyState } from './ResultsEmptyState';
 import { ResultsOverlays } from './ResultsOverlays';
-import { AsyncState } from '../../common';
+import { AsyncState, ModuleIcon } from '../../common';
 import { InterventionPanel } from '../../teacher/ResultsView';
 
 const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) => {
@@ -43,6 +42,15 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) 
   return (
     <>
       <div className="space-y-6">
+        <header className="flex items-start gap-3">
+          <ModuleIcon name="analytics-report" size="md" priority />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">Báo cáo phân tích</h1>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Theo dõi kết quả, mức độ hoàn thành và các điểm cần hỗ trợ.
+            </p>
+          </div>
+        </header>
         <ResultsToolbar
           dateRange={filters.dateRange}
           setDateRange={filters.setDateRange}
@@ -76,6 +84,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) 
           staleAt={filters.resultsHook.lastUpdatedAt}
           isOffline={!filters.resultsHook.isOnline}
           emptyState={{
+            icon: <ModuleIcon name="analytics-report" size="lg" />,
             title: 'Chưa có kết quả phù hợp',
             description: 'Chưa có học sinh nộp bài hoặc bộ lọc hiện tại chưa tìm thấy dữ liệu.',
           }}
@@ -111,7 +120,6 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) 
           isLoading={questionAnalysis.isLoadingAnalysis}
           error={questionAnalysis.analysisError}
         />
-        {filters.filteredResults.length === 0 && <ResultsEmptyState />}
         </AsyncState>
       </div>
       <ResultsOverlays

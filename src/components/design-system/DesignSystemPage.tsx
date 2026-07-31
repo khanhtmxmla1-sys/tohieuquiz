@@ -1,0 +1,5 @@
+import { useNavigate } from 'react-router';
+import { ArrowLeft } from 'lucide-react';
+import { IconGallery } from './IconGallery';
+const DesignSystemPage = () => { const navigate = useNavigate(); return <main className="min-h-dvh bg-slate-50 px-4 py-8 text-slate-800 md:px-8"><div className="mx-auto max-w-[1440px]"><button type="button" onClick={() => navigate('/teacher/overview')} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600"><ArrowLeft className="h-4 w-4" aria-hidden="true" />Về trang quản trị</button><header className="py-10"><p className="text-sm font-semibold text-sky-700">Tài liệu nội bộ</p><h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">Design System TôHiệuQuiz</h1><p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">Nguồn tham chiếu cho icon thương hiệu và quy tắc sử dụng nhất quán trong sản phẩm.</p></header><IconGallery /></div></main>; };
+export default DesignSystemPage;

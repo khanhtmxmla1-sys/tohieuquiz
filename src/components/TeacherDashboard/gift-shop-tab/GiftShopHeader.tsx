@@ -1,4 +1,5 @@
 import { Plus, RefreshCw } from 'lucide-react';
+import { ModuleIcon } from '../../common';
 
 interface Props {
   isAdmin: boolean;
@@ -9,12 +10,15 @@ interface Props {
 
 export const GiftShopHeader = ({ isAdmin, isLoading, onRefresh, onAddGift }: Props) => (
   <header className="flex items-start justify-between gap-4 flex-wrap">
-    <div>
-      <p className="text-sm font-semibold text-sky-700">Tiện ích / Tiệm tạp hóa</p>
-      <h2 className="mt-1 text-2xl md:text-3xl font-bold text-slate-900">Tiệm tạp hóa</h2>
-      <p className="mt-1 text-sm md:text-base text-slate-600">
-        Quản lý đơn đổi quà và danh mục phần thưởng.
-      </p>
+    <div className="flex items-start gap-3">
+      <ModuleIcon name="store" size="md" priority />
+      <div>
+        <p className="text-sm font-semibold text-sky-700">Tiện ích / Tiệm tạp hóa</p>
+        <h2 className="mt-1 text-2xl font-bold text-slate-900 md:text-3xl">Tiệm tạp hóa</h2>
+        <p className="mt-1 text-sm text-slate-600 md:text-base">
+          Quản lý đơn đổi quà và danh mục phần thưởng.
+        </p>
+      </div>
     </div>
     <div className="flex items-center gap-2">
       <button

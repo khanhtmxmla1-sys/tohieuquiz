@@ -4,6 +4,7 @@ import { useQuizStore } from '../../stores/quizStore';
 import {
     AboutPage,
     ContactPage,
+    DesignSystemPage,
     GiftShop,
     ManualQuizWorkspacePage,
     PhieuPublicPage,
@@ -19,6 +20,7 @@ import { RootView } from './RootView';
 import type { RoutePath } from './routeTypes';
 import { isManualQuizWorkspaceEnabled } from '../config/featureFlags';
 import { ProtectedRoute } from './ProtectedRoute';
+import { AdminRoute } from './AdminRoute';
 
 interface AppRoutesProps {
     giftShopEnabled: boolean;
@@ -71,6 +73,10 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route path="/teacher/math-audit" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/operations" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/settings" element={protectedRoute('teacher', <TeacherDashboard />)} />
+            <Route
+                path="/design-system"
+                element={protectedRoute('teacher', <AdminRoute><DesignSystemPage /></AdminRoute>)}
+            />
             <Route path="/teacher/results/:resultId" element={protectedRoute('teacher', <TeacherResultDetailPage />)} />
 
             <Route path="/student/dashboard" element={protectedRoute('student', <StudentDashboardUI />)} />
@@ -107,4 +113,3 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
         </Routes>
     );
 };
-

@@ -17,6 +17,7 @@ import { useClassroomStore } from '../src/stores/useClassroomStore';
 vi.mock('../src/app/lazyViews', () => ({
   AboutPage: () => <div>about-page</div>,
   ContactPage: () => <div>contact-page</div>,
+  DesignSystemPage: () => <div>design-system-page</div>,
   Footer: () => <div>footer</div>,
   GiftShop: () => <div>student-shop</div>,
   HomePage: () => <div>home-page</div>,
@@ -147,6 +148,36 @@ describe('URL navigation contracts', () => {
 
     expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/teacher/classes');
+  });
+
+  it('redirects a non-admin teacher away from the internal design system', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'teacher.one',
+      teacherName: 'Giáo viên Một',
+      isAdmin: false,
+    });
+
+    renderRoutes('/design-system');
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/overview'));
+    expect(screen.queryByText('design-system-page')).not.toBeInTheDocument();
+  });
+
+  it('renders the internal design system for an administrator', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'admin.one',
+      teacherName: 'Quản trị viên',
+      isAdmin: true,
+    });
+
+    renderRoutes('/design-system');
+
+    expect(await screen.findByText('design-system-page')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/design-system');
   });
 
   it('guards student routes and renders them after student restoration', async () => {

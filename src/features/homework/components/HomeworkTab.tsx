@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Archive, BookText, CalendarClock, ChevronRight, Clock, Copy, LayoutGrid, List, Lock, Pencil, Plus, Search, Unlock, Users } from 'lucide-react';
-import { Button } from '../../../components/common';
+import { Button, ModuleIcon } from '../../../components/common';
 import { useAuthStore } from '../../../../stores/authStore';
 import { useClassStore } from '../../../stores/useClassStore';
 import { useHomeworkStore } from '../stores/useHomeworkStore';
@@ -110,9 +110,12 @@ export const HomeworkTab: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Trung tâm Bài tập Tự luận</h1>
-          <p className="text-slate-500 mt-1">Theo dõi tiến độ, duyệt gợi ý AI và hỗ trợ đúng học sinh cần giúp đỡ.</p>
+        <div className="flex items-start gap-3">
+          <ModuleIcon name="tasks" size="md" priority />
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-800">Trung tâm Bài tập Tự luận</h1>
+            <p className="mt-1 text-slate-500">Theo dõi tiến độ, duyệt gợi ý AI và hỗ trợ đúng học sinh cần giúp đỡ.</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-white border border-slate-200 rounded-2xl p-1 flex shadow-sm">

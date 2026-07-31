@@ -16,6 +16,7 @@ import {
     X,
 } from 'lucide-react';
 import { useQuizStore } from '../../../stores/quizStore';
+import { ModuleIcon } from '../common';
 import { useClassroomStore } from '../../stores/useClassroomStore';
 import { useGamificationStore } from '../../stores/useGamificationStore';
 import { useGiftShopStore } from '../../stores/useGiftShopStore';
@@ -242,7 +243,7 @@ const GiftShop: React.FC = () => {
                         <span className="hidden sm:inline">Quay lại trang học tập</span>
                     </button>
                     <div className="flex items-center gap-2">
-                        <Gift className="h-5 w-5 text-sky-600" aria-hidden="true" />
+                        <ModuleIcon name="store" size="sm" priority />
                         <h1 className="text-base font-bold text-slate-900 sm:text-lg">Tiệm tạp hóa</h1>
                     </div>
                     <div className="inline-flex min-h-11 items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-2">
