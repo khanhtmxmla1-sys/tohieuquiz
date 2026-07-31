@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HeartHandshake, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
 const PARENT_PORTAL_URL = 'https://phuhuynh.thtohieu.com/login';
@@ -38,9 +38,8 @@ const LandingHeader: React.FC = () => {
                 <button type="button" className={navButtonClass} onClick={() => goTo('/contact')}>Liên hệ</button>
                 <a
                     href={PARENT_PORTAL_URL}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-[13px] border border-[#bfdbfe] bg-white px-3.5 text-sm font-bold text-[#1e3a8a] shadow-[0_12px_28px_-24px_rgba(37,99,235,0.75)] transition-colors hover:bg-[#eff6ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
+                    className="inline-flex min-h-11 items-center rounded-[13px] border border-[#bfdbfe] bg-white px-3.5 text-sm font-bold text-[#1e3a8a] shadow-[0_12px_28px_-24px_rgba(37,99,235,0.75)] transition-colors hover:bg-[#eff6ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
                 >
-                    <HeartHandshake size={18} strokeWidth={1.8} aria-hidden="true" />
                     Cổng phụ huynh
                 </a>
             </nav>
@@ -67,9 +66,8 @@ const LandingHeader: React.FC = () => {
                     <button type="button" className="min-h-11 rounded-xl px-4 text-left font-semibold text-[#334155] hover:bg-[#eff6ff]" onClick={() => goTo('/contact')}>Liên hệ</button>
                     <a
                         href={PARENT_PORTAL_URL}
-                        className="mt-1 flex min-h-12 items-center gap-2 rounded-xl bg-[#eff6ff] px-4 font-bold text-[#1e3a8a]"
+                        className="mt-1 flex min-h-12 items-center rounded-xl bg-[#eff6ff] px-4 font-bold text-[#1e3a8a]"
                     >
-                        <HeartHandshake size={19} aria-hidden="true" />
                         Cổng phụ huynh
                     </a>
                 </nav>

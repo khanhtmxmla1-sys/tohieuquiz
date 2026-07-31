@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import {
     ArrowRight,
-    ExternalLink,
     Eye,
     EyeOff,
     Fingerprint,
     GraduationCap,
-    HeartHandshake,
     Loader2,
     Lock,
     UserRound,
@@ -27,8 +25,6 @@ interface LoginFormProps {
     isPasskeyLoading?: boolean;
     passkeyAvailable?: boolean;
 }
-
-const PARENT_PORTAL_URL = 'https://phuhuynh.thtohieu.com/login';
 
 const LoginForm: React.FC<LoginFormProps> = ({
     activeTab,
@@ -224,21 +220,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
                             </>
                         )}
                     </form>
-
-                    <a
-                        href={PARENT_PORTAL_URL}
-                        className="group mt-6 flex min-h-[68px] items-center gap-3 rounded-[17px] border border-[#bfdbfe] bg-[#f8fbff] p-3.5 text-left transition-[background-color,border-color,box-shadow,transform] hover:border-[#93c5fd] hover:bg-[#eff6ff] hover:shadow-[0_14px_32px_-26px_rgba(37,99,235,0.75)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2563eb]/20 active:scale-[0.99]"
-                        aria-label="Mở Cổng phụ huynh"
-                    >
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] bg-[#dbeafe] text-[#1d4ed8]">
-                            <HeartHandshake size={21} strokeWidth={1.8} aria-hidden="true" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-bold text-[#1e3a8a]">Cổng phụ huynh</span>
-                            <span className="mt-0.5 block text-xs leading-5 text-[#64748b]">Theo dõi kết quả và quá trình học của con</span>
-                        </span>
-                        <ExternalLink size={17} className="shrink-0 text-[#2563eb] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
-                    </a>
 
                     <p className="mt-5 text-center text-sm leading-6 text-[#64748b]">
                         Cần hỗ trợ?{' '}

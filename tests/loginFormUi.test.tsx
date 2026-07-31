@@ -36,6 +36,12 @@ describe('landing login form UI', () => {
     expect(passwordInput).toHaveAttribute('type', 'password');
   });
 
+  it('keeps the parent portal entry outside the student and teacher login form', () => {
+    renderLoginForm();
+
+    expect(screen.queryByRole('link', { name: /Cổng phụ huynh/i })).not.toBeInTheDocument();
+  });
+
   it('exposes selected role and remember-login controls', () => {
     const setActiveTab = vi.fn();
     const setRememberLogin = vi.fn();
