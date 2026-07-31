@@ -68,3 +68,22 @@ assets in this order:
 Certificates generated before this migration are immutable PNG objects. Any
 previously generated blank certificates must be explicitly re-rendered after
 the rollout; changing the template key does not rewrite existing objects.
+
+## Ten generated blank-artwork templates
+
+These PNG objects are used for both certificate rendering and template-picker
+thumbnails. Each background contains decoration only; all certificate text is
+rendered dynamically from `fields_config`.
+
+```text
+cert-backgrounds/tohieuquiz-2026/generated-10/01-ornate-red-navy.png
+cert-backgrounds/tohieuquiz-2026/generated-10/02-geometric-blue-gold.png
+cert-backgrounds/tohieuquiz-2026/generated-10/03-formal-blue-administrative.png
+cert-backgrounds/tohieuquiz-2026/generated-10/04-cheerful-school.png
+cert-backgrounds/tohieuquiz-2026/generated-10/05-geometric-navy-orange.png
+cert-backgrounds/tohieuquiz-2026/generated-10/06-botanical-green-gold.png
+cert-backgrounds/tohieuquiz-2026/generated-10/07-purple-gold-ornate.png
+cert-backgrounds/tohieuquiz-2026/generated-10/08-soft-pastel-learning.png
+cert-backgrounds/tohieuquiz-2026/generated-10/09-premium-gold-cream.png
+cert-backgrounds/tohieuquiz-2026/generated-10/10-festive-academic-blue-gold.png
+```

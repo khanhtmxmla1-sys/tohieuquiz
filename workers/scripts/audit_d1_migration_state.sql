@@ -390,7 +390,52 @@ WITH checks(migration, check_name, ok) AS (
         OR (id='tohieuquiz-kids-learning-2026'
           AND bg_image_r2_key='cert-backgrounds/tohieuquiz-2026/kids-learning.png')
         OR (id='tohieuquiz-geometric-navy-orange-2026'
-          AND bg_image_r2_key='cert-backgrounds/tohieuquiz-2026/geometric-navy-orange.png')))
+          AND bg_image_r2_key='cert-backgrounds/tohieuquiz-2026/geometric-navy-orange.png'))),
+    ('0056_add_generated_certificate_templates.sql', 'ten generated certificate templates active',
+      (SELECT COUNT(*)=10 FROM certificate_templates
+       WHERE id IN (
+          'tohieuquiz-generated-01-ornate-red-navy-2026',
+          'tohieuquiz-generated-02-geometric-blue-gold-2026',
+          'tohieuquiz-generated-03-formal-blue-administrative-2026',
+          'tohieuquiz-generated-04-cheerful-school-2026',
+          'tohieuquiz-generated-05-geometric-navy-orange-2026',
+          'tohieuquiz-generated-06-botanical-green-gold-2026',
+          'tohieuquiz-generated-07-purple-gold-ornate-2026',
+          'tohieuquiz-generated-08-soft-pastel-learning-2026',
+          'tohieuquiz-generated-09-premium-gold-cream-2026',
+          'tohieuquiz-generated-10-festive-academic-blue-gold-2026'
+       )
+         AND is_active=1
+         AND canvas_width=1270
+         AND canvas_height=698
+         AND bg_image_r2_key=thumbnail_r2_key
+         AND instr(bg_image_r2_key, 'cert-backgrounds/tohieuquiz-2026/generated-10/')=1
+         AND substr(bg_image_r2_key, -4)='.png'
+         AND json_valid(fields_config)=1)),
+    ('0056_add_generated_certificate_templates.sql', 'generated templates contain dynamic fields',
+      NOT EXISTS(
+        SELECT 1 FROM certificate_templates AS template
+        WHERE template.id IN (
+          'tohieuquiz-generated-01-ornate-red-navy-2026',
+          'tohieuquiz-generated-02-geometric-blue-gold-2026',
+          'tohieuquiz-generated-03-formal-blue-administrative-2026',
+          'tohieuquiz-generated-04-cheerful-school-2026',
+          'tohieuquiz-generated-05-geometric-navy-orange-2026',
+          'tohieuquiz-generated-06-botanical-green-gold-2026',
+          'tohieuquiz-generated-07-purple-gold-ornate-2026',
+          'tohieuquiz-generated-08-soft-pastel-learning-2026',
+          'tohieuquiz-generated-09-premium-gold-cream-2026',
+          'tohieuquiz-generated-10-festive-academic-blue-gold-2026'
+        )
+        AND (
+          NOT EXISTS (SELECT 1 FROM json_each(template.fields_config) WHERE json_extract(value, '$.key')='student_name')
+          OR NOT EXISTS (SELECT 1 FROM json_each(template.fields_config) WHERE json_extract(value, '$.key')='quiz_title')
+          OR NOT EXISTS (SELECT 1 FROM json_each(template.fields_config) WHERE json_extract(value, '$.key')='score')
+          OR NOT EXISTS (SELECT 1 FROM json_each(template.fields_config) WHERE json_extract(value, '$.key')='date')
+          OR NOT EXISTS (SELECT 1 FROM json_each(template.fields_config) WHERE json_extract(value, '$.key')='teacher_name')
+        )
+      ))
+
 ), summary AS (
   SELECT
     migration,

@@ -8,6 +8,8 @@ const migrationPath = path.join(root, 'workers', 'migrations', '0036_seed_tohieu
 const layoutMigrationPath = path.join(root, 'workers', 'migrations', '0041_certificate_layout_and_name_fonts.sql');
 const pngMigrationPath = path.join(root, 'workers', 'migrations', '0055_certificate_render_backgrounds_png.sql');
 const pngRollbackPath = path.join(root, 'workers', 'rollbacks', '0055_drop_certificate_render_backgrounds_png.sql');
+const generatedMigrationPath = path.join(root, 'workers', 'migrations', '0056_add_generated_certificate_templates.sql');
+const generatedRollbackPath = path.join(root, 'workers', 'rollbacks', '0056_drop_generated_certificate_templates.sql');
 const defaultsPath = path.join(root, 'workers', 'seeds', 'defaults.sql');
 
 const templates = [
@@ -16,6 +18,19 @@ const templates = [
   { id: 'tohieuquiz-formal-blue-2026', file: 'formal-blue' },
   { id: 'tohieuquiz-kids-learning-2026', file: 'kids-learning' },
   { id: 'tohieuquiz-geometric-navy-orange-2026', file: 'geometric-navy-orange' },
+] as const;
+
+const generatedTemplates = [
+  { id: 'tohieuquiz-generated-01-ornate-red-navy-2026', file: '01-ornate-red-navy.png' },
+  { id: 'tohieuquiz-generated-02-geometric-blue-gold-2026', file: '02-geometric-blue-gold.png' },
+  { id: 'tohieuquiz-generated-03-formal-blue-administrative-2026', file: '03-formal-blue-administrative.png' },
+  { id: 'tohieuquiz-generated-04-cheerful-school-2026', file: '04-cheerful-school.png' },
+  { id: 'tohieuquiz-generated-05-geometric-navy-orange-2026', file: '05-geometric-navy-orange.png' },
+  { id: 'tohieuquiz-generated-06-botanical-green-gold-2026', file: '06-botanical-green-gold.png' },
+  { id: 'tohieuquiz-generated-07-purple-gold-ornate-2026', file: '07-purple-gold-ornate.png' },
+  { id: 'tohieuquiz-generated-08-soft-pastel-learning-2026', file: '08-soft-pastel-learning.png' },
+  { id: 'tohieuquiz-generated-09-premium-gold-cream-2026', file: '09-premium-gold-cream.png' },
+  { id: 'tohieuquiz-generated-10-festive-academic-blue-gold-2026', file: '10-festive-academic-blue-gold.png' },
 ] as const;
 
 describe('TôHiệuQuiz certificate template seed', () => {
@@ -82,6 +97,28 @@ describe('TôHiệuQuiz certificate template seed', () => {
       expect(defaults).toContain(`'${pngKey}'`);
       expect(defaults).toContain(`'${webpKey}'`);
     }
+  });
+
+  it('adds ten generated PNG templates with dynamic fields and safe rollback behavior', async () => {
+    const migration = await readFile(generatedMigrationPath, 'utf8');
+    const rollback = await readFile(generatedRollbackPath, 'utf8');
+    const defaults = await readFile(defaultsPath, 'utf8');
+
+    for (const template of generatedTemplates) {
+      const key = `cert-backgrounds/tohieuquiz-2026/generated-10/${template.file}`;
+      expect(migration).toContain(`'${template.id}'`);
+      expect(migration).toContain(`'${key}'`);
+      expect(defaults).toContain(`'${template.id}'`);
+      expect(defaults).toContain(`'${key}'`);
+      expect(rollback).toContain(`'${template.id}'`);
+    }
+
+    expect(migration.match(/1270, 698/g)).toHaveLength(10);
+    for (const key of ['student_name', 'quiz_title', 'score', 'date', 'teacher_name']) {
+      expect(migration.match(new RegExp(`\\\"key\\\":\\\"${key}\\\"`, 'g'))).toHaveLength(10);
+    }
+    expect(rollback).toContain('SET is_active = 0');
+    expect(rollback).not.toContain('DELETE FROM certificate_templates');
   });
 
   it('aligns names to guide lines and centers score text in each score frame', async () => {

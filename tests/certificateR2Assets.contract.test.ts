@@ -30,6 +30,19 @@ const requiredThumbnails = [
   'geometric-navy-orange.webp',
 ];
 
+const generatedBackgrounds = [
+  '01-ornate-red-navy.png',
+  '02-geometric-blue-gold.png',
+  '03-formal-blue-administrative.png',
+  '04-cheerful-school.png',
+  '05-geometric-navy-orange.png',
+  '06-botanical-green-gold.png',
+  '07-purple-gold-ornate.png',
+  '08-soft-pastel-learning.png',
+  '09-premium-gold-cream.png',
+  '10-festive-academic-blue-gold.png',
+];
+
 describe('certificate R2 asset contract', () => {
   it('loads every required certificate font from the private R2 bucket', () => {
     const loader = readFileSync('workers/src/services/fontLoader.ts', 'utf8');
@@ -63,6 +76,24 @@ describe('certificate R2 asset contract', () => {
     for (const thumbnail of requiredThumbnails) {
       const r2Key = `cert-backgrounds/tohieuquiz-2026/${thumbnail}`;
       const localPath = `assets/certificate-backgrounds/tohieuquiz-2026/${thumbnail}`;
+      expect(defaults).toContain(r2Key);
+      expect(docs).toContain(r2Key);
+      expect(existsSync(localPath)).toBe(true);
+    }
+  });
+
+  it('keeps the ten generated PNG templates under exact R2 keys', () => {
+    const migration = readFileSync(
+      'workers/migrations/0056_add_generated_certificate_templates.sql',
+      'utf8',
+    );
+    const defaults = readFileSync('workers/seeds/defaults.sql', 'utf8');
+    const docs = readFileSync('assets/certificate-fonts/README.md', 'utf8');
+
+    for (const background of generatedBackgrounds) {
+      const r2Key = `cert-backgrounds/tohieuquiz-2026/generated-10/${background}`;
+      const localPath = `assets/certificate-backgrounds/tohieuquiz-2026/generated-10/${background}`;
+      expect(migration).toContain(r2Key);
       expect(defaults).toContain(r2Key);
       expect(docs).toContain(r2Key);
       expect(existsSync(localPath)).toBe(true);

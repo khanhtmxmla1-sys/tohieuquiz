@@ -9,6 +9,16 @@ const approvedTemplateIds = [
   'tohieuquiz-formal-blue-2026',
   'tohieuquiz-kids-learning-2026',
   'tohieuquiz-geometric-navy-orange-2026',
+  'tohieuquiz-generated-01-ornate-red-navy-2026',
+  'tohieuquiz-generated-02-geometric-blue-gold-2026',
+  'tohieuquiz-generated-03-formal-blue-administrative-2026',
+  'tohieuquiz-generated-04-cheerful-school-2026',
+  'tohieuquiz-generated-05-geometric-navy-orange-2026',
+  'tohieuquiz-generated-06-botanical-green-gold-2026',
+  'tohieuquiz-generated-07-purple-gold-ornate-2026',
+  'tohieuquiz-generated-08-soft-pastel-learning-2026',
+  'tohieuquiz-generated-09-premium-gold-cream-2026',
+  'tohieuquiz-generated-10-festive-academic-blue-gold-2026',
 ];
 
 describe('fresh D1 bootstrap contract', () => {
@@ -88,8 +98,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(54);
-    expect(migrationNames.at(-1)).toBe('0055_certificate_render_backgrounds_png.sql');
+    expect(migrationNames).toHaveLength(55);
+    expect(migrationNames.at(-1)).toBe('0056_add_generated_certificate_templates.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);

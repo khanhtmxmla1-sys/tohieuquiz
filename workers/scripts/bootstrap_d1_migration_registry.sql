@@ -61,4 +61,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0052_auth_sessions_security_events.sql'),
   ('0053_webauthn_passkeys.sql'),
   ('0054_feature_rollout_control_plane.sql'),
-  ('0055_certificate_render_backgrounds_png.sql');
+  ('0055_certificate_render_backgrounds_png.sql'),
+  ('0056_add_generated_certificate_templates.sql');
