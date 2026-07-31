@@ -163,7 +163,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                             <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[#475569]">
                                 <input
                                     type="checkbox"
-                                    className="h-4.5 w-4.5 rounded border-[#cbd5e1] accent-[#2563eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
+                                    className="h-[18px] w-[18px] rounded border-[#cbd5e1] accent-[#2563eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
                                     checked={rememberLogin}
                                     onChange={(event) => setRememberLogin?.(event.target.checked)}
                                 />
@@ -185,8 +185,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
                         >
                             {isLoading ? (
                                 <span className="flex items-center justify-center gap-2" aria-live="polite">
-                                    <Loader2 className="animate-spin" size={20} aria-hidden="true" />
-                                    Đang đăng nhập...
+                                    <Loader2 className="animate-spin motion-reduce:animate-none" size={20} aria-hidden="true" />
+                                    Đang đăng nhập…
                                 </span>
                             ) : (
                                 <>
@@ -213,7 +213,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                                     className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] border border-[#bfdbfe] bg-[#eff6ff] px-5 text-base font-bold text-[#1d4ed8] transition-[background-color,border-color,transform] hover:border-[#93c5fd] hover:bg-[#dbeafe] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2563eb]/20 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {isPasskeyLoading
-                                        ? <Loader2 className="animate-spin" size={20} aria-hidden="true" />
+                                        ? <Loader2 className="animate-spin motion-reduce:animate-none" size={20} aria-hidden="true" />
                                         : <Fingerprint size={20} strokeWidth={1.9} aria-hidden="true" />}
                                     Đăng nhập bằng passkey
                                 </button>
@@ -221,7 +221,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                         )}
                     </form>
 
-                    <p className="mt-6 text-center text-sm leading-6 text-[#64748b]">
+                    <p className="mt-5 text-center text-sm leading-6 text-[#64748b]">
                         Cần hỗ trợ?{' '}
                         <a
                             href="mailto:support@thtohieu.com"

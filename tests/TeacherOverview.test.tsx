@@ -146,9 +146,8 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(heroSection?.className).not.toContain('gradient');
         expect(heroSection?.className).not.toContain('shadow');
         expect(screen.getByText('Theo dõi tiến độ học tập của lớp, tạo và giao bài, đồng thời xem nhanh kết quả của học sinh ngay tại đây.')).toBeTruthy();
-        const resultsButton = within(heroSection as HTMLElement).getByRole('button', { name: 'Xem kết quả' });
-        expect(resultsButton.className).toContain('bg-slate-100');
-        expect(resultsButton.className).toContain('text-slate-900');
+        expect(within(heroSection as HTMLElement).queryByRole('button', { name: 'T?o ?? m?i' })).not.toBeInTheDocument();
+        expect(within(heroSection as HTMLElement).queryByRole('button', { name: 'Xem k?t qu?' })).not.toBeInTheDocument();
         expect(screen.queryByText(/Dữ liệu đã sẵn sàng/i)).not.toBeInTheDocument();
     });
 
