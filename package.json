@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "assets:module-icons": "node scripts/build-module-icons.mjs",
     "sitemap:generate": "node scripts/generate_sitemap.cjs",
     "build": "node scripts/cloudflare-build-router.mjs",
     "build:frontend": "npm run sitemap:generate && vite build",

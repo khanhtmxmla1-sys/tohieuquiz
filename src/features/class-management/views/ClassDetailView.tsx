@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, UserPlus, Loader2, Search, RefreshCw } from 'lucide-react';
 import { Classroom, CreateStudentPayload } from '../types';
-import { Button } from '../../../components/common';
+import { Button, ModuleIcon } from '../../../components/common';
 import { StudentTable } from '../components/StudentTable';
 import { AddStudentModal, ResetPasswordModal } from '../components/Modals';
 import ParentAccessModal from '../components/ParentAccessModal';
@@ -121,6 +121,7 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
                     <button onClick={onBack} className="p-2 -ml-2 text-gray-500 hover:text-gray-800 hover:bg-white rounded-xl transition-all shadow-sm">
                         <ArrowLeft className="w-5 h-5" />
                     </button>
+                    <ModuleIcon name="students" size="md" priority />
                     <div>
                         <h2 className="text-xl font-bold text-gray-800">Lớp {classroom.name}</h2>
                         <p className="text-sm text-gray-500 mt-1">Sĩ số: {students.length} học sinh</p>
@@ -166,8 +167,8 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
                 <div className="bg-white rounded-2xl border p-10 text-center text-gray-500">Không tìm thấy học sinh phù hợp.</div>
             ) : (
                 <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <UserPlus className="w-8 h-8 text-gray-400" />
+                    <div className="mx-auto mb-4 w-fit">
+                        <ModuleIcon name="students" size="lg" />
                     </div>
                     <h3 className="text-lg font-bold text-gray-800 mb-2">Chưa có học sinh</h3>
                     <p className="text-gray-500 mb-6">Thêm học sinh để bắt đầu giao bài tập</p>

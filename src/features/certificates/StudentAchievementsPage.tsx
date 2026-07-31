@@ -1,5 +1,6 @@
 import React from 'react';
-import { Trophy, Download, RefreshCw, AlertCircle, Inbox } from 'lucide-react';
+import { Trophy, Download, RefreshCw, AlertCircle } from 'lucide-react';
+import { ModuleIcon } from '../../components/common';
 import { useCertificates } from './useCertificates';
 import CertificateCard from './CertificateCard';
 
@@ -16,9 +17,7 @@ const StudentAchievementsPage: React.FC<StudentAchievementsPageProps> = () => {
             <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-indigo-100 shadow-sm">
                 <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow">
-                            <Trophy size={18} className="text-white" />
-                        </div>
+                        <ModuleIcon name="achievements" size="md" priority />
                         <div>
                             <h1 className="text-base font-bold text-gray-800">Thành tích của tôi</h1>
                             <p className="text-xs text-gray-500">
@@ -75,12 +74,12 @@ const StudentAchievementsPage: React.FC<StudentAchievementsPageProps> = () => {
                 {/* Empty state */}
                 {!isLoading && !error && certificates.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mb-6">
-                            <Inbox size={40} className="text-amber-300" />
+                        <div className="mb-6">
+                            <ModuleIcon name="achievements" size="xl" />
                         </div>
                         <h2 className="text-lg font-bold text-gray-700 mb-2">Chưa có chứng nhận nào</h2>
                         <p className="text-sm text-gray-400 max-w-xs">
-                            Học thật chăm chỉ và hoàn thành các bài thi để nhận chứng nhận từ giáo viên nhé! 🌟
+                            Học thật chăm chỉ và hoàn thành các bài thi để nhận chứng nhận từ giáo viên nhé!
                         </p>
                     </div>
                 )}

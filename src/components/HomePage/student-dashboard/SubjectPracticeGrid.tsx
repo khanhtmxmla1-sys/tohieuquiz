@@ -1,4 +1,5 @@
 import { DashboardEmptyState, DashboardSectionError } from './DashboardStates';
+import { ModuleIcon } from '../../common';
 import type { SubjectPracticeGridProps } from './dashboard.types';
 
 const PracticeListSkeletons = () => (
@@ -33,13 +34,16 @@ export function SubjectPracticeGrid({
 }: SubjectPracticeGridProps) {
   return (
     <section id="practice-library" aria-labelledby="practice-library-title" className="scroll-mt-24">
-      <div className="mb-5">
-        <h2 id="practice-library-title" className="text-2xl font-semibold text-[#172033]">
-          Thư viện luyện tập
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-[#526174]">
-          Chọn môn đang có để luyện theo từng chuyên đề.
-        </p>
+      <div className="mb-5 flex items-start gap-3">
+        <ModuleIcon name="learning-resources" size="md" />
+        <div>
+          <h2 id="practice-library-title" className="text-2xl font-semibold text-[#172033]">
+            Thư viện luyện tập
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-[#526174]">
+            Chọn môn đang có để luyện theo từng chuyên đề.
+          </p>
+        </div>
       </div>
 
       {isLoading ? <PracticeListSkeletons /> : null}

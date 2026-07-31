@@ -65,6 +65,7 @@ vi.mock('../src/components/common', () => ({
   Button: ({ children, onClick, disabled, loading, title }: any) => (
     <button onClick={onClick} disabled={disabled || loading} title={title}>{children}</button>
   ),
+  ModuleIcon: ({ name }: { name: string }) => <span data-module-icon={name} />,
 }));
 
 vi.mock('../src/components/teacher/ResultsView', () => ({
@@ -175,6 +176,12 @@ const results = [
 describe('TeacherDashboard ResultsTab contracts', () => {
   it('keeps the dashboard compatibility export stable', () => {
     expect(ResultsTab).toBe(ResultsTabModule);
+  });
+
+  it('shows the analytics module identity in the page header', () => {
+    renderResults(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
+    expect(screen.getByRole('heading', { name: 'Báo cáo phân tích' })).toBeInTheDocument();
+    expect(document.querySelector('[data-module-icon="analytics-report"]')).toBeInTheDocument();
   });
 
   beforeEach(() => {
