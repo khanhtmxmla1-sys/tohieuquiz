@@ -1,12 +1,9 @@
 import React from 'react';
 import {
-    ArrowRight,
     CalendarDays,
-    FilePlus2,
     GraduationCap,
     ShieldCheck,
 } from 'lucide-react';
-import { Button } from '../../common';
 
 interface DashboardHeroProps {
     greeting: string;
@@ -17,8 +14,6 @@ interface DashboardHeroProps {
     todaySubmissionCount: number | string;
     passRate: number | string;
     uniqueStudents: number | string;
-    onCreateQuiz: () => void;
-    onViewResults: () => void;
 }
 
 const DashboardHero: React.FC<DashboardHeroProps> = ({
@@ -30,8 +25,6 @@ const DashboardHero: React.FC<DashboardHeroProps> = ({
     todaySubmissionCount,
     passRate,
     uniqueStudents,
-    onCreateQuiz,
-    onViewResults,
 }) => {
     const description = isAdmin
         ? 'Theo dõi hoạt động toàn trường, nắm nhanh số liệu quan trọng và xử lý các công việc cần thiết ngay tại đây.'
@@ -64,29 +57,6 @@ const DashboardHero: React.FC<DashboardHeroProps> = ({
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
                         {description}
                     </p>
-
-                    <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                        <Button
-                            type="button"
-                            variant="primary"
-                            size="sm"
-                            onClick={onCreateQuiz}
-                            className="rounded-[10px] px-4"
-                        >
-                            <FilePlus2 aria-hidden="true" className="size-5" />
-                            Tạo đề mới
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={onViewResults}
-                            className="rounded-[10px] px-4"
-                        >
-                            Xem kết quả
-                            <ArrowRight aria-hidden="true" className="size-4" />
-                        </Button>
-                    </div>
                 </div>
 
                 <dl className="grid grid-cols-3 divide-x divide-slate-200 rounded-[12px] border border-slate-200 bg-slate-50 px-2 py-4 sm:px-3">

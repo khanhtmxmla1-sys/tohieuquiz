@@ -266,8 +266,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 todaySubmissionCount={resultSummary?.todaySubmissions ?? '—'}
                 passRate={resultSummary ? statistics.passRate : '—'}
                 uniqueStudents={resultSummary?.uniqueStudents ?? '—'}
-                onCreateQuiz={() => onSelectTab('create')}
-                onViewResults={() => onSelectTab('results')}
             />
 
             {showAlert && (
