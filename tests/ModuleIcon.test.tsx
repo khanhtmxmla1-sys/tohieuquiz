@@ -5,7 +5,9 @@ import { ModuleIcon, MODULE_ICON_CATALOG } from '../src/components/common/module
 describe('ModuleIcon', () => {
   it('exports the exact module icon catalog', () => {
     expect(Object.keys(MODULE_ICON_CATALOG)).toEqual(['question-bank','students','achievements','analytics-report','learning-resources','store','competition','tasks','system-settings']);
-    expect(new Set(Object.values(MODULE_ICON_CATALOG).map(item => item.src)).size).toBe(9);
+    const iconSources = Object.values(MODULE_ICON_CATALOG).map(item => item.src);
+    expect(new Set(iconSources).size).toBe(9);
+    expect(iconSources.every(src => src.endsWith('-v2.webp'))).toBe(true);
   });
   it('renders decorative icons with fixed dimensions', () => {
     const { container } = render(<ModuleIcon name="students" size="md" />);
