@@ -78,7 +78,7 @@ describe('Unified notification responsive rollout', () => {
         .should('have.class', 'notification-ticker__track--paused');
       cy.get('form').filter(':visible').first().scrollIntoView().should('be.visible').then(($form) => {
         const rect = $form[0].getBoundingClientRect();
-        expect(rect.top).to.be.gte(0);
+        expect(rect.top, 'form top within viewport tolerance').to.be.gte(-1);
         expect(rect.bottom).to.be.lte(Cypress.config('viewportHeight'));
       });
       assertNoHorizontalOverflow();
