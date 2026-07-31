@@ -3,7 +3,7 @@ node_modules/
 workers/node_modules/
 
 # Local repository copies and tooling metadata.
-tohieuquiz/
+/tohieuquiz/
 .git/
 .agent/
 .agents/

@@ -52,7 +52,7 @@ workers/.wrangler/
 .agent/AGENTS.md
 .agent/ecc-install-state.json
 .claude/
-tohieuquiz/
+/tohieuquiz/
 llm-mux/
 skills-lock.json
 

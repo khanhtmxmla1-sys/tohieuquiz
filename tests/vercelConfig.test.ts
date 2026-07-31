@@ -5,6 +5,8 @@ const config = JSON.parse(readFileSync('vercel.json', 'utf8')) as {
   rewrites: Array<{ source: string; destination: string }>;
   headers: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
 };
+const vercelIgnoreRules = readFileSync('.vercelignore', 'utf8').split(/\r?\n/);
+const gitIgnoreRules = readFileSync('.gitignore', 'utf8').split(/\r?\n/);
 
 const headerValue = (source: string, key: string) => config.headers
   .find(entry => entry.source === source)
@@ -33,5 +35,12 @@ describe('Vercel Parent Portal security configuration', () => {
   it('preserves immutable asset caching and does not globally noindex the main site', () => {
     expect(headerValue('/assets/(.*)', 'Cache-Control')).toBe('public, max-age=31536000, immutable');
     expect(headerValue('/(.*)', 'X-Robots-Tag')).toBeUndefined();
+  });
+
+  it('anchors the local repository ignore rule so nested brand assets are deployed', () => {
+    expect(vercelIgnoreRules).toContain('/tohieuquiz/');
+    expect(vercelIgnoreRules).not.toContain('tohieuquiz/');
+    expect(gitIgnoreRules).toContain('/tohieuquiz/');
+    expect(gitIgnoreRules).not.toContain('tohieuquiz/');
   });
 });
