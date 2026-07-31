@@ -36,25 +36,25 @@ describe('Mobile Responsive Smoke', () => {
 
       cy.get('input[type="text"]').first().should('be.visible');
       cy.get('input[type="password"]').first().should('be.visible');
-      cy.contains('button', 'Đăng nhập ngay').should('be.visible');
+      cy.get('form[aria-label="Đăng nhập"] button[type="submit"]').should('be.visible');
       assertNoHorizontalOverflow();
 
       // Teacher login attempt (keeps test stable even if backend data differs)
       cy.contains('button', 'Giáo viên').click();
       cy.get('input[type="text"]').first().clear().type('admin');
       cy.get('input[type="password"]').first().clear().type('admin');
-      cy.contains('button', 'Đăng nhập ngay').click();
+      cy.get('form[aria-label="Đăng nhập"] button[type="submit"]').click();
 
       cy.get('body').then(($body) => {
-        const text = $body.text();
-        if (text.includes('Tổng quan') || text.includes('Lớp học')) {
+        const hasTeacherDashboard = $body.find('.teacher-dashboard-shell').length > 0;
+        if (hasTeacherDashboard) {
           assertNoHorizontalOverflow();
           if (width < 1024) {
-            cy.contains('button', 'Thêm').should('exist');
+            cy.get('button[aria-label="Mở menu điều hướng"]').should('exist');
           }
         } else {
-          // Fallback: still validate login surface is responsive
-          cy.contains('button', 'Giáo viên').should('be.visible');
+          // Fallback: still validate the login surface when the local API is unavailable.
+          cy.get('form[aria-label="Đăng nhập"]').should('be.visible');
           assertNoHorizontalOverflow();
         }
       });
