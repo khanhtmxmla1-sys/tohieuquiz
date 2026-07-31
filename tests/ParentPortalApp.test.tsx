@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveHostContext } from '../src/app/hostContext';
+import { isDedicatedParentHost, resolveHostContext } from '../src/app/hostContext';
 import ParentPortalApp from '../src/features/parent-portal/ParentPortalApp';
 import { useParentPortalStore } from '../src/features/parent-portal/useParentPortalStore';
 
@@ -48,6 +48,9 @@ const resetStore = (overrides: Record<string, unknown> = {}) => {
 
 describe('parent host context', () => {
   it('recognizes the production hostname and explicit localhost opt-in', () => {
+    expect(isDedicatedParentHost('phuhuynh.thtohieu.com')).toBe(true);
+    expect(isDedicatedParentHost('PHUHUYNH.TOHIEUQUIZ.EXAMPLE')).toBe(true);
+    expect(isDedicatedParentHost('tohieuquiz.example')).toBe(false);
     expect(resolveHostContext('phuhuynh.thtohieu.com')).toBe('parent');
     expect(resolveHostContext('PHUHUYNH.TOHIEUQUIZ.EXAMPLE')).toBe('parent');
     expect(resolveHostContext('localhost', '?portal=parent')).toBe('parent');

@@ -11,7 +11,7 @@ import { useScrollReset } from './useScrollReset';
 import { useSystemSettings } from './useSystemSettings';
 import { useTeacherEntry } from './useTeacherEntry';
 import { useSessionBootstrap } from './useSessionBootstrap';
-import { resolveHostContext } from './hostContext';
+import { isDedicatedParentHost, resolveHostContext } from './hostContext';
 import { isParentPortalEnabled } from '../config/featureFlags';
 import { ParentPortalApp } from './lazyViews';
 import { ParentPortalFallback } from '../features/parent-portal/layout/ParentPortalLayout';
@@ -49,12 +49,14 @@ const ParentPortalUnavailable = () => (
 );
 
 const App: React.FC = () => {
-    const hostContext = resolveHostContext(
-        typeof window === 'undefined' ? '' : window.location.hostname,
-        typeof window === 'undefined' ? '' : window.location.search,
-    );
+    const hostname = typeof window === 'undefined' ? '' : window.location.hostname;
+    const search = typeof window === 'undefined' ? '' : window.location.search;
+    const hostContext = resolveHostContext(hostname, search);
+    // The dedicated production parent domain is live. The flag remains useful
+    // for localhost and preview environments that opt into parent mode.
+    const parentPortalEnabled = isDedicatedParentHost(hostname) || isParentPortalEnabled();
     const content = hostContext === 'parent'
-        ? (isParentPortalEnabled() ? (
+        ? (parentPortalEnabled ? (
             <Suspense fallback={<ParentPortalFallback />}>
                 <ParentPortalApp />
             </Suspense>
