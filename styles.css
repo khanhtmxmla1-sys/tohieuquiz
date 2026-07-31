@@ -4,6 +4,39 @@
 
 @theme {
   --font-baloo: "Baloo 2", sans-serif;
+  --font-vietnam: "Be Vietnam Pro", sans-serif;
+}
+
+@keyframes loginPageReveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-page-reveal {
+  animation: loginPageReveal 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.login-page-reveal-delay-1 {
+  animation-delay: 90ms;
+}
+
+.login-page-reveal-delay-2 {
+  animation-delay: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page-reveal,
+  .login-page-reveal-delay-1,
+  .login-page-reveal-delay-2 {
+    animation: none;
+  }
 }
 @source "./src/**/*.{tsx,html}";
 @source "./src/components/HomePage/constants/dashboard.constants.ts";

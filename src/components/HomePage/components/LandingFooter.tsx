@@ -2,8 +2,8 @@ import React from 'react';
 
 const LandingFooter: React.FC = () => {
     return (
-        <footer className="w-full px-8 py-4 text-center text-[0.85rem] text-[#1e293b] font-medium relative mt-auto border-t border-white/20 sm:border-t-0">
-            <p>© {new Date().getFullYear()} TôHiệuQuiz. All rights reserved.</p>
+        <footer className="relative z-10 mt-auto w-full px-4 py-4 text-center text-xs font-medium text-[#64748b] sm:text-sm">
+            <p>© {new Date().getFullYear()} TôHiệuQuiz. Đã đăng ký bản quyền.</p>
         </footer>
     );
 };

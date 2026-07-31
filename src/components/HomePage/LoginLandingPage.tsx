@@ -1,15 +1,14 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useAuthStore } from '../../../stores/authStore';
 import { useClassroomStore } from '../../stores/useClassroomStore';
-import { showError, showConfirm } from '../../utils/toast';
+import { showError } from '../../utils/toast';
 import PasswordChangeDialog from '../common/PasswordChangeDialog';
 import CurrentAnnouncementBanner from '../common/CurrentAnnouncementBanner';
 import { NotificationSurfaceStack } from '../../features/notifications/components';
 import { useUnifiedNotificationsFeatureFlag } from '../../features/notifications/useUnifiedNotificationsFeatureFlag';
 import { authenticateTeacherWithPasskey, passkeysSupported } from '../../services/passkeyService';
 
-// Sub-components
 import LandingHeader from './components/LandingHeader';
 import HeroSection from './components/HeroSection';
 import LoginForm from './components/LoginForm';
@@ -31,6 +30,7 @@ const LoginLandingPage: React.FC = () => {
     );
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberLogin, setRememberLogin] = useState(false);
     const [pendingTeacher, setPendingTeacher] = useState<any | null>(null);
     const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
@@ -38,14 +38,15 @@ const LoginLandingPage: React.FC = () => {
     const classroomStore = useClassroomStore();
     const notificationFlag = useUnifiedNotificationsFeatureFlag();
 
-    // Session Persistence
     useEffect(() => {
         try {
             const raw = localStorage.getItem(SAVED_LOGIN_KEY);
             if (!raw) return;
+
             const saved = JSON.parse(raw) as Partial<SavedLoginAccount>;
             if (typeof saved.username === 'string' && saved.username.trim()) {
                 setUsername(saved.username.trim());
+                setRememberLogin(true);
             }
             if (
                 requestedRole !== 'teacher'
@@ -61,10 +62,36 @@ const LoginLandingPage: React.FC = () => {
 
     const isLoading = activeTab === 'teacher' ? authStore.isLoggingIn : classroomStore.isLoading;
 
-    // askToSaveAccount has been removed as per user request to avoid annoying popups
+    const persistSavedLoginAccount = () => {
+        try {
+            if (!rememberLogin) {
+                localStorage.removeItem(SAVED_LOGIN_KEY);
+                return;
+            }
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
+            localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify({
+                username: username.trim(),
+                role: activeTab,
+                savedAt: new Date().toISOString(),
+            } satisfies SavedLoginAccount));
+        } catch (error) {
+            console.warn('Could not save login account:', error);
+        }
+    };
+
+    const handleRememberLoginChange = (checked: boolean) => {
+        setRememberLogin(checked);
+        if (!checked) {
+            try {
+                localStorage.removeItem(SAVED_LOGIN_KEY);
+            } catch (error) {
+                console.warn('Could not clear saved login account:', error);
+            }
+        }
+    };
+
+    const handleLogin = async (event: React.FormEvent) => {
+        event.preventDefault();
         if (!username || !password) {
             showError('Vui lòng nhập đầy đủ thông tin!');
             return;
@@ -77,18 +104,28 @@ const LoginLandingPage: React.FC = () => {
     };
 
     const acceptTeacherSession = (teacher: any): boolean => {
-        const tUsername = String(teacher?.username || '').trim();
-        const tFullNameRaw = String(teacher?.fullName || teacher?.fullname || teacher?.full_name || teacher?.name || '').trim();
-        const tFullName = tFullNameRaw || tUsername;
+        const teacherUsername = String(teacher?.username || '').trim();
+        const teacherFullNameRaw = String(
+            teacher?.fullName || teacher?.fullname || teacher?.full_name || teacher?.name || '',
+        ).trim();
+        const teacherFullName = teacherFullNameRaw || teacherUsername;
         const isTeacherAdmin = String(teacher?.role || '').trim().toLowerCase() === 'admin';
-        const tClass = teacher?.class ? String(teacher.class).trim() : undefined;
-        if (!tUsername) return false;
+        const teacherClass = teacher?.class ? String(teacher.class).trim() : undefined;
+        if (!teacherUsername) return false;
+
+        persistSavedLoginAccount();
         if (teacher.requiresPasswordChange) {
             authStore.loginPendingPasswordChange();
-            setPendingTeacher({ username: tUsername, fullName: tFullName, isAdmin: isTeacherAdmin, class: tClass });
+            setPendingTeacher({
+                username: teacherUsername,
+                fullName: teacherFullName,
+                isAdmin: isTeacherAdmin,
+                class: teacherClass,
+            });
             return true;
         }
-        authStore.loginSuccess(tUsername, tFullName, isTeacherAdmin, tClass);
+
+        authStore.loginSuccess(teacherUsername, teacherFullName, isTeacherAdmin, teacherClass);
         return true;
     };
 
@@ -127,22 +164,33 @@ const LoginLandingPage: React.FC = () => {
 
     const handleStudentLogin = async () => {
         const success = await classroomStore.loginStudent({ username, password });
-        if (!success) {
-            showError('Tên đăng nhập hoặc mật khẩu học sinh không đúng!');
+        if (success) {
+            persistSavedLoginAccount();
+            return;
         }
+        showError('Tên đăng nhập hoặc mật khẩu học sinh không đúng!');
     };
 
     return (
-        <div className="min-h-screen flex flex-col relative font-baloo bg-[url('/meadow-bg.webp')] bg-cover bg-bottom bg-no-repeat transition-all duration-500">
+        <div className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#f8fafc] font-vietnam text-[#0f172a]">
+            <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-28 h-64 w-64 rounded-full bg-[#dbeafe]/60" />
+            <div aria-hidden="true" className="pointer-events-none absolute -right-20 bottom-24 h-72 w-72 rounded-full bg-[#fef3c7]/55" />
+
             {pendingTeacher && (
                 <PasswordChangeDialog forced onCancel={() => {
                     void import('../../services/apiAdapter').then(({ callApi }) => callApi('logout')).catch(() => undefined);
                     setPendingTeacher(null);
                 }} onComplete={() => {
-                    authStore.loginSuccess(pendingTeacher.username, pendingTeacher.fullName, pendingTeacher.isAdmin, pendingTeacher.class);
+                    authStore.loginSuccess(
+                        pendingTeacher.username,
+                        pendingTeacher.fullName,
+                        pendingTeacher.isAdmin,
+                        pendingTeacher.class,
+                    );
                     setPendingTeacher(null);
                 }} />
             )}
+
             <LandingHeader />
             {notificationFlag.ready && (
                 notificationFlag.enabled
@@ -150,19 +198,21 @@ const LoginLandingPage: React.FC = () => {
                     : <CurrentAnnouncementBanner role={activeTab} />
             )}
 
-            <main className="flex-1 flex flex-col md:flex-row items-center justify-between gap-10 px-4 md:px-20 pb-16 max-w-[1280px] mx-auto w-full z-10">
-                <Suspense fallback={<div className="flex-1 h-64 animate-pulse bg-white/10 rounded-3xl" />}>
+            <main className="relative z-10 mx-auto grid w-full max-w-[1280px] flex-1 items-center gap-6 px-4 pb-8 pt-2 md:gap-8 md:px-8 md:pb-10 md:pt-3 lg:grid-cols-[minmax(0,1.16fr)_minmax(380px,0.84fr)] lg:gap-14 lg:px-10 lg:py-6">
+                <Suspense fallback={<div className="h-64 animate-pulse rounded-[28px] bg-white/70" />}>
                     <HeroSection />
                 </Suspense>
-                
-                <Suspense fallback={<div className="w-full max-w-md h-96 animate-pulse bg-white/20 rounded-3xl" />}>
-                    <LoginForm 
+
+                <Suspense fallback={<div className="h-[560px] w-full max-w-[460px] animate-pulse justify-self-end rounded-[28px] bg-white" />}>
+                    <LoginForm
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                         username={username}
                         setUsername={setUsername}
                         password={password}
                         setPassword={setPassword}
+                        rememberLogin={rememberLogin}
+                        setRememberLogin={handleRememberLoginChange}
                         isLoading={isLoading}
                         onSubmit={handleLogin}
                         onPasskey={() => void handlePasskeyLogin()}
