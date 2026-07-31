@@ -26,20 +26,20 @@ const HeroSection: React.FC = () => {
 
                 <h1
                     id="login-hero-title"
-                    className="max-w-[680px] text-[clamp(2rem,9vw,4.15rem)] font-bold leading-[1.08] tracking-[-0.045em] text-[#1e3a8a] sm:text-[clamp(2.35rem,7vw,4.15rem)] lg:text-[clamp(2.35rem,5vw,4.15rem)]"
+                    className="max-w-[680px] text-[clamp(2rem,8vw,3.8rem)] font-bold leading-[1.08] tracking-[-0.045em] text-[#1e3a8a] sm:text-[clamp(2.35rem,6vw,3.8rem)] lg:text-[clamp(2.5rem,4.3vw,3.8rem)]"
                 >
                     Học tập thông minh,
                     <span className="block text-[#2563eb]">quản lý dễ dàng</span>
                 </h1>
 
-                <p className="mt-4 hidden max-w-[620px] text-sm leading-6 text-[#475569] min-[360px]:block sm:mt-5 sm:text-[1.05rem] sm:leading-8">
-                    TôHiệuQuiz giúp giáo viên tổ chức kiểm tra, theo dõi kết quả và giúp học sinh ôn luyện thuận tiện mỗi ngày.
+                <p className="mt-4 max-w-[620px] text-sm leading-6 text-[#475569] sm:mt-5 sm:text-[1.02rem] sm:leading-8">
+                    Một không gian học tập rõ ràng cho học sinh, công cụ quản lý hiệu quả cho giáo viên và kết quả minh bạch cho gia đình.
                 </p>
             </div>
 
-            <div className="login-page-reveal login-page-reveal-delay-1 mt-7 hidden grid-cols-1 gap-3 sm:grid-cols-3 md:grid lg:max-w-[650px]">
+            <div className="login-page-reveal login-page-reveal-delay-1 mt-6 hidden grid-cols-1 gap-3 sm:grid sm:grid-cols-3 lg:max-w-[650px]">
                 {features.map(({ icon: FeatureIcon, text }) => (
-                    <div key={text} className="flex min-h-[72px] items-center gap-3 rounded-[16px] border border-[#dbe4f0] bg-white/80 px-3.5 py-3 shadow-[0_12px_32px_-28px_rgba(30,58,138,0.65)]">
+                    <div key={text} className="flex min-h-[72px] items-center gap-3 rounded-[16px] border border-[#dbe4f0] bg-white/85 px-3.5 py-3 shadow-[0_12px_32px_-28px_rgba(30,58,138,0.65)]">
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#eff6ff] text-[#2563eb]">
                             <FeatureIcon size={19} strokeWidth={1.8} aria-hidden="true" />
                         </span>
@@ -48,7 +48,7 @@ const HeroSection: React.FC = () => {
                 ))}
             </div>
 
-            <div className="login-page-reveal login-page-reveal-delay-2 relative mt-8 hidden max-w-[650px] lg:block" aria-hidden="true">
+            <div className="login-page-reveal login-page-reveal-delay-2 relative mt-7 hidden max-w-[650px] lg:block" aria-hidden="true">
                 <div className="rounded-[26px] border border-[#dbe4f0] bg-white/55 p-1.5 shadow-[0_26px_70px_-44px_rgba(30,58,138,0.55)]">
                     <div className="overflow-hidden rounded-[21px] bg-white">
                         <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-3.5">
