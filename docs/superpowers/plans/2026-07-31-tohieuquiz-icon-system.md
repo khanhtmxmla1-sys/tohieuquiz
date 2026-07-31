@@ -1,24 +1,24 @@
-# TôHiệuQuiz Icon System Implementation Plan
+﻿# TÃ´Hiá»‡uQuiz Icon System Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Chuẩn hóa 12 icon thương hiệu và áp dụng sáu icon vào khu “Thao tác nhanh” của Dashboard giáo viên.
+**Goal:** Chuáº©n hÃ³a 12 icon thÆ°Æ¡ng hiá»‡u vÃ  Ã¡p dá»¥ng sÃ¡u icon vÃ o khu â€œThao tÃ¡c nhanhâ€ cá»§a Dashboard giÃ¡o viÃªn.
 
-**Architecture:** Asset được lưu trong `public/icons/tohieuquiz/`. Component `TohieuIcon` là điểm truy cập duy nhất tới asset và xuất kiểu `TohieuIconName`; `OverviewTab` chỉ cấu hình tên icon, còn `QuickActionGrid` chịu trách nhiệm trình bày.
+**Architecture:** Asset Ä‘Æ°á»£c lÆ°u trong `public/icons/tohieuquiz/`. Component `TohieuIcon` lÃ  Ä‘iá»ƒm truy cáº­p duy nháº¥t tá»›i asset vÃ  xuáº¥t kiá»ƒu `TohieuIconName`; `OverviewTab` chá»‰ cáº¥u hÃ¬nh tÃªn icon, cÃ²n `QuickActionGrid` chá»‹u trÃ¡ch nhiá»‡m trÃ¬nh bÃ y.
 
 **Tech Stack:** React 19, TypeScript, Vite, Tailwind CSS, Vitest, Testing Library.
 
 ## Global Constraints
 
-- Mỗi icon là một file WebP 256 × 256 px, nền trong suốt.
-- Không thêm dependency mới.
-- Icon module dùng 48 px trong Quick Action; icon thao tác nhỏ tiếp tục dùng Lucide.
-- Icon cạnh nhãn chữ là decorative: `alt=""`, `aria-hidden="true"`.
-- Không thay đổi hành vi điều hướng hoặc nghiệp vụ.
+- Má»—i icon lÃ  má»™t file WebP 256 Ã— 256 px, ná»n trong suá»‘t.
+- KhÃ´ng thÃªm dependency má»›i.
+- Icon module dÃ¹ng 48 px trong Quick Action; icon thao tÃ¡c nhá» tiáº¿p tá»¥c dÃ¹ng Lucide.
+- Icon cáº¡nh nhÃ£n chá»¯ lÃ  decorative: `alt=""`, `aria-hidden="true"`.
+- KhÃ´ng thay Ä‘á»•i hÃ nh vi Ä‘iá»u hÆ°á»›ng hoáº·c nghiá»‡p vá»¥.
 
 ---
 
-### Task 1: Chuẩn hóa và nhập 12 asset
+### Task 1: Chuáº©n hÃ³a vÃ  nháº­p 12 asset
 
 **Files:**
 - Create: `public/icons/tohieuquiz/overview.webp`
@@ -37,15 +37,15 @@
 **Interfaces:**
 - Produces: public URLs `/icons/tohieuquiz/<name>.webp`.
 
-- [ ] **Step 1: Chuẩn hóa ảnh nguồn**
+- [ ] **Step 1: Chuáº©n hÃ³a áº£nh nguá»“n**
 
-Crop theo alpha thực, đặt vào canvas vuông, resize 256 × 256 và xuất WebP có alpha.
+Crop theo alpha thá»±c, Ä‘áº·t vÃ o canvas vuÃ´ng, resize 256 Ã— 256 vÃ  xuáº¥t WebP cÃ³ alpha.
 
-- [ ] **Step 2: Chép asset vào dự án**
+- [ ] **Step 2: ChÃ©p asset vÃ o dá»± Ã¡n**
 
-Tạo thư mục và chép đúng 12 file với tên trong danh sách.
+Táº¡o thÆ° má»¥c vÃ  chÃ©p Ä‘Ãºng 12 file vá»›i tÃªn trong danh sÃ¡ch.
 
-- [ ] **Step 3: Xác minh asset**
+- [ ] **Step 3: XÃ¡c minh asset**
 
 Run:
 ```bash
@@ -60,7 +60,7 @@ git add public/icons/tohieuquiz
 git commit -m "feat(ui): add TohieuQuiz brand icon assets"
 ```
 
-### Task 2: Tạo component icon dùng chung
+### Task 2: Táº¡o component icon dÃ¹ng chung
 
 **Files:**
 - Create: `src/components/icons/TohieuIcon.tsx`
@@ -70,23 +70,23 @@ git commit -m "feat(ui): add TohieuQuiz brand icon assets"
 - Produces: `TohieuIconName` union type.
 - Produces: `TohieuIcon({ name, size?, className?, alt?, decorative? })`.
 
-- [ ] **Step 1: Viết test thất bại**
+- [ ] **Step 1: Viáº¿t test tháº¥t báº¡i**
 
-Test phải xác nhận `quiz-create` ánh xạ tới `/icons/tohieuquiz/quiz-create.webp`, mặc định 48 × 48, decorative icon có `alt=""` và `aria-hidden="true"`, icon có nội dung dùng alt được truyền vào.
+Test pháº£i xÃ¡c nháº­n `quiz-create` Ã¡nh xáº¡ tá»›i `/icons/tohieuquiz/quiz-create.webp`, máº·c Ä‘á»‹nh 48 Ã— 48, decorative icon cÃ³ `alt=""` vÃ  `aria-hidden="true"`, icon cÃ³ ná»™i dung dÃ¹ng alt Ä‘Æ°á»£c truyá»n vÃ o.
 
-- [ ] **Step 2: Chạy test và xác nhận thất bại**
+- [ ] **Step 2: Cháº¡y test vÃ  xÃ¡c nháº­n tháº¥t báº¡i**
 
 Run:
 ```bash
 npx vitest run tests/TohieuIcon.test.tsx
 ```
-Expected: FAIL vì component chưa tồn tại.
+Expected: FAIL vÃ¬ component chÆ°a tá»“n táº¡i.
 
-- [ ] **Step 3: Viết implementation tối thiểu**
+- [ ] **Step 3: Viáº¿t implementation tá»‘i thiá»ƒu**
 
-Tạo map `Record<TohieuIconName, string>` đủ 12 tên và component `img` có `width`, `height`, `decoding="async"`, `draggable={false}`.
+Táº¡o map `Record<TohieuIconName, string>` Ä‘á»§ 12 tÃªn vÃ  component `img` cÃ³ `width`, `height`, `decoding="async"`, `draggable={false}`.
 
-- [ ] **Step 4: Chạy test và xác nhận pass**
+- [ ] **Step 4: Cháº¡y test vÃ  xÃ¡c nháº­n pass**
 
 Run:
 ```bash
@@ -101,7 +101,7 @@ git add src/components/icons/TohieuIcon.tsx tests/TohieuIcon.test.tsx
 git commit -m "feat(ui): add reusable TohieuQuiz icon component"
 ```
 
-### Task 3: Áp dụng vào Quick Action Dashboard
+### Task 3: Ãp dá»¥ng vÃ o Quick Action Dashboard
 
 **Files:**
 - Modify: `src/components/TeacherDashboard/OverviewTab.tsx`
@@ -109,30 +109,30 @@ git commit -m "feat(ui): add reusable TohieuQuiz icon component"
 - Modify: `tests/TeacherOverview.test.tsx`
 
 **Interfaces:**
-- Consumes: `TohieuIconName` và `TohieuIcon` từ Task 2.
+- Consumes: `TohieuIconName` vÃ  `TohieuIcon` tá»« Task 2.
 - Produces: `DashboardQuickAction.icon: TohieuIconName`.
 
-- [ ] **Step 1: Bổ sung test Dashboard**
+- [ ] **Step 1: Bá»• sung test Dashboard**
 
-Render `OverviewTab`, xác nhận có sáu ảnh với các URL: `quiz-create`, `assignment`, `live-exam`, `learning-results`, `classroom`, `certificate`; đồng thời click button “Tạo đề mới” vẫn gọi `onSelectTab('create')`.
+Render `OverviewTab`, xÃ¡c nháº­n cÃ³ sÃ¡u áº£nh vá»›i cÃ¡c URL: `quiz-create`, `assignment`, `live-exam`, `learning-results`, `classroom`, `certificate`; Ä‘á»“ng thá»i click button â€œTáº¡o Ä‘á» má»›iâ€ váº«n gá»i `onSelectTab('create')`.
 
-- [ ] **Step 2: Chạy test và xác nhận thất bại**
+- [ ] **Step 2: Cháº¡y test vÃ  xÃ¡c nháº­n tháº¥t báº¡i**
 
 Run:
 ```bash
 npx vitest run tests/TeacherOverview.test.tsx
 ```
-Expected: FAIL vì Dashboard chưa dùng asset mới.
+Expected: FAIL vÃ¬ Dashboard chÆ°a dÃ¹ng asset má»›i.
 
-- [ ] **Step 3: Cập nhật model và dữ liệu quick action**
+- [ ] **Step 3: Cáº­p nháº­t model vÃ  dá»¯ liá»‡u quick action**
 
-Đổi `DashboardQuickAction.icon` từ `ReactElement` sang `TohieuIconName`, xóa `iconClassName`, giữ `surfaceClassName`; thay sáu icon Lucide bằng tên icon thương hiệu.
+Äá»•i `DashboardQuickAction.icon` tá»« `ReactElement` sang `TohieuIconName`, xÃ³a `iconClassName`, giá»¯ `surfaceClassName`; thay sÃ¡u icon Lucide báº±ng tÃªn icon thÆ°Æ¡ng hiá»‡u.
 
-- [ ] **Step 4: Cập nhật UI**
+- [ ] **Step 4: Cáº­p nháº­t UI**
 
-Trong `QuickActionGrid`, render `<TohieuIcon name={action.icon} size={48} decorative />`, giữ button semantic, focus ring và layout responsive.
+Trong `QuickActionGrid`, render `<TohieuIcon name={action.icon} size={48} decorative />`, giá»¯ button semantic, focus ring vÃ  layout responsive.
 
-- [ ] **Step 5: Chạy test liên quan**
+- [ ] **Step 5: Cháº¡y test liÃªn quan**
 
 Run:
 ```bash
@@ -147,12 +147,12 @@ git add src/components/TeacherDashboard/OverviewTab.tsx src/components/TeacherDa
 git commit -m "feat(teacher-dashboard): use TohieuQuiz icons for quick actions"
 ```
 
-### Task 4: Xác minh toàn bộ thay đổi
+### Task 4: XÃ¡c minh toÃ n bá»™ thay Ä‘á»•i
 
 **Files:**
 - Review all changed files.
 
-- [ ] **Step 1: Chạy lint và typecheck**
+- [ ] **Step 1: Cháº¡y lint vÃ  typecheck**
 
 ```bash
 npm run lint
@@ -160,7 +160,7 @@ npm run typecheck
 ```
 Expected: PASS.
 
-- [ ] **Step 2: Chạy test thay đổi và build**
+- [ ] **Step 2: Cháº¡y test thay Ä‘á»•i vÃ  build**
 
 ```bash
 npm run test:run -- tests/TohieuIcon.test.tsx tests/TeacherOverview.test.tsx tests/teacherOverviewAxe.test.tsx
@@ -170,11 +170,12 @@ Expected: PASS.
 
 - [ ] **Step 3: Review diff**
 
-Xác nhận không đổi Sidebar, nghiệp vụ, API hoặc dữ liệu; không có đường dẫn asset viết rải rác ngoài `TohieuIcon.tsx`.
+XÃ¡c nháº­n khÃ´ng Ä‘á»•i Sidebar, nghiá»‡p vá»¥, API hoáº·c dá»¯ liá»‡u; khÃ´ng cÃ³ Ä‘Æ°á»ng dáº«n asset viáº¿t ráº£i rÃ¡c ngoÃ i `TohieuIcon.tsx`.
 
-- [ ] **Step 4: Commit tài liệu nếu chưa commit**
+- [ ] **Step 4: Commit tÃ i liá»‡u náº¿u chÆ°a commit**
 
 ```bash
 git add docs/superpowers/specs/2026-07-31-tohieuquiz-icon-system-design.md docs/superpowers/plans/2026-07-31-tohieuquiz-icon-system.md
 git commit -m "docs: add TohieuQuiz icon system design and plan"
 ```
+
