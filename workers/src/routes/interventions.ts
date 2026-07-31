@@ -2,6 +2,7 @@ import type { Env } from '../types';
 import type { JWTPayload } from '../utils/jwt';
 import { parseBody } from '../utils/helpers';
 import { errorResponse, jsonResponse } from '../utils/response';
+import { requireTeacher } from '../middleware/jwtAuth';
 import {
   addInterventionNote,
   createInterventionAssignments,
@@ -32,7 +33,7 @@ export async function handleInterventionRoutes(
 ): Promise<Response | null> {
   const { request, env, user, path, method } = context;
   if (!path.startsWith('/api/results/interventions')) return null;
-  if (user.role !== 'teacher') {
+  if (!requireTeacher(user)) {
     return errorResponse('Forbidden: Teacher access required', 403);
   }
   const nowIso = new Date().toISOString();
