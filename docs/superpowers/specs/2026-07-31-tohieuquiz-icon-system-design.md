@@ -1,63 +1,62 @@
-﻿# Thiáº¿t káº¿ bá»™ icon thÆ°Æ¡ng hiá»‡u TÃ´Hiá»‡uQuiz
+# Thiết kế bộ icon thương hiệu TôHiệuQuiz
 
-## Má»¥c tiÃªu
+## Mục tiêu
 
-ÄÆ°a bá»™ 12 icon riÃªng cá»§a TÃ´Hiá»‡uQuiz vÃ o dá»± Ã¡n theo cÃ¡ch cÃ³ kiá»ƒm soÃ¡t, lÃ m giao diá»‡n cÃ³ báº£n sáº¯c giÃ¡o dá»¥c rÃµ rÃ ng hÆ¡n mÃ  khÃ´ng thay tháº¿ cÃ¡c icon thao tÃ¡c nhá» Ä‘ang dÃ¹ng tá»‘t tá»« Lucide.
+Đưa bộ icon riêng của TôHiệuQuiz vào dự án theo cách có kiểm soát, giúp giao diện có bản sắc giáo dục rõ ràng hơn nhưng vẫn giữ Lucide cho các thao tác nhỏ cần độ sắc nét cao.
 
-## Pháº¡m vi láº§n triá»ƒn khai nÃ y
+## Phạm vi triển khai
 
-- Chuáº©n hÃ³a 12 icon thÃ nh 12 file WebP riÃªng, khung 256 Ã— 256 px, ná»n trong suá»‘t.
-- LÆ°u táº¡i `public/icons/tohieuquiz/`.
-- Táº¡o component dÃ¹ng chung `TohieuIcon` vá»›i danh sÃ¡ch tÃªn icon Ä‘Æ°á»£c kiá»ƒm soÃ¡t báº±ng TypeScript.
-- Ãp dá»¥ng thá»­ nghiá»‡m táº¡i sÃ¡u tháº» â€œThao tÃ¡c nhanhâ€ trÃªn Dashboard giÃ¡o viÃªn.
-- KhÃ´ng thay icon trong Sidebar, nÃºt sá»­a/xÃ³a/tÃ¬m kiáº¿m, tráº¡ng thÃ¡i, cáº£nh bÃ¡o hoáº·c form.
-- KhÃ´ng thay Ä‘á»•i nghiá»‡p vá»¥, Ä‘iá»u hÆ°á»›ng hoáº·c dá»¯ liá»‡u.
+- Chuẩn hóa 12 icon thành 12 file WebP riêng, khung 192 × 192 px, nền trong suốt.
+- Lưu asset tại `public/icons/tohieuquiz/`.
+- Tạo component dùng chung `TohieuIcon` với danh sách tên icon được kiểm soát bằng TypeScript.
+- Áp dụng thử nghiệm tại sáu thẻ “Thao tác nhanh” trên Dashboard giáo viên.
+- Không thay icon trong Sidebar, nút sửa/xóa/tìm kiếm, trạng thái, cảnh báo hoặc form.
+- Không thay đổi nghiệp vụ, điều hướng, API hoặc dữ liệu.
 
-## Bá»™ icon
+## Danh mục icon
 
-1. `overview` â€” Tá»•ng quan
-2. `quiz-create` â€” Táº¡o Ä‘á»
-3. `quiz-management` â€” Quáº£n lÃ½ Ä‘á»
-4. `assignment` â€” Giao bÃ i
-5. `classroom` â€” Lá»›p há»c
-6. `live-exam` â€” Thi trá»±c tiáº¿p
-7. `learning-results` â€” Káº¿t quáº£ há»c táº­p
-8. `certificate` â€” Chá»©ng nháº­n
-9. `parent-portal` â€” Phá»¥ huynh
-10. `notification` â€” ThÃ´ng bÃ¡o
-11. `gift-shop` â€” Tiá»‡m táº¡p hÃ³a
-12. `settings` â€” CÃ i Ä‘áº·t
+1. `overview` — Tổng quan
+2. `quiz-create` — Tạo đề
+3. `quiz-management` — Quản lý đề
+4. `assignment` — Giao bài
+5. `classroom` — Lớp học
+6. `live-exam` — Thi trực tiếp
+7. `learning-results` — Kết quả học tập
+8. `certificate` — Chứng nhận
+9. `parent-portal` — Phụ huynh
+10. `notification` — Thông báo
+11. `gift-shop` — Tiệm tạp hóa
+12. `settings` — Cài đặt
 
-## Quy táº¯c sá»­ dá»¥ng
+## Quy tắc sử dụng
 
-- Icon module lá»›n: 40â€“72 px; Dashboard thá»­ nghiá»‡m dÃ¹ng 48 px.
-- Icon lÃ  hÃ¬nh trang trÃ­ khi Ä‘Ã£ cÃ³ nhÃ£n chá»¯, vÃ¬ váº­y pháº£i dÃ¹ng `alt=""` vÃ  `aria-hidden="true"`.
-- KhÃ´ng dÃ¹ng icon áº£nh á»Ÿ kÃ­ch thÆ°á»›c 16â€“24 px; cÃ¡c vá»‹ trÃ­ nÃ y tiáº¿p tá»¥c dÃ¹ng Lucide.
-- Má»i Ä‘Æ°á»ng dáº«n asset pháº£i Ä‘i qua `TohieuIcon`, khÃ´ng viáº¿t ráº£i rÃ¡c trong component khÃ¡c.
-- KhÃ´ng thÃªm dependency áº£nh má»›i.
+- Icon module lớn dùng ở kích thước 40–72 px; Dashboard thử nghiệm dùng 48 px.
+- Khi đã có nhãn chữ bên cạnh, icon là hình trang trí và phải dùng `alt=""`, `aria-hidden="true"`.
+- Không dùng icon ảnh ở kích thước 16–24 px; các vị trí này tiếp tục dùng Lucide.
+- Mọi đường dẫn asset phải đi qua `TohieuIcon`, không viết rải rác trong các component khác.
+- Không thêm dependency xử lý ảnh mới.
 
-## Kiáº¿n trÃºc
+## Kiến trúc
 
-`TohieuIcon.tsx` sá»Ÿ há»¯u map tÃªn icon â†’ Ä‘Æ°á»ng dáº«n asset vÃ  render tháº» `img` cÃ³ kÃ­ch thÆ°á»›c xÃ¡c Ä‘á»‹nh. `DashboardQuickAction` chá»‰ lÆ°u tÃªn icon thÆ°Æ¡ng hiá»‡u. `QuickActionGrid` render icon qua component nÃ y vÃ  giá»¯ nguyÃªn hÃ nh vi button, focus ring, responsive grid vÃ  nhÃ£n chá»¯ hiá»‡n táº¡i.
+`TohieuIcon.tsx` sở hữu bản đồ tên icon → đường dẫn asset và render thẻ `img` với kích thước xác định. `DashboardQuickAction` chỉ lưu tên icon thương hiệu. `QuickActionGrid` render icon qua component này và giữ nguyên hành vi button, focus ring, responsive grid và nhãn chữ hiện tại.
 
-## Tráº£i nghiá»‡m hÃ¬nh áº£nh
+## Trải nghiệm hình ảnh
 
-- Bá» mÃ u icon Lucide khá»i sÃ¡u tháº» thá»­ nghiá»‡m.
-- Duy trÃ¬ ná»n tháº» sÃ¡ng, viá»n nháº¹ vÃ  hover hiá»‡n cÃ³.
-- Khung icon dÃ¹ng ná»n trung tÃ­nh ráº¥t nháº¹ Ä‘á»ƒ hÃ¬nh áº£nh ná»•i rÃµ nhÆ°ng khÃ´ng táº¡o thÃªm hiá»‡u á»©ng gradient/glow giáº£.
-- Icon khÃ´ng Ä‘Æ°á»£c lÃ m tÄƒng chiá»u cao tháº» quÃ¡ má»©c trÃªn mobile.
+- Sáu thẻ thử nghiệm không còn dùng Lucide làm hình minh họa module.
+- Giữ nền thẻ sáng, viền nhẹ và hover hiện có.
+- Khung icon dùng nền pastel rất nhẹ để hình ảnh nổi rõ nhưng không thêm hiệu ứng glow giả.
+- Icon không làm tăng chiều cao thẻ quá mức trên mobile.
 
-## Kiá»ƒm thá»­
+## Kiểm thử
 
-- Unit test map Ä‘Æ°á»ng dáº«n, kÃ­ch thÆ°á»›c vÃ  accessibility cá»§a `TohieuIcon`.
-- Cáº­p nháº­t test Dashboard Ä‘á»ƒ xÃ¡c nháº­n sÃ¡u icon thÆ°Æ¡ng hiá»‡u Ä‘Æ°á»£c render vÃ  cÃ¡c button váº«n Ä‘iá»u hÆ°á»›ng Ä‘Ãºng.
-- Cháº¡y test liÃªn quan, typecheck, lint vÃ  build.
-- Kiá»ƒm tra axe hiá»‡n cÃ³ cho Dashboard giÃ¡o viÃªn.
+- Unit test ánh xạ đường dẫn, kích thước và accessibility của `TohieuIcon`.
+- Test Dashboard xác nhận sáu icon thương hiệu được render và các button vẫn điều hướng đúng.
+- Chạy test liên quan, axe, typecheck, lint và production build.
+- Xác minh 12 file đều có kích thước 192 × 192 px và kênh alpha.
 
-## TiÃªu chÃ­ hoÃ n thÃ nh
+## Tiêu chí hoàn thành
 
-- CÃ³ Ä‘Ãºng 12 file asset riÃªng.
-- SÃ¡u tháº» thao tÃ¡c nhanh hiá»ƒn thá»‹ icon riÃªng, khÃ´ng cÃ²n dÃ¹ng Lucide cho pháº§n minh há»a module.
-- KhÃ´ng cÃ³ lá»—i TypeScript, lint, test hoáº·c build má»›i.
-- KhÃ´ng thay Ä‘á»•i Sidebar vÃ  cÃ¡c icon thao tÃ¡c nhá».
-
+- Có đúng 12 file asset riêng.
+- Sáu thẻ thao tác nhanh hiển thị icon riêng.
+- Không có lỗi TypeScript, lint, test liên quan hoặc build mới.
+- Không thay đổi Sidebar và các icon thao tác nhỏ.

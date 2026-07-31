@@ -1,181 +1,118 @@
-﻿# TÃ´Hiá»‡uQuiz Icon System Implementation Plan
+# Kế hoạch triển khai bộ icon TôHiệuQuiz
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+**Mục tiêu:** Chuẩn hóa 12 icon thương hiệu và áp dụng sáu icon vào khu “Thao tác nhanh” của Dashboard giáo viên mà không thay đổi nghiệp vụ.
 
-**Goal:** Chuáº©n hÃ³a 12 icon thÆ°Æ¡ng hiá»‡u vÃ  Ã¡p dá»¥ng sÃ¡u icon vÃ o khu â€œThao tÃ¡c nhanhâ€ cá»§a Dashboard giÃ¡o viÃªn.
+**Kiến trúc:** Asset nằm trong `public/icons/tohieuquiz/`. Component `TohieuIcon` là điểm truy cập duy nhất tới asset và xuất kiểu `TohieuIconName`. `OverviewTab` chỉ cấu hình tên icon; `QuickActionGrid` chịu trách nhiệm trình bày.
 
-**Architecture:** Asset Ä‘Æ°á»£c lÆ°u trong `public/icons/tohieuquiz/`. Component `TohieuIcon` lÃ  Ä‘iá»ƒm truy cáº­p duy nháº¥t tá»›i asset vÃ  xuáº¥t kiá»ƒu `TohieuIconName`; `OverviewTab` chá»‰ cáº¥u hÃ¬nh tÃªn icon, cÃ²n `QuickActionGrid` chá»‹u trÃ¡ch nhiá»‡m trÃ¬nh bÃ y.
+**Công nghệ:** React 19, TypeScript, Vite, Tailwind CSS, Vitest và Testing Library.
 
-**Tech Stack:** React 19, TypeScript, Vite, Tailwind CSS, Vitest, Testing Library.
+## Ràng buộc
 
-## Global Constraints
+- Mỗi icon là một file WebP 192 × 192 px, nền trong suốt.
+- Không thêm dependency mới.
+- Quick Action dùng icon 48 px; thao tác nhỏ tiếp tục dùng Lucide.
+- Icon cạnh nhãn chữ là decorative: `alt=""`, `aria-hidden="true"`.
+- Không sửa Sidebar, API, điều hướng hoặc dữ liệu.
+- Thực hiện trên worktree và nhánh riêng.
 
-- Má»—i icon lÃ  má»™t file WebP 256 Ã— 256 px, ná»n trong suá»‘t.
-- KhÃ´ng thÃªm dependency má»›i.
-- Icon module dÃ¹ng 48 px trong Quick Action; icon thao tÃ¡c nhá» tiáº¿p tá»¥c dÃ¹ng Lucide.
-- Icon cáº¡nh nhÃ£n chá»¯ lÃ  decorative: `alt=""`, `aria-hidden="true"`.
-- KhÃ´ng thay Ä‘á»•i hÃ nh vi Ä‘iá»u hÆ°á»›ng hoáº·c nghiá»‡p vá»¥.
+## Giai đoạn 1 — Chuẩn hóa asset
 
----
+**Tệp tạo:**
 
-### Task 1: Chuáº©n hÃ³a vÃ  nháº­p 12 asset
+- `public/icons/tohieuquiz/overview.webp`
+- `public/icons/tohieuquiz/quiz-create.webp`
+- `public/icons/tohieuquiz/quiz-management.webp`
+- `public/icons/tohieuquiz/assignment.webp`
+- `public/icons/tohieuquiz/classroom.webp`
+- `public/icons/tohieuquiz/live-exam.webp`
+- `public/icons/tohieuquiz/learning-results.webp`
+- `public/icons/tohieuquiz/certificate.webp`
+- `public/icons/tohieuquiz/parent-portal.webp`
+- `public/icons/tohieuquiz/notification.webp`
+- `public/icons/tohieuquiz/gift-shop.webp`
+- `public/icons/tohieuquiz/settings.webp`
 
-**Files:**
-- Create: `public/icons/tohieuquiz/overview.webp`
-- Create: `public/icons/tohieuquiz/quiz-create.webp`
-- Create: `public/icons/tohieuquiz/quiz-management.webp`
-- Create: `public/icons/tohieuquiz/assignment.webp`
-- Create: `public/icons/tohieuquiz/classroom.webp`
-- Create: `public/icons/tohieuquiz/live-exam.webp`
-- Create: `public/icons/tohieuquiz/learning-results.webp`
-- Create: `public/icons/tohieuquiz/certificate.webp`
-- Create: `public/icons/tohieuquiz/parent-portal.webp`
-- Create: `public/icons/tohieuquiz/notification.webp`
-- Create: `public/icons/tohieuquiz/gift-shop.webp`
-- Create: `public/icons/tohieuquiz/settings.webp`
+Các bước:
 
-**Interfaces:**
-- Produces: public URLs `/icons/tohieuquiz/<name>.webp`.
+1. Chuyển từng icon thành WebP vuông, giữ alpha.
+2. Đặt tên file theo danh mục chuẩn.
+3. Xác minh đủ 12 file, cùng kích thước 192 × 192 và có kênh sRGBA.
+4. Commit asset riêng để dễ review và hoàn nguyên.
 
-- [ ] **Step 1: Chuáº©n hÃ³a áº£nh nguá»“n**
+## Giai đoạn 2 — Component icon dùng chung
 
-Crop theo alpha thá»±c, Ä‘áº·t vÃ o canvas vuÃ´ng, resize 256 Ã— 256 vÃ  xuáº¥t WebP cÃ³ alpha.
+**Tệp:**
 
-- [ ] **Step 2: ChÃ©p asset vÃ o dá»± Ã¡n**
+- Tạo `src/components/icons/TohieuIcon.tsx`
+- Tạo `tests/TohieuIcon.test.tsx`
 
-Táº¡o thÆ° má»¥c vÃ  chÃ©p Ä‘Ãºng 12 file vá»›i tÃªn trong danh sÃ¡ch.
+Các bước:
 
-- [ ] **Step 3: XÃ¡c minh asset**
+1. Viết test cho ánh xạ `quiz-create` tới `/icons/tohieuquiz/quiz-create.webp`.
+2. Kiểm tra mặc định 48 × 48, `decoding="async"`, `draggable="false"`.
+3. Kiểm tra chế độ decorative và alt có ý nghĩa.
+4. Tạo `TOHIEU_ICON_SOURCES` đủ 12 tên.
+5. Xuất kiểu `TohieuIconName` từ các khóa của bản đồ.
+6. Chạy test và commit component.
 
-Run:
-```bash
-node -e "const fs=require('fs'); const p='public/icons/tohieuquiz'; console.log(fs.readdirSync(p).filter(f=>f.endsWith('.webp')).length)"
-```
-Expected: `12`.
+## Giai đoạn 3 — Tích hợp Dashboard giáo viên
 
-- [ ] **Step 4: Commit**
+**Tệp:**
 
-```bash
-git add public/icons/tohieuquiz
-git commit -m "feat(ui): add TohieuQuiz brand icon assets"
-```
+- Sửa `src/components/TeacherDashboard/OverviewTab.tsx`
+- Sửa `src/components/TeacherDashboard/overview/QuickActionGrid.tsx`
+- Tạo `tests/QuickActionGridBrandIcons.test.tsx`
 
-### Task 2: Táº¡o component icon dÃ¹ng chung
+Ánh xạ:
 
-**Files:**
-- Create: `src/components/icons/TohieuIcon.tsx`
-- Create: `tests/TohieuIcon.test.tsx`
+- Tạo đề mới → `quiz-create`
+- Giao bài → `assignment`
+- Thi trực tiếp → `live-exam`
+- Xem kết quả → `learning-results`
+- Quản lý lớp → `classroom`
+- Cấp chứng nhận → `certificate`
 
-**Interfaces:**
-- Produces: `TohieuIconName` union type.
-- Produces: `TohieuIcon({ name, size?, className?, alt?, decorative? })`.
+Các bước:
 
-- [ ] **Step 1: Viáº¿t test tháº¥t báº¡i**
+1. Viết test xác nhận sáu URL ảnh và hành vi điều hướng.
+2. Đổi `DashboardQuickAction.icon` từ React element sang `TohieuIconName`.
+3. Xóa `iconClassName` khỏi quick action vì màu đã nằm trong asset.
+4. Render `<TohieuIcon name={action.icon} size={48} decorative />`.
+5. Giữ nguyên button semantic, focus ring, responsive grid và nội dung.
+6. Chạy test component, Dashboard và axe.
 
-Test pháº£i xÃ¡c nháº­n `quiz-create` Ã¡nh xáº¡ tá»›i `/icons/tohieuquiz/quiz-create.webp`, máº·c Ä‘á»‹nh 48 Ã— 48, decorative icon cÃ³ `alt=""` vÃ  `aria-hidden="true"`, icon cÃ³ ná»™i dung dÃ¹ng alt Ä‘Æ°á»£c truyá»n vÃ o.
+## Giai đoạn 4 — Kiểm tra chất lượng
 
-- [ ] **Step 2: Cháº¡y test vÃ  xÃ¡c nháº­n tháº¥t báº¡i**
-
-Run:
-```bash
-npx vitest run tests/TohieuIcon.test.tsx
-```
-Expected: FAIL vÃ¬ component chÆ°a tá»“n táº¡i.
-
-- [ ] **Step 3: Viáº¿t implementation tá»‘i thiá»ƒu**
-
-Táº¡o map `Record<TohieuIconName, string>` Ä‘á»§ 12 tÃªn vÃ  component `img` cÃ³ `width`, `height`, `decoding="async"`, `draggable={false}`.
-
-- [ ] **Step 4: Cháº¡y test vÃ  xÃ¡c nháº­n pass**
-
-Run:
-```bash
-npx vitest run tests/TohieuIcon.test.tsx
-```
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/components/icons/TohieuIcon.tsx tests/TohieuIcon.test.tsx
-git commit -m "feat(ui): add reusable TohieuQuiz icon component"
-```
-
-### Task 3: Ãp dá»¥ng vÃ o Quick Action Dashboard
-
-**Files:**
-- Modify: `src/components/TeacherDashboard/OverviewTab.tsx`
-- Modify: `src/components/TeacherDashboard/overview/QuickActionGrid.tsx`
-- Modify: `tests/TeacherOverview.test.tsx`
-
-**Interfaces:**
-- Consumes: `TohieuIconName` vÃ  `TohieuIcon` tá»« Task 2.
-- Produces: `DashboardQuickAction.icon: TohieuIconName`.
-
-- [ ] **Step 1: Bá»• sung test Dashboard**
-
-Render `OverviewTab`, xÃ¡c nháº­n cÃ³ sÃ¡u áº£nh vá»›i cÃ¡c URL: `quiz-create`, `assignment`, `live-exam`, `learning-results`, `classroom`, `certificate`; Ä‘á»“ng thá»i click button â€œTáº¡o Ä‘á» má»›iâ€ váº«n gá»i `onSelectTab('create')`.
-
-- [ ] **Step 2: Cháº¡y test vÃ  xÃ¡c nháº­n tháº¥t báº¡i**
-
-Run:
-```bash
-npx vitest run tests/TeacherOverview.test.tsx
-```
-Expected: FAIL vÃ¬ Dashboard chÆ°a dÃ¹ng asset má»›i.
-
-- [ ] **Step 3: Cáº­p nháº­t model vÃ  dá»¯ liá»‡u quick action**
-
-Äá»•i `DashboardQuickAction.icon` tá»« `ReactElement` sang `TohieuIconName`, xÃ³a `iconClassName`, giá»¯ `surfaceClassName`; thay sÃ¡u icon Lucide báº±ng tÃªn icon thÆ°Æ¡ng hiá»‡u.
-
-- [ ] **Step 4: Cáº­p nháº­t UI**
-
-Trong `QuickActionGrid`, render `<TohieuIcon name={action.icon} size={48} decorative />`, giá»¯ button semantic, focus ring vÃ  layout responsive.
-
-- [ ] **Step 5: Cháº¡y test liÃªn quan**
-
-Run:
-```bash
-npx vitest run tests/TohieuIcon.test.tsx tests/TeacherOverview.test.tsx tests/teacherOverviewAxe.test.tsx
-```
-Expected: PASS.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add src/components/TeacherDashboard/OverviewTab.tsx src/components/TeacherDashboard/overview/QuickActionGrid.tsx tests/TeacherOverview.test.tsx
-git commit -m "feat(teacher-dashboard): use TohieuQuiz icons for quick actions"
-```
-
-### Task 4: XÃ¡c minh toÃ n bá»™ thay Ä‘á»•i
-
-**Files:**
-- Review all changed files.
-
-- [ ] **Step 1: Cháº¡y lint vÃ  typecheck**
+Chạy lần lượt:
 
 ```bash
 npm run lint
 npm run typecheck
-```
-Expected: PASS.
-
-- [ ] **Step 2: Cháº¡y test thay Ä‘á»•i vÃ  build**
-
-```bash
-npm run test:run -- tests/TohieuIcon.test.tsx tests/TeacherOverview.test.tsx tests/teacherOverviewAxe.test.tsx
+npx vitest run tests/TohieuIcon.test.tsx tests/QuickActionGridBrandIcons.test.tsx tests/TeacherOverview.test.tsx tests/teacherOverviewAxe.test.tsx
 npm run build
 ```
-Expected: PASS.
 
-- [ ] **Step 3: Review diff**
+Kiểm tra bổ sung:
 
-XÃ¡c nháº­n khÃ´ng Ä‘á»•i Sidebar, nghiá»‡p vá»¥, API hoáº·c dá»¯ liá»‡u; khÃ´ng cÃ³ Ä‘Æ°á»ng dáº«n asset viáº¿t ráº£i rÃ¡c ngoÃ i `TohieuIcon.tsx`.
+- `git diff --check main`
+- Security scan trên các file thay đổi.
+- Review toàn bộ diff so với `main`.
+- Hoàn nguyên các file sinh tự động như `public/sitemap.xml`.
+- Ghi rõ các lỗi nền đã tồn tại trên `main`, không quy chúng cho thay đổi icon.
 
-- [ ] **Step 4: Commit tÃ i liá»‡u náº¿u chÆ°a commit**
+## Giai đoạn 5 — Hoàn tất nhánh
 
-```bash
-git add docs/superpowers/specs/2026-07-31-tohieuquiz-icon-system-design.md docs/superpowers/plans/2026-07-31-tohieuquiz-icon-system.md
-git commit -m "docs: add TohieuQuiz icon system design and plan"
-```
+1. Commit phần tích hợp và tài liệu đã chuẩn hóa.
+2. Xác minh working tree sạch.
+3. Ghi lại commit cuối và kết quả kiểm tra.
+4. Giữ thay đổi trên nhánh `feat/tohieuquiz-icon-system` cho đến khi được merge.
 
+## Trạng thái thực hiện
+
+- [x] Tạo worktree và nhánh riêng.
+- [x] Chuẩn hóa đủ 12 asset WebP.
+- [x] Tạo `TohieuIcon` và unit test.
+- [x] Tích hợp sáu icon vào Quick Action.
+- [x] Test liên quan và axe đạt yêu cầu.
+- [x] Lint, typecheck và production build đạt yêu cầu.
+- [ ] Commit phần triển khai cuối và xác minh nhánh sạch.
