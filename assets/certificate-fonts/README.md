@@ -35,7 +35,16 @@ the upstream license terms when refreshing any binary.
 
 ## Required certificate backgrounds
 
+The renderer uses PNG source artwork because the Worker-side Resvg pipeline
+does not decode embedded WebP images. WebP copies remain available as compact
+thumbnails for the template picker.
+
 ```text
+cert-backgrounds/tohieuquiz-2026/classic-red-navy.png
+cert-backgrounds/tohieuquiz-2026/modern-color.png
+cert-backgrounds/tohieuquiz-2026/formal-blue.png
+cert-backgrounds/tohieuquiz-2026/kids-learning.png
+cert-backgrounds/tohieuquiz-2026/geometric-navy-orange.png
 cert-backgrounds/tohieuquiz-2026/classic-red-navy.webp
 cert-backgrounds/tohieuquiz-2026/modern-color.webp
 cert-backgrounds/tohieuquiz-2026/formal-blue.webp
@@ -45,3 +54,17 @@ cert-backgrounds/tohieuquiz-2026/geometric-navy-orange.webp
 
 The certificate bucket must remain private. Generated certificates are served
 through authenticated API routes rather than a public R2 domain.
+
+## Provisioning order
+
+To avoid switching templates to keys that do not exist yet, release these
+assets in this order:
+
+1. Upload all five PNG files above to the private `tohieuquiz-certificates` R2 bucket.
+2. Deploy the API and certificate consumer with the background-format guard.
+3. Apply D1 migration `0055_certificate_render_backgrounds_png.sql`.
+4. Render a test certificate and verify the generated PNG contains the selected artwork.
+
+Certificates generated before this migration are immutable PNG objects. Any
+previously generated blank certificates must be explicitly re-rendered after
+the rollout; changing the template key does not rewrite existing objects.

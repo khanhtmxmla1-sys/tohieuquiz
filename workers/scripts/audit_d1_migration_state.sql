@@ -378,7 +378,19 @@ WITH checks(migration, check_name, ok) AS (
       (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='index' AND name IN (
         'idx_feature_flag_audit_flag_created','idx_feature_flag_audit_actor_created'))
       AND EXISTS(SELECT 1 FROM feature_flags WHERE flag_key='unified_notifications_v1')
-      AND EXISTS(SELECT 1 FROM feature_flags WHERE flag_key='ai_assistant_enabled'))
+      AND EXISTS(SELECT 1 FROM feature_flags WHERE flag_key='ai_assistant_enabled')),
+    ('0055_certificate_render_backgrounds_png.sql', 'certificate render backgrounds use PNG',
+      (SELECT COUNT(*)=5 FROM certificate_templates WHERE
+        (id='tohieuquiz-classic-red-navy-2026'
+          AND bg_image_r2_key='cert-backgrounds/tohieuquiz-2026/classic-red-navy.png')
+        OR (id='tohieuquiz-modern-color-2026'
+          AND bg_image_r2_key='cert-backgrounds/tohieuquiz-2026/modern-color.png')
+        OR (id='tohieuquiz-formal-blue-2026'
+          AND bg_image_r2_key='cert-backgrounds/tohieuquiz-2026/formal-blue.png')
+        OR (id='tohieuquiz-kids-learning-2026'
+          AND bg_image_r2_key='cert-backgrounds/tohieuquiz-2026/kids-learning.png')
+        OR (id='tohieuquiz-geometric-navy-orange-2026'
+          AND bg_image_r2_key='cert-backgrounds/tohieuquiz-2026/geometric-navy-orange.png')))
 ), summary AS (
   SELECT
     migration,

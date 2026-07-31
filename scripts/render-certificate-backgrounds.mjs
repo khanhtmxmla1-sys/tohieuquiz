@@ -25,20 +25,29 @@ try {
 
   for (const template of templates) {
     const svgPath = path.join(sourceDir, `${template}.svg`);
-    const outputPath = path.join(sourceDir, `${template}.webp`);
+    const pngOutputPath = path.join(sourceDir, `${template}.png`);
+    const webpOutputPath = path.join(sourceDir, `${template}.webp`);
     const svg = await fs.readFile(svgPath, 'utf8');
     await page.setContent(
       `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;width:1270px;height:698px;overflow:hidden;background:#fff}svg{display:block;width:1270px;height:698px}</style></head><body>${svg}</body></html>`,
       { waitUntil: 'load' },
     );
     await page.screenshot({
-      path: outputPath,
+      path: pngOutputPath,
+      type: 'png',
+      clip: { x: 0, y: 0, width: 1270, height: 698 },
+      captureBeyondViewport: false,
+    });
+    await page.screenshot({
+      path: webpOutputPath,
       type: 'webp',
       quality: 92,
       clip: { x: 0, y: 0, width: 1270, height: 698 },
       captureBeyondViewport: false,
     });
-    process.stdout.write(`Rendered ${path.relative(projectRoot, outputPath)}\n`);
+    process.stdout.write(
+      `Rendered ${path.relative(projectRoot, pngOutputPath)} and ${path.relative(projectRoot, webpOutputPath)}\n`,
+    );
   }
 } finally {
   await browser.close();

@@ -23,7 +23,7 @@ INSERT INTO certificate_templates (
   'tohieuquiz-classic-red-navy-2026', NULL,
   'TôHiệuQuiz – Cổ điển Đỏ Xanh',
   'Khung vàng trang trọng, dải lụa đỏ xanh và huy hiệu học thuật.',
-  'cert-backgrounds/tohieuquiz-2026/classic-red-navy.webp',
+  'cert-backgrounds/tohieuquiz-2026/classic-red-navy.png',
   'cert-backgrounds/tohieuquiz-2026/classic-red-navy.webp',
   '[
     {"key":"static_text","text":"NỀN TẢNG GIÁO DỤC","x":635,"y":54,"fontSize":22,"fontWeight":"bold","fontFamily":"Spectral","color":"#0b2347"},
@@ -43,7 +43,7 @@ INSERT INTO certificate_templates (
   'tohieuquiz-modern-color-2026', NULL,
   'TôHiệuQuiz – Hiện đại Đa sắc',
   'Mảng màu xanh cam năng động, cúp vàng và huy hiệu trung tâm.',
-  'cert-backgrounds/tohieuquiz-2026/modern-color.webp',
+  'cert-backgrounds/tohieuquiz-2026/modern-color.png',
   'cert-backgrounds/tohieuquiz-2026/modern-color.webp',
   '[
     {"key":"static_text","text":"NỀN TẢNG GIÁO DỤC","x":635,"y":55,"fontSize":22,"fontWeight":"bold","fontFamily":"Spectral","color":"#092957"},
@@ -63,7 +63,7 @@ INSERT INTO certificate_templates (
   'tohieuquiz-formal-blue-2026', NULL,
   'TôHiệuQuiz – Hành chính Khung xanh',
   'Phong cách hành chính trang trọng với khung hoa văn xanh cổ điển.',
-  'cert-backgrounds/tohieuquiz-2026/formal-blue.webp',
+  'cert-backgrounds/tohieuquiz-2026/formal-blue.png',
   'cert-backgrounds/tohieuquiz-2026/formal-blue.webp',
   '[
     {"key":"static_text","text":"NỀN TẢNG GIÁO DỤC","x":635,"y":58,"fontSize":22,"fontWeight":"bold","fontFamily":"Spectral","color":"#0d3d85"},
@@ -83,7 +83,7 @@ INSERT INTO certificate_templates (
   'tohieuquiz-kids-learning-2026', NULL,
   'TôHiệuQuiz – Thiếu nhi Vui học',
   'Minh họa học sinh tốt nghiệp, sách vở và dụng cụ khoa học nhiều màu.',
-  'cert-backgrounds/tohieuquiz-2026/kids-learning.webp',
+  'cert-backgrounds/tohieuquiz-2026/kids-learning.png',
   'cert-backgrounds/tohieuquiz-2026/kids-learning.webp',
   '[
     {"key":"static_text","text":"NỀN TẢNG GIÁO DỤC","x":635,"y":53,"fontSize":20,"fontWeight":"bold","fontFamily":"Spectral","color":"#102e64"},
@@ -103,7 +103,7 @@ INSERT INTO certificate_templates (
   'tohieuquiz-geometric-navy-orange-2026', NULL,
   'TôHiệuQuiz – Hình học Xanh Cam',
   'Bố cục hình học hiện đại xanh navy và cam, phù hợp các thành tích nổi bật.',
-  'cert-backgrounds/tohieuquiz-2026/geometric-navy-orange.webp',
+  'cert-backgrounds/tohieuquiz-2026/geometric-navy-orange.png',
   'cert-backgrounds/tohieuquiz-2026/geometric-navy-orange.webp',
   '[
     {"key":"static_text","text":"NỀN TẢNG GIÁO DỤC","x":635,"y":55,"fontSize":22,"fontWeight":"bold","fontFamily":"Spectral","color":"#092b5d"},

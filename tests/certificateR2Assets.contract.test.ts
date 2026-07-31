@@ -14,7 +14,15 @@ const requiredFonts = [
   'AlexBrush-Regular',
 ];
 
-const requiredBackgrounds = [
+const requiredRenderBackgrounds = [
+  'classic-red-navy.png',
+  'modern-color.png',
+  'formal-blue.png',
+  'kids-learning.png',
+  'geometric-navy-orange.png',
+];
+
+const requiredThumbnails = [
   'classic-red-navy.webp',
   'modern-color.webp',
   'formal-blue.webp',
@@ -35,17 +43,27 @@ describe('certificate R2 asset contract', () => {
     expect(loader).toContain('Certificate font not found in R2');
   });
 
-  it('keeps all seeded background files available under their exact R2 keys', () => {
-    const seed = readFileSync(
-      'workers/migrations/0036_seed_tohieuquiz_certificate_templates.sql',
+  it('keeps PNG render backgrounds and WebP thumbnails available under exact R2 keys', () => {
+    const migration = readFileSync(
+      'workers/migrations/0055_certificate_render_backgrounds_png.sql',
       'utf8',
     );
+    const defaults = readFileSync('workers/seeds/defaults.sql', 'utf8');
     const docs = readFileSync('assets/certificate-fonts/README.md', 'utf8');
 
-    for (const background of requiredBackgrounds) {
+    for (const background of requiredRenderBackgrounds) {
       const r2Key = `cert-backgrounds/tohieuquiz-2026/${background}`;
       const localPath = `assets/certificate-backgrounds/tohieuquiz-2026/${background}`;
-      expect(seed).toContain(r2Key);
+      expect(migration).toContain(r2Key);
+      expect(defaults).toContain(r2Key);
+      expect(docs).toContain(r2Key);
+      expect(existsSync(localPath)).toBe(true);
+    }
+
+    for (const thumbnail of requiredThumbnails) {
+      const r2Key = `cert-backgrounds/tohieuquiz-2026/${thumbnail}`;
+      const localPath = `assets/certificate-backgrounds/tohieuquiz-2026/${thumbnail}`;
+      expect(defaults).toContain(r2Key);
       expect(docs).toContain(r2Key);
       expect(existsSync(localPath)).toBe(true);
     }
