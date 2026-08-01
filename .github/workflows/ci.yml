@@ -207,7 +207,7 @@ jobs:
         run: npm ci
 
       - name: Run stubbed specs
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           install: false
           start: npm run dev
@@ -251,7 +251,7 @@ jobs:
         run: npm ci
 
       - name: Run Blueprint V3 spec
-        uses: cypress-io/github-action@v6
+        uses: cypress-io/github-action@v7
         with:
           install: false
           start: npm run dev
