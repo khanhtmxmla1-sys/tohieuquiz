@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
-const OUTPUT_FILE = path.join(ROOT_DIR, 'public', 'sitemap.xml');
+const DEFAULT_OUTPUT_FILE = path.join(ROOT_DIR, 'public', 'sitemap.xml');
 const DEFAULT_SITE_URL = 'https://www.thtohieu.com';
 const DEFAULT_API_URL = '';
 const DEFAULT_CATEGORIES = ['vioedu', 'trang-nguyen', 'on-tap'];
@@ -32,6 +32,13 @@ function resolveApiUrl(env = process.env) {
     || env.VITE_WORKERS_API_URL
     || DEFAULT_API_URL
   ).trim();
+}
+
+function resolveOutputFile(argv = process.argv) {
+  const requestedPath = String(argv[2] || '').trim();
+  return requestedPath
+    ? path.resolve(ROOT_DIR, requestedPath)
+    : DEFAULT_OUTPUT_FILE;
 }
 
 function toBoolLike(value, defaultValue = false) {
@@ -113,6 +120,7 @@ async function main() {
 
   const siteUrl = (process.env.SITEMAP_SITE_URL || DEFAULT_SITE_URL).trim();
   const apiUrl = resolveApiUrl();
+  const outputFile = resolveOutputFile();
 
   const today = new Date().toISOString().slice(0, 10);
   const quizzes = await fetchPublicQuizzes(apiUrl);
@@ -170,8 +178,9 @@ async function main() {
     });
 
   const xml = renderSitemap(entries);
-  fs.writeFileSync(OUTPUT_FILE, xml, 'utf8');
-  console.log(`[sitemap] generated ${entries.length} URLs (${quizzes.length} public quizzes) -> ${OUTPUT_FILE}`);
+  fs.mkdirSync(path.dirname(outputFile), { recursive: true });
+  fs.writeFileSync(outputFile, xml, 'utf8');
+  console.log(`[sitemap] generated ${entries.length} URLs (${quizzes.length} public quizzes) -> ${outputFile}`);
 }
 
 if (require.main === module) {
@@ -181,4 +190,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { isQuizPublic, resolveApiUrl };
+module.exports = { isQuizPublic, resolveApiUrl, resolveOutputFile };
