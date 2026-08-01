@@ -15,5 +15,15 @@ export const unwrapStoredResultAnswer = (value: unknown): unknown => {
 
 export const withoutUiMetadata = (value: unknown): Record<string, unknown> => {
   const record = asRecord(value);
-  return Object.fromEntries(Object.entries(record).filter(([key]) => key !== 'selectedLeft' && key !== '__shuffledIds' && key !== '_selected'));
+  const metadataKeys = new Set([
+    'selectedLeft',
+    '__shuffledIds',
+    '_selected',
+    'isCorrect',
+    'questionSnapshot',
+    'status',
+    'gradingVersion',
+    'timeSpent',
+  ]);
+  return Object.fromEntries(Object.entries(record).filter(([key]) => !metadataKeys.has(key)));
 };
