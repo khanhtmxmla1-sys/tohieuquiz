@@ -1,10 +1,12 @@
 name: Release readiness
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
   workflow_dispatch:
     inputs:
       base_ref:
@@ -27,7 +29,7 @@ jobs:
   core-gate:
     name: Core readiness gate
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 35
     env:
       SITEMAP_SITE_URL: https://www.thtohieu.com
       VITE_FEATURE_GIFT_SHOP_V2: 'false'
@@ -80,7 +82,7 @@ jobs:
     name: Cypress stubbed readiness
     needs: core-gate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - name: Checkout candidate commit
         uses: actions/checkout@v6
@@ -124,7 +126,7 @@ jobs:
     name: Cypress Blueprint V3 readiness
     needs: core-gate
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 12
     steps:
       - name: Checkout candidate commit
         uses: actions/checkout@v6
