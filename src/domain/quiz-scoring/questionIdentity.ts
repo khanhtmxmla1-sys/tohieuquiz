@@ -79,10 +79,18 @@ export const hasDuplicateNormalizedText = (values: readonly string[]): boolean =
   return new Set(normalized).size !== normalized.length;
 };
 
+const isLatexOptionalBracket = (input: string, index: number): boolean => {
+  if (index > 0 && input[index - 1] === '\\') return true;
+  const prefix = input.slice(Math.max(0, index - 20), index);
+  return /\\sqrt\s*$/.test(prefix);
+};
+
 export const extractPlaceholderTokens = (value: unknown): string[] => {
   const text = String(value ?? '');
-  return Array.from(text.matchAll(/\[([^\]]+)\]|_{3,}/g)).map((match) => {
-    if (match[1] !== undefined) return match[1];
-    return match[0];
-  });
+  const tokens: string[] = [];
+  for (const match of text.matchAll(/\[([^\]]+)\]|_{3,}/g)) {
+    if (match[1] !== undefined && isLatexOptionalBracket(text, match.index ?? 0)) continue;
+    tokens.push(match[1] !== undefined ? match[1].trim() : match[0]);
+  }
+  return tokens;
 };
