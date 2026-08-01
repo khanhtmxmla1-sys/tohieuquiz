@@ -17,7 +17,14 @@ dev server on `http://localhost:3001`.
 | `manual-quiz-workspace.cy.ts` | default flags |
 | `mobile-responsive.cy.ts` | default flags |
 | `parent-portal.cy.ts` | `VITE_FEATURE_PARENT_PORTAL_V1=true` |
+| `question-scoring-matrix.cy.ts` | default flags; covers all 14 published question types |
 | `unified-notifications.cy.ts` | default flags |
+
+`question-scoring-matrix.cy.ts` drives the real student renderers, submits their raw
+answer payload to the shared `gradeQuiz` engine through a stubbed `/api/validate`
+response, and verifies the authoritative result screen shows `14/14` and `10/10`.
+This locks the browser-to-grader contract without exposing correct answers in the
+application runtime or requiring a seeded backend.
 
 ### The AI flag conflict
 
