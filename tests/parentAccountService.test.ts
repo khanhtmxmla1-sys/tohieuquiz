@@ -142,11 +142,23 @@ describe('parent contact and account recovery service', () => {
       .resolves.toEqual({ requested: true });
     expect(messages).toHaveLength(0);
 
-    await expect(service.requestRecovery('ABCDEFG234', 'parent@example.com', now, 'request-recovery'))
-      .resolves.toEqual({ requested: true });
+    const randomSpy = vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementationOnce((array: any) => {
+      const bytes = new Uint8Array(array.buffer, array.byteOffset, array.byteLength);
+      bytes.fill(0);
+      bytes[0] = 0xe0; // Base64url token starts with "4A", matching the class-like fragment below.
+      return array;
+    });
+    try {
+      await expect(service.requestRecovery('ABCDEFG234', 'parent@example.com', now, 'request-recovery'))
+        .resolves.toEqual({ requested: true });
+    } finally {
+      randomSpy.mockRestore();
+    }
     expect(messages).toHaveLength(1);
-    expect(messages[0].text).not.toMatch(/student-1|teacher-a|Nguyễn|4A/i);
     const token = tokenFromMessage(messages[0]);
+    expect(token).toMatch(/^4A/);
+    expect(messages[0].text.replace(token, '[recovery-token]'))
+      .not.toMatch(/student-1|teacher-a|Nguyễn|4A/i);
 
     await expect(service.confirmRecovery(token, '654321', new Date(now.getTime() + 60_000), 'request-reset'))
       .resolves.toEqual({ reset: true });
