@@ -6,6 +6,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
+const OPERATIONAL_SCHEMA_OBJECTS = new Set(['d1_migrations']);
+
 const MASTER_TABLE_QUERY = [
   "SELECT name, type, tbl_name, sql",
   "FROM sqlite_master",
@@ -188,6 +190,79 @@ function normalizeSchemaSql(sql) {
   return stripSqlComments(sql).replace(/\s+/g, ' ').trim();
 }
 
+function splitTopLevelDefinitions(source) {
+  const definitions = [];
+  let current = '';
+  let depth = 0;
+  let quoteEnd = '';
+
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    const next = source[index + 1];
+
+    if (quoteEnd) {
+      current += character;
+      if (character !== quoteEnd) continue;
+      if (next === quoteEnd) {
+        current += next;
+        index += 1;
+      } else {
+        quoteEnd = '';
+      }
+      continue;
+    }
+
+    if (character === "'" || character === '"' || character === '`') {
+      quoteEnd = character;
+      current += character;
+      continue;
+    }
+    if (character === '[') {
+      quoteEnd = ']';
+      current += character;
+      continue;
+    }
+    if (character === '(') {
+      depth += 1;
+      current += character;
+      continue;
+    }
+    if (character === ')') {
+      depth = Math.max(0, depth - 1);
+      current += character;
+      continue;
+    }
+    if (character === ',' && depth === 0) {
+      const definition = normalizeSchemaSql(current);
+      if (definition) definitions.push(definition);
+      current = '';
+      continue;
+    }
+    current += character;
+  }
+
+  const definition = normalizeSchemaSql(current);
+  if (definition) definitions.push(definition);
+  return definitions;
+}
+
+function normalizeCreateTableSql(sql) {
+  const normalized = normalizeSchemaSql(sql);
+  if (!/^CREATE\s+(?:VIRTUAL\s+)?TABLE\b/i.test(normalized)) return normalized;
+  if (/^CREATE\s+VIRTUAL\s+TABLE\b/i.test(normalized)) return normalized;
+
+  const openIndex = normalized.indexOf('(');
+  const closeIndex = normalized.lastIndexOf(')');
+  if (openIndex < 0 || closeIndex <= openIndex) return normalized;
+
+  const prefix = normalized.slice(0, openIndex).trim();
+  const suffix = normalized.slice(closeIndex + 1).trim();
+  const definitions = splitTopLevelDefinitions(normalized.slice(openIndex + 1, closeIndex))
+    .sort((left, right) => left.localeCompare(right));
+  if (definitions.length === 0) return normalized;
+
+  return `${prefix} (${definitions.join(', ')})${suffix ? ` ${suffix}` : ''}`;
+}
 function schemaFingerprint(entries, classification = classifyTableEntries(entries)) {
   const excludedObjects = new Set([
     ...classification.shadowTables,
@@ -196,13 +271,15 @@ function schemaFingerprint(entries, classification = classifyTableEntries(entrie
   const normalized = entries
     .filter((entry) => entry.sql)
     .filter((entry) => !String(entry.name).startsWith('sqlite_autoindex_'))
+    .filter((entry) => !OPERATIONAL_SCHEMA_OBJECTS.has(entry.name))
+    .filter((entry) => !OPERATIONAL_SCHEMA_OBJECTS.has(entry.tbl_name))
     .filter((entry) => !excludedObjects.has(entry.name))
     .filter((entry) => !excludedObjects.has(entry.tbl_name))
     .map((entry) => [
       entry.type,
       entry.name,
       entry.tbl_name || '',
-      normalizeSchemaSql(entry.sql),
+      entry.type === 'table' ? normalizeCreateTableSql(entry.sql) : normalizeSchemaSql(entry.sql),
     ].join(':'))
     .sort()
     .join('\n');
@@ -256,14 +333,17 @@ if (require.main === module) {
 
 module.exports = {
   MASTER_TABLE_QUERY,
+  OPERATIONAL_SCHEMA_OBJECTS,
   buildListTablesArgs,
   classifyTableEntries,
   listBackupTables,
+  normalizeCreateTableSql,
   normalizeMode,
   normalizeSchemaSql,
   parseCliArgs,
   parseWranglerJson,
   runWrangler,
   schemaFingerprint,
+  splitTopLevelDefinitions,
   stripSqlComments,
 };

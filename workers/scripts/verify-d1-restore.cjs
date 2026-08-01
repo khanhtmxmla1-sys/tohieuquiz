@@ -16,6 +16,9 @@ const {
   readRowCounts,
   sha256File,
 } = require('./export-d1-tablewise.cjs');
+const { REGISTRY_TABLE_SQL } = require('./apply-d1-migrations-safe.cjs');
+
+const RESTORE_REGISTRY_SQL = REGISTRY_TABLE_SQL;
 
 const FTS_REBUILD_SQL = [
   'DELETE FROM rag_chunks_fts;',
@@ -121,6 +124,7 @@ async function verifyD1Restore(options) {
       encryption: manifest.archive.encryption,
     });
     executeLocal({ ...options, file: options.schemaPath });
+    executeLocal({ ...options, command: RESTORE_REGISTRY_SQL });
     executeLocal({ ...options, file: plaintext });
     executeLocal({ ...options, command: FTS_REBUILD_SQL });
 
@@ -226,6 +230,7 @@ if (require.main === module) {
 
 module.exports = {
   FTS_REBUILD_SQL,
+  RESTORE_REGISTRY_SQL,
   RESTORE_SMOKE_QUERY,
   compareRestoreSnapshot,
   localExecuteArgs,

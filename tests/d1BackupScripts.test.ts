@@ -49,6 +49,43 @@ describe('D1 backup table classification', () => {
     });
   });
 
+  it('ignores equivalent migration-registry DDL while preserving registry data export', () => {
+    const { classifyTableEntries, schemaFingerprint } = require('../workers/scripts/list-backup-tables.cjs');
+    const appTable = { name: 'quizzes', type: 'table', tbl_name: 'quizzes', sql: 'CREATE TABLE quizzes(id TEXT)' };
+    const remoteRegistry = {
+      name: 'd1_migrations',
+      type: 'table',
+      tbl_name: 'd1_migrations',
+      sql: 'CREATE TABLE "d1_migrations"(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE)',
+    };
+    const localRegistry = {
+      ...remoteRegistry,
+      sql: 'CREATE TABLE d1_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE)',
+    };
+
+    expect(classifyTableEntries([appTable, remoteRegistry]).exportTables).toContain('d1_migrations');
+    expect(schemaFingerprint([appTable, remoteRegistry])).toBe(schemaFingerprint([appTable, localRegistry]));
+  });
+  it('treats additive column order as equivalent but still detects contract changes', () => {
+    const { schemaFingerprint } = require('../workers/scripts/list-backup-tables.cjs');
+    const migrated = [{
+      name: 'students',
+      type: 'table',
+      tbl_name: 'students',
+      sql: 'CREATE TABLE students (id TEXT PRIMARY KEY, created_at TEXT NOT NULL, token_version INTEGER NOT NULL DEFAULT 1)',
+    }];
+    const canonical = [{
+      ...migrated[0],
+      sql: 'CREATE TABLE students (id TEXT PRIMARY KEY, token_version INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL)',
+    }];
+    const changed = [{
+      ...migrated[0],
+      sql: 'CREATE TABLE students (id TEXT PRIMARY KEY, token_version TEXT NOT NULL DEFAULT 1, created_at TEXT NOT NULL)',
+    }];
+
+    expect(schemaFingerprint(migrated)).toBe(schemaFingerprint(canonical));
+    expect(schemaFingerprint(migrated)).not.toBe(schemaFingerprint(changed));
+  });
   it('fingerprints indexes and triggers as part of the restorable schema', () => {
     const { classifyTableEntries, schemaFingerprint } = require('../workers/scripts/list-backup-tables.cjs');
     const base = [
@@ -211,6 +248,13 @@ describe('D1 artifact retention safety', () => {
 });
 
 describe('D1 restore verification', () => {
+  it('creates an empty migration registry before importing a production backup', () => {
+    const { RESTORE_REGISTRY_SQL } = require('../workers/scripts/verify-d1-restore.cjs');
+
+    expect(RESTORE_REGISTRY_SQL).toContain('CREATE TABLE IF NOT EXISTS d1_migrations');
+    expect(RESTORE_REGISTRY_SQL).not.toMatch(/INSERT/i);
+  });
+
   it('reports missing tables and row-count mismatches without exposing row contents', () => {
     const { compareRestoreSnapshot } = require('../workers/scripts/verify-d1-restore.cjs');
     const result = compareRestoreSnapshot(
