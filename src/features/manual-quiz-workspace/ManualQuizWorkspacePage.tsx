@@ -274,7 +274,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
                 data-quiz-id={quizId || undefined}
                 className="flex h-[100dvh] min-h-[640px] max-w-full flex-col overflow-x-hidden overflow-y-hidden bg-[#FFFDF7] font-['Be_Vietnam_Pro',sans-serif] text-[#172033]"
             >
-                <h1 className="sr-only">Phòng soạn đề thủ công</h1>
+                <h1 className="sr-only">{quizId ? 'Chỉnh sửa đề' : 'Tạo đề mới'} trong Trình soạn đề</h1>
                 {remoteDraftStatus === 'loading' && (
                     <div role="status" className="absolute inset-0 z-50 grid place-items-center bg-white/90 px-4 text-center font-semibold text-slate-700">
                         Đang mở bản nháp đã chọn…

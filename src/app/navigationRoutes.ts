@@ -58,6 +58,12 @@ const STUDENT_STATIC_ROUTES: Record<Exclude<StudentRouteName, 'liveExam'>, strin
 
 export const getTeacherRoute = (tab: TeacherDashboardTab): string => TEACHER_ROUTE_BY_TAB[tab];
 
+export const getQuizEditorRoute = (quizId?: string | null): string => (
+  quizId
+    ? `/teacher/quizzes/${encodeURIComponent(quizId)}/edit`
+    : '/teacher/quizzes/new'
+);
+
 export const resolveTeacherTabFromLocation = (
   pathname: string,
   search: string,

@@ -41,7 +41,7 @@ describe('ManualQuizWorkspace desktop shell', () => {
     it('renders sticky header, three independent panes and sticky status bar', async () => {
         renderWorkspace();
 
-        expect(await screen.findByRole('banner', { name: 'Thanh công cụ phòng soạn đề' })).toHaveClass('sticky');
+        expect(await screen.findByRole('banner', { name: 'Thanh công cụ Trình soạn đề' })).toHaveClass('sticky');
         expect(screen.getByRole('navigation', { name: 'Danh sách câu hỏi' })).toHaveAttribute('data-pane-width', '280');
         expect(screen.getByRole('main', { name: 'Trình soạn câu hỏi' })).toHaveClass(
             'h-full',

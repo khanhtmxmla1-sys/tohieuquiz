@@ -31,7 +31,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation }) =
     return (
         <header
             role="banner"
-            aria-label="Thanh công cụ phòng soạn đề"
+            aria-label="Thanh công cụ Trình soạn đề"
             className="sticky top-0 z-30 flex min-h-[72px] max-w-full items-center gap-2 overflow-hidden border-b border-slate-200 bg-white px-2 sm:gap-3 sm:px-4 lg:px-6"
         >
             <button
@@ -45,6 +45,9 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation }) =
             </button>
 
             <div className="min-w-0 flex-1">
+                <p className="px-2 text-[11px] font-semibold uppercase tracking-wide text-sky-700">
+                    {envelope?.quizId ? 'Chỉnh sửa đề' : 'Tạo đề mới'}
+                </p>
                 <label htmlFor="manual-quiz-title" className="sr-only">Tên đề kiểm tra</label>
                 <input
                     id="manual-quiz-title"

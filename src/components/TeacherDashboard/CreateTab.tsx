@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router';
+import { getQuizEditorRoute } from '../../app/navigationRoutes';
 import { Quiz } from '../../types';
 import { Button } from '../common';
 import { FileText, Sparkles, Search, Zap, Edit3, Wand2 } from 'lucide-react';
@@ -59,7 +60,7 @@ const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdate
             });
             return;
         }
-        navigate('/teacher/quizzes/manual/new', {
+        navigate(getQuizEditorRoute(), {
             state: {
                 manualQuizSeed,
                 workspaceStartedAt: new Date().toISOString(),
