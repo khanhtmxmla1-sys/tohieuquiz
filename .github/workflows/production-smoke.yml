@@ -173,7 +173,7 @@ jobs:
 
       - name: Upload redacted smoke report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-smoke-report-${{ github.run_id }}
           path: reports/production-smoke.json
@@ -182,7 +182,7 @@ jobs:
 
       - name: Upload public-page failure screenshots
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-smoke-public-screenshots-${{ github.run_id }}
           path: cypress/screenshots
@@ -276,7 +276,7 @@ jobs:
 
       - name: Upload redacted rollout report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: staged-rollout-report-${{ github.run_id }}
           path: reports/staged-rollout.json
