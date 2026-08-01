@@ -7,7 +7,7 @@ import type {
 } from '../../../shared/operations.contract';
 import type { Env } from '../types';
 
-const EXPECTED_LATEST_MIGRATION = '0051_pagination_indexes.sql';
+const EXPECTED_LATEST_MIGRATION = '0057_unified_quiz_editor_versioning.sql';
 const DEFAULT_TIMEOUT_MS = 1_000;
 const STALE_CERTIFICATE_MS = 10 * 60 * 1_000;
 const BACKUP_STALE_MS = 26 * 60 * 60 * 1_000;
