@@ -195,6 +195,31 @@ describe('weakness profile analytics', () => {
         expect(breakdown.coveragePercent).toBe(67);
     });
 
+    it('regrades stale dropdown correctness with the canonical engine', () => {
+        const result = createResult({
+            answers: JSON.stringify({
+                q_dropdown: createAnswerEntry({ 0: 'x' }, false),
+            }),
+        });
+        const questions = [
+            createQuestion({
+                id: 'q_dropdown',
+                type: 'DROPDOWN',
+                correct_answer: '',
+                text_field: '[blank_0]',
+                blanks: JSON.stringify([{ id: 'blank_0', options: ['x', 'y'], correctAnswer: 'x' }]),
+                subject: 'math',
+                skill_code: 'phan_so',
+            }),
+        ];
+
+        const breakdown = buildResultSkillBreakdownFromData(result, questions);
+        const skill = breakdown.subjects.flatMap((subject) => subject.skills)
+            .find((item) => item.skillCode === 'phan_so');
+
+        expect(skill).toMatchObject({ attempted: 1, correct: 1, wrong: 0 });
+    });
+
     it('aggregates up to five recent results by student_name + class_name and applies status rules', () => {
         const baseResult = createResult({
             id: 100,
