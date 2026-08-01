@@ -23,7 +23,11 @@ const approvedTemplateIds = [
 
 describe('fresh D1 bootstrap contract', () => {
   it('keeps the canonical schema aligned with the latest runtime features', () => {
-    const schema = normalizeSql(readFileSync('workers/schema.sql', 'utf8'));
+    const schemaSource = readFileSync('workers/schema.sql', 'utf8');
+    const schema = normalizeSql(schemaSource);
+
+    expect(schemaSource).toContain("pet_name TEXT DEFAULT 'Mèo Con'");
+    expect(schemaSource).not.toMatch(/[ÃÂÆÄ]/);
 
     for (const table of [
       'teacher_ai_daily_usage',
@@ -48,7 +52,7 @@ describe('fresh D1 bootstrap contract', () => {
       'gift_shop_scope_settings',
       'ai_tutor_daily_usage',
       'ai_tutor_reservations',
-      // Thiáº¿u báº£ng nÃ y thÃ¬ má»i endpoint Ä‘Äƒng nháº­p tráº£ 503 (limiter cháº¡y failureMode 'closed').
+      // ThiÃ¡ÂºÂ¿u bÃ¡ÂºÂ£ng nÃƒÂ y thÃƒÂ¬ mÃ¡Â»Âi endpoint Ã„â€˜Ã„Æ’ng nhÃ¡ÂºÂ­p trÃ¡ÂºÂ£ 503 (limiter chÃ¡ÂºÂ¡y failureMode 'closed').
       'rate_limits',
       'webauthn_credentials',
       'webauthn_challenges',

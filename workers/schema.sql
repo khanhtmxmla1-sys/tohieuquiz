@@ -1,4 +1,4 @@
--- TÃ´Hiá»‡uQuiz D1 Schema
+-- TôHiệuQuiz D1 Schema
 -- Migrated from Google Sheets
 
 -- Teachers
@@ -233,7 +233,7 @@ CREATE INDEX IF NOT EXISTS idx_results_assignment_student
 CREATE TABLE IF NOT EXISTS user_pets (
   username TEXT PRIMARY KEY,
   pet_id TEXT DEFAULT 'cat_01',
-  pet_name TEXT DEFAULT 'MÃ¨o Con',
+  pet_name TEXT DEFAULT 'Mèo Con',
   level INTEGER DEFAULT 1,
   exp INTEGER DEFAULT 0,
   exp_to_next INTEGER DEFAULT 100,
@@ -715,9 +715,9 @@ CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_flag_created
 CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_actor_created
   ON feature_flag_audit(actor_username, created_at DESC);
 
--- Bá»™ Ä‘áº¿m rate limit theo cá»­a sá»• cá»‘ Ä‘á»‹nh (middleware/rateLimit.ts, utils/loginRateLimit.ts).
--- Báº®T BUá»˜C pháº£i cÃ³: cÃ¡c endpoint Ä‘Äƒng nháº­p cháº¡y limiter vá»›i failureMode 'closed', nÃªn thiáº¿u báº£ng
--- nÃ y lÃ  má»i lÆ°á»£t Ä‘Äƒng nháº­p tráº£ 503. HÃ¬nh dáº¡ng báº£ng khá»›p ensureRateLimitTable() vÃ  migration 0043.
+-- Bộ đếm rate limit theo cửa sổ cố định (middleware/rateLimit.ts, utils/loginRateLimit.ts).
+-- BẮT BUỘC phải có: các endpoint đăng nhập chạy limiter với failureMode 'closed', nên thiếu bảng
+-- này là mọi lượt đăng nhập trả 503. Hình dạng bảng khớp ensureRateLimitTable() và migration 0043.
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,
   count INTEGER NOT NULL DEFAULT 0,
@@ -1185,7 +1185,7 @@ CREATE TABLE IF NOT EXISTS student_weekly_progress (
 CREATE INDEX IF NOT EXISTS idx_weekly_progress_user_week ON student_weekly_progress(username, week_key);
 CREATE INDEX IF NOT EXISTS idx_weekly_progress_quest ON student_weekly_progress(quest_id, week_key);
 
--- Phiáº¿u káº¿t quáº£ nháº­n xÃ©t
+-- Phiếu kết quả nhận xét
 CREATE TABLE IF NOT EXISTS phieu_nhanxet (
   id                TEXT PRIMARY KEY,
   submission_id     TEXT NOT NULL UNIQUE,
