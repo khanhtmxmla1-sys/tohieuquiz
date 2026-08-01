@@ -1,18 +1,18 @@
 import React from 'react';
 import {
-    BarChart3,
-    BookOpenCheck,
     Check,
-    ClipboardCheck,
     Clock3,
     FileQuestion,
     TrendingUp,
 } from 'lucide-react';
+import ExamManagementIcon from '../icons/ExamManagementIcon';
+import LearningAnalyticsIcon from '../icons/LearningAnalyticsIcon';
+import DailyPracticeIcon from '../icons/DailyPracticeIcon';
 
 const features = [
-    { icon: ClipboardCheck, text: 'Tạo và quản lý bài kiểm tra' },
-    { icon: BarChart3, text: 'Theo dõi kết quả học tập' },
-    { icon: BookOpenCheck, text: 'Ôn luyện thuận tiện mỗi ngày' },
+    { icon: ExamManagementIcon, iconName: 'exam-management', text: 'Tạo và quản lý bài kiểm tra' },
+    { icon: LearningAnalyticsIcon, iconName: 'learning-analytics', text: 'Theo dõi kết quả học tập' },
+    { icon: DailyPracticeIcon, iconName: 'daily-practice', text: 'Ôn luyện thuận tiện mỗi ngày' },
 ];
 
 const HeroSection: React.FC = () => {
@@ -38,10 +38,15 @@ const HeroSection: React.FC = () => {
             </div>
 
             <div className="login-page-reveal login-page-reveal-delay-1 mt-6 hidden grid-cols-1 gap-3 sm:grid sm:grid-cols-3 lg:max-w-[650px]">
-                {features.map(({ icon: FeatureIcon, text }) => (
-                    <div key={text} className="flex min-h-[72px] items-center gap-3 rounded-[16px] border border-[#dbe4f0] bg-white/85 px-3.5 py-3 shadow-[0_12px_32px_-28px_rgba(30,58,138,0.65)]">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[#eff6ff] text-[#2563eb]">
-                            <FeatureIcon size={19} strokeWidth={1.8} aria-hidden="true" />
+                {features.map(({ icon: FeatureIcon, iconName, text }) => (
+                    <div key={text} className="flex min-h-[76px] items-center gap-3 rounded-[16px] border border-[#dbe4f0] bg-white/85 px-3 py-3 shadow-[0_12px_32px_-28px_rgba(30,58,138,0.65)]">
+                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[13px] border border-[#dbeafe] bg-[#f5f9ff] shadow-[0_10px_24px_-18px_rgba(37,99,235,0.75)]">
+                            <FeatureIcon
+                                className="h-[44px] w-[44px]"
+                                data-login-feature-icon={iconName}
+                                aria-hidden="true"
+                                focusable="false"
+                            />
                         </span>
                         <span className="text-sm font-semibold leading-5 text-[#334155]">{text}</span>
                     </div>
