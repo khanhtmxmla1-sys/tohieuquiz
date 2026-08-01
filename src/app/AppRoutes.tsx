@@ -22,9 +22,30 @@ import { isManualQuizWorkspaceEnabled } from '../config/featureFlags';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
 
+const LegacyManualQuizNewRedirect = () => {
+    const location = useLocation();
+    return (
+        <Navigate
+            to={{ pathname: '/teacher/quizzes/new', search: location.search }}
+            state={location.state}
+            replace
+        />
+    );
+};
+
 const LegacyManualQuizEditRedirect = () => {
     const { quizId } = useParams<{ quizId: string }>();
-    return <Navigate to={`/teacher/quizzes/${encodeURIComponent(quizId || '')}/edit`} replace />;
+    const location = useLocation();
+    return (
+        <Navigate
+            to={{
+                pathname: `/teacher/quizzes/${encodeURIComponent(quizId || '')}/edit`,
+                search: location.search,
+            }}
+            state={location.state}
+            replace
+        />
+    );
 };
 
 interface AppRoutesProps {
@@ -109,7 +130,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     ? protectedRoute('teacher', <ManualQuizWorkspacePage />)
                     : <Navigate to="/teacher/quizzes" replace state={{ manualQuizWorkspaceFallback: true }} />}
             />
-            <Route path="/teacher/quizzes/manual/new" element={<Navigate to="/teacher/quizzes/new" replace />} />
+            <Route path="/teacher/quizzes/manual/new" element={<LegacyManualQuizNewRedirect />} />
             <Route path="/teacher/quizzes/manual/:quizId/edit" element={<LegacyManualQuizEditRedirect />} />
             <Route path="/about" element={suspended(<PublicPageLayout onNavigate={onNavigate}><AboutPage /></PublicPageLayout>)} />
             <Route path="/contact" element={suspended(<PublicPageLayout onNavigate={onNavigate}><ContactPage /></PublicPageLayout>)} />

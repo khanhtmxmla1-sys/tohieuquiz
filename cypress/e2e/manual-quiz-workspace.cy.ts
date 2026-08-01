@@ -116,7 +116,7 @@ const interceptManualQuizBackend = () => {
 };
 
 const visitManualWorkspace = (draft?: ReturnType<typeof validDraft>) => {
-    cy.visit('/teacher/quizzes/manual/new', {
+    cy.visit('/teacher/quizzes/new', {
         onBeforeLoad: (win) => {
             if (draft) installDraft(win, draft);
             else installAuth(win);

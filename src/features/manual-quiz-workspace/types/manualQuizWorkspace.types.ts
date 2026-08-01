@@ -35,6 +35,34 @@ export type ManualQuiz = Omit<Quiz, 'questions'> & {
     questions: ManualQuizQuestion[];
 };
 
+export type QuizEditorAccessReason = 'HAS_SUBMISSIONS' | 'LIVE_EXAM_ACTIVE' | null;
+
+export interface QuizEditorEditability {
+    mode: 'EDIT' | 'READONLY';
+    canEditStructure: boolean;
+    canCreateVersion: boolean;
+    reason: QuizEditorAccessReason;
+    requiresPublishedWarning: boolean;
+    resultCount: number;
+    activeLiveExamCount: number;
+    openAssignmentCount: number;
+}
+
+export interface QuizEditorPayload {
+    quiz: Pick<Quiz, 'id' | 'title'> & Partial<Quiz>;
+    questions: unknown[];
+    editability: QuizEditorEditability;
+}
+
+export interface QuizVersionResult {
+    id: string;
+    title: string;
+    parentQuizId: string;
+    versionNumber: number;
+    revision: number;
+    questionCount?: number;
+}
+
 export interface ManualQuizDraftEnvelope {
     schemaVersion: 1;
     draftId: string;

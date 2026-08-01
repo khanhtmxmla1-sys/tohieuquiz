@@ -13,11 +13,21 @@ const SAVE_STATUS_COPY = {
     error: 'Chưa thể lưu bản nháp',
 } as const;
 
+const SOURCE_TYPE_COPY: Record<string, string> = {
+    ai: 'Được tạo bằng AI',
+    word_import: 'Nhập từ Word',
+    excel_import: 'Nhập từ Excel',
+    question_bank: 'Từ ngân hàng câu hỏi',
+    template: 'Từ đề mẫu',
+    duplicated: 'Bản sao',
+};
+
 interface WorkspaceHeaderProps {
     onOpenValidation(): void;
+    readOnly?: boolean;
 }
 
-const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation }) => {
+const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation, readOnly = false }) => {
     const navigate = useNavigate();
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const saveStatus = useManualQuizWorkspaceStore((state) => state.saveStatus);
@@ -27,6 +37,8 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation }) =
     const updateQuiz = useManualQuizWorkspaceStore((state) => state.updateQuiz);
     const setNavigatorCollapsed = useManualQuizWorkspaceStore((state) => state.setNavigatorCollapsed);
     const setPreviewCollapsed = useManualQuizWorkspaceStore((state) => state.setPreviewCollapsed);
+    const sourceLabel = envelope?.quiz.sourceType ? SOURCE_TYPE_COPY[envelope.quiz.sourceType] : undefined;
+    const versionNumber = Number(envelope?.quiz.versionNumber || 1);
 
     return (
         <header
@@ -45,15 +57,18 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation }) =
             </button>
 
             <div className="min-w-0 flex-1">
-                <p className="px-2 text-[11px] font-semibold uppercase tracking-wide text-sky-700">
-                    {envelope?.quizId ? 'Chỉnh sửa đề' : 'Tạo đề mới'}
+                <p className="flex flex-wrap items-center gap-x-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-sky-700">
+                    <span>{envelope?.quizId ? 'Chỉnh sửa đề' : 'Tạo đề mới'}</span>
+                    {sourceLabel && <span className="normal-case tracking-normal text-violet-700">{sourceLabel}</span>}
+                    {versionNumber > 1 && <span className="normal-case tracking-normal text-slate-500">Phiên bản {versionNumber}</span>}
                 </p>
                 <label htmlFor="manual-quiz-title" className="sr-only">Tên đề kiểm tra</label>
                 <input
                     id="manual-quiz-title"
                     value={envelope?.quiz.title ?? ''}
                     onChange={(event) => updateQuiz({ title: event.target.value })}
-                    className="w-full truncate rounded-lg border border-transparent bg-transparent px-2 py-1 text-base font-semibold text-[#172033] outline-none hover:border-slate-200 focus:border-sky-500 lg:text-lg"
+                    disabled={readOnly}
+                    className="w-full truncate rounded-lg border border-transparent bg-transparent px-2 py-1 text-base font-semibold text-[#172033] outline-none hover:border-slate-200 focus:border-sky-500 disabled:cursor-not-allowed disabled:text-slate-500 lg:text-lg"
                 />
                 <p
                     className="flex min-w-0 items-center gap-1 px-2 text-xs text-slate-500"
@@ -61,7 +76,9 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation }) =
                     title={saveError || undefined}
                 >
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                    <span className="shrink-0">{SAVE_STATUS_COPY[saveStatus]}</span>
+                    <span className="shrink-0">
+                        {readOnly ? 'Chỉ đọc – dữ liệu gốc được bảo vệ' : SAVE_STATUS_COPY[saveStatus]}
+                    </span>
                     {saveError && <span className="truncate text-rose-600">— {saveError}</span>}
                 </p>
             </div>
@@ -96,8 +113,9 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation }) =
                 <button
                     type="button"
                     onClick={onOpenValidation}
-                    aria-label="Kiểm tra và xuất bản"
-                    className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-sky-500 px-3 text-sm font-semibold text-white hover:bg-sky-600 lg:px-4"
+                    disabled={readOnly}
+                    aria-label={readOnly ? 'Đề đang ở chế độ chỉ đọc' : 'Kiểm tra và xuất bản'}
+                    className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-sky-500 px-3 text-sm font-semibold text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-slate-300 lg:px-4"
                 >
                     <ShieldCheck className="h-4 w-4" />
                     <span className="hidden lg:inline">Kiểm tra và xuất bản</span>

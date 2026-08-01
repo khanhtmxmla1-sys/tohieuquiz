@@ -44,7 +44,7 @@ const originalQuiz = useQuizStore.getState();
 
 const LocationProbe = () => {
     const location = useLocation();
-    return <div data-testid="location">{location.pathname}</div>;
+    return <div data-testid="location">{location.pathname}{location.search}</div>;
 };
 
 const renderRoute = (entry: string, manualQuizWorkspaceEnabled = true) => render(
@@ -81,10 +81,17 @@ describe('manual quiz workspace routes', () => {
     });
 
     it('keeps legacy manual URLs as redirects to the canonical editor', async () => {
-        renderRoute('/teacher/quizzes/manual/quiz-123/edit');
+        renderRoute('/teacher/quizzes/manual/quiz-123/edit?draftId=draft-a');
 
-        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/quizzes/quiz-123/edit'));
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/quizzes/quiz-123/edit?draftId=draft-a'));
         expect(await screen.findByTestId('manual-quiz-workspace')).toHaveAttribute('data-quiz-id', 'quiz-123');
+    });
+
+    it('preserves draft query parameters when redirecting the legacy new route', async () => {
+        renderRoute('/teacher/quizzes/manual/new?draftId=draft-latest');
+
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/quizzes/new?draftId=draft-latest'));
+        expect(await screen.findByTestId('manual-quiz-workspace')).toHaveAttribute('data-mode', 'new');
     });
 
     it('redirects direct workspace URLs to canonical quiz management when the flag is disabled', async () => {

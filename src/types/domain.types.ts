@@ -329,6 +329,11 @@ export interface Quiz {
     showOnHome?: boolean; // Whether to show on HomePage library
     isPractice?: boolean; // Whether this quiz is in practice mode
     aiGeneration?: QuizAiGenerationMetadata;
+    sourceType?: 'manual' | 'ai' | 'word_import' | 'excel_import' | 'question_bank' | 'template' | 'duplicated';
+    parentQuizId?: string | null;
+    versionNumber?: number;
+    revision?: number;
+    updatedAt?: string;
     _assignmentData?: any; // Optional assignment metadata (avoid circular dependency)
 }
 

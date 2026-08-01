@@ -11,10 +11,20 @@ export const quizRoutes: RouteRegistry = {
         auth: 'session',
         path: () => '/api/quizzes',
     },
+    get_quiz_editor: {
+        method: 'GET',
+        auth: 'session',
+        path: ({ quizId }) => `/api/quizzes/${encodeURIComponent(quizId)}/editor`,
+    },
     update_quiz: {
         method: 'PUT',
         auth: 'session',
         path: ({ id, quizId }) => `/api/quizzes/${id || quizId}`,
+    },
+    create_quiz_version: {
+        method: 'POST',
+        auth: 'session',
+        path: ({ quizId }) => `/api/quizzes/${encodeURIComponent(quizId)}/versions`,
     },
     delete_quiz: {
         method: 'DELETE',

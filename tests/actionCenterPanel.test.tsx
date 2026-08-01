@@ -81,7 +81,7 @@ describe('ActionCenterPanel', () => {
           generatedAt: '2026-07-28T08:00:00.000Z',
           cta: {
             label: 'Tiếp tục bản nháp',
-            url: '/teacher/quizzes/manual/new?draftId=draft-latest',
+            url: '/teacher/quizzes/new?draftId=draft-latest',
           },
         },
       ],
