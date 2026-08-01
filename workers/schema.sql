@@ -139,10 +139,17 @@ CREATE TABLE IF NOT EXISTS quizzes (
   require_code TEXT DEFAULT 'FALSE',
   created_by TEXT DEFAULT '',
   show_on_home TEXT DEFAULT 'TRUE',
-  tags TEXT DEFAULT '[]'
+  tags TEXT DEFAULT '[]',
+  source_type TEXT NOT NULL DEFAULT 'manual',
+  parent_quiz_id TEXT,
+  version_number INTEGER NOT NULL DEFAULT 1,
+  revision INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_quizzes_created_by ON quizzes(created_by);
+CREATE INDEX IF NOT EXISTS idx_quizzes_parent_version ON quizzes(parent_quiz_id, version_number);
+CREATE INDEX IF NOT EXISTS idx_quizzes_source_type ON quizzes(source_type);
 
 -- Teacher-owned manual quiz drafts with optimistic revision control
 CREATE TABLE IF NOT EXISTS quiz_drafts (
