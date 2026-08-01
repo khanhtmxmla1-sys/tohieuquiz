@@ -25,6 +25,7 @@ import {
     QuestionMathValidationError,
     type PersistedQuestionRow,
 } from '../services/questionMath';
+import { QuestionScoringContractValidationError } from '../services/questionScoringContract';
 
 const canAccessQuiz = async (db: D1Database, user: JWTPayload, quizId: string): Promise<boolean> => {
     if (requireAdmin(user)) return true;
@@ -63,8 +64,9 @@ const buildQuestionInsertStatement = (db: D1Database) => db.prepare(
     `INSERT INTO questions (
         id, quiz_id, type, question, options, correct_answer, items, text_field,
         blanks, distractors, sentence, words, correct_word_indexes, image, tags,
-        subject, skill_code, subskill_code, difficulty, math_format_version, points, explanation, image_alt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        subject, skill_code, subskill_code, difficulty, math_format_version, points, explanation, image_alt,
+        answer_schema_version
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 );
 
 const mapQuestionBatch = (questions: unknown[], quizId: string): string[][] =>
@@ -83,6 +85,15 @@ const mathValidationResponse = (error: QuestionMathValidationError): Response =>
         message: issue.message,
         index: issue.index,
     })),
+}, 400);
+
+const scoringContractValidationResponse = (
+    error: QuestionScoringContractValidationError,
+): Response => jsonResponse({
+    status: 'error',
+    code: 'INVALID_QUESTION_SCORING_CONTRACT',
+    message: 'M?t ho?c nhi?u c?u h?i ch?a c? h?p ??ng ??p ?n h?p l? ?? ch?m t? ??ng.',
+    issues: error.issues,
 }, 400);
 
 const copiedQuestionValues = (
@@ -122,6 +133,7 @@ const copiedQuestionValues = (
         String((question as import('../types').Question & { imageAlt?: string; image_alt?: string }).imageAlt
             ?? (question as import('../types').Question & { imageAlt?: string; image_alt?: string }).image_alt
             ?? ''),
+        String(question.answer_schema_version || 1),
     ];
 };
 
@@ -213,8 +225,14 @@ export const sanitizeQuestionForStudent = (question: any): any => {
     const items = parseJsonArray(question.items);
     if (type === 'MATCHING' && items.some((item) => item && typeof item === 'object' && 'left' in item && 'right' in item)) {
         safe.items = '[]';
-        safe.left_items = JSON.stringify(items.map((item) => ({ id: String(item.left), content: String(item.left) })));
-        safe.right_items = JSON.stringify(shuffle(items.map((item) => ({ id: String(item.right), content: String(item.right) }))));
+        safe.left_items = JSON.stringify(items.map((item, index) => ({
+            id: `left-${index}`,
+            content: String(item.left),
+        })));
+        safe.right_items = JSON.stringify(shuffle(items.map((item, index) => ({
+            id: `right-${index}`,
+            content: String(item.right),
+        }))));
     } else if (items.length > 0) {
         safe.items = JSON.stringify(items.map((item) => {
             if (!item || typeof item !== 'object') return item;
@@ -225,14 +243,23 @@ export const sanitizeQuestionForStudent = (question: any): any => {
 
     const blanks = parseJsonArray(question.blanks);
     if (type === 'DRAG_DROP') {
-        const correctChoices = blanks.map((blank) => String(blank ?? '')).filter(Boolean);
+        const normalizedBlanks = blanks.map((blank, index) => {
+            if (blank && typeof blank === 'object') {
+                return {
+                    id: String(blank.id || `blank-${index}`),
+                    correctAnswer: String(blank.correctAnswer ?? blank.answer ?? ''),
+                };
+            }
+            return { id: `blank-${index}`, correctAnswer: String(blank ?? '') };
+        });
+        const correctChoices = normalizedBlanks.map((blank) => blank.correctAnswer).filter(Boolean);
         const distractors = parseJsonArray(question.distractors).map((item) => String(item ?? '')).filter(Boolean);
         const originalText = String(question.text_field ?? question.text ?? '');
         let placeholderIndex = 0;
         const safeText = originalText.replace(/\[[^\]]*\]/g, () => `[${++placeholderIndex}]`);
         safe.text_field = safeText;
         if ('text' in safe) safe.text = safeText;
-        safe.blanks = '[]';
+        safe.blanks = JSON.stringify(normalizedBlanks.map((blank) => ({ id: blank.id })));
         safe.distractors = JSON.stringify(shuffle([...correctChoices, ...distractors]));
     } else if (blanks.length > 0 && blanks.some((blank) => blank && typeof blank === 'object')) {
         safe.blanks = JSON.stringify(blanks.map((blank) => {
@@ -369,6 +396,9 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             mappedQuestions = mapQuestionBatch(incomingQuestions, String(body.id || ''));
         } catch (error) {
             if (error instanceof QuestionMathValidationError) return mathValidationResponse(error);
+            if (error instanceof QuestionScoringContractValidationError) {
+                return scoringContractValidationResponse(error);
+            }
             throw error;
         }
 
@@ -469,6 +499,9 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             mappedQuestions = mapQuestionBatch(incomingQuestions, quizId);
         } catch (error) {
             if (error instanceof QuestionMathValidationError) return mathValidationResponse(error);
+            if (error instanceof QuestionScoringContractValidationError) {
+                return scoringContractValidationResponse(error);
+            }
             throw error;
         }
 

@@ -5,10 +5,13 @@ import { jsonResponse } from './response';
 import { Question, Assignment, PetData, ShopItem, ResultRow } from '../types';
 import { CURRENT_MATH_FORMAT_VERSION, prepareIncomingQuestion } from '../services/questionMath';
 import { QuizGradingServiceError, gradeQuizSubmission } from '../services/quizGradingService';
+import { prepareQuestionScoringContractForSave } from '../services/questionScoringContract';
 
 // ============ Map question data for D1 insert ============
 export function mapQuestionForSave(q: Partial<Question> & { type: string }, quizId: string): string[] {
-    const normalizedQuestion = prepareIncomingQuestion(q) as Partial<Question> & { type: string };
+    const mathNormalizedQuestion = prepareIncomingQuestion(q) as Partial<Question> & { type: string };
+    const scoringContract = prepareQuestionScoringContractForSave(mathNormalizedQuestion);
+    const normalizedQuestion = scoringContract.question as Partial<Question> & { type: string };
     let options = '';
     let items = '';
     let textField = '';
@@ -98,6 +101,7 @@ export function mapQuestionForSave(q: Partial<Question> & { type: string }, quiz
         wordsField, correctWordIndexesField, imageField, tagsField,
         subjectField, skillCodeField, subskillCodeField, difficultyField,
         CURRENT_MATH_FORMAT_VERSION, pointsField, explanationField, imageAltField,
+        scoringContract.answerSchemaVersion,
     ];
 
     return result.map(v => (v === undefined || v === null) ? '' : String(v));
