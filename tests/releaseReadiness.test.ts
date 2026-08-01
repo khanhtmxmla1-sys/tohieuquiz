@@ -29,6 +29,14 @@ describe('release readiness checks', () => {
       .toEqual(['DROP TABLE', 'DELETE WITHOUT WHERE', 'DROP COLUMN']);
   });
 
+  it('keeps the unified quiz editor rollback non-destructive', () => {
+    const rollback = readFileSync(
+      'workers/migrations/rollback/0057_unified_quiz_editor_versioning.rollback.sql',
+      'utf8',
+    );
+    expect(findDestructiveSql(rollback)).toEqual([]);
+  });
+
   it('requires known flags and boolean rollout values', () => {
     expect(validateReleaseFlags(releaseEnv)).toEqual([]);
     expect(validateReleaseFlags({
