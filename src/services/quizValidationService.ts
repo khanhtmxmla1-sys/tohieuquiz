@@ -11,14 +11,16 @@ interface ValidationResult {
     score: number;
     correctCount: number;
     total: number;
+    gradingVersion?: string;
     details?: {
         questionId: string;
         isCorrect: boolean;
-        correctAnswer?: any; // Only returned after submission
+        status?: 'correct' | 'wrong' | 'skipped' | 'invalid';
+        issueCode?: string;
+        correctAnswer?: unknown;
     }[];
     error?: string;
 }
-
 interface SubmitAnswersPayload {
     quizId: string;
     answers: Record<string, any>; // questionId -> student's answer
@@ -57,7 +59,8 @@ export const validateAnswersOnServer = async (
             success: true,
             score: data?.score || 0,
             correctCount: data?.correctCount || 0,
-            total: data?.total || 0,
+            total: data?.total ?? data?.totalQuestions ?? 0,
+            gradingVersion: data?.gradingVersion,
             details: data?.details || []
         };
 

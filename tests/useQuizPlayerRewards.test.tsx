@@ -88,7 +88,11 @@ describe('useQuizPlayer result rewards', () => {
     vi.clearAllMocks();
     mocks.validateAnswersOnServer.mockResolvedValue({
       success: true,
-      details: [{ questionId: 'q1', isCorrect: false }],
+      score: 0,
+      correctCount: 0,
+      total: 1,
+      gradingVersion: '2.0.0',
+      details: [{ questionId: 'q1', isCorrect: false, status: 'wrong' }],
     });
     mocks.calculateStudentScore.mockReturnValue({
       score: 0,
@@ -140,6 +144,41 @@ describe('useQuizPlayer result rewards', () => {
     expect(result.current.isQuestionAnswered(question)).toBe(true);
   });
 
+  it('never lets a client override turn a server-wrong ordering answer into correct', async () => {
+    const orderingQuiz = {
+      ...makeQuiz(),
+      id: 'quiz-ordering-authoritative',
+      questions: [{
+        id: 'q1', type: QuestionType.ORDERING, question: 'Sắp xếp',
+        items: ['B', 'A'], correctOrder: [1, 0],
+      }],
+    } as Quiz;
+    mocks.calculateStudentScore.mockReturnValue({
+      score: 10,
+      correctCount: 1,
+      totalItems: 1,
+      details: [{ questionId: 'q1', isCorrect: true }],
+    });
+
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz: orderingQuiz,
+      onExit: vi.fn(),
+      onSaveResult: mocks.onSaveResult,
+    }));
+
+    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    act(() => result.current.handleAnswerChange('q1', { 0: 2, 1: 1 }));
+    await act(async () => result.current.handleSubmit());
+
+    expect(mocks.onSaveResult).toHaveBeenCalledWith(expect.objectContaining({
+      score: 0,
+      correctCount: 0,
+      totalQuestions: 1,
+      answers: expect.objectContaining({
+        q1: expect.objectContaining({ isCorrect: false }),
+      }),
+    }));
+  });
   it('claims the reward with the saved result id and shows completion at zero correct', async () => {
     const { result } = renderHook(() => useQuizPlayer({
       quiz: makeQuiz(),

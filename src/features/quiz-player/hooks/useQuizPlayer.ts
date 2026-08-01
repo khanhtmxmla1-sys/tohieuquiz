@@ -4,7 +4,6 @@ import { useClassroomStore } from '../../../stores/useClassroomStore';
 import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
-import { calculateStudentScore } from '../utils/quizScoring';
 import { playTingSound, showError } from '../../../utils/toast';
 
 interface UseQuizPlayerProps {
@@ -222,58 +221,38 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
 
             if (!validationResult.success) throw new Error(validationResult.error || 'Server validation failed');
 
-            // Senior Enrichment: Merge server results with client overrides
-            const clientScoring = calculateStudentScore(quiz, answers);
-
-            // Rebuild final answers with snapshots and corrections
-            const finalAnswersWithSnapshots: Record<string, any> = {};
-            const isAnswerSkipped = (value: any): boolean => (
-                value === undefined ||
-                value === null ||
-                value === '' ||
-                (Array.isArray(value) && value.length === 0) ||
-                (typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length === 0)
+            const validationDetails = Array.isArray(validationResult.details)
+                ? validationResult.details
+                : [];
+            const validationByQuestionId = new Map(
+                validationDetails.map((detail) => [String(detail.questionId), detail]),
             );
-            const clientOverrideTypes = new Set([
-                QuestionType.ORDERING,
-                QuestionType.UNDERLINE,
-                QuestionType.ERROR_CORRECTION
-            ]);
+            const finalAnswersWithSnapshots: Record<string, any> = {};
 
-            quiz.questions.forEach(q => {
-                const clientResult = clientScoring.details.find(d => d.questionId === q.id);
-                const serverResult = validationResult.details?.find((d: any) => d.questionId === q.id);
-                const selectedAnswer = answers[q.id];
-                const skipped = isAnswerSkipped(selectedAnswer);
-
-                let isCorrect = false;
-                if (!skipped) {
-                    const clientIsCorrect = Boolean(clientResult?.isCorrect);
-                    const serverIsCorrect = serverResult?.isCorrect;
-
-                    if (clientOverrideTypes.has(q.type)) {
-                        // Keep local override only for historically unstable server types.
-                        isCorrect = clientIsCorrect || Boolean(serverIsCorrect);
-                    } else if (typeof serverIsCorrect === 'boolean') {
-                        isCorrect = serverIsCorrect;
-                    } else {
-                        isCorrect = clientIsCorrect;
-                    }
-                }
-
-                finalAnswersWithSnapshots[q.id] = {
-                    selectedAnswer,
-                    isCorrect,
-                    questionSnapshot: { ...q }
+            quiz.questions.forEach((question) => {
+                const serverResult = validationByQuestionId.get(String(question.id));
+                finalAnswersWithSnapshots[question.id] = {
+                    selectedAnswer: answers[question.id],
+                    isCorrect: serverResult?.isCorrect === true,
+                    status: serverResult?.status ?? (serverResult?.isCorrect ? 'correct' : 'wrong'),
+                    gradingVersion: validationResult.gradingVersion,
+                    questionSnapshot: { ...question },
                 };
             });
 
-            const mergedCorrectCount = Object.values(finalAnswersWithSnapshots).filter((a: any) => a.isCorrect === true).length;
-            const mergedTotalQuestions = quiz.questions.length;
-            const mergedScore = mergedTotalQuestions === 0
-                ? 0
-                : parseFloat(((mergedCorrectCount / mergedTotalQuestions) * 10).toFixed(1));
-
+            const detailCorrectCount = validationDetails.filter((detail) => detail.isCorrect === true).length;
+            const authoritativeTotalQuestions = Number.isFinite(Number(validationResult.total))
+                && Number(validationResult.total) > 0
+                ? Number(validationResult.total)
+                : quiz.questions.length;
+            const authoritativeCorrectCount = Number.isFinite(Number(validationResult.correctCount))
+                ? Number(validationResult.correctCount)
+                : detailCorrectCount;
+            const authoritativeScore = Number.isFinite(Number(validationResult.score))
+                ? Number(validationResult.score)
+                : authoritativeTotalQuestions === 0
+                    ? 0
+                    : Number(((authoritativeCorrectCount / authoritativeTotalQuestions) * 10).toFixed(1));
             const resultData: StudentResult = {
                 id: generateUUID(), // Temporary client ID, will be replaced by server ID
                 quizId: quiz.id,
@@ -281,16 +260,17 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
                 quizTitle: quiz.title,
                 studentName,
                 studentClass,
-                score: mergedScore,
-                correctCount: mergedCorrectCount,
-                totalQuestions: mergedTotalQuestions,
+                score: authoritativeScore,
+                correctCount: authoritativeCorrectCount,
+                totalQuestions: authoritativeTotalQuestions,
                 timeTaken,
                 submittedAt: new Date().toISOString(),
                 answers: {
                     ...finalAnswersWithSnapshots,
                     _questionOrder: shuffledQuestions.map(q => q.id)
                 },
-                validationDetails: validationResult.details
+                validationDetails,
+                gradingVersion: validationResult.gradingVersion
             };
 
             let finalResult = resultData;
@@ -349,8 +329,8 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
                     quizId: quiz.id,
                     category: quiz.category,
                     subject: quiz.topic,
-                    correctCount: mergedCorrectCount,
-                    totalQuestions: mergedTotalQuestions,
+                    correctCount: authoritativeCorrectCount,
+                    totalQuestions: authoritativeTotalQuestions,
                 });
             }
 
