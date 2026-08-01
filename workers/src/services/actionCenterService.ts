@@ -315,7 +315,7 @@ export async function loadTeacherActionCenter(
       cta: {
         label: 'Tiếp tục bản nháp',
         url: drafts.next_id
-          ? `/teacher/quizzes/manual/new?draftId=${encodeURIComponent(drafts.next_id)}`
+          ? `/teacher/quizzes/new?draftId=${encodeURIComponent(drafts.next_id)}`
           : '/teacher/quizzes?mode=create',
       },
     });

@@ -45,6 +45,11 @@ export interface Quiz {
     created_by?: string;
     show_on_home: string; // 'TRUE' | 'FALSE'
     tags: string; // JSON string or comma separated
+    source_type?: string;
+    parent_quiz_id?: string | null;
+    version_number?: number;
+    revision?: number;
+    updated_at?: string | null;
 }
 
 export interface Question {

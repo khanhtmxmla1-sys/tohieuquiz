@@ -40,7 +40,7 @@ const parseMultipleSelectAnswersForQuestion = (raw: any): string[] => {
     return normalized.split('|').map((v: string) => v.trim().toUpperCase()).filter(Boolean);
 };
 
-const normalizeQuestionRow = (q: any): any => {
+export const normalizeQuestionRow = (q: any): any => {
     const parsed = { ...q };
     if (typeof q.items === 'string') try { parsed.items = JSON.parse(q.items); } catch { }
     if (typeof q.pairs === 'string') try { parsed.pairs = JSON.parse(q.pairs); } catch { }
@@ -329,6 +329,11 @@ export const useQuizStore = create<QuizState>()(
                                 }
                                 return Array.isArray(row.tags) ? row.tags : [];
                             })(),
+                            sourceType: row.sourceType || row.source_type || 'manual',
+                            parentQuizId: row.parentQuizId || row.parent_quiz_id || null,
+                            versionNumber: Number(row.versionNumber || row.version_number || 1),
+                            revision: Number(row.revision || 1),
+                            updatedAt: row.updatedAt || row.updated_at || row.createdAt || row.created_at,
                             questions:
                                 questionsByQuizId.get(row.id)
                                 || existingById.get(row.id)?.questions
@@ -473,8 +478,14 @@ export const useQuizStore = create<QuizState>()(
                     const result = await callApi('update_quiz', { ...prepared, id: quiz.id });
                     if (result && result.status === 'success') {
                         cacheService.invalidatePrefix('quizzes:');
+                        const updatedQuiz = {
+                            ...quiz,
+                            revision: Number(result.revision || quiz.revision || 1),
+                            updatedAt: result.updatedAt || quiz.updatedAt,
+                        };
                         set((state) => ({
-                            quizzes: state.quizzes.map(q => q.id === quiz.id ? quiz : q),
+                            quizzes: state.quizzes.map(q => q.id === quiz.id ? updatedQuiz : q),
+                            selectedQuiz: state.selectedQuiz?.id === quiz.id ? updatedQuiz : state.selectedQuiz,
                             isLoading: false
                         }));
                     } else {

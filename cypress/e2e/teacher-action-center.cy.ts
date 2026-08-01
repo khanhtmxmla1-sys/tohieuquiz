@@ -50,7 +50,7 @@ const actionItems = [
     explanation: '1 bản nháp đang lưu trên máy chủ cần tiếp tục hoặc dọn dẹp.',
     count: 1,
     generatedAt,
-    cta: { label: 'Tiếp tục bản nháp', url: '/teacher/quizzes/manual/new?draftId=draft-latest' },
+    cta: { label: 'Tiếp tục bản nháp', url: '/teacher/quizzes/new?draftId=draft-latest' },
   },
   {
     id: 'live-exams-upcoming',
@@ -201,7 +201,7 @@ describe('Teacher Action Center', () => {
     visitOverview();
     cy.contains('a', 'Tiếp tục bản nháp').click();
 
-    cy.location('pathname').should('eq', '/teacher/quizzes/manual/new');
+    cy.location('pathname').should('eq', '/teacher/quizzes/new');
     expectSearchParam('draftId', 'draft-latest');
     cy.wait('@remoteDraft');
     cy.get('#manual-quiz-title', { timeout: 20_000 }).should('have.value', 'Đề đang soạn từ Action Center');

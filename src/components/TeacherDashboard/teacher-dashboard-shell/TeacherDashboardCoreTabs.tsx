@@ -1,9 +1,11 @@
+import { useNavigate } from 'react-router';
 import type { ResultDashboardSummary } from '../../../../shared/result-summary.contract';
 import { useQuizStore } from '../../../../stores/quizStore';
 import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIStore';
 import type { Quiz, StudentResult } from '../../../types';
 import { CreateTab, ManageTab, OverviewTab, ResultsTab } from './dashboardLazyTabs';
 import type { ResultsLoadState } from './types';
+import { getQuizEditorRoute } from '../../../app/navigationRoutes';
 
 interface TeacherDashboardCoreTabsProps {
   activeTab: TeacherDashboardTab;
@@ -25,7 +27,10 @@ interface TeacherDashboardCoreTabsProps {
   modifyQuiz: any;
 }
 
-export const TeacherDashboardCoreTabs = (props: TeacherDashboardCoreTabsProps) => (
+export const TeacherDashboardCoreTabs = (props: TeacherDashboardCoreTabsProps) => {
+  const navigate = useNavigate();
+
+  return (
   <>
     {props.activeTab === 'overview' && (
       <OverviewTab
@@ -52,10 +57,7 @@ export const TeacherDashboardCoreTabs = (props: TeacherDashboardCoreTabsProps) =
       <ManageTab
         quizzes={props.quizzes}
         onDelete={props.removeQuiz}
-        onEdit={quiz => {
-          props.setEditingQuiz(quiz);
-          props.setActiveTab('create');
-        }}
+        onEdit={quiz => navigate(getQuizEditorRoute(quiz.id))}
         onManageCode={props.openAccessCodeEditor}
       />
     )}
@@ -71,4 +73,5 @@ export const TeacherDashboardCoreTabs = (props: TeacherDashboardCoreTabsProps) =
       />
     )}
   </>
-);
+  );
+};

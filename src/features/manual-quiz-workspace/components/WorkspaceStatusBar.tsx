@@ -6,9 +6,10 @@ import { useManualQuizWorkspaceStore } from '../store/useManualQuizWorkspaceStor
 
 interface WorkspaceStatusBarProps {
     onOpenValidation(): void;
+    readOnly?: boolean;
 }
 
-const WorkspaceStatusBar: React.FC<WorkspaceStatusBarProps> = ({ onOpenValidation }) => {
+const WorkspaceStatusBar: React.FC<WorkspaceStatusBarProps> = ({ onOpenValidation, readOnly = false }) => {
     const questionCount = useManualQuizWorkspaceStore(
         (state) => state.envelope?.quiz.questions.length ?? 0,
     );
@@ -34,7 +35,8 @@ const WorkspaceStatusBar: React.FC<WorkspaceStatusBarProps> = ({ onOpenValidatio
             <button
                 type="button"
                 onClick={onOpenValidation}
-                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-2 font-medium text-rose-700 hover:bg-rose-50 sm:px-3"
+                disabled={readOnly}
+                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-2 font-medium text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-400 sm:px-3"
             >
                 <AlertCircle className="h-4 w-4" /> Xem lỗi
             </button>

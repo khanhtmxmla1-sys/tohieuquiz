@@ -48,7 +48,7 @@ describe('fresh D1 bootstrap contract', () => {
       'gift_shop_scope_settings',
       'ai_tutor_daily_usage',
       'ai_tutor_reservations',
-      // Thiếu bảng này thì mọi endpoint đăng nhập trả 503 (limiter chạy failureMode 'closed').
+      // Thiáº¿u báº£ng nÃ y thÃ¬ má»i endpoint Ä‘Äƒng nháº­p tráº£ 503 (limiter cháº¡y failureMode 'closed').
       'rate_limits',
       'webauthn_credentials',
       'webauthn_challenges',
@@ -71,6 +71,9 @@ describe('fresh D1 bootstrap contract', () => {
       'create index if not exists idx_classes_teacher_username',
       'create index if not exists idx_admin_audit_actor_created',
       'create index if not exists idx_admin_audit_target_created',
+      'create unique index if not exists idx_achievement_user_code',
+      'create index if not exists idx_reward_events_user_date',
+      'create index if not exists idx_activity_events_user_date',
     ]) {
       expect(schema).toContain(fragment);
     }
@@ -98,8 +101,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(55);
-    expect(migrationNames.at(-1)).toBe('0056_add_generated_certificate_templates.sql');
+    expect(migrationNames).toHaveLength(56);
+    expect(migrationNames.at(-1)).toBe('0057_unified_quiz_editor_versioning.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);

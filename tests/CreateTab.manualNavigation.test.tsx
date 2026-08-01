@@ -84,7 +84,7 @@ describe('CreateTab manual workspace navigation', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Mở phòng soạn thủ công' }));
 
-        expect(screen.getByTestId('pathname')).toHaveTextContent('/teacher/quizzes/manual/new');
+        expect(screen.getByTestId('pathname')).toHaveTextContent('/teacher/quizzes/new');
         expect(screen.getByTestId('route-state')).toHaveTextContent('Đề Toán lớp 4');
         expect(screen.getByTestId('route-state')).toHaveTextContent('ABC123');
         const routeState = JSON.parse(screen.getByTestId('route-state').textContent || '{}');

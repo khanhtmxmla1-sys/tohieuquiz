@@ -125,6 +125,81 @@ const copiedQuestionValues = (
     ];
 };
 
+interface QuizUsage {
+    resultCount: number;
+    activeLiveExamCount: number;
+    openAssignmentCount: number;
+}
+
+const readCount = (row: { count?: number } | null): number => Number(row?.count || 0);
+
+const loadQuizUsage = async (db: D1Database, quizId: string): Promise<QuizUsage> => {
+    const [results, liveExams, assignments] = await Promise.all([
+        db.prepare('SELECT COUNT(*) AS count FROM results WHERE quiz_id = ?').bind(quizId).first<{ count: number }>(),
+        db.prepare(`
+            SELECT COUNT(*) AS count
+            FROM live_exam_sessions WHERE quiz_id = ? AND status IN ('waiting', 'active', 'scoring')
+        `).bind(quizId).first<{ count: number }>(),
+        db.prepare("SELECT COUNT(*) AS count FROM assignments WHERE quiz_id = ? AND status = 'OPEN'")
+            .bind(quizId).first<{ count: number }>(),
+    ]);
+    return {
+        resultCount: readCount(results),
+        activeLiveExamCount: readCount(liveExams),
+        openAssignmentCount: readCount(assignments),
+    };
+};
+
+const buildQuizEditability = (usage: QuizUsage) => {
+    const reason = usage.activeLiveExamCount > 0
+        ? 'LIVE_EXAM_ACTIVE'
+        : usage.resultCount > 0
+            ? 'HAS_SUBMISSIONS'
+            : null;
+    const canEditStructure = reason === null;
+    return {
+        mode: canEditStructure ? 'EDIT' : 'READONLY',
+        canEditStructure,
+        canCreateVersion: true,
+        reason,
+        requiresPublishedWarning: canEditStructure && usage.openAssignmentCount > 0,
+        ...usage,
+    };
+};
+
+const quizConflictResponse = (
+    code: string,
+    message: string,
+    details: Record<string, unknown> = {},
+): Response => jsonResponse({ status: 'error', code, message, ...details }, 409);
+
+const inferQuizSourceType = (body: Record<string, any>): string => {
+    const requested = String(body.sourceType || body.source_type || '').trim();
+    if (requested) return requested;
+    return body.aiGeneration ? 'ai' : 'manual';
+};
+
+const toEditorQuizDto = (quiz: import('../types').Quiz) => ({
+    id: quiz.id,
+    title: quiz.title,
+    classLevel: quiz.class_level,
+    category: quiz.category || '',
+    timeLimit: quiz.time_limit,
+    createdAt: quiz.created_at,
+    updatedAt: quiz.updated_at || quiz.created_at,
+    createdBy: quiz.created_by || '',
+    accessCode: quiz.access_code || undefined,
+    requireCode: String(quiz.require_code || '').toUpperCase() === 'TRUE',
+    showOnHome: String(quiz.show_on_home || 'TRUE').toUpperCase() !== 'FALSE',
+    tags: (() => {
+        try { return JSON.parse(quiz.tags || '[]'); } catch { return []; }
+    })(),
+    sourceType: quiz.source_type || 'manual',
+    parentQuizId: quiz.parent_quiz_id || null,
+    versionNumber: Number(quiz.version_number || 1),
+    revision: Number(quiz.revision || 1),
+});
+
 export const sanitizeQuestionForStudent = (question: any): any => {
     const safe = { ...question };
     for (const field of [
@@ -180,6 +255,33 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             'GET /api/quizzes'
         );
         return jsonResponse(rows.results);
+    }
+
+    // GET /api/quizzes/:id/editor - Unified editor payload and editability contract
+    if (path.match(/^\/api\/quizzes\/[^/]+\/editor$/) && method === 'GET') {
+        const authResult = await verifyJWTMiddleware(request, env);
+        if (authResult instanceof Response) return authResult;
+        const { user } = authResult;
+        if (!requireTeacher(user)) return errorResponse('Forbidden: Teacher or admin access required', 403);
+
+        const quizId = path.split('/')[3];
+        if (!quizId) return errorResponse('Missing quiz ID');
+        if (!(await canAccessQuiz(db, user, quizId))) {
+            return errorResponse('Forbidden: You do not have permission to edit this quiz', 403);
+        }
+
+        const [quiz, questions, usage] = await Promise.all([
+            db.prepare('SELECT * FROM quizzes WHERE id = ?').bind(quizId).first<import('../types').Quiz>(),
+            db.prepare('SELECT * FROM questions WHERE quiz_id = ?').bind(quizId).all<import('../types').Question>(),
+            loadQuizUsage(db, quizId),
+        ]);
+        if (!quiz) return errorResponse('Quiz not found', 404);
+
+        return jsonResponse({
+            quiz: toEditorQuizDto(quiz),
+            questions: questions.results,
+            editability: buildQuizEditability(usage),
+        });
     }
 
     // GET /api/questions
@@ -273,16 +375,22 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
         try {
             const batch: D1PreparedStatement[] = [];
             const createdBy = user.username;
+            const createdAt = body.createdAt || new Date().toISOString();
+            const updatedAt = body.updatedAt || createdAt;
             batch.push(
                 db.prepare(
-                    `INSERT INTO quizzes (id, title, class_level, category, time_limit, created_at, access_code, require_code, created_by, show_on_home, tags)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                    `INSERT INTO quizzes (
+                        id, title, class_level, category, time_limit, created_at, access_code, require_code,
+                        created_by, show_on_home, tags, source_type, parent_quiz_id, version_number, revision, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                 ).bind(
                     body.id, body.title, body.classLevel, body.category || '',
-                    body.timeLimit, body.createdAt, body.accessCode || '',
+                    body.timeLimit, createdAt, body.accessCode || '',
                     body.requireCode ? 'TRUE' : 'FALSE', createdBy,
                     body.showOnHome === false ? 'FALSE' : 'TRUE',
-                    body.tags ? (Array.isArray(body.tags) ? JSON.stringify(body.tags) : body.tags) : '[]'
+                    body.tags ? (Array.isArray(body.tags) ? JSON.stringify(body.tags) : body.tags) : '[]',
+                    inferQuizSourceType(body), body.parentQuizId || null,
+                    Number(body.versionNumber || 1), 1, updatedAt,
                 )
             );
 
@@ -296,14 +404,15 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
                 status: 'success',
                 questionCount: mappedQuestions.length,
                 mathFormatVersion: CURRENT_MATH_FORMAT_VERSION,
+                revision: 1,
             });
         } catch (error: unknown) {
             return internalErrorResponse(error, request, { context: 'POST /api/quizzes' });
         }
     }
 
-    // PUT /api/quizzes/:id - Update quiz (TEACHER/ADMIN with ownership check)
-    if (path.startsWith('/api/quizzes/') && method === 'PUT') {
+    // PUT /api/quizzes/:id - Update quiz with ownership, usage locks, and optimistic revision control
+    if (path.match(/^\/api\/quizzes\/[^/]+$/) && method === 'PUT') {
         const authResult = await verifyJWTMiddleware(request, env);
         if (authResult instanceof Response) return authResult;
         const { user } = authResult;
@@ -324,10 +433,39 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             return errorResponse('Quiz ID in body must match the URL', 400);
         }
 
+        const [originalQuiz, usage] = await Promise.all([
+            db.prepare('SELECT * FROM quizzes WHERE id = ?').bind(quizId).first<import('../types').Quiz>(),
+            loadQuizUsage(db, quizId),
+        ]);
+        if (!originalQuiz) return errorResponse('Quiz not found', 404);
+        if (usage.activeLiveExamCount > 0) {
+            return quizConflictResponse(
+                'QUIZ_LIVE_EXAM_ACTIVE',
+                'Đề đang được sử dụng trong một ca thi trực tiếp và không thể chỉnh sửa.',
+                { activeLiveExamCount: usage.activeLiveExamCount },
+            );
+        }
+        if (usage.resultCount > 0) {
+            return quizConflictResponse(
+                'QUIZ_HAS_SUBMISSIONS',
+                'Đề đã có bài nộp. Hãy tạo phiên bản mới để chỉnh sửa.',
+                { resultCount: usage.resultCount },
+            );
+        }
+
+        const currentRevision = Number(originalQuiz.revision || 1);
+        if (body.revision !== undefined && Number(body.revision) !== currentRevision) {
+            return quizConflictResponse(
+                'QUIZ_REVISION_CONFLICT',
+                'Đề đã được chỉnh sửa ở một phiên khác. Vui lòng tải lại dữ liệu.',
+                { currentRevision },
+            );
+        }
+
         const incomingQuestions = Array.isArray(body.questions) ? body.questions : [];
         let mappedQuestions: string[][];
         try {
-            // This must happen before destructive replacement so invalid TeX cannot erase the existing quiz.
+            // Validate before deleting any existing question rows.
             mappedQuestions = mapQuestionBatch(incomingQuestions, quizId);
         } catch (error) {
             if (error instanceof QuestionMathValidationError) return mathValidationResponse(error);
@@ -335,22 +473,25 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
         }
 
         try {
-            const originalQuiz = await db.prepare('SELECT created_by FROM quizzes WHERE id = ?')
-                .bind(quizId)
-                .first<{ created_by: string }>();
-            const createdBy = originalQuiz?.created_by || user.username;
+            const nextRevision = currentRevision + 1;
+            const updatedAt = new Date().toISOString();
             const batch: D1PreparedStatement[] = [
                 db.prepare('DELETE FROM questions WHERE quiz_id = ?').bind(quizId),
-                db.prepare('DELETE FROM quizzes WHERE id = ?').bind(quizId),
                 db.prepare(
-                    `INSERT INTO quizzes (id, title, class_level, category, time_limit, created_at, access_code, require_code, created_by, show_on_home, tags)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                    `UPDATE quizzes SET
+                        title = ?, class_level = ?, category = ?, time_limit = ?, access_code = ?, require_code = ?,
+                        show_on_home = ?, tags = ?, source_type = ?, parent_quiz_id = ?, version_number = ?,
+                        revision = ?, updated_at = ?
+                     WHERE id = ?`
                 ).bind(
-                    quizId, body.title, body.classLevel, body.category || '',
-                    body.timeLimit, body.createdAt, body.accessCode || '',
-                    body.requireCode ? 'TRUE' : 'FALSE', createdBy,
+                    body.title, body.classLevel, body.category || '', body.timeLimit,
+                    body.accessCode || '', body.requireCode ? 'TRUE' : 'FALSE',
                     body.showOnHome === false ? 'FALSE' : 'TRUE',
-                    body.tags ? (Array.isArray(body.tags) ? JSON.stringify(body.tags) : body.tags) : '[]'
+                    body.tags ? (Array.isArray(body.tags) ? JSON.stringify(body.tags) : body.tags) : '[]',
+                    body.sourceType || originalQuiz.source_type || 'manual',
+                    body.parentQuizId ?? originalQuiz.parent_quiz_id ?? null,
+                    Number(body.versionNumber || originalQuiz.version_number || 1),
+                    nextRevision, updatedAt, quizId,
                 ),
             ];
 
@@ -377,9 +518,91 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
                 status: 'success',
                 questionCount: actualCount,
                 mathFormatVersion: CURRENT_MATH_FORMAT_VERSION,
+                revision: nextRevision,
+                updatedAt,
             });
         } catch (error: unknown) {
             return internalErrorResponse(error, request, { context: `PUT /api/quizzes/${quizId}` });
+        }
+    }
+
+    // POST /api/quizzes/:id/versions - Create an editable successor without copying attempts or assignments
+    if (path.match(/^\/api\/quizzes\/[^/]+\/versions$/) && method === 'POST') {
+        const authResult = await verifyJWTMiddleware(request, env);
+        if (authResult instanceof Response) return authResult;
+        const { user } = authResult;
+        if (!requireTeacher(user)) return errorResponse('Forbidden: Teacher or admin access required', 403);
+
+        const quizId = path.split('/')[3];
+        if (!quizId) return errorResponse('Missing quiz ID');
+        if (!(await canAccessQuiz(db, user, quizId))) {
+            return errorResponse('Forbidden: You do not have permission to create a version of this quiz', 403);
+        }
+
+        try {
+            const originalQuiz = await db.prepare('SELECT * FROM quizzes WHERE id = ?')
+                .bind(quizId)
+                .first<import('../types').Quiz>();
+            if (!originalQuiz) return errorResponse('Quiz not found', 404);
+
+            const [originalQuestions, body] = await Promise.all([
+                db.prepare('SELECT * FROM questions WHERE quiz_id = ?')
+                    .bind(quizId)
+                    .all<import('../types').Question>(),
+                parseBody(request),
+            ]);
+            const rootQuizId = originalQuiz.parent_quiz_id || originalQuiz.id;
+            const versionRow = await db.prepare(
+                'SELECT MAX(version_number) AS max_version FROM quizzes WHERE id = ? OR parent_quiz_id = ?'
+            ).bind(rootQuizId, rootQuizId).first<{ max_version: number }>();
+            const versionNumber = Number(versionRow?.max_version || originalQuiz.version_number || 1) + 1;
+            const newQuizId = generateId('quiz');
+            const createdAt = new Date().toISOString();
+            const newTitle = String(body?.title || `${originalQuiz.title} - Phiên bản ${versionNumber}`);
+
+            let copiedValues: string[][];
+            try {
+                copiedValues = originalQuestions.results.map((question) =>
+                    copiedQuestionValues(question, generateId('q'), newQuizId));
+            } catch (error) {
+                if (error instanceof QuestionMathValidationError) return mathValidationResponse(error);
+                throw error;
+            }
+
+            const batch: D1PreparedStatement[] = [
+                db.prepare(
+                    `INSERT INTO quizzes (
+                        id, title, class_level, category, time_limit, created_at, access_code, require_code,
+                        created_by, show_on_home, tags, source_type, parent_quiz_id, version_number, revision, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                ).bind(
+                    newQuizId, newTitle, originalQuiz.class_level, originalQuiz.category || '',
+                    originalQuiz.time_limit, createdAt, '', originalQuiz.require_code || 'FALSE',
+                    user.username, 'FALSE', originalQuiz.tags || '[]', originalQuiz.source_type || 'manual',
+                    rootQuizId, versionNumber, 1, createdAt,
+                ),
+            ];
+            if (copiedValues.length > 0) {
+                const stmt = buildQuestionInsertStatement(db);
+                copiedValues.forEach((mapped) => batch.push(stmt.bind(...mapped)));
+            }
+            await db.batch(batch);
+
+            return jsonResponse({
+                status: 'success',
+                data: {
+                    id: newQuizId,
+                    title: newTitle,
+                    parentQuizId: rootQuizId,
+                    versionNumber,
+                    revision: 1,
+                    questionCount: copiedValues.length,
+                },
+            });
+        } catch (error: unknown) {
+            return internalErrorResponse(error, request, {
+                context: `POST /api/quizzes/${quizId}/versions`,
+            });
         }
     }
 
@@ -424,12 +647,14 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
 
             const batch: D1PreparedStatement[] = [
                 db.prepare(
-                    `INSERT INTO quizzes (id, title, class_level, category, time_limit, created_at, access_code, require_code, created_by, show_on_home, tags)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                    `INSERT INTO quizzes (
+                        id, title, class_level, category, time_limit, created_at, access_code, require_code,
+                        created_by, show_on_home, tags, source_type, parent_quiz_id, version_number, revision, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                 ).bind(
                     newQuizId, newTitle, originalQuiz.class_level, originalQuiz.category || '',
                     originalQuiz.time_limit, createdAt, '', originalQuiz.require_code || 'FALSE',
-                    user.username, 'FALSE', originalQuiz.tags || '[]'
+                    user.username, 'FALSE', originalQuiz.tags || '[]', 'duplicated', null, 1, 1, createdAt,
                 ),
             ];
             if (copiedValues.length > 0) {

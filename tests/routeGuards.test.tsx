@@ -125,14 +125,14 @@ describe('URL navigation contracts', () => {
     expect(params.get('returnTo')).toBe('/teacher/results?page=2&q=An');
   });
 
-  it('guards feature-enabled manual quiz workspace routes', async () => {
-    renderRoutes('/teacher/quizzes/manual/new', true, true);
+  it('guards the canonical unified quiz editor route', async () => {
+    renderRoutes('/teacher/quizzes/new', true, true);
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/?'));
     const search = screen.getByTestId('location').textContent?.split('?')[1] || '';
     const params = new URLSearchParams(search);
     expect(params.get('login')).toBe('teacher');
-    expect(params.get('returnTo')).toBe('/teacher/quizzes/manual/new');
+    expect(params.get('returnTo')).toBe('/teacher/quizzes/new');
     expect(screen.queryByText('manual-workspace')).not.toBeInTheDocument();
   });
 

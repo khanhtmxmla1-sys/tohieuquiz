@@ -44,7 +44,7 @@ const originalQuiz = useQuizStore.getState();
 
 const LocationProbe = () => {
     const location = useLocation();
-    return <div data-testid="location">{location.pathname}</div>;
+    return <div data-testid="location">{location.pathname}{location.search}</div>;
 };
 
 const renderRoute = (entry: string, manualQuizWorkspaceEnabled = true) => render(
@@ -67,21 +67,35 @@ describe('manual quiz workspace routes', () => {
         useQuizStore.setState({ ...originalQuiz, view: 'home' }, true);
     });
 
-    it('opens the new manual quiz workspace without changing the legacy view', async () => {
-        renderRoute('/teacher/quizzes/manual/new');
+    it('opens the canonical new quiz editor without changing the legacy view', async () => {
+        renderRoute('/teacher/quizzes/new');
 
         expect(await screen.findByTestId('manual-quiz-workspace', {}, { timeout: 3_000 })).toHaveAttribute('data-mode', 'new');
         expect(useQuizStore.getState().view).toBe('home');
     });
 
-    it('passes the quiz id to the edit workspace route', async () => {
-        renderRoute('/teacher/quizzes/manual/quiz-123/edit');
+    it('passes the quiz id to the canonical edit route', async () => {
+        renderRoute('/teacher/quizzes/quiz-123/edit');
 
         expect(await screen.findByTestId('manual-quiz-workspace', {}, { timeout: 3_000 })).toHaveAttribute('data-quiz-id', 'quiz-123');
     });
 
+    it('keeps legacy manual URLs as redirects to the canonical editor', async () => {
+        renderRoute('/teacher/quizzes/manual/quiz-123/edit?draftId=draft-a');
+
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/quizzes/quiz-123/edit?draftId=draft-a'));
+        expect(await screen.findByTestId('manual-quiz-workspace')).toHaveAttribute('data-quiz-id', 'quiz-123');
+    });
+
+    it('preserves draft query parameters when redirecting the legacy new route', async () => {
+        renderRoute('/teacher/quizzes/manual/new?draftId=draft-latest');
+
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/quizzes/new?draftId=draft-latest'));
+        expect(await screen.findByTestId('manual-quiz-workspace')).toHaveAttribute('data-mode', 'new');
+    });
+
     it('redirects direct workspace URLs to canonical quiz management when the flag is disabled', async () => {
-        renderRoute('/teacher/quizzes/manual/new', false);
+        renderRoute('/teacher/quizzes/new', false);
 
         await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/quizzes'));
         expect(screen.getByText('teacher-dashboard')).toBeInTheDocument();
@@ -90,7 +104,7 @@ describe('manual quiz workspace routes', () => {
 
     it('redirects unauthenticated visitors home', async () => {
         useAuthStore.setState({ isLoggedIn: false, username: null });
-        renderRoute('/teacher/quizzes/manual/new');
+        renderRoute('/teacher/quizzes/new');
 
         await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/'));
         expect(screen.queryByTestId('manual-quiz-workspace')).not.toBeInTheDocument();

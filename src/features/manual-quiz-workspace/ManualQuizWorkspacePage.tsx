@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useAuthStore } from '../../../stores/authStore';
-import { useQuizStore } from '../../../stores/quizStore';
-import { getTeacherRoute } from '../../app/navigationRoutes';
+import { normalizeQuestionRow, useQuizStore } from '../../../stores/quizStore';
+import { getQuizEditorRoute, getTeacherRoute } from '../../app/navigationRoutes';
 import ManualQuizWorkspaceGuard from './components/ManualQuizWorkspaceGuard';
 import DraftRecoveryDialog from './components/DraftRecoveryDialog';
 import DraftConflictDialog from './components/DraftConflictDialog';
@@ -15,6 +15,7 @@ import PublishValidationDrawer from './components/PublishValidationDrawer';
 import PointDistributionDialog from './components/PointDistributionDialog';
 import QuestionBankDrawer from './components/QuestionBankDrawer';
 import WorkspaceMobileTabs, { type WorkspaceMobilePane } from './components/WorkspaceMobileTabs';
+import QuizEditorAccessBanner from './components/QuizEditorAccessBanner';
 import {
     findLatestLocalDraft,
     removeLocalDraft,
@@ -26,10 +27,13 @@ import { useManualQuizWorkspaceStore } from './store/useManualQuizWorkspaceStore
 import { validateManualQuiz } from './validation/manualQuizValidation';
 import { reportManualQuizTelemetry } from '../../services/telemetryService';
 import { getRemoteManualQuizDraft } from '../../services/manualQuizDraftService';
+import { createQuizVersion, getQuizEditorPayload } from './services/quizEditorService';
+import { showConfirm } from '../../utils/toast';
 import type {
     ManualQuizDraftEnvelope,
     ManualQuizNavigationState,
     ManualQuizSeed,
+    QuizEditorEditability,
 } from './types/manualQuizWorkspace.types';
 
 const QuestionImportDrawer = React.lazy(() => import('./components/QuestionImportDrawer'));
@@ -53,6 +57,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const availableQuiz = useQuizStore((state) =>
         quizId ? state.quizzes.find((quiz) => quiz.id === quizId) ?? null : null,
     );
+    const loadQuizzes = useQuizStore((state) => state.loadQuizzes);
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const initializeFromSeed = useManualQuizWorkspaceStore((state) => state.initializeFromSeed);
     const initializeFromQuiz = useManualQuizWorkspaceStore((state) => state.initializeFromQuiz);
@@ -78,10 +83,17 @@ const ManualQuizWorkspacePage: React.FC = () => {
         requestedDraftId ? 'loading' : 'loaded',
     );
     const [remoteDraftError, setRemoteDraftError] = useState('');
+    const [editability, setEditability] = useState<QuizEditorEditability | null>(null);
+    const [editorAccessStatus, setEditorAccessStatus] = useState<'loading' | 'loaded' | 'error'>(
+        quizId ? 'loading' : 'loaded',
+    );
+    const [editorAccessError, setEditorAccessError] = useState('');
+    const [isCreatingVersion, setCreatingVersion] = useState(false);
 
     const seed = navigationState?.manualQuizSeed ?? DEFAULT_SEED;
+    const isReadOnly = editability?.mode === 'READONLY';
 
-    const autosaveController = useManualQuizAutosave(envelope);
+    const autosaveController = useManualQuizAutosave(isReadOnly ? null : envelope);
     const handlePublishSuccess = useCallback(() => {
         setValidationOpen(false);
         navigate(getTeacherRoute('manage'));
@@ -95,6 +107,39 @@ const ManualQuizWorkspacePage: React.FC = () => {
         : [], [envelope]);
 
     useEffect(() => {
+        if (!quizId || !username) return;
+        let active = true;
+        setEditorAccessStatus('loading');
+        setEditorAccessError('');
+
+        void getQuizEditorPayload(quizId)
+            .then((payload) => {
+                if (!active) return;
+                const editorQuiz = {
+                    ...payload.quiz,
+                    questions: payload.questions.map(normalizeQuestionRow),
+                } as NonNullable<typeof availableQuiz>;
+                useQuizStore.setState((state) => ({
+                    quizzes: state.quizzes.some((quiz) => quiz.id === editorQuiz.id)
+                        ? state.quizzes.map((quiz) => quiz.id === editorQuiz.id ? editorQuiz : quiz)
+                        : [...state.quizzes, editorQuiz],
+                    selectedQuiz: state.selectedQuiz?.id === editorQuiz.id ? editorQuiz : state.selectedQuiz,
+                }));
+                setEditability(payload.editability);
+                setEditorAccessStatus('loaded');
+            })
+            .catch((error: unknown) => {
+                if (!active) return;
+                setEditorAccessError(error instanceof Error ? error.message : 'Không thể tải quyền chỉnh sửa đề.');
+                setEditorAccessStatus('error');
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [quizId, username]);
+
+    useEffect(() => {
         if (!envelope || openedDraftRef.current === envelope.draftId) return;
         openedDraftRef.current = envelope.draftId;
         reportManualQuizTelemetry('workspace_opened', {
@@ -106,6 +151,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
     }, [envelope]);
 
     const openValidation = useCallback(() => {
+        if (isReadOnly) return;
         const blockingCount = validationIssues.filter((issue) => issue.severity === 'error').length;
         if (envelope && blockingCount > 0) {
             reportManualQuizTelemetry('validation_failed', {
@@ -117,7 +163,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
             });
         }
         setValidationOpen(true);
-    }, [envelope, validationIssues]);
+    }, [envelope, isReadOnly, validationIssues]);
 
     const closeActiveSurface = useCallback(() => {
         if (isValidationOpen) setValidationOpen(false);
@@ -135,13 +181,18 @@ const ManualQuizWorkspacePage: React.FC = () => {
     ]);
 
     useWorkspaceKeyboardShortcuts({
-        enabled: Boolean(envelope),
+        enabled: Boolean(envelope) && !isReadOnly,
         onSaveDraft: autosaveController.saveNow,
         onEscape: closeActiveSurface,
     });
 
     useEffect(() => {
         if (!username || !requestedDraftId || envelope || remoteDraftStatus !== 'loading') return;
+        if (quizId && editorAccessStatus !== 'loaded') return;
+        if (isReadOnly) {
+            setRemoteDraftStatus('loaded');
+            return;
+        }
         const controller = new AbortController();
         setRemoteDraftError('');
 
@@ -166,21 +217,24 @@ const ManualQuizWorkspacePage: React.FC = () => {
             });
 
         return () => controller.abort();
-    }, [envelope, hydrateEnvelope, remoteDraftStatus, requestedDraftId, username]);
+    }, [editorAccessStatus, envelope, hydrateEnvelope, isReadOnly, quizId, remoteDraftStatus, requestedDraftId, username]);
 
     useEffect(() => {
         if (!username || envelope || pendingRecovery || recoveryChecked) return;
+        if (quizId && editorAccessStatus !== 'loaded') return;
         if (requestedDraftId && remoteDraftStatus !== 'error') return;
 
-        const latestDraft = findLatestLocalDraft(username, quizId);
-        const workspaceStartedAt = navigationState?.workspaceStartedAt;
-        const isNewerThanCurrentEntry = latestDraft
-            && (!workspaceStartedAt || latestDraft.updatedAt > workspaceStartedAt);
+        if (!isReadOnly) {
+            const latestDraft = findLatestLocalDraft(username, quizId);
+            const workspaceStartedAt = navigationState?.workspaceStartedAt;
+            const isNewerThanCurrentEntry = latestDraft
+                && (!workspaceStartedAt || latestDraft.updatedAt > workspaceStartedAt);
 
-        if (latestDraft && isNewerThanCurrentEntry) {
-            setPendingRecovery(latestDraft);
-            setRecoveryChecked(true);
-            return;
+            if (latestDraft && isNewerThanCurrentEntry) {
+                setPendingRecovery(latestDraft);
+                setRecoveryChecked(true);
+                return;
+            }
         }
 
         setRecoveryChecked(true);
@@ -191,9 +245,11 @@ const ManualQuizWorkspacePage: React.FC = () => {
         }
     }, [
         availableQuiz,
+        editorAccessStatus,
         envelope,
         initializeFromQuiz,
         initializeFromSeed,
+        isReadOnly,
         navigationState?.workspaceStartedAt,
         pendingRecovery,
         quizId,
@@ -266,6 +322,38 @@ const ManualQuizWorkspacePage: React.FC = () => {
         if (pane === 'preview') useManualQuizWorkspaceStore.getState().setPreviewCollapsed(false);
     };
 
+    const handleCreateVersion = useCallback(async () => {
+        if (!quizId || isCreatingVersion) return;
+        setCreatingVersion(true);
+        setEditorAccessError('');
+        try {
+            const version = await createQuizVersion(
+                quizId,
+                `${envelope?.quiz.title || availableQuiz?.title || 'Đề kiểm tra'} - Bản chỉnh sửa`,
+            );
+            useManualQuizWorkspaceStore.getState().reset();
+            navigate(getQuizEditorRoute(version.id), { replace: true });
+            void loadQuizzes({ force: true }).catch(() => undefined);
+        } catch (error: unknown) {
+            setEditorAccessError(error instanceof Error ? error.message : 'Không thể tạo phiên bản mới.');
+        } finally {
+            setCreatingVersion(false);
+        }
+    }, [availableQuiz?.title, envelope?.quiz.title, isCreatingVersion, loadQuizzes, navigate, quizId]);
+
+    const requestPublish = useCallback(() => {
+        if (isReadOnly) return;
+        if (editability?.requiresPublishedWarning) {
+            showConfirm({
+                message: 'Đề đã được giao cho học sinh. Những thay đổi sẽ áp dụng cho các lượt làm tiếp theo. Bạn có chắc muốn lưu?',
+                confirmLabel: 'Lưu thay đổi',
+                onConfirm: () => void publishController.publish(),
+            });
+            return;
+        }
+        void publishController.publish();
+    }, [editability?.requiresPublishedWarning, isReadOnly, publishController]);
+
     return (
         <ManualQuizWorkspaceGuard>
             <div
@@ -274,10 +362,10 @@ const ManualQuizWorkspacePage: React.FC = () => {
                 data-quiz-id={quizId || undefined}
                 className="flex h-[100dvh] min-h-[640px] max-w-full flex-col overflow-x-hidden overflow-y-hidden bg-[#FFFDF7] font-['Be_Vietnam_Pro',sans-serif] text-[#172033]"
             >
-                <h1 className="sr-only">Phòng soạn đề thủ công</h1>
-                {remoteDraftStatus === 'loading' && (
+                <h1 className="sr-only">{quizId ? 'Chỉnh sửa đề' : 'Tạo đề mới'} trong Trình soạn đề</h1>
+                {(remoteDraftStatus === 'loading' || editorAccessStatus === 'loading') && (
                     <div role="status" className="absolute inset-0 z-50 grid place-items-center bg-white/90 px-4 text-center font-semibold text-slate-700">
-                        Đang mở bản nháp đã chọn…
+                        {remoteDraftStatus === 'loading' ? 'Đang mở bản nháp đã chọn…' : 'Đang kiểm tra quyền chỉnh sửa đề…'}
                     </div>
                 )}
                 {remoteDraftError && (
@@ -285,11 +373,25 @@ const ManualQuizWorkspacePage: React.FC = () => {
                         Không thể mở bản nháp đã chọn: {remoteDraftError}. Hệ thống đã chuyển sang bản nháp cục bộ hoặc đề mới an toàn.
                     </div>
                 )}
-                <WorkspaceHeader onOpenValidation={openValidation} />
+                {editorAccessStatus === 'error' && (
+                    <div role="alert" className="border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 lg:px-6">
+                        Không thể mở Trình soạn đề: {editorAccessError}
+                    </div>
+                )}
+                <WorkspaceHeader onOpenValidation={openValidation} readOnly={isReadOnly} />
+                {editability && (
+                    <QuizEditorAccessBanner
+                        editability={editability}
+                        onCreateVersion={() => void handleCreateVersion()}
+                        isCreatingVersion={isCreatingVersion}
+                        error={editorAccessError}
+                    />
+                )}
                 <div
                     data-testid="workspace-grid"
                     data-mobile-pane={mobilePane}
-                    className={`relative grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden ${tabletColumnClass} ${desktopColumnClass}`}
+                    aria-disabled={isReadOnly || undefined}
+                    className={`relative grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden ${tabletColumnClass} ${desktopColumnClass} ${isReadOnly ? 'pointer-events-none select-none opacity-80' : ''}`}
                 >
                     {!isNavigatorCollapsed && (
                         <div
@@ -324,7 +426,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
                         </div>
                     )}
                 </div>
-                <WorkspaceStatusBar onOpenValidation={openValidation} />
+                <WorkspaceStatusBar onOpenValidation={openValidation} readOnly={isReadOnly} />
                 <WorkspaceMobileTabs activePane={mobilePane} onChange={changeMobilePane} />
                 {envelope && (
                     <PublishValidationDrawer
@@ -336,7 +438,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
                         onGoToQuestion={goToQuestionIssue}
                         onFixPoints={() => setPointDialogOpen(true)}
                         onFixTime={() => updateQuiz({ timeLimit: 30 })}
-                        onPublish={() => void publishController.publish()}
+                        onPublish={requestPublish}
                         isPublishing={publishController.isPublishing}
                         publishError={publishController.error}
                         cleanupWarning={publishController.cleanupWarning}

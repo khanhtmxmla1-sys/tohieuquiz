@@ -1,4 +1,4 @@
--- TôHiệuQuiz D1 Schema
+-- TÃ´Hiá»‡uQuiz D1 Schema
 -- Migrated from Google Sheets
 
 -- Teachers
@@ -139,10 +139,17 @@ CREATE TABLE IF NOT EXISTS quizzes (
   require_code TEXT DEFAULT 'FALSE',
   created_by TEXT DEFAULT '',
   show_on_home TEXT DEFAULT 'TRUE',
-  tags TEXT DEFAULT '[]'
+  tags TEXT DEFAULT '[]',
+  source_type TEXT NOT NULL DEFAULT 'manual',
+  parent_quiz_id TEXT,
+  version_number INTEGER NOT NULL DEFAULT 1,
+  revision INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_quizzes_created_by ON quizzes(created_by);
+CREATE INDEX IF NOT EXISTS idx_quizzes_parent_version ON quizzes(parent_quiz_id, version_number);
+CREATE INDEX IF NOT EXISTS idx_quizzes_source_type ON quizzes(source_type);
 
 -- Teacher-owned manual quiz drafts with optimistic revision control
 CREATE TABLE IF NOT EXISTS quiz_drafts (
@@ -226,7 +233,7 @@ CREATE INDEX IF NOT EXISTS idx_results_assignment_student
 CREATE TABLE IF NOT EXISTS user_pets (
   username TEXT PRIMARY KEY,
   pet_id TEXT DEFAULT 'cat_01',
-  pet_name TEXT DEFAULT 'Mèo Con',
+  pet_name TEXT DEFAULT 'MÃ¨o Con',
   level INTEGER DEFAULT 1,
   exp INTEGER DEFAULT 0,
   exp_to_next INTEGER DEFAULT 100,
@@ -708,9 +715,9 @@ CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_flag_created
 CREATE INDEX IF NOT EXISTS idx_feature_flag_audit_actor_created
   ON feature_flag_audit(actor_username, created_at DESC);
 
--- Bộ đếm rate limit theo cửa sổ cố định (middleware/rateLimit.ts, utils/loginRateLimit.ts).
--- BẮT BUỘC phải có: các endpoint đăng nhập chạy limiter với failureMode 'closed', nên thiếu bảng
--- này là mọi lượt đăng nhập trả 503. Hình dạng bảng khớp ensureRateLimitTable() và migration 0043.
+-- Bá»™ Ä‘áº¿m rate limit theo cá»­a sá»• cá»‘ Ä‘á»‹nh (middleware/rateLimit.ts, utils/loginRateLimit.ts).
+-- Báº®T BUá»˜C pháº£i cÃ³: cÃ¡c endpoint Ä‘Äƒng nháº­p cháº¡y limiter vá»›i failureMode 'closed', nÃªn thiáº¿u báº£ng
+-- nÃ y lÃ  má»i lÆ°á»£t Ä‘Äƒng nháº­p tráº£ 503. HÃ¬nh dáº¡ng báº£ng khá»›p ensureRateLimitTable() vÃ  migration 0043.
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,
   count INTEGER NOT NULL DEFAULT 0,
@@ -866,6 +873,10 @@ CREATE INDEX IF NOT EXISTS idx_gift_events_created_at ON gift_order_events(creat
 CREATE UNIQUE INDEX IF NOT EXISTS idx_game_achievement_user_code ON student_achievement_unlocks(username, achievement_code);
 CREATE INDEX IF NOT EXISTS idx_game_reward_events_user_date ON student_reward_events(username, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_game_activity_events_user_date ON student_game_activity_events(username, created_at DESC);
+-- Runtime bootstrap aliases retained so fresh restores match production exactly.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_achievement_user_code ON student_achievement_unlocks(username, achievement_code);
+CREATE INDEX IF NOT EXISTS idx_reward_events_user_date ON student_reward_events(username, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_events_user_date ON student_game_activity_events(username, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_rag_documents_source_path ON rag_documents(source_path);
 CREATE INDEX IF NOT EXISTS idx_rag_chunks_document_id ON rag_chunks(document_id);
 CREATE INDEX IF NOT EXISTS idx_rag_chunks_chunk_index ON rag_chunks(chunk_index);
@@ -1174,7 +1185,7 @@ CREATE TABLE IF NOT EXISTS student_weekly_progress (
 CREATE INDEX IF NOT EXISTS idx_weekly_progress_user_week ON student_weekly_progress(username, week_key);
 CREATE INDEX IF NOT EXISTS idx_weekly_progress_quest ON student_weekly_progress(quest_id, week_key);
 
--- Phiếu kết quả nhận xét
+-- Phiáº¿u káº¿t quáº£ nháº­n xÃ©t
 CREATE TABLE IF NOT EXISTS phieu_nhanxet (
   id                TEXT PRIMARY KEY,
   submission_id     TEXT NOT NULL UNIQUE,
