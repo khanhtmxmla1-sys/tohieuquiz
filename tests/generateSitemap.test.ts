@@ -1,11 +1,27 @@
 import { createRequire } from 'node:module';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { isQuizPublic, resolveApiUrl } = require('../scripts/generate_sitemap.cjs') as {
+const { isQuizPublic, resolveApiUrl, resolveOutputFile } = require('../scripts/generate_sitemap.cjs') as {
   isQuizPublic: (quiz: Record<string, unknown>) => boolean;
   resolveApiUrl: (env?: Record<string, string | undefined>) => string;
+  resolveOutputFile: (argv?: string[]) => string;
 };
+
+describe('generate sitemap output path', () => {
+  it('keeps the manual command pointed at public/sitemap.xml', () => {
+    expect(resolveOutputFile(['node', 'generate_sitemap.cjs'])).toBe(
+      path.resolve(process.cwd(), 'public', 'sitemap.xml'),
+    );
+  });
+
+  it('allows the build to write directly into dist', () => {
+    expect(resolveOutputFile(['node', 'generate_sitemap.cjs', 'dist/sitemap.xml'])).toBe(
+      path.resolve(process.cwd(), 'dist', 'sitemap.xml'),
+    );
+  });
+});
 
 describe('generate sitemap API URL resolution', () => {
   it('does not call any API when build variables are absent', () => {

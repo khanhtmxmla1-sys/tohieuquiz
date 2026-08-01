@@ -8,7 +8,7 @@
     "assets:module-icons": "node scripts/build-module-icons.mjs",
     "sitemap:generate": "node scripts/generate_sitemap.cjs",
     "build": "node scripts/cloudflare-build-router.mjs",
-    "build:frontend": "npm run sitemap:generate && vite build",
+    "build:frontend": "vite build && node scripts/generate_sitemap.cjs dist/sitemap.xml",
     "preview": "npm run build && wrangler dev",
     "test": "vitest",
     "test:run": "vitest run",
