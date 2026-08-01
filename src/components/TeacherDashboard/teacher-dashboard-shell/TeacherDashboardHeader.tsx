@@ -93,9 +93,12 @@ export const TeacherDashboardHeader = (props: TeacherDashboardHeaderProps) => (
         </button>
       )}
       <TeacherAccountMenu
+        activeTab={props.activeTab}
         displayName={props.teacherDisplayName}
         initial={props.teacherInitial}
+        accountLabel={props.notificationUserId}
         isAdmin={props.isAdmin}
+        onNavigate={props.setActiveTab}
         onLogout={props.onLogout}
       />
     </div>

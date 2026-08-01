@@ -52,9 +52,22 @@ describe('Teacher dashboard sidebar accessibility', () => {
         expect(screen.queryByText(/IOE/i)).not.toBeInTheDocument();
     });
 
-    it('does not show Operations Center to teachers', () => {
+    it('keeps account and system destinations out of the teacher sidebar', () => {
         renderSidebar();
-        expect(screen.queryByText('Operations Center')).not.toBeInTheDocument();
+
+        expect(screen.queryByRole('button', { name: 'Tài khoản' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Quản trị hệ thống' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Đề thi' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Dạy và giao bài' })).toBeInTheDocument();
+    });
+
+    it('keeps account and system destinations out of the admin sidebar', () => {
+        useAuthStore.setState({ isAdmin: true });
+        renderSidebar();
+
+        expect(screen.queryByRole('button', { name: 'Tài khoản' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Quản trị hệ thống' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Chứng nhận' })).toBeInTheDocument();
     });
 
     it('keeps multiple navigation groups open and exposes accordion state', () => {
