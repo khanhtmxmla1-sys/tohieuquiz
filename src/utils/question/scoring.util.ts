@@ -45,6 +45,14 @@ const legacyOrderingValue = (value: unknown): unknown => {
     return value;
 };
 
+const legacyBooleanValue = (value: unknown): boolean | null => {
+    if (typeof value === 'boolean') return value;
+    const normalized = normalizeText(value);
+    if (['true', 'đúng', 'dung', 'yes', '1'].includes(normalized)) return true;
+    if (['false', 'sai', 'no', '0'].includes(normalized)) return false;
+    return null;
+};
+
 /**
  * Adapts incomplete snapshots created by old result payloads. This function
  * only repairs data shape; the correctness decision remains in gradeQuestion.
@@ -86,6 +94,22 @@ const prepareLegacyReviewInput = (
                 const candidate = legacyOrderingValue(item);
                 return legacyOrder.findIndex((correct) => String(correct) === String(candidate));
             });
+        }
+    }
+
+    if (
+        String(question.type || '').toUpperCase() === 'TRUE_FALSE'
+        && (!Array.isArray(question.items) || question.items.length === 0)
+    ) {
+        const correctValue = legacyBooleanValue(question.correctAnswer ?? question.correct_answer);
+        const studentValue = legacyBooleanValue(answer);
+        if (correctValue !== null && studentValue !== null) {
+            question.items = [{
+                id: 'item-0',
+                statement: question.questionText ?? question.question ?? question.mainQuestion ?? '',
+                isCorrect: correctValue,
+            }];
+            answer = { 'item-0': studentValue };
         }
     }
 

@@ -32,4 +32,10 @@ describe('question review scoring facade', () => {
     const question = { id: 'q', type: 'MCQ', options: ['đúng', 'sai'], correctAnswer: 'A' };
     expect(checkAnswer(question, { selectedAnswer: 'B', isCorrect: true })).toMatchObject({ status: 'wrong', isCorrect: false });
   });
+
+  it('adapts legacy single-statement true/false snapshots', () => {
+    const question = { type: 'TRUE_FALSE', questionText: 'Mặt trời mọc ở hướng Đông?', correctAnswer: 'Đúng' };
+    expect(checkAnswer(question, 'Đúng')).toMatchObject({ status: 'correct', isCorrect: true });
+    expect(checkAnswer(question, 'Sai')).toMatchObject({ status: 'wrong', isCorrect: false });
+  });
 });
