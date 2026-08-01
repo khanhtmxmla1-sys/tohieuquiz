@@ -11,6 +11,7 @@ import { useLiveExamTimer, useLiveExamActivity } from '../../hooks';
 import { getAnswerSnapshot, saveAnswerSnapshot, submitAnswers } from '../../services/liveExamService';
 import type { LiveExamSubmissionResponse, StudentAnswers } from '../../types/liveExam.types';
 import type { Question, Quiz } from '../../types';
+import { isQuestionAnswered as hasCompleteAnswer } from '../../domain/quiz-scoring';
 import QuestionRenderer from '../student/QuestionRenderer';
 import QuizHeader from '../../features/quiz-player/components/QuizHeader';
 import QuizNavigation from '../../features/quiz-player/components/QuizNavigation';
@@ -159,27 +160,9 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
         });
     };
 
-    const isQuestionAnswered = (q: Question) => {
-        const val = answers[q.id];
-        if (!val) return false;
-
-        switch ((q.type || '').toString().toUpperCase()) {
-            case 'TRUE_FALSE':
-                return Array.isArray((q as any).items) && (q as any).items.every((item: any, idx: number) => {
-                    const itemKey = item.id || `item-${idx}`;
-                    return val[itemKey] !== undefined;
-                });
-            case 'MULTIPLE_SELECT':
-                return Array.isArray(val) && val.length > 0;
-            case 'WORD_SCRAMBLE':
-                return Array.isArray(val) && val.length === (((q as any).letters || []).length);
-            case 'ERROR_CORRECTION':
-                return !!val.wrongWord && !!val.correctWord;
-            default:
-                return true;
-        }
-    };
-
+    const isQuestionAnswered = (question: Question) => (
+        hasCompleteAnswer(question, answers[question.id])
+    );
     const questionsOnCurrentPage = questions.slice((currentPage - 1) * QUESTIONS_PER_PAGE, currentPage * QUESTIONS_PER_PAGE);
     const { activeQuestionId, changePage } = useQuizPageNavigation({
         questions,

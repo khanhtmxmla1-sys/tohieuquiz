@@ -122,7 +122,18 @@ export const normalizeQuestionForGrading = (input: unknown): NormalizedQuestionR
   }
 
   if (type === 'MATCHING') {
-    const source = asArray(raw.pairs ?? raw.items);
+    const configuredPairs = asArray(raw.pairs);
+    const legacyItems = asArray(raw.items);
+    const leftItems = asArray(raw.leftItems ?? raw.left_items);
+    const rightItems = asArray(raw.rightItems ?? raw.right_items);
+    const source = configuredPairs.length > 0
+      ? configuredPairs
+      : legacyItems.length > 0
+        ? legacyItems
+        : leftItems.map((left, index) => ({
+            left: asRecord(left).content ?? asRecord(left).text ?? left,
+            right: asRecord(rightItems[index]).content ?? asRecord(rightItems[index]).text ?? rightItems[index],
+          }));
     const pairs = source.map((pair, index) => {
       const record = asRecord(pair);
       return {

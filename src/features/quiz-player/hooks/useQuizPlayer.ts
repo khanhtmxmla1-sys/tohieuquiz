@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Quiz, Question, QuestionType, StudentResult } from '../../../types';
+import { Quiz, Question, StudentResult } from '../../../types';
 import { useClassroomStore } from '../../../stores/useClassroomStore';
 import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
 import { playTingSound, showError } from '../../../utils/toast';
+import { isQuestionAnswered as hasCompleteAnswer } from '../../../domain/quiz-scoring';
 
 interface UseQuizPlayerProps {
     quiz: Quiz;
@@ -371,46 +372,10 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         } : current);
     }, [classroomStore.studentSession?.username, rewardData]);
 
-    const isQuestionAnswered = useCallback((q: Question) => {
-        const val = answers[q.id];
-        if (!val) return false;
-
-        switch(q.type) {
-            case QuestionType.TRUE_FALSE:
-                return (q.items ?? []).every((item: any, idx: number) => {
-                    const itemKey = item.id || `item-${idx}`;
-                    return val[itemKey] !== undefined;
-                });
-            case QuestionType.MULTIPLE_SELECT:
-                return Array.isArray(val) && val.length > 0;
-            case QuestionType.WORD_SCRAMBLE:
-                return Array.isArray(val) && val.length === (q as any).letters?.length;
-            case QuestionType.ERROR_CORRECTION:
-                return !!val.wrongWord && !!val.correctWord;
-            case QuestionType.MATCHING: {
-                if (typeof val !== 'object' || Array.isArray(val)) return false;
-                const configuredPairs = Array.isArray((q as any).pairs) ? (q as any).pairs : [];
-                const leftItems = Array.isArray((q as any).leftItems) ? (q as any).leftItems : [];
-                const legacyItems = Array.isArray((q as any).items) ? (q as any).items : [];
-                const legacyPairCount = legacyItems.length > 0
-                    ? (legacyItems[0] && typeof legacyItems[0] === 'object' && 'left' in legacyItems[0]
-                        ? legacyItems.length
-                        : Math.ceil(legacyItems.length / 2))
-                    : 0;
-                const expectedPairCount = configuredPairs.length || leftItems.length || legacyPairCount;
-                const pairedCount = Object.entries(val).filter(([key, value]) => (
-                    key !== 'selectedLeft'
-                    && key !== '__shuffledIds'
-                    && typeof value === 'string'
-                    && value.length > 0
-                )).length;
-                return expectedPairCount > 0 && pairedCount === expectedPairCount;
-            }
-            default:
-                return true;
-        }
-    }, [answers]);
-
+    const isQuestionAnswered = useCallback(
+        (question: Question) => hasCompleteAnswer(question, answers[question.id]),
+        [answers],
+    );
     return {
         step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
         enteredCode, setEnteredCode, codeError, answers, timeLeft, result,

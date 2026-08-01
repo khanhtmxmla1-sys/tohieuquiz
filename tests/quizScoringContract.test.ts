@@ -123,6 +123,21 @@ describe('canonical scoring contract for 14 published types', () => {
     expect(isQuestionAnswered(question, { t1: true })).toBe(false);
   });
 
+  it('recognizes a complete matching answer from the student-safe left/right DTO', () => {
+    const question = {
+      id: 'matching-dto',
+      type: 'MATCHING',
+      pairs: [],
+      leftItems: [{ id: 'l-0', content: 'Một' }, { id: 'l-1', content: 'Hai' }],
+      rightItems: [{ id: 'r-0', content: '1' }, { id: 'r-1', content: '2' }],
+    };
+    expect(isQuestionAnswered(question, {
+      'l-0': 'r-0',
+      'l-1': 'r-1',
+      __shuffledIds: ['r-1', 'r-0'],
+    })).toBe(true);
+  });
+
   it('rejects unsupported auto-grading contracts explicitly', () => {
     expect(gradeQuestion({ id: 'g', type: 'GEOMETRY', geometryData: {} }, '42')).toMatchObject({
       status: 'invalid',
