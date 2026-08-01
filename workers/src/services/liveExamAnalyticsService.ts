@@ -6,7 +6,7 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import { nanoid } from 'nanoid';
 import type { Quiz } from '../../../src/types';
-import { calculateStudentScore } from '../../../src/features/quiz-player/utils/quizScoring';
+import { gradeQuiz } from '../../../src/domain/quiz-scoring';
 import { mapLiveExamQuestionRow } from './liveExamQuestionMapper';
 
 export interface SessionAnalytics {
@@ -192,7 +192,7 @@ async function calculateQuestionAnalytics(db: D1Database, sessionId: string, qui
     } catch {
       answers = {};
     }
-    return calculateStudentScore(quiz, answers).details;
+    return gradeQuiz(quiz, answers).details;
   });
 
   const timingRows = await db.prepare(`

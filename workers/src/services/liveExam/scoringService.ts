@@ -1,5 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import { calculateStudentScore } from '../../../../src/features/quiz-player/utils/quizScoring';
+import { QUIZ_SCORING_ENGINE_VERSION, gradeQuiz } from '../../../../src/domain/quiz-scoring';
 import { LiveExamServiceError } from './errors';
 import { getParticipants } from './participantService';
 import { loadLiveExamQuiz } from './quizLoader';
@@ -52,12 +52,12 @@ export async function calculateScoresAndClose(
   const participants = await getParticipants(db, sessionId);
 
   const scoredParticipants = participants.map((participant) => {
-    const grading = calculateStudentScore(quiz, participant.answers || {});
+    const grading = gradeQuiz(quiz, participant.answers || {});
     return {
       ...participant,
       score: grading.score,
       correctCount: grading.correctCount,
-      wrongCount: Math.max(0, grading.totalItems - grading.correctCount),
+      wrongCount: Math.max(0, grading.totalQuestions - grading.correctCount),
     };
   });
 
@@ -81,13 +81,14 @@ export async function calculateScoresAndClose(
   for (const participant of scoredParticipants) {
     await db.prepare(`
       UPDATE live_exam_participants
-      SET score = ?, correct_count = ?, wrong_count = ?, rank = ?, updated_at = ?
+      SET score = ?, correct_count = ?, wrong_count = ?, rank = ?, grading_version = ?, updated_at = ?
       WHERE id = ?
     `).bind(
       participant.score,
       participant.correctCount,
       participant.wrongCount,
       participant.rank,
+      QUIZ_SCORING_ENGINE_VERSION,
       now(),
       participant.id,
     ).run();
