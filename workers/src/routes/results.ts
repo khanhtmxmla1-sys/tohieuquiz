@@ -112,33 +112,6 @@ const validateResultAssignmentPolicy = (
     return null;
 };
 
-export const deriveResultMetricsFromAnswers = (
-    answers: unknown,
-    submittedTotalQuestions: unknown,
-): { score: number; correctCount: number; totalQuestions: number } | null => {
-    if (!answers || typeof answers !== 'object') return null;
-
-    const answerEntries = Object.entries(answers as Record<string, unknown>)
-        .filter(([key]) => !key.startsWith('_'));
-    const totalQuestions = Number(submittedTotalQuestions);
-    if (!Number.isInteger(totalQuestions) || totalQuestions <= 0 || answerEntries.length !== totalQuestions) {
-        return null;
-    }
-
-    const everyAnswerIsGraded = answerEntries.every(([, answer]) => (
-        !!answer
-        && typeof answer === 'object'
-        && typeof (answer as { isCorrect?: unknown }).isCorrect === 'boolean'
-    ));
-    if (!everyAnswerIsGraded) return null;
-
-    const correctCount = answerEntries.reduce((count, [, answer]) => (
-        (answer as { isCorrect: boolean }).isCorrect ? count + 1 : count
-    ), 0);
-    const score = Math.round((correctCount / totalQuestions) * 100) / 10;
-    return { score, correctCount, totalQuestions };
-};
-
 const getStudentForUser = async (db: D1Database, user: JWTPayload): Promise<any | null> => {
     if (!isStudent(user)) return null;
     return await db.prepare(
