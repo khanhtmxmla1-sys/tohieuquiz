@@ -13,7 +13,7 @@ required_checks:
   - Production build
   - Cypress — stubbed specs (Blueprint V3 off)
   - Cypress — Blueprint V3 spec (Blueprint V3 on)
-  - Security checks / security
+  - security
 restrictions:
   allow_force_pushes: false
   allow_deletions: false

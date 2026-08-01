@@ -114,6 +114,8 @@ describe('release readiness checks', () => {
     expect(protection).toContain('Vitest shard 2/2');
     expect(protection).toContain('Cypress — stubbed specs (Blueprint V3 off)');
     expect(protection).toContain('Cypress — Blueprint V3 spec (Blueprint V3 on)');
+    expect(protection).toContain('security');
+    expect(protection).not.toContain('Security checks / security');
     expect(protection).not.toContain('Coverage threshold');
     expect(protection).not.toContain('Release readiness / Release ready');
     expect(owners).toContain('/workers/src/security/');

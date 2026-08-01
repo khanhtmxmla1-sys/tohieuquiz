@@ -30,7 +30,7 @@ Tên check phải khớp chính xác với workflow:
 - `Production build`
 - `Cypress — stubbed specs (Blueprint V3 off)`
 - `Cypress — Blueprint V3 spec (Blueprint V3 on)`
-- `Security checks / security`
+- `security`
 
 `Coverage threshold` và `Release readiness / Release ready` chỉ chạy sau khi merge vào `main`, vì vậy không đặt làm required check của pull request. Không dùng `paths-ignore` cho sự kiện `pull_request` của các workflow có required checks; nếu cả workflow bị bỏ qua theo đường dẫn, GitHub có thể giữ check ở trạng thái chờ.
 
