@@ -7,7 +7,7 @@ class Statement {
   bind(...values: unknown[]) { this.bindings = values; return this; }
   async first<T>() {
     if (this.sql.includes('SELECT 1 AS count')) return { count: 1 } as T;
-    if (this.sql.includes('FROM d1_migrations')) return { count: 50, latest: '0051_pagination_indexes.sql' } as T;
+    if (this.sql.includes('FROM d1_migrations')) return { count: 56, latest: '0057_unified_quiz_editor_versioning.sql' } as T;
     if (this.sql.includes('FROM certificate_batches')) {
       if (this.failCertificates) throw new Error('sensitive database failure');
       return { pending_count: 1, processing_count: 0, failed_count: 0, stale_processing_count: 0 } as T;
@@ -51,6 +51,13 @@ describe('operations snapshot service', () => {
     expect(snapshot.components).toHaveLength(10);
     expect(snapshot.overallStatus).toBe('degraded');
     expect(snapshot.components.find((item) => item.id === 'd1')?.status).toBe('healthy');
+    expect(snapshot.components.find((item) => item.id === 'migrations')).toMatchObject({
+      status: 'healthy',
+      metrics: [
+        { key: 'appliedCount', value: 56 },
+        { key: 'latestIsExpected', value: true },
+      ],
+    });
     expect(snapshot.components.find((item) => item.id === 'r2')).toMatchObject({
       status: 'unavailable',
       code: 'PROBE_FAILED',
