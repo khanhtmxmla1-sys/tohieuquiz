@@ -338,6 +338,30 @@ describe('TeacherDashboard shell contracts', () => {
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/announcements');
   });
 
+  it('navigates teachers to personal settings from the account menu', async () => {
+    render(<TeacherDashboard />);
+
+    await click(screen.getByRole('button', { name: /Mở menu tài khoản của Cô An/i }));
+
+    expect(screen.queryByRole('menuitem', { name: 'Quản trị hệ thống' })).toBeNull();
+    await click(screen.getByRole('menuitem', { name: 'Cài đặt cá nhân' }));
+
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/settings');
+  });
+
+  it('navigates admins to system pages from the account menu', async () => {
+    useAuthStore.setState({ isAdmin: true } as any);
+    render(<TeacherDashboard />);
+
+    await click(screen.getByRole('button', { name: /Mở menu tài khoản của Cô An/i }));
+    const administration = screen.getByRole('menuitem', { name: 'Quản trị hệ thống' });
+    expect(administration).toHaveAttribute('aria-expanded', 'false');
+
+    await click(administration);
+    await click(screen.getByRole('menuitem', { name: 'Trạng thái hệ thống' }));
+
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/operations');
+  });
   it('searches dashboard destinations and reports an unknown function', async () => {
     render(<TeacherDashboard />);
     const search = screen.getByPlaceholderText('Tìm chức năng...');
