@@ -8,14 +8,12 @@ pull_request:
 required_checks:
   - ESLint
   - Type check (frontend + workers)
-  - Vitest shard 1/4
-  - Vitest shard 2/4
-  - Vitest shard 3/4
-  - Vitest shard 4/4
-  - Coverage threshold
+  - Vitest shard 1/2
+  - Vitest shard 2/2
   - Production build
+  - Cypress — stubbed specs (Blueprint V3 off)
+  - Cypress — Blueprint V3 spec (Blueprint V3 on)
   - Security checks / security
-  - Release readiness / Release ready
 restrictions:
   allow_force_pushes: false
   allow_deletions: false

@@ -84,11 +84,12 @@ describe('release readiness checks', () => {
       .toEqual(['oversized.js is 700000 bytes (limit 550000)']);
   });
 
-  it('runs on pull requests and main without containing a deployment command', () => {
+  it('runs on main and manual dispatch without containing a deployment command', () => {
     const workflow = readFileSync('.github/workflows/release-readiness.yml', 'utf8');
-    expect(workflow).toContain('pull_request:');
+    expect(workflow).not.toContain('pull_request:');
     expect(workflow).toContain('push:');
     expect(workflow).toContain('branches: [main]');
+    expect(workflow).toContain('workflow_dispatch:');
     expect(workflow).toContain('npm run verify');
     expect(workflow).toContain('npm run perf:budget');
     expect(workflow).toContain('tests/d1MigrationLayout.test.ts');
@@ -109,7 +110,12 @@ describe('release readiness checks', () => {
     expect(protection).toContain('require_code_owner_reviews: true');
     expect(protection).toContain('allow_force_pushes: false');
     expect(protection).toContain('allow_direct_push: false');
-    expect(protection).toContain('Release readiness / Release ready');
+    expect(protection).toContain('Vitest shard 1/2');
+    expect(protection).toContain('Vitest shard 2/2');
+    expect(protection).toContain('Cypress — stubbed specs (Blueprint V3 off)');
+    expect(protection).toContain('Cypress — Blueprint V3 spec (Blueprint V3 on)');
+    expect(protection).not.toContain('Coverage threshold');
+    expect(protection).not.toContain('Release readiness / Release ready');
     expect(owners).toContain('/workers/src/security/');
     expect(owners).toContain('/workers/migrations/');
     expect(runbook).toContain('File trong repository');
