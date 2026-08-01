@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { RefreshCcw } from 'lucide-react';
 import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
+import { orderingItemIdAt, selectedOrderingRanks } from '../utils/answerState';
 
 /**
  * Robust helper: extract text from any item format (String, Number, Object).
@@ -39,7 +40,7 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
     answers,
     onAnswerChange,
 }) => {
-    const currentAnswers = (answers[q.id] as Record<number, number>) || {};
+    const currentRanks = selectedOrderingRanks(q, answers[q.id]);
     const items = (q as any).items || [];
 
     // Visual Shuffle: Shuffle items for display but keep track of original indices.
@@ -61,10 +62,11 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
     const handleOrderChange = (originalIndex: number, orderValue: string) => {
         const num = parseInt(orderValue, 10);
         if (orderValue === '' || (!isNaN(num) && num >= 1 && num <= items.length)) {
-            onAnswerChange(q.id, {
-                ...currentAnswers,
-                [originalIndex]: orderValue === '' ? undefined : num
-            });
+            const itemId = orderingItemIdAt(originalIndex);
+            const ranks = { ...currentRanks };
+            if (orderValue === '') delete ranks[itemId];
+            else ranks[itemId] = num;
+            onAnswerChange(q.id, { type: 'ORDERING', ranks });
         }
     };
 
@@ -86,7 +88,7 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
                                 pattern="[0-9]*"
                                 min="1"
                                 max={items.length}
-                                value={currentAnswers[item.idx] || ''}
+                                value={currentRanks[orderingItemIdAt(item.idx)] || ''}
                                 onChange={(e) => handleOrderChange(item.idx, e.target.value)}
                                 placeholder="?"
                                 className="w-12 h-12 text-center text-[16px] md:text-xl font-bold border-2 border-amber-400 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
@@ -101,10 +103,10 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
 
             <div className="flex justify-between items-center mt-4">
                 <p className="text-xs text-gray-500">
-                    Đã điền: {Object.values(currentAnswers).filter(v => v !== undefined).length}/{items.length}
+                    Đã điền: {Object.values(currentRanks).filter(v => v !== undefined).length}/{items.length}
                 </p>
                 <button
-                    onClick={() => onAnswerChange(q.id, {})}
+                    onClick={() => onAnswerChange(q.id, { type: 'ORDERING', ranks: {} })}
                     className="text-xs text-red-500 hover:underline flex items-center"
                 >
                     <RefreshCcw className="w-3 h-3 mr-1" /> Làm lại câu này

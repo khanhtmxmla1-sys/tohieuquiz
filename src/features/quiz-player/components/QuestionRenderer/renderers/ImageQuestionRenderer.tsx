@@ -1,6 +1,7 @@
 import React from 'react';
 import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
+import { optionIdAt, selectedOptionId } from '../utils/answerState';
 
 const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -17,7 +18,8 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {options.map((option: string, index: number) => {
             const label = String.fromCharCode(65 + index);
-            const isSelected = answers[question.id] === label;
+            const optionId = optionIdAt(index);
+            const isSelected = selectedOptionId(question, answers[question.id]) === optionId;
             const imageUrl = optionImages[index];
 
             return (
@@ -25,7 +27,7 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
                 key={index}
                 type="button"
                 aria-pressed={isSelected}
-                onClick={() => onAnswerChange(question.id, label)}
+                onClick={() => onAnswerChange(question.id, { type: 'IMAGE_QUESTION', optionId })}
                 className={`relative flex flex-col overflow-hidden rounded-[10px] border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                   isSelected
                     ? 'border-emerald-500 bg-emerald-50'
@@ -66,14 +68,15 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {options.map((option: string, index: number) => {
             const label = String.fromCharCode(65 + index);
-            const isSelected = answers[question.id] === label;
+            const optionId = optionIdAt(index);
+            const isSelected = selectedOptionId(question, answers[question.id]) === optionId;
 
             return (
               <button
                 key={index}
                 type="button"
                 aria-pressed={isSelected}
-                onClick={() => onAnswerChange(question.id, label)}
+                onClick={() => onAnswerChange(question.id, { type: 'IMAGE_QUESTION', optionId })}
                 className={`flex min-h-14 items-center rounded-[10px] border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                   isSelected
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-950'

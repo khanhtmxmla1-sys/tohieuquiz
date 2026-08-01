@@ -2,6 +2,7 @@ import React from 'react';
 import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
 import ChoiceIndicator from '../atoms/ChoiceIndicator';
+import { optionIdAt, selectedOptionId } from '../utils/answerState';
 
 const MCQRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -56,14 +57,15 @@ const MCQRenderer: React.FC<BaseRendererProps> = ({
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
       {rawOptions.map((option: unknown, index: number) => {
         const label = String.fromCharCode(65 + index);
-        const isSelected = answers[question.id] === label;
+        const optionId = optionIdAt(index);
+        const isSelected = selectedOptionId(question, answers[question.id]) === optionId;
 
         return (
           <button
             key={index}
             type="button"
             aria-pressed={isSelected}
-            onClick={() => onAnswerChange(question.id, label)}
+            onClick={() => onAnswerChange(question.id, { type: 'MCQ', optionId })}
             className={`group flex min-h-16 items-center rounded-[12px] border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
               isSelected
                 ? 'border-emerald-500 bg-emerald-50 text-emerald-950'
