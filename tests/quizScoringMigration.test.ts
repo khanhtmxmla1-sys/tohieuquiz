@@ -16,5 +16,6 @@ describe('canonical scoring migration', () => {
     expect(schema).toContain('answer_schema_version INTEGER NOT NULL DEFAULT 1');
     expect(schema).toContain("grading_version TEXT NOT NULL DEFAULT 'legacy'");
     expect(registry).toContain("('0058_canonical_quiz_scoring_v2.sql')");
+    expect(registry).toContain("('0059_quiz_scoring_rollout_flags.sql')");
   });
 });

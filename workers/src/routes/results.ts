@@ -17,6 +17,10 @@ import {
     buildAuthoritativeStoredAnswers,
     gradeQuizSubmission,
 } from '../services/quizGradingService';
+import {
+    recordScoringShadowObservation,
+    resolveQuizScoringRolloutMode,
+} from '../services/quizScoringRolloutService';
 import { handleInterventionRoutes } from './interventions';
 import {
     buildResultSkillBreakdownFromData,
@@ -450,6 +454,11 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             }
         }
 
+        const scoringMode = await resolveQuizScoringRolloutMode(db, {
+            role: user.role as 'admin' | 'teacher' | 'student' | 'parent' | 'public',
+            username: user.username,
+            classIds: studentContext?.class_id ? [String(studentContext.class_id)] : [],
+        });
         let grading;
         try {
             grading = await gradeQuizSubmission(db, quizId, body.answers || {});
@@ -464,6 +473,15 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             }
             throw error;
         }
+        recordScoringShadowObservation(scoringMode, {
+            quizId: String(quizId),
+            canonicalScore: grading.score,
+            canonicalCorrectCount: grading.correctCount,
+            canonicalTotalQuestions: grading.totalQuestions,
+            submittedScore: body.score,
+            submittedCorrectCount: body.correctCount,
+            submittedTotalQuestions: body.totalQuestions,
+        });
         const score = grading.score;
         const correctCount = grading.correctCount;
         const totalQuestions = grading.totalQuestions;
@@ -512,6 +530,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             correctCount,
             totalQuestions,
             gradingVersion: grading.gradingVersion,
+            scoringMode,
             answers: authoritativeAnswers,
             validationDetails: grading.details,
         });
@@ -539,7 +558,14 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             return errorResponse('Forbidden: Authenticated user required', 403);
         }
 
-        return await handleValidateAnswers(db, body, { includeCorrectAnswers: requireTeacher(user) });
+        return await handleValidateAnswers(db, body, {
+            includeCorrectAnswers: requireTeacher(user),
+            subject: {
+                role: user.role as 'admin' | 'teacher' | 'student' | 'parent' | 'public',
+                username: user.username,
+                classIds: [],
+            },
+        });
     }
 
     return errorResponse('Not found: ' + path, 404);

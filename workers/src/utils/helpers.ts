@@ -6,6 +6,11 @@ import { Question, Assignment, PetData, ShopItem, ResultRow } from '../types';
 import { CURRENT_MATH_FORMAT_VERSION, prepareIncomingQuestion } from '../services/questionMath';
 import { QuizGradingServiceError, gradeQuizSubmission } from '../services/quizGradingService';
 import { prepareQuestionScoringContractForSave } from '../services/questionScoringContract';
+import {
+    recordScoringShadowObservation,
+    resolveQuizScoringRolloutMode,
+} from '../services/quizScoringRolloutService';
+import type { FeatureFlagSubject } from '../../../shared/feature-rollout.contract';
 
 // ============ Map question data for D1 insert ============
 export function mapQuestionForSave(q: Partial<Question> & { type: string }, quizId: string): string[] {
@@ -160,10 +165,23 @@ export function mapShopItem(i: ShopItem): any {
 export async function handleValidateAnswers(
     db: D1Database,
     body: any,
-    options: { includeCorrectAnswers?: boolean } = {},
+    options: { includeCorrectAnswers?: boolean; subject?: FeatureFlagSubject } = {},
 ): Promise<Response> {
     try {
+        const scoringMode = await resolveQuizScoringRolloutMode(
+            db,
+            options.subject || { role: 'public', username: null, classIds: [] },
+        );
         const grading = await gradeQuizSubmission(db, body?.quizId, body?.answers || {});
+        recordScoringShadowObservation(scoringMode, {
+            quizId: String(body?.quizId || ''),
+            canonicalScore: grading.score,
+            canonicalCorrectCount: grading.correctCount,
+            canonicalTotalQuestions: grading.totalQuestions,
+            submittedScore: body?.score,
+            submittedCorrectCount: body?.correctCount,
+            submittedTotalQuestions: body?.totalQuestions,
+        });
         const questionMap = new Map(grading.questions.map((question) => [String(question.id || ''), question]));
         const details = grading.details.map((detail) => {
             const responseDetail: Record<string, unknown> = {
@@ -191,6 +209,7 @@ export async function handleValidateAnswers(
             total: grading.totalQuestions,
             totalQuestions: grading.totalQuestions,
             gradingVersion: grading.gradingVersion,
+            scoringMode,
             details,
         });
     } catch (error) {
