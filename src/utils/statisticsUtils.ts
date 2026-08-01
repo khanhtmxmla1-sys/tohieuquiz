@@ -5,6 +5,7 @@
  */
 
 import { StudentResult } from '../types';
+import { checkAnswer } from './question/scoring.util';
 
 /**
  * Calculate mean (average) of an array
@@ -219,109 +220,21 @@ export const selectResultsForQuestionAnalysis = (
 };
 
 /**
- * Fallback function to calculate isCorrect from answer and question data
+ * Regrade legacy answers with the canonical review facade. Returning undefined
+ * preserves the historical "unknown" bucket when a snapshot is incomplete or
+ * the question type is unsupported.
  */
 const calculateIsCorrectFallback = (
-    answer: any,
-    question: QuestionWithCorrect
+    answer: unknown,
+    question: QuestionWithCorrect,
 ): boolean | undefined => {
     if (answer === undefined || answer === null) return undefined;
-
-    const { correctAnswer, type, items, blanks, pairs } = question;
-
-    // If answer is new format with isCorrect, use it directly
-    if (typeof answer === 'object' && typeof answer.isCorrect === 'boolean') {
-        return answer.isCorrect;
-    }
-
-    // Old format: answer is just the value (e.g., "A", "100", etc.)
-    const selectedAnswer = typeof answer === 'object' ? answer.selectedAnswer : answer;
-
-    // MCQ / IMAGE_QUESTION: Compare letters
-    if (type === 'MCQ' || type === 'IMAGE_QUESTION') {
-        if (correctAnswer === undefined || correctAnswer === null) return undefined;
-        const studentVal = String(selectedAnswer).trim().toUpperCase();
-        let correctVal = String(correctAnswer).trim().toUpperCase();
-        // Handle "B. Answer text" format -> "B"
-        const letterMatch = correctVal.match(/^([A-Z])[.)\s]/);
-        if (letterMatch) correctVal = letterMatch[1];
-        return studentVal === correctVal;
-    }
-
-    // SHORT_ANSWER: Case-insensitive
-    if (type === 'SHORT_ANSWER') {
-        if (correctAnswer === undefined || correctAnswer === null) return undefined;
-        const cleanStudent = String(selectedAnswer || '').trim().replace(/^'/, '').toLowerCase();
-        const cleanCorrect = String(correctAnswer || '').trim().replace(/^'/, '').toLowerCase();
-        return cleanStudent === cleanCorrect;
-    }
-
-    // MULTIPLE_SELECT: Array comparison (use correctAnswers first, fallback to correctAnswer)
-    if (type === 'MULTIPLE_SELECT') {
-        const correctData = question.correctAnswers || correctAnswer;
-        if (correctData === undefined || correctData === null) return undefined;
-        try {
-            const correctArr = Array.isArray(correctData) ? correctData : JSON.parse(correctData);
-            const studentArr = Array.isArray(selectedAnswer) ? selectedAnswer : [];
-            return correctArr.length === studentArr.length &&
-                correctArr.every((c: string) => studentArr.includes(c));
-        } catch { return undefined; }
-    }
-
-    // TRUE_FALSE: Check all items
-    if (type === 'TRUE_FALSE' && items && Array.isArray(items)) {
-        const studentItems = typeof selectedAnswer === 'object' ? selectedAnswer : {};
-        return items.every((item: any, i: number) => {
-            const itemKey = item.id || `item-${i}`;
-            return studentItems[itemKey] === item.isCorrect;
-        });
-    }
-
-    // MATCHING: Compare pairs
-    if (type === 'MATCHING' && pairs && Array.isArray(pairs)) {
-        const rawPairs = typeof selectedAnswer === 'object' ? selectedAnswer : {};
-        const cleanedPairs: Record<string, string> = {};
-        Object.entries(rawPairs || {}).forEach(([key, value]) => {
-            if (key === 'selectedLeft' || key === '__shuffledIds') return;
-            if (typeof value !== 'string') return;
-
-            const leftMatch = key.match(/^l-(\d+)$/i);
-            const rightMatch = value.match(/^r-(\d+)$/i);
-            const leftKey = leftMatch ? String(pairs[Number(leftMatch[1])]?.left ?? key) : key;
-            const rightVal = rightMatch ? String(pairs[Number(rightMatch[1])]?.right ?? value) : value;
-            cleanedPairs[leftKey] = rightVal;
-        });
-
-        if (Object.keys(cleanedPairs).length !== pairs.length) return false;
-        return pairs.every((pair: any) => cleanedPairs[pair.left] === pair.right);
-    }
-
-    // DRAG_DROP: Compare blanks
-    if (type === 'DRAG_DROP' && blanks && Array.isArray(blanks)) {
-        const studentBlanks = typeof selectedAnswer === 'object' ? selectedAnswer : {};
-        const studentValues = Object.values(studentBlanks);
-        if (studentValues.length !== blanks.length) return false;
-        const sortedKeys = Object.keys(studentBlanks).sort((a, b) => Number(a) - Number(b));
-        return sortedKeys.every((key, idx) => {
-            const studentWord = String(studentBlanks[key]).trim().toLowerCase();
-            const correctWord = String(blanks[idx]).trim().toLowerCase();
-            return studentWord === correctWord;
-        });
-    }
-
-    // DROPDOWN: Compare with blanks correctAnswer
-    if (type === 'DROPDOWN' && blanks && Array.isArray(blanks)) {
-        const studentDropdowns = typeof selectedAnswer === 'object' ? selectedAnswer : {};
-        return blanks.every((blank: any) => {
-            const studentVal = String(studentDropdowns[blank.id] || '').trim();
-            const correctVal = String(blank.correctAnswer || '').trim();
-            return studentVal === correctVal;
-        });
-    }
-
-    return undefined;
+    const selectedAnswer = answer && typeof answer === 'object' && 'selectedAnswer' in answer
+        ? (answer as { selectedAnswer?: unknown }).selectedAnswer
+        : answer;
+    const grading = checkAnswer(question, selectedAnswer);
+    return grading.feedback ? undefined : grading.isCorrect;
 };
-
 export const analyzeQuestionDifficulty = (
     results: StudentResult[],
     questions: QuestionWithCorrect[]
@@ -370,7 +283,8 @@ export const analyzeQuestionDifficulty = (
             const persistedCorrectness = answer && typeof answer === 'object' && typeof answer.isCorrect === 'boolean'
                 ? answer.isCorrect
                 : undefined;
-            const isCorrect = persistedCorrectness ?? calculateIsCorrectFallback(answer, question);
+            const recalculatedCorrectness = calculateIsCorrectFallback(answer, question);
+            const isCorrect = recalculatedCorrectness ?? persistedCorrectness;
 
             if (skipped) {
                 stats.skipped++;

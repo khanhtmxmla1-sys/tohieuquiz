@@ -91,6 +91,30 @@ describe('teacher cohort question analysis', () => {
         ]);
     });
 
+    it('regrades a legacy dropdown result instead of trusting stale isCorrect metadata', () => {
+        const analysis = analyzeQuestionDifficulty([
+            result({
+                answers: {
+                    drop: { selectedAnswer: { 0: 'x' }, isCorrect: false },
+                },
+            }),
+        ], [{
+            id: 'drop',
+            question: 'Chọn đáp án',
+            type: 'DROPDOWN',
+            blanks: [{ id: 'blank_0', options: ['x', 'y'], correctAnswer: 'x' }],
+            text: '[blank_0]',
+        } as QuestionWithCorrect]);
+
+        expect(analysis[0]).toMatchObject({
+            correctCount: 1,
+            wrongCount: 0,
+            unknownCount: 0,
+            evaluatedCount: 1,
+            correctRate: 100,
+        });
+    });
+
     it('keeps unsupported legacy answers out of the denominator', () => {
         const analysis = analyzeQuestionDifficulty([
             result({
