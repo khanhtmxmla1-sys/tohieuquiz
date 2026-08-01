@@ -288,17 +288,13 @@ describe('TeacherDashboard shell contracts', () => {
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes?mode=create');
   });
 
-  it('preserves the selected quiz when opening the edit screen', async () => {
+  it('opens the selected quiz in the canonical unified editor route', async () => {
     mocks.location.pathname = '/teacher/quizzes';
     mocks.location.search = '';
-    const view = render(<TeacherDashboard />);
+    render(<TeacherDashboard />);
 
     await click(await screen.findByRole('button', { name: 'Sửa đề' }));
-    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes?mode=create');
-
-    mocks.location.search = '?mode=create';
-    view.rerender(<TeacherDashboard />);
-    expect(await screen.findByTestId('create-tab')).toHaveTextContent('Phân số');
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes/quiz-1/edit');
   });
 
   it('uses the create query mode and returns to quiz management after saving', async () => {
