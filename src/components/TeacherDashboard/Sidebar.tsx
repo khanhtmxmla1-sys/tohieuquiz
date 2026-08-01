@@ -11,13 +11,8 @@ import {
     LayoutTemplate,
     List,
     LogOut,
-    Megaphone,
     PlusCircle,
     Radio,
-    ScanSearch,
-    Settings,
-    ServerCog,
-    Users,
 } from 'lucide-react';
 import { SCHOOL_NAME } from '../../config/constants';
 import { useAuthStore } from '../../../stores/authStore';
@@ -32,7 +27,7 @@ export interface SidebarProps {
     setIsMobileOpen?: (open: boolean) => void;
 }
 
-type GroupKey = 'exams' | 'teaching' | 'students' | 'utilities' | 'certificates' | 'account' | 'system';
+type GroupKey = 'exams' | 'teaching' | 'students' | 'utilities' | 'certificates';
 
 type NavItem = {
     id: TeacherDashboardTab;
@@ -46,8 +41,6 @@ const GROUP_KEYS: GroupKey[] = [
     'students',
     'utilities',
     'certificates',
-    'account',
-    'system',
 ];
 
 const groupForTab = (tab: TeacherDashboardTab): GroupKey | null => {
@@ -56,8 +49,6 @@ const groupForTab = (tab: TeacherDashboardTab): GroupKey | null => {
     if (tab === 'classes') return 'students';
     if (tab === 'gift-shop') return 'utilities';
     if (['certificates', 'admin-templates'].includes(tab)) return 'certificates';
-    if (tab === 'personal-settings') return 'account';
-    if (['announcements', 'teachers', 'math-audit', 'operations'].includes(tab)) return 'system';
     return null;
 };
 
@@ -171,16 +162,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             : []),
     ];
 
-    const accountItems: NavItem[] = [
-        { id: 'personal-settings', label: 'Cài đặt cá nhân', icon: <Settings className="size-5" /> },
-    ];
-
-    const settingItems: NavItem[] = [
-        { id: 'announcements', label: 'Thông báo', icon: <Megaphone className="size-5" /> },
-        { id: 'teachers', label: 'Giáo viên', icon: <Users className="size-5" /> },
-        { id: 'math-audit', label: 'Theo dõi lỗi công thức', icon: <ScanSearch className="size-5" /> },
-        { id: 'operations', label: 'Operations Center', icon: <ServerCog className="size-5" /> },
-    ];
 
     const navigateTo = (tab: TeacherDashboardTab) => {
         setActiveTab(tab);
@@ -220,14 +201,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         title,
         items,
         groupKey,
-        adminOnly = false,
     }: {
         title: string;
         items: NavItem[];
         groupKey: GroupKey;
-        adminOnly?: boolean;
     }) => {
-        if ((adminOnly && !authStore.isAdmin) || items.length === 0) return null;
+        if (items.length === 0) return null;
         const isOpen = openGroups.has(groupKey);
         const panelId = `teacher-sidebar-${groupKey}`;
 
@@ -320,8 +299,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <NavGroup title="Học sinh" items={studentItems} groupKey="students" />
                     <NavGroup title="Tiện ích" items={utilityItems} groupKey="utilities" />
                     <NavGroup title="Chứng nhận" items={certificateItems} groupKey="certificates" />
-                    <NavGroup title="Tài khoản" items={accountItems} groupKey="account" />
-                    <NavGroup title="Quản trị hệ thống" items={settingItems} groupKey="system" adminOnly />
                 </nav>
 
                 <div className="shrink-0 border-t border-[#E5E7EB] bg-white p-3">
