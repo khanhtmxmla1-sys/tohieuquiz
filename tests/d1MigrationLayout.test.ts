@@ -31,7 +31,7 @@ describe('D1 migration layout', () => {
     expect(new Set(registered).size).toBe(registered.length);
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
-    expect(migrations.at(-1)).toBe('0057_unified_quiz_editor_versioning.sql');
+    expect(migrations.at(-1)).toBe('0058_canonical_quiz_scoring_v2.sql');
   });
 
   it('stores assignment-scoped result identity in migration 0040', () => {

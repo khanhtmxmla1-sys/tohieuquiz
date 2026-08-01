@@ -1,0 +1,4 @@
+-- Safe rollback posture for migration 0058.
+-- Disable canonical scoring reads/writes with the rollout control plane.
+-- Additive version columns are intentionally retained to avoid destructive D1 schema changes.
+-- A full schema restore requires an explicitly approved D1 Time Travel operation.

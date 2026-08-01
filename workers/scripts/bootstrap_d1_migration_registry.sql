@@ -63,4 +63,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0054_feature_rollout_control_plane.sql'),
   ('0055_certificate_render_backgrounds_png.sql'),
   ('0056_add_generated_certificate_templates.sql'),
-  ('0057_unified_quiz_editor_versioning.sql');
+  ('0057_unified_quiz_editor_versioning.sql'),
+  ('0058_canonical_quiz_scoring_v2.sql');

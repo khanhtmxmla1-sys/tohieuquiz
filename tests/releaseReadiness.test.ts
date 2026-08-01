@@ -37,6 +37,14 @@ describe('release readiness checks', () => {
     expect(findDestructiveSql(rollback)).toEqual([]);
   });
 
+  it('keeps the canonical scoring rollback non-destructive', () => {
+    const rollback = readFileSync(
+      'workers/migrations/rollback/0058_canonical_quiz_scoring_v2.rollback.sql',
+      'utf8',
+    );
+    expect(findDestructiveSql(rollback)).toEqual([]);
+  });
+
   it('requires known flags and boolean rollout values', () => {
     expect(validateReleaseFlags(releaseEnv)).toEqual([]);
     expect(validateReleaseFlags({

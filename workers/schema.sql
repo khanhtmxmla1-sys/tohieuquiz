@@ -190,7 +190,8 @@ CREATE TABLE IF NOT EXISTS questions (
   math_format_version INTEGER NOT NULL DEFAULT 1,
   points REAL,
   explanation TEXT NOT NULL DEFAULT '',
-  image_alt TEXT NOT NULL DEFAULT ''
+  image_alt TEXT NOT NULL DEFAULT '',
+  answer_schema_version INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE INDEX IF NOT EXISTS idx_questions_tags ON questions(tags);
@@ -210,7 +211,8 @@ CREATE TABLE IF NOT EXISTS results (
   time_taken INTEGER DEFAULT 0,
   submitted_at TEXT NOT NULL,
   answers TEXT DEFAULT '{}',
-  analytics_json TEXT DEFAULT '[]'
+  analytics_json TEXT DEFAULT '[]',
+  grading_version TEXT NOT NULL DEFAULT 'legacy'
 );
 
 -- Assignments
@@ -935,6 +937,7 @@ CREATE TABLE IF NOT EXISTS live_exam_participants (
   correct_count INTEGER,
   wrong_count INTEGER,
   rank INTEGER,
+  grading_version TEXT,
   tab_switches INTEGER DEFAULT 0,
   warnings TEXT,
   created_at TEXT NOT NULL,
