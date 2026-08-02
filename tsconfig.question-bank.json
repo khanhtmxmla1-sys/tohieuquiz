@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "skipLibCheck": true
+  },
+  "include": [
+    "scripts/question-bank/**/*.ts",
+    "schemas/quiz.schema.ts",
+    "workers/src/services/questionBankContent.ts",
+    "src/types/domain.types.ts"
+  ],
+  "exclude": ["node_modules"]
+}
