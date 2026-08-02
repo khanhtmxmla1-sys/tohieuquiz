@@ -40,6 +40,8 @@ const TAB_LABELS: Partial<Record<TeacherDashboardTab, string>> = {
   announcements: 'Thông báo',
   teachers: 'Giáo viên',
   'math-audit': 'Theo dõi lỗi công thức',
+  operations: 'Trạng thái hệ thống',
+  'system-question-bank': 'Ngân hàng câu hỏi hệ thống',
 };
 
 export const TeacherDashboardHeader = (props: TeacherDashboardHeaderProps) => (

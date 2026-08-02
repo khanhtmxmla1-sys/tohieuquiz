@@ -1,4 +1,5 @@
 import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIStore';
+import { useSystemQuestionBankFeatureFlag } from '../../../features/question-bank/useSystemQuestionBankFeatureFlag';
 import {
   AdminTemplatesPage,
   AnnouncementSettings,
@@ -10,6 +11,7 @@ import {
   MathAuditPage,
   OperationsCenterPage,
   PersonalSettingsTab,
+  SystemQuestionBankAdminPage,
   TeacherCertificatesPage,
   TeacherManagementTab,
 } from './dashboardLazyTabs';
@@ -20,6 +22,16 @@ interface TeacherDashboardFeatureTabsProps {
   giftShopEnabled: boolean;
   username?: string | null;
 }
+
+const SystemQuestionBankAdminGate = () => {
+  const questionBankFlag = useSystemQuestionBankFeatureFlag();
+  if (!questionBankFlag.ready) {
+    return <div role="status" className="grid min-h-48 place-items-center text-sm text-slate-500">Đang tải cấu hình ngân hàng câu hỏi…</div>;
+  }
+  return questionBankFlag.enabled
+    ? <SystemQuestionBankAdminPage />
+    : <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-900">Ngân hàng câu hỏi hệ thống hiện đang tắt trong Feature Rollout.</div>;
+};
 
 export const TeacherDashboardFeatureTabs = (props: TeacherDashboardFeatureTabsProps) => (
   <>
@@ -39,5 +51,6 @@ export const TeacherDashboardFeatureTabs = (props: TeacherDashboardFeatureTabsPr
     {props.activeTab === 'admin-templates' && props.isAdmin && <AdminTemplatesPage />}
     {props.activeTab === 'math-audit' && props.isAdmin && <MathAuditPage />}
     {props.activeTab === 'operations' && props.isAdmin && <OperationsCenterPage />}
+    {props.activeTab === 'system-question-bank' && props.isAdmin && <SystemQuestionBankAdminGate />}
   </>
 );

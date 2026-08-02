@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIStore';
 
-const ADMIN_TABS: TeacherDashboardTab[] = ['announcements', 'teachers', 'admin-templates', 'math-audit', 'operations'];
+const ADMIN_TABS: TeacherDashboardTab[] = ['announcements', 'teachers', 'admin-templates', 'math-audit', 'operations', 'system-question-bank'];
 
 export const useDashboardPermissions = (
   activeTab: TeacherDashboardTab,

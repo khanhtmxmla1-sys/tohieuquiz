@@ -21,6 +21,7 @@ const TEACHER_DASHBOARD_TABS = [
     'admin-templates',
     'math-audit',
     'operations',
+    'system-question-bank',
     'personal-settings',
 ] as const;
 
@@ -78,7 +79,7 @@ export const useTeacherDashboardUIStore = create<TeacherDashboardUIState>()(pers
     clearAssignmentComposerDraft: () => set({ assignmentComposerDraft: null }),
 }), {
     name: 'tohieuquiz_teacher_dashboard_ui',
-    version: 2,
+    version: 3,
     migrate: (persistedState) => {
         const state = (persistedState || {}) as Partial<TeacherDashboardUIState>;
         return {

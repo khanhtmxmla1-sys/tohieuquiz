@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ChevronRight,
+  LibraryBig,
   LogOut,
   Megaphone,
   ScanSearch,
@@ -11,6 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIStore';
+import { useSystemQuestionBankFeatureFlag } from '../../../features/question-bank/useSystemQuestionBankFeatureFlag';
 
 interface TeacherAccountMenuProps {
   activeTab: TeacherDashboardTab;
@@ -26,6 +28,7 @@ type AdminMenuItem = {
   id: TeacherDashboardTab;
   label: string;
   icon: LucideIcon;
+  requiresQuestionBankFlag?: boolean;
 };
 
 const ACCOUNT_MENU_ID = 'teacher-account-menu';
@@ -36,11 +39,8 @@ const ADMIN_ITEMS: readonly AdminMenuItem[] = [
   { id: 'teachers', label: 'Quản lý giáo viên', icon: Users },
   { id: 'math-audit', label: 'Kiểm tra lỗi công thức', icon: ScanSearch },
   { id: 'operations', label: 'Trạng thái hệ thống', icon: ServerCog },
+  { id: 'system-question-bank', label: 'Ngân hàng câu hỏi hệ thống', icon: LibraryBig, requiresQuestionBankFlag: true },
 ];
-
-const isAdminTab = (tab: TeacherDashboardTab) => (
-  ADMIN_ITEMS.some((item) => item.id === tab)
-);
 
 const navigationItemClass = (active: boolean) => [
   'flex min-h-11 w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-sm',
@@ -63,7 +63,11 @@ export const TeacherAccountMenu = ({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const adminActive = isAdminTab(activeTab);
+  const questionBankFlag = useSystemQuestionBankFeatureFlag();
+  const adminItems = ADMIN_ITEMS.filter((item) => (
+    !item.requiresQuestionBankFlag || (questionBankFlag.ready && questionBankFlag.enabled)
+  ));
+  const adminActive = adminItems.some((item) => item.id === activeTab);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -191,7 +195,7 @@ export const TeacherAccountMenu = ({
                     aria-label="Các chức năng quản trị hệ thống"
                     className="ml-4 mt-1 space-y-0.5 border-l border-[#E5E7EB] pl-2"
                   >
-                    {ADMIN_ITEMS.map((item) => {
+                    {adminItems.map((item) => {
                       const Icon = item.icon;
                       const active = activeTab === item.id;
                       return (
