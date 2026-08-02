@@ -1,0 +1,1943 @@
+[
+  {
+    "id": "qb-m5-s1-l01-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Trong số 5.372.418, chữ số 7 có giá trị là bao nhiêu?",
+      "options": [
+        "7 000",
+        "70 000",
+        "700 000",
+        "7 000 000"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: MCQ cơ bản",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l01-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Số gồm 6 triệu, 4 trăm nghìn, 2 chục nghìn, 5 trăm và 8 đơn vị là số nào?",
+      "options": [
+        "6 420 508",
+        "6 402 580",
+        "6 425 008",
+        "6 420 058"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: MCQ cơ bản",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l01-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Dấu thích hợp điền vào 5.372.418 … 5.376.500 là gì?",
+      "options": [
+        ">",
+        "<",
+        "=",
+        "Không so sánh được"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: MCQ cơ bản",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l01-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Làm tròn số 5.372.418 đến hàng nghìn được số nào?",
+      "options": [
+        "5.371.000",
+        "5.372.000",
+        "5.373.000",
+        "5.372.418"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: MCQ cơ bản",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l01-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết số liền trước của 5.376.500.",
+      "correctAnswer": "5376499"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: Trả lời ngắn",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l01-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết số tự nhiên gồm 8 triệu, 3 trăm nghìn, 4 nghìn, 6 chục và 2 đơn vị.",
+      "correctAnswer": "8304062"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: Trả lời ngắn",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l01-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai cho mỗi nhận định về số tự nhiên.",
+      "items": [
+        {
+          "id": "m5-s1-l01-q07-i1",
+          "statement": "Mọi số tự nhiên đều có một số liền sau.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l01-q07-i2",
+          "statement": "Số 0 là số tự nhiên nhỏ nhất.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l01-q07-i3",
+          "statement": "Có số tự nhiên lớn nhất.",
+          "isCorrect": false
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: Đúng sai",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l01-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "ORDERING",
+      "question": "Sắp xếp các số sau theo thứ tự từ bé đến lớn.",
+      "items": [
+        "5376500",
+        "5372408",
+        "5372418",
+        "5372518"
+      ],
+      "correctOrder": [
+        1,
+        2,
+        3,
+        0
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: Tương tác",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l01-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một thư viện có 12.450 sách thiếu nhi và 8.375 sách khoa học. Thư viện có tất cả bao nhiêu cuốn sách?",
+      "options": [
+        "20 725",
+        "20825",
+        "21825",
+        "19825"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: Vận dụng",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l01-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l01-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Kho có 50.000 quyển vở, đã chuyển đi 18.765 quyển. Kho còn lại bao nhiêu quyển?",
+      "correctAnswer": "31235"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L01",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 1",
+        "Ôn tập số tự nhiên",
+        "Vai trò: Vận dụng",
+        "số tự nhiên",
+        "hàng và lớp"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "24.599 + 7.452 bằng bao nhiêu?",
+      "options": [
+        "31951",
+        "32051",
+        "32151",
+        "17147"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: MCQ cơ bản",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "24.599 - 7.452 bằng bao nhiêu?",
+      "options": [
+        "17147",
+        "32051",
+        "18147",
+        "-17147"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: MCQ cơ bản",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "25 × 125 bằng bao nhiêu?",
+      "options": [
+        "3125",
+        "625",
+        "3250",
+        "2500"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: MCQ cơ bản",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "6194 : 19 bằng bao nhiêu?",
+      "options": [
+        "325",
+        "326",
+        "345",
+        "6175"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: MCQ cơ bản",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính giá trị biểu thức 24599 + 7452 × 3.",
+      "correctAnswer": "46955"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: Trả lời ngắn",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tìm x, biết x - 7452 = 24599.",
+      "correctAnswer": "32051"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: Trả lời ngắn",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về thứ tự thực hiện phép tính.",
+      "items": [
+        {
+          "id": "m5-s1-l02-q07-i1",
+          "statement": "Trong biểu thức chỉ có cộng và trừ, thực hiện từ trái sang phải.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l02-q07-i2",
+          "statement": "Trong biểu thức có cộng và nhân, luôn thực hiện phép cộng trước.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l02-q07-i3",
+          "statement": "Biểu thức trong ngoặc được thực hiện trước.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: Đúng sai",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối mỗi biểu thức với kết quả đúng.",
+      "pairs": [
+        {
+          "left": "25 × 10",
+          "right": "250"
+        },
+        {
+          "left": "25 × 100",
+          "right": "2500"
+        },
+        {
+          "left": "2500 : 10",
+          "right": "250"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: Tương tác",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một trường có 19 lớp, mỗi lớp nhận 35 quyển truyện. Nhà trường mua thêm 120 quyển. Có tất cả bao nhiêu quyển truyện?",
+      "options": [
+        "785",
+        "665",
+        "2315",
+        "545"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: Vận dụng",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l02-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l02-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một xe chở 19 thùng, mỗi thùng có 326 chai nước. Đã phát 1510 chai. Còn lại bao nhiêu chai?",
+      "correctAnswer": "4684"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L02",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 2",
+        "Ôn tập các phép tính với số tự nhiên",
+        "Vai trò: Vận dụng",
+        "cộng",
+        "trừ"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Phân số nào bằng 5/10?",
+      "options": [
+        "6/11",
+        "15/30",
+        "10/30",
+        "10/5"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: MCQ cơ bản",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Phân số 18/24 rút gọn được phân số nào?",
+      "options": [
+        "9/12",
+        "6/8",
+        "3/4",
+        "2/3"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: MCQ cơ bản",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Trong hai phân số 5/9 và 7/9, phân số lớn hơn là phân số nào?",
+      "options": [
+        "5/9",
+        "7/9",
+        "Hai phân số bằng nhau",
+        "Không so sánh được"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: MCQ cơ bản",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Phân số nào lớn hơn 1?",
+      "options": [
+        "5/8",
+        "7/7",
+        "9/7",
+        "3/10"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: MCQ cơ bản",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Rút gọn phân số 42/56.",
+      "correctAnswer": "3/4"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: Trả lời ngắn",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Quy đồng mẫu số hai phân số 2/3 và 5/6 với mẫu số chung 6. Viết phân số mới tương ứng với 2/3.",
+      "correctAnswer": "4/6"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: Trả lời ngắn",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về phân số.",
+      "items": [
+        {
+          "id": "m5-s1-l03-q07-i1",
+          "statement": "Hai phân số có cùng mẫu số, phân số có tử số lớn hơn thì lớn hơn.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l03-q07-i2",
+          "statement": "Phân số có tử số bằng mẫu số thì bằng 0.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l03-q07-i3",
+          "statement": "Nhân cả tử số và mẫu số với cùng một số tự nhiên khác 0 được phân số bằng phân số ban đầu.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: Đúng sai",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "ORDERING",
+      "question": "Sắp xếp các phân số theo thứ tự từ bé đến lớn.",
+      "items": [
+        "3/8",
+        "7/8",
+        "1/8",
+        "5/8"
+      ],
+      "correctOrder": [
+        2,
+        0,
+        3,
+        1
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: Tương tác",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một lớp có 40 học sinh, trong đó 3/4 số học sinh tham gia câu lạc bộ. Có bao nhiêu học sinh tham gia?",
+      "options": [
+        "30",
+        "10",
+        "53.333333333333336",
+        "37"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: Vận dụng",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l03-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l03-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một bể nước đầy, buổi sáng dùng 2/5 bể và buổi chiều dùng 1/5 bể. Phần bể nước còn lại là bao nhiêu?",
+      "correctAnswer": "2/5"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L03",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 3",
+        "Ôn tập phân số",
+        "Vai trò: Vận dụng",
+        "phân số",
+        "rút gọn"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Phân số nào là phân số thập phân?",
+      "options": [
+        "3/8",
+        "7/20",
+        "9/100",
+        "11/25"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Phân số 6/10 được viết dưới dạng số thập phân nào?",
+      "options": [
+        "0,06",
+        "0,6",
+        "6,0",
+        "10,6"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Số thập phân 0,30 được viết thành phân số thập phân nào?",
+      "options": [
+        "30/10",
+        "30/100",
+        "30/1000",
+        "100/30"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Phân số 3/5 được viết thành phân số thập phân nào?",
+      "options": [
+        "3/10",
+        "6/10",
+        "15/100",
+        "5/3"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết phân số 7/20 thành phân số thập phân có mẫu số 100.",
+      "correctAnswer": "35/100"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết số thập phân 0,405 thành phân số thập phân.",
+      "correctAnswer": "405/1000"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về phân số thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l04-q07-i1",
+          "statement": "Phân số 17/100 là phân số thập phân.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l04-q07-i2",
+          "statement": "Mọi phân số đều có mẫu số là 10, 100 hoặc 1000.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l04-q07-i3",
+          "statement": "Phân số 3/4 có thể viết thành 75/100.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: Đúng sai",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối phân số thập phân với số thập phân tương ứng.",
+      "pairs": [
+        {
+          "left": "4/10",
+          "right": "0,4"
+        },
+        {
+          "left": "25/100",
+          "right": "0,25"
+        },
+        {
+          "left": "308/1000",
+          "right": "0,308"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: Tương tác",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một cuộn dây dài 100 m, đã dùng 37 m. Phần dây đã dùng chiếm phân số thập phân nào của cả cuộn?",
+      "options": [
+        "37/10",
+        "37/100",
+        "63/100",
+        "100/37"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: Vận dụng",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l04-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l04-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một khu vườn được chia thành 100 phần bằng nhau, 68 phần trồng rau. Viết phần diện tích trồng rau dưới dạng phân số thập phân.",
+      "correctAnswer": "68/100"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L04",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 4",
+        "Phân số thập phân",
+        "Vai trò: Vận dụng",
+        "phân số thập phân",
+        "mẫu số 10 100 1000"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3/9 + 1/9 bằng bao nhiêu?",
+      "options": [
+        "4/9",
+        "2/9",
+        "37/81",
+        "1/27"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: MCQ cơ bản",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "6/9 - 1/9 bằng bao nhiêu?",
+      "options": [
+        "5/9",
+        "5/18",
+        "7/9",
+        "2/27"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: MCQ cơ bản",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "2/3 × 3/5 bằng bao nhiêu?",
+      "options": [
+        "2/5",
+        "19/15",
+        "10/9",
+        "1/3"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: MCQ cơ bản",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3/4 : 2/5 bằng bao nhiêu?",
+      "options": [
+        "15/8",
+        "3/10",
+        "2/1",
+        "5/9"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: MCQ cơ bản",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 3/9 + 2/9.",
+      "correctAnswer": "5/9"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: Trả lời ngắn",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 5/6 - 1/4.",
+      "correctAnswer": "7/12"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: Trả lời ngắn",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về bốn phép tính với phân số.",
+      "items": [
+        {
+          "id": "m5-s1-l05-q07-i1",
+          "statement": "Muốn cộng hai phân số khác mẫu số, cần quy đồng mẫu số.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l05-q07-i2",
+          "statement": "Muốn nhân hai phân số, nhân tử với tử và giữ nguyên mẫu.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l05-q07-i3",
+          "statement": "Chia cho một phân số khác 0 là nhân với phân số đảo ngược.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: Đúng sai",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối phép tính phân số với kết quả đúng.",
+      "pairs": [
+        {
+          "left": "1/2 + 1/3",
+          "right": "5/6"
+        },
+        {
+          "left": "3/4 - 1/4",
+          "right": "1/2"
+        },
+        {
+          "left": "2/3 × 3/5",
+          "right": "2/5"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: Tương tác",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một đội làm được 3/8 công việc buổi sáng và 1/4 công việc buổi chiều. Cả ngày đội làm được bao nhiêu phần công việc?",
+      "options": [
+        "4/12",
+        "5/8",
+        "1/2",
+        "7/8"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: Vận dụng",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l05-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l05-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một thùng có 5/6 lít nước. Người ta rót ra 1/4 lít. Trong thùng còn bao nhiêu lít nước?",
+      "correctAnswer": "7/12"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T01",
+      "lessonCode": "M5-S1-L05",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Ôn tập và bổ sung",
+        "Bài 5",
+        "Ôn tập các phép tính với phân số",
+        "Vai trò: Vận dụng",
+        "cộng phân số",
+        "trừ phân số"
+      ]
+    }
+  }
+]

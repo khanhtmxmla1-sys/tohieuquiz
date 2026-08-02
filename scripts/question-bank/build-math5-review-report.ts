@@ -134,7 +134,7 @@ export const buildMath5ReviewReport = async (): Promise<string> => {
     }
   }
 
-  return `${lines.join('\n')}\n`;
+  return `${lines.join('\n').replace(/\n+$/, '')}\n`;
 };
 
 export const writeMath5ReviewArtifacts = async () => {

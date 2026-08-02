@@ -13,7 +13,7 @@
 - Chính xác 350 câu, 35 lesson code, mỗi lesson 10 câu.
 - Mỗi bài mặc định: 4 MCQ, 2 SHORT_ANSWER, 1 TRUE_FALSE, 1 dạng tương tác, 2 câu vận dụng.
 - Mỗi bài: 4 câu difficulty 1, 4 câu difficulty 2, 2 câu difficulty 3.
-- Mỗi câu có lời giải ngắn, metadata đầy đủ và không phụ thuộc hình ảnh trong V1.
+- Mỗi câu có đáp án chuẩn, metadata đầy đủ và không phụ thuộc hình ảnh trong V1; dữ liệu curated không lưu `explanation` theo contract hiện tại.
 - Không sao chép nguyên văn câu hỏi sách giáo khoa.
 - Không có content hash trùng trong SYSTEM.
 - Import ban đầu ở trạng thái DRAFT; publish từng chủ đề, không publish toàn bộ một lần.
@@ -33,14 +33,17 @@
 - `data/question-bank/math5-semester1/manifest.json`
 - `scripts/question-bank/math5-types.ts`
 - `scripts/question-bank/generate-math5-skeleton.ts`
+- `scripts/question-bank/generate-math5-dataset.ts`
 - `scripts/question-bank/validate-math5-dataset.ts`
 - `scripts/question-bank/build-math5-review-report.ts`
 - `scripts/question-bank/import-math5-drafts.ts`
 - `scripts/question-bank/publish-math5-topic.ts`
 - `tests/math5QuestionBankCurriculum.test.ts`
 - `tests/math5QuestionBankDataset.test.ts`
-- `tests/math5QuestionBankImportScripts.test.ts`
-- `docs/reviews/math5-semester1-question-bank.md`
+- `tests/math5QuestionBankOperations.test.ts`
+- `tests/math5QuestionBankArithmeticAudit.test.ts`
+- `reports/question-bank/math5-semester1-review.md`
+- `tsconfig.question-bank.json`
 
 **Modify**
 - `package.json`
@@ -48,7 +51,7 @@
 
 ### Task 1: Curriculum source of truth
 
-- [ ] **Step 1: Write failing curriculum tests**
+- [x] **Step 1: Write failing curriculum tests**
 
 Assert 6 topics, 35 unique lessons, sequential lesson codes and exact titles/pages supplied by the user.
 
@@ -60,16 +63,16 @@ expect(lessonCodes[0]).toBe('M5-S1-L01');
 expect(lessonCodes[34]).toBe('M5-S1-L35');
 ```
 
-- [ ] **Step 2: Create curriculum JSON**
+- [x] **Step 2: Create curriculum JSON**
 
 Each topic has `code`, `title`, `order`; each lesson has `code`, `number`, `title`, `page`, `keywords` and allowed interaction types.
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 Run: `npm test -- tests/math5QuestionBankCurriculum.test.ts`
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add data/question-bank/math5-semester1/curriculum.json tests/math5QuestionBankCurriculum.test.ts
@@ -82,7 +85,7 @@ git commit -m "data(question-bank): add math 5 semester 1 curriculum"
 - Produces 10 deterministic slots per lesson.
 - Produces `CuratedQuestionBankInput` compatible with bulk API.
 
-- [ ] **Step 1: Define types**
+- [x] **Step 1: Define types**
 
 ```ts
 export interface CuratedQuestionBankInput {
@@ -101,108 +104,109 @@ export interface CuratedQuestionBankInput {
 }
 ```
 
-- [ ] **Step 2: Write failing skeleton tests**
+- [x] **Step 2: Write failing skeleton tests**
 
 For every lesson, assert 10 slots and difficulty/type distribution.
 
-- [ ] **Step 3: Implement generator**
+- [x] **Step 3: Implement generator**
 
 Generate stable IDs like `m5-s1-l06-q01` and slot descriptors only; do not generate final educational content automatically.
 
-- [ ] **Step 4: Add npm scripts**
+- [x] **Step 4: Add npm scripts**
 
 ```json
-"question-bank:math5:skeleton": "tsx scripts/question-bank/generate-math5-skeleton.ts",
-"question-bank:math5:validate": "tsx scripts/question-bank/validate-math5-dataset.ts",
-"question-bank:math5:report": "tsx scripts/question-bank/build-math5-review-report.ts"
+"question-bank:math5:skeleton": "node --experimental-strip-types scripts/question-bank/generate-math5-skeleton.ts",
+"question-bank:math5:generate": "node --experimental-strip-types scripts/question-bank/generate-math5-dataset.ts",
+"question-bank:math5:validate": "node --experimental-strip-types scripts/question-bank/validate-math5-dataset.ts",
+"question-bank:math5:report": "node --experimental-strip-types scripts/question-bank/build-math5-review-report.ts"
 ```
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
 Run: `npm test -- tests/math5QuestionBankDataset.test.ts`
 Expected: skeleton tests PASS.
 
-### Task 3: Author Topic 1 — Lessons 1–9, 90 questions
+### Task 3: Author Topic 1 — Lessons 1–5, 50 questions
 
-- [ ] **Step 1: Fill `topic-01.json`**
+- [x] **Step 1: Fill `topic-01.json`**
 
-Create 90 original questions covering natural numbers, operations, fractions, decimal fractions, mixed numbers, geometry review and common practice.
+Create 50 original questions covering natural numbers, operations, fractions, decimal fractions and operations with fractions.
 
-- [ ] **Step 2: Validate each lesson immediately**
+- [x] **Step 2: Validate each lesson immediately**
 
 Run: `npm run question-bank:math5:validate -- --topic M5-S1-T01`
-Expected: `90 valid, 0 invalid, 0 duplicate`.
+Expected: `70 valid, 0 invalid, 0 duplicate`.
 
-- [ ] **Step 3: Review numeric correctness**
+- [x] **Step 3: Review numeric correctness**
 
 Use independent calculation checks for every arithmetic answer; ensure denominators, units and simplification are correct.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add data/question-bank/math5-semester1/topic-01.json
 git commit -m "data(question-bank): author math 5 topic 1 questions"
 ```
 
-### Task 4: Author Topics 2 and 3 — Lessons 10–18, 90 questions
+### Task 4: Author Topics 2 and 3 — Lessons 6–16, 110 questions
 
-- [ ] **Step 1: Fill `topic-02.json` with 50 questions**
+- [x] **Step 1: Fill `topic-02.json` with 50 questions**
 
-Cover decimal concepts, comparison, measurement notation, rounding and common practice.
+Cover unlike-denominator fractions, mixed numbers, geometry/measurement review and decimal concepts.
 
-- [ ] **Step 2: Fill `topic-03.json` with 40 questions**
+- [x] **Step 2: Fill `topic-03.json` with 40 questions**
 
-Cover square kilometres, hectares, area units, practice/experience and common practice.
+Cover decimal comparison, decimal measurement notation, rounding, square kilometres, hectares and area units.
 
-- [ ] **Step 3: Validate**
+- [x] **Step 3: Validate**
 
 Run: `npm run question-bank:math5:validate -- --topic M5-S1-T02 --topic M5-S1-T03`
-Expected: `90 valid, 0 invalid, 0 duplicate`.
+Expected: `110 valid, 0 invalid, 0 duplicate`.
 
-- [ ] **Step 4: Commit each topic separately**
+- [x] **Step 4: Commit each topic separately**
 
 Use commits `data(question-bank): author math 5 topic 2 questions` and `... topic 3 ...`.
 
-### Task 5: Author Topic 4 — Lessons 19–24, 60 questions
+### Task 5: Author Topic 4 — Lessons 17–22, 60 questions
 
-- [ ] **Step 1: Fill `topic-04.json`**
+- [x] **Step 1: Fill `topic-04.json`**
 
-Cover decimal addition, subtraction, multiplication, division, scaling by powers of ten and mixed practice. Ensure division questions have exact or curriculum-appropriate decimal results.
+Cover practical measurement, measurement review, decimal addition, subtraction, multiplication and division. Ensure division questions have exact or curriculum-appropriate decimal results.
 
-- [ ] **Step 2: Validate and independently recompute answers**
+- [x] **Step 2: Validate and independently recompute answers**
 
 Run: `npm run question-bank:math5:validate -- --topic M5-S1-T04`
 Expected: `60 valid, 0 invalid, 0 duplicate`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Commit message: `data(question-bank): author math 5 topic 4 questions`.
 
-### Task 6: Author Topic 5 — Lessons 25–29, 50 questions
+### Task 6: Author Topic 5 — Lessons 23–29, 70 questions
 
-- [ ] **Step 1: Fill `topic-05.json`**
+- [x] **Step 1: Fill `topic-05.json`**
 
-Cover triangles, trapezoids, circles, practical drawing/assembly and common practice. V1 questions must be text-only; represent necessary dimensions in text and do not set `IMAGE_QUESTION` or `GEOMETRY`.
+Cover scaling decimals by powers of ten, decimal operation practice, triangles, trapezoids, circles, practical drawing/assembly and geometry review. V1 questions are text-only and do not set `IMAGE_QUESTION` or `GEOMETRY`.
 
-- [ ] **Step 2: Validate formulas and units**
+- [x] **Step 2: Validate formulas and units**
 
-Every area/circumference explanation states the formula and substitution; use π = 3.14 where required.
+Every area/circumference question states sufficient dimensions and uses π = 3,14 where required; the review report shows the canonical answer.
 
-- [ ] **Step 3: Run validator and commit**
+- [x] **Step 3: Run validator and commit**
 
 Expected: `50 valid, 0 invalid, 0 duplicate`.
 
 ### Task 7: Author Topic 6 — Lessons 30–35, 60 questions
 
-- [ ] **Step 1: Fill `topic-06.json`**
+- [x] **Step 1: Fill `topic-06.json`**
 
 Create balanced semester review across decimals, operations, shapes, perimeter/area, measurement and general review.
 
-- [ ] **Step 2: Detect cross-topic duplicates**
+- [x] **Step 2: Detect cross-topic duplicates**
 
 Run the validator against all six files, not only Topic 6.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Commit message: `data(question-bank): author math 5 semester review questions`.
 
@@ -212,23 +216,23 @@ Commit message: `data(question-bank): author math 5 semester review questions`.
 - Validator exits non-zero on any count, schema, metadata, distribution, answer or duplicate error.
 - Report groups content by topic and lesson for human review.
 
-- [ ] **Step 1: Write failing validator tests**
+- [x] **Step 1: Write failing validator tests**
 
 Fixtures must cover missing explanation, invalid answer, wrong difficulty distribution, duplicate hash, wrong lesson code and count 349/351.
 
-- [ ] **Step 2: Implement validation pipeline**
+- [x] **Step 2: Implement validation pipeline**
 
 Use `validateQuestion`, curriculum lookup and `hashQuestionData`. Add type-specific checks such as MCQ answer A–D, SHORT_ANSWER non-empty, TRUE_FALSE item count and interaction contract validity.
 
-- [ ] **Step 3: Build manifest**
+- [x] **Step 3: Build manifest**
 
 `manifest.json` records dataset version, generated timestamp, file list, counts, hash and validation command. Do not include secrets or production IDs.
 
-- [ ] **Step 4: Generate Markdown review report**
+- [x] **Step 4: Generate Markdown review report**
 
-For every lesson show counts by type/difficulty and all questions with answer/explanation. Flag repeated wording even when hashes differ.
+For every lesson show all questions with type, difficulty and canonical answer. Do not persist `explanation`; flag repeated wording even when hashes differ.
 
-- [ ] **Step 5: Run complete validation**
+- [x] **Step 5: Run complete validation**
 
 ```bash
 npm run question-bank:math5:validate
@@ -240,19 +244,19 @@ Expected: exactly `350 valid, 0 invalid, 0 duplicate`; tests PASS.
 
 ### Task 9: Draft import script and production preflight
 
-- [ ] **Step 1: Write import script tests**
+- [x] **Step 1: Write import script tests**
 
 Mock API calls and assert batches `100,100,100,50`, stop on authentication errors, continue reporting row-level invalid/duplicate results, and never send PUBLISHED status.
 
-- [ ] **Step 2: Implement import script**
+- [x] **Step 2: Implement import script**
 
 Require `TOHIEUQUIZ_API_BASE_URL` and an explicit authenticated mechanism approved by the project. Provide `--dry-run` as default and require `--execute` to write.
 
-- [ ] **Step 3: Add preflight query/report**
+- [x] **Step 3: Add preflight query/report**
 
 Before execution, call/list SYSTEM questions for the target lesson codes and abort if unexpected existing records are found unless `--allow-existing` is explicitly supplied.
 
-- [ ] **Step 4: Run dry-run**
+- [x] **Step 4: Run dry-run**
 
 Run: `npm run question-bank:math5:import -- --dry-run`
 Expected: four batches, 350 prepared, zero network writes.
@@ -265,11 +269,11 @@ Run with `--execute`; save the returned report to `reports/question-bank/math5-i
 
 - [ ] **Step 1: Query invariants after import**
 
-Verify 350 SYSTEM/DRAFT items, 10 per lesson, correct totals per topic (90, 50, 40, 60, 50, 60), and zero duplicate hashes.
+Verify 350 SYSTEM/DRAFT items, 10 per lesson, correct totals per topic (50, 50, 60, 60, 70, 60), and zero duplicate hashes.
 
 - [ ] **Step 2: Render samples**
 
-Open at least 2 questions per type and 2 lessons per topic in the real admin/teacher UI. Check math rendering, answers and explanation.
+Open at least 2 questions per type and 2 lessons per topic in the real admin/teacher UI. Check math rendering and answers.
 
 - [ ] **Step 3: Publish Topic 1 only**
 
@@ -285,4 +289,4 @@ Expected: 350 SYSTEM/PUBLISHED, 35 lessons × 10, feature flag enabled for inten
 
 - [ ] **Step 6: Record release evidence**
 
-Update `docs/reviews/math5-semester1-question-bank.md` with validation summary, import report path, publish timestamps and smoke-test results.
+Update `reports/question-bank/math5-semester1-review.md` or a release evidence document with validation summary, import report path, publish timestamps and smoke-test results.

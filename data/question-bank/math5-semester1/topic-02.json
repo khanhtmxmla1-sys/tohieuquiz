@@ -1,0 +1,1945 @@
+[
+  {
+    "id": "qb-m5-s1-l06-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "4/5 + 2/6 bằng bao nhiêu?",
+      "options": [
+        "17/15",
+        "6/11",
+        "7/6",
+        "4/15"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: MCQ cơ bản",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l06-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "7/5 - 2/6 bằng bao nhiêu?",
+      "options": [
+        "16/15",
+        "5/11",
+        "9/5",
+        "7/15"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: MCQ cơ bản",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l06-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "2/3 × 4/5 bằng bao nhiêu?",
+      "options": [
+        "8/15",
+        "22/15",
+        "5/6",
+        "2/5"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: MCQ cơ bản",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l06-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3/4 : 3/5 bằng bao nhiêu?",
+      "options": [
+        "5/4",
+        "9/20",
+        "4/3",
+        "2/3"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: MCQ cơ bản",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l06-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 4/5 + 3/6.",
+      "correctAnswer": "13/10"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: Trả lời ngắn",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l06-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 7/8 - 2/3.",
+      "correctAnswer": "5/24"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: Trả lời ngắn",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l06-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai khi cộng, trừ hai phân số khác mẫu số.",
+      "items": [
+        {
+          "id": "m5-s1-l06-q07-i1",
+          "statement": "Cần quy đồng mẫu số trước khi cộng hoặc trừ.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l06-q07-i2",
+          "statement": "Sau khi quy đồng, cộng cả tử số và mẫu số với nhau.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l06-q07-i3",
+          "statement": "Kết quả 2/3 + 1/4 bằng 11/12.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: Đúng sai",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l06-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối phép cộng, trừ khác mẫu với kết quả đúng.",
+      "pairs": [
+        {
+          "left": "1/2 + 1/3",
+          "right": "5/6"
+        },
+        {
+          "left": "3/4 - 1/6",
+          "right": "7/12"
+        },
+        {
+          "left": "2/5 + 3/10",
+          "right": "7/10"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: Tương tác",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l06-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một đội làm được 3/5 công việc buổi sáng và 2/7 công việc buổi chiều. Cả ngày đội làm được bao nhiêu phần công việc?",
+      "options": [
+        "5/12",
+        "31/35",
+        "6/35",
+        "1 1/5"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: Vận dụng",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l06-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l06-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một thùng có 7/9 lít nước. Người ta rót ra 1/6 lít. Trong thùng còn bao nhiêu lít nước?",
+      "correctAnswer": "11/18"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L06",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 6",
+        "Cộng, trừ hai phân số khác mẫu số",
+        "Vai trò: Vận dụng",
+        "quy đồng mẫu số",
+        "cộng phân số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hỗn số 2 3/5 gồm phần nguyên và phần phân số nào?",
+      "options": [
+        "2 và 3/5",
+        "5 và 1/5",
+        "3 và 2/5",
+        "2 và 5/3"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: MCQ cơ bản",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hỗn số 2 1/4 viết thành phân số nào?",
+      "options": [
+        "9/4",
+        "3/4",
+        "8/5",
+        "2/4"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: MCQ cơ bản",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Phân số 17/5 viết thành hỗn số nào?",
+      "options": [
+        "2 7/5",
+        "3 2/5",
+        "3 5/2",
+        "4 1/5"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: MCQ cơ bản",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hỗn số nào lớn hơn 4 nhưng bé hơn 5?",
+      "options": [
+        "3 7/8",
+        "4 3/8",
+        "5 1/8",
+        "4 9/8"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: MCQ cơ bản",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết hỗn số 5 2/3 thành phân số.",
+      "correctAnswer": "17/3"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: Trả lời ngắn",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết phân số 29/6 thành hỗn số.",
+      "correctAnswer": "4 5/6"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: Trả lời ngắn",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về hỗn số.",
+      "items": [
+        {
+          "id": "m5-s1-l07-q07-i1",
+          "statement": "Hỗn số luôn gồm phần nguyên và một phân số bé hơn 1.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l07-q07-i2",
+          "statement": "Hỗn số 2 1/3 bằng phân số 7/3.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l07-q07-i3",
+          "statement": "Phân số 9/4 bằng hỗn số 1 5/4.",
+          "isCorrect": false
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: Đúng sai",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "ORDERING",
+      "question": "Sắp xếp các hỗn số theo thứ tự từ bé đến lớn.",
+      "items": [
+        "2 1/2",
+        "1 3/4",
+        "3 1/5",
+        "2 1/4"
+      ],
+      "correctOrder": [
+        1,
+        3,
+        0,
+        2
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: Tương tác",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một đoạn dây dài 3 1/2 m, cắt đi 1 1/4 m. Đoạn dây còn lại dài bao nhiêu?",
+      "options": [
+        "2 1/4 m",
+        "2 3/4 m",
+        "1 1/4 m",
+        "4 3/4 m"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: Vận dụng",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l07-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l07-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một bình có 2 2/5 lít nước, thêm 1 3/10 lít. Bình có tất cả bao nhiêu lít nước?",
+      "correctAnswer": "3 7/10"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L07",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 7",
+        "Hỗn số",
+        "Vai trò: Vận dụng",
+        "hỗn số",
+        "phân số lớn hơn 1"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình chữ nhật dài 15 cm, rộng 6 cm có chu vi bao nhiêu?",
+      "options": [
+        "42 cm",
+        "90 cm",
+        "21 cm",
+        "84 cm"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: MCQ cơ bản",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình chữ nhật dài 15 cm, rộng 6 cm có diện tích bao nhiêu?",
+      "options": [
+        "90 cm²",
+        "42 cm²",
+        "21 cm²",
+        "180 cm²"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: MCQ cơ bản",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3 m 25 cm bằng bao nhiêu xăng-ti-mét?",
+      "options": [
+        "325 cm",
+        "3025 cm",
+        "35 cm",
+        "3,25 cm"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: MCQ cơ bản",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "2 kg 350 g bằng bao nhiêu gam?",
+      "options": [
+        "235 g",
+        "2 035 g",
+        "2 350 g",
+        "23 500 g"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: MCQ cơ bản",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một hình vuông có cạnh 8 cm. Tính chu vi hình vuông.",
+      "correctAnswer": "32 cm"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: Trả lời ngắn",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Đổi 4 giờ 15 phút ra phút.",
+      "correctAnswer": "255 phút"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: Trả lời ngắn",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về hình học và đo lường.",
+      "items": [
+        {
+          "id": "m5-s1-l08-q07-i1",
+          "statement": "Hai đường thẳng vuông góc tạo thành góc vuông.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l08-q07-i2",
+          "statement": "1 m² = 100 cm².",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l08-q07-i3",
+          "statement": "1 giờ = 60 phút.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: Đúng sai",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối đại lượng với đơn vị đo phù hợp.",
+      "pairs": [
+        {
+          "left": "Chiều dài sân trường",
+          "right": "m"
+        },
+        {
+          "left": "Khối lượng quả dưa",
+          "right": "kg"
+        },
+        {
+          "left": "Diện tích lớp học",
+          "right": "m²"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: Tương tác",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một khu đất hình chữ nhật dài 27 m, rộng 11 m. Người ta làm hàng rào xung quanh, chừa cổng rộng 4 m. Cần bao nhiêu mét hàng rào?",
+      "options": [
+        "82 m",
+        "297 m",
+        "86 m",
+        "34 m"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: Vận dụng",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l08-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l08-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một nền nhà hình chữ nhật dài 17 m, rộng 7 m. Mỗi mét vuông cần 4 viên gạch lớn. Cần bao nhiêu viên?",
+      "correctAnswer": "476"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L08",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 8",
+        "Ôn tập hình học và đo lường",
+        "Vai trò: Vận dụng",
+        "chu vi",
+        "diện tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Trong bài luyện tập chung, 2/3 + 1/6 bằng bao nhiêu?",
+      "options": [
+        "3/9",
+        "5/6",
+        "1/2",
+        "2/9"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hỗn số 3 1/4 được viết thành phân số nào?",
+      "options": [
+        "10/4",
+        "12/4",
+        "13/4",
+        "7/4"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình chữ nhật dài 20 cm, rộng 5 cm có diện tích bao nhiêu?",
+      "options": [
+        "100 cm²",
+        "50 cm²",
+        "25 cm²",
+        "200 cm²"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "2 m 8 cm được viết hoàn toàn theo xăng-ti-mét là bao nhiêu?",
+      "options": [
+        "28 cm",
+        "208 cm",
+        "2 008 cm",
+        "2,08 cm"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 7/10 - 1/4.",
+      "correctAnswer": "9/20"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Đổi 2 giờ 35 phút ra phút.",
+      "correctAnswer": "155 phút"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai trong bài luyện tập tổng hợp.",
+      "items": [
+        {
+          "id": "m5-s1-l09-q07-i1",
+          "statement": "Hỗn số 2 1/5 bằng phân số 11/5.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l09-q07-i2",
+          "statement": "1 m² bằng 1 000 cm².",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l09-q07-i3",
+          "statement": "Chu vi hình vuông cạnh 6 cm là 24 cm.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: Đúng sai",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối nội dung ôn tập với kết quả phù hợp.",
+      "pairs": [
+        {
+          "left": "3/5 + 1/5",
+          "right": "4/5"
+        },
+        {
+          "left": "Hình vuông cạnh 4 cm",
+          "right": "Diện tích 16 cm²"
+        },
+        {
+          "left": "1 kg 250 g",
+          "right": "1 250 g"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: Tương tác",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một mảnh vườn hình chữ nhật dài 18 m, rộng 12 m. Dùng 2/3 diện tích để trồng rau. Diện tích trồng rau là bao nhiêu?",
+      "options": [
+        "72 m²",
+        "108 m²",
+        "144 m²",
+        "216 m²"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l09-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l09-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một bình có 3 1/2 lít nước, rót ra 3/4 lít rồi thêm 1 1/4 lít. Bình có bao nhiêu lít nước?",
+      "correctAnswer": "4 lít"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L09",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 9",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "phân số",
+        "hỗn số"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Trong số 4,08, phần nguyên là số nào?",
+      "options": [
+        "4",
+        "8",
+        "0",
+        "408"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Trong số 4,08, chữ số 0 thuộc hàng nào?",
+      "options": [
+        "Hàng đơn vị",
+        "Hàng phần mười",
+        "Hàng phần trăm",
+        "Hàng chục"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Số gồm 7 đơn vị, 3 phần mười và 5 phần trăm được viết là gì?",
+      "options": [
+        "7,305",
+        "7,35",
+        "73,5",
+        "0,735"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Số thập phân nào biểu thị 46 phần trăm?",
+      "options": [
+        "4,6",
+        "0,46",
+        "46,0",
+        "0,046"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết số thập phân gồm 12 đơn vị, 4 phần mười và 8 phần nghìn.",
+      "correctAnswer": "12,408"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết phân số thập phân 725/100 dưới dạng số thập phân.",
+      "correctAnswer": "7,25"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về số thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l10-q07-i1",
+          "statement": "Số 5,07 có phần nguyên là 5.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l10-q07-i2",
+          "statement": "Trong số 3,42, chữ số 2 ở hàng phần mười.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l10-q07-i3",
+          "statement": "Số 0,8 bằng 8/10.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: Đúng sai",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối cách đọc với số thập phân tương ứng.",
+      "pairs": [
+        {
+          "left": "Hai phẩy năm",
+          "right": "2,5"
+        },
+        {
+          "left": "Không phẩy không bảy",
+          "right": "0,07"
+        },
+        {
+          "left": "Mười hai phẩy ba mươi tư",
+          "right": "12,34"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: Tương tác",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một đoạn đường dài 2 km 350 m. Viết độ dài đó theo đơn vị ki-lô-mét dưới dạng số thập phân.",
+      "options": [
+        "2,035 km",
+        "2,35 km",
+        "23,5 km",
+        "2,305 km"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: Vận dụng",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l10-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l10-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một can có 3 lít 75 mi-li-lít nước. Viết lượng nước theo đơn vị lít dưới dạng số thập phân.",
+      "correctAnswer": "3,075 lít"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T02",
+      "lessonCode": "M5-S1-L10",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Phân số và số thập phân",
+        "Bài 10",
+        "Khái niệm số thập phân",
+        "Vai trò: Vận dụng",
+        "số thập phân",
+        "phần nguyên"
+      ]
+    }
+  }
+]

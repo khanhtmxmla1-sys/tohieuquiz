@@ -1,0 +1,2330 @@
+[
+  {
+    "id": "qb-m5-s1-l11-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Dấu thích hợp điền vào 4,45 … 4,48 là gì?",
+      "options": [
+        ">",
+        "<",
+        "=",
+        "Không so sánh được"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l11-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Số nào lớn nhất?",
+      "options": [
+        "5,08",
+        "5,8",
+        "5,18",
+        "5,108"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l11-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Số nào bé nhất?",
+      "options": [
+        "0,72",
+        "0,702",
+        "0,27",
+        "0,207"
+      ],
+      "correctAnswer": "D"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l11-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Số thập phân nào bằng 4,500?",
+      "options": [
+        "4,05",
+        "4,5",
+        "4,005",
+        "45"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l11-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Điền dấu >, < hoặc =: 7,090 … 7,09.",
+      "correctAnswer": "="
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l11-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết số lớn nhất trong các số 12,35; 12,305; 12,53; 12,503.",
+      "correctAnswer": "12,53"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l11-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai khi so sánh số thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l11-q07-i1",
+          "statement": "6,4 > 6,39.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l11-q07-i2",
+          "statement": "0,75 = 0,750.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l11-q07-i3",
+          "statement": "8,029 > 8,2.",
+          "isCorrect": false
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: Đúng sai",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l11-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "ORDERING",
+      "question": "Sắp xếp các số theo thứ tự từ bé đến lớn.",
+      "items": [
+        "3,25",
+        "3,205",
+        "3,52",
+        "3,025"
+      ],
+      "correctOrder": [
+        3,
+        1,
+        0,
+        2
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: Tương tác",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l11-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Bốn bạn chạy được các quãng đường 1,205 km; 1,25 km; 1,052 km; 1,502 km. Bạn chạy xa thứ hai đạt bao nhiêu ki-lô-mét?",
+      "options": [
+        "1,052 km",
+        "1,205 km",
+        "1,25 km",
+        "1,502 km"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: Vận dụng",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l11-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l11-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tìm chữ số thích hợp lớn nhất thay vào * để 4,2*7 < 4,257.",
+      "correctAnswer": "4"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L11",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 11",
+        "So sánh các số thập phân",
+        "Vai trò: Vận dụng",
+        "so sánh số thập phân",
+        "xếp thứ tự"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3 m 45 cm viết theo đơn vị mét là số nào?",
+      "options": [
+        "3,045 m",
+        "3,45 m",
+        "34,5 m",
+        "345 m"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "2 kg 75 g viết theo đơn vị ki-lô-gam là số nào?",
+      "options": [
+        "2,75 kg",
+        "2,075 kg",
+        "2,0075 kg",
+        "2075 kg"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "5 lít 250 ml viết theo đơn vị lít là số nào?",
+      "options": [
+        "5,25 lít",
+        "5,025 lít",
+        "5,2500 lít",
+        "5250 lít"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "1 giờ 30 phút viết theo đơn vị giờ là số nào?",
+      "options": [
+        "1,3 giờ",
+        "1,5 giờ",
+        "1,30 giờ",
+        "1,03 giờ"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết 15 m 8 cm theo đơn vị mét.",
+      "correctAnswer": "15,08 m"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết 3 tấn 250 kg theo đơn vị tấn.",
+      "correctAnswer": "3,25 tấn"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về số đo viết dưới dạng thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l12-q07-i1",
+          "statement": "4 m 5 cm = 4,05 m.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l12-q07-i2",
+          "statement": "2 kg 6 g = 2,6 kg.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l12-q07-i3",
+          "statement": "750 ml = 0,75 lít.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: Đúng sai",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối số đo với cách viết thập phân tương ứng.",
+      "pairs": [
+        {
+          "left": "6 m 20 cm",
+          "right": "6,2 m"
+        },
+        {
+          "left": "4 kg 80 g",
+          "right": "4,08 kg"
+        },
+        {
+          "left": "2 lít 5 ml",
+          "right": "2,005 lít"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: Tương tác",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một cuộn dây dài 8 m 35 cm, cuộn khác dài 6 m 8 cm. Tổng độ dài viết theo mét là bao nhiêu?",
+      "options": [
+        "14,43 m",
+        "14,403 m",
+        "14,15 m",
+        "143,5 m"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: Vận dụng",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l12-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l12-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một bao gạo nặng 12 kg 500 g, đã dùng 3 kg 750 g. Khối lượng còn lại theo đơn vị ki-lô-gam là bao nhiêu?",
+      "correctAnswer": "8,75 kg"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L12",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 12",
+        "Viết số đo đại lượng dưới dạng số thập phân",
+        "Vai trò: Vận dụng",
+        "đổi đơn vị",
+        "số đo thập phân"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Làm tròn số 7,46 đến hàng đơn vị được số nào?",
+      "options": [
+        "7",
+        "8",
+        "7,5",
+        "7,4"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Làm tròn số 3,784 đến hàng phần mười được số nào?",
+      "options": [
+        "3,7",
+        "3,8",
+        "3,78",
+        "4"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Làm tròn số 9,125 đến hàng phần trăm được số nào?",
+      "options": [
+        "9,12",
+        "9,13",
+        "9,2",
+        "9,125"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Làm tròn số 13,99 đến hàng đơn vị được số nào?",
+      "options": [
+        "13",
+        "14",
+        "13,9",
+        "15"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Làm tròn 15,349 đến hàng phần mười.",
+      "correctAnswer": "15,3"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Làm tròn 0,995 đến hàng phần trăm.",
+      "correctAnswer": "1,00"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về làm tròn số.",
+      "items": [
+        {
+          "id": "m5-s1-l13-q07-i1",
+          "statement": "8,65 làm tròn đến hàng phần mười được 8,7.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l13-q07-i2",
+          "statement": "4,24 làm tròn đến hàng phần mười được 4,3.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l13-q07-i3",
+          "statement": "12,499 làm tròn đến hàng đơn vị được 12.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: Đúng sai",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối số với kết quả làm tròn đến hàng phần mười.",
+      "pairs": [
+        {
+          "left": "2,34",
+          "right": "2,3"
+        },
+        {
+          "left": "5,67",
+          "right": "5,7"
+        },
+        {
+          "left": "9,95",
+          "right": "10,0"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: Tương tác",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một bình chứa 18,746 lít nước. Làm tròn đến lít gần nhất để ước lượng được bao nhiêu lít?",
+      "options": [
+        "18 lít",
+        "19 lít",
+        "18,7 lít",
+        "20 lít"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: Vận dụng",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l13-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l13-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một quãng đường dài 6,384 km. Làm tròn đến hàng phần trăm ki-lô-mét.",
+      "correctAnswer": "6,38 km"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L13",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 13",
+        "Làm tròn số thập phân",
+        "Vai trò: Vận dụng",
+        "làm tròn",
+        "hàng phần mười"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Số 3,014 có chữ số hàng phần trăm là chữ số nào?",
+      "options": [
+        "0",
+        "1",
+        "4",
+        "3"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Số nào bằng 6,70?",
+      "options": [
+        "6,07",
+        "6,7",
+        "6,7001",
+        "67"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Sắp xếp nhanh: số lớn nhất trong 4,08; 4,8; 4,18; 4,081 là số nào?",
+      "options": [
+        "4,08",
+        "4,8",
+        "4,18",
+        "4,081"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Làm tròn 7,846 đến hàng phần mười được số nào?",
+      "options": [
+        "7,8",
+        "7,9",
+        "7,85",
+        "8"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Viết 9 m 6 cm theo đơn vị mét dưới dạng số thập phân.",
+      "correctAnswer": "9,06 m"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Điền dấu thích hợp: 5,309 … 5,31.",
+      "correctAnswer": "<"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai trong bài luyện tập số thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l14-q07-i1",
+          "statement": "0,50 = 0,5.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l14-q07-i2",
+          "statement": "3,105 > 3,15.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l14-q07-i3",
+          "statement": "2,75 m = 2 m 75 cm.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: Đúng sai",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "ORDERING",
+      "question": "Sắp xếp các số theo thứ tự từ lớn đến bé.",
+      "items": [
+        "8,03",
+        "8,3",
+        "8,13",
+        "8,003"
+      ],
+      "correctOrder": [
+        1,
+        2,
+        0,
+        3
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: Tương tác",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Ba kiện hàng nặng 12,5 kg; 12,05 kg; 12,505 kg. Kiện nặng nhất có khối lượng bao nhiêu?",
+      "options": [
+        "12,05 kg",
+        "12,5 kg",
+        "12,505 kg",
+        "12,055 kg"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l14-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l14-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tìm chữ số lớn nhất thay vào * để 7,4*8 < 7,458.",
+      "correctAnswer": "4"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L14",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 14",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "số thập phân",
+        "so sánh"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "1 km² bằng bao nhiêu mét vuông?",
+      "options": [
+        "1 000 m²",
+        "10 000 m²",
+        "100 000 m²",
+        "1 000 000 m²"
+      ],
+      "correctAnswer": "D"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: MCQ cơ bản",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "1 ha bằng bao nhiêu mét vuông?",
+      "options": [
+        "100 m²",
+        "1 000 m²",
+        "10 000 m²",
+        "100 000 m²"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: MCQ cơ bản",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3 km² bằng bao nhiêu héc-ta?",
+      "options": [
+        "30 ha",
+        "300 ha",
+        "3 000 ha",
+        "0,3 ha"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: MCQ cơ bản",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "45 000 m² bằng bao nhiêu héc-ta?",
+      "options": [
+        "4,5 ha",
+        "45 ha",
+        "450 ha",
+        "0,45 ha"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: MCQ cơ bản",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Đổi 16 km² ra héc-ta.",
+      "correctAnswer": "1600 ha"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: Trả lời ngắn",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Đổi 7,5 ha ra mét vuông.",
+      "correctAnswer": "75000 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: Trả lời ngắn",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về ki-lô-mét vuông và héc-ta.",
+      "items": [
+        {
+          "id": "m5-s1-l15-q07-i1",
+          "statement": "1 km² = 100 ha.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l15-q07-i2",
+          "statement": "1 ha = 1 000 m².",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l15-q07-i3",
+          "statement": "250 ha = 2,5 km².",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: Đúng sai",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối các số đo diện tích bằng nhau.",
+      "pairs": [
+        {
+          "left": "2 km²",
+          "right": "200 ha"
+        },
+        {
+          "left": "3,5 ha",
+          "right": "35 000 m²"
+        },
+        {
+          "left": "80 ha",
+          "right": "0,8 km²"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: Tương tác",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một khu bảo tồn rộng 2,4 km², trong đó 75 ha là mặt nước. Diện tích phần còn lại là bao nhiêu héc-ta?",
+      "options": [
+        "165 ha",
+        "167,5 ha",
+        "240 ha",
+        "315 ha"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: Vận dụng",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l15-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l15-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Hai cánh đồng rộng 18,5 ha và 125 000 m². Tổng diện tích theo héc-ta là bao nhiêu?",
+      "correctAnswer": "31 ha"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L15",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 15",
+        "Ki-lô-mét vuông. Héc-ta",
+        "Vai trò: Vận dụng",
+        "ki-lô-mét vuông",
+        "héc-ta"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "1 m² bằng bao nhiêu đề-xi-mét vuông?",
+      "options": [
+        "10 dm²",
+        "100 dm²",
+        "1 000 dm²",
+        "10 000 dm²"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: MCQ cơ bản",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "1 dm² bằng bao nhiêu xăng-ti-mét vuông?",
+      "options": [
+        "10 cm²",
+        "100 cm²",
+        "1 000 cm²",
+        "0,01 cm²"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: MCQ cơ bản",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "6 m² 25 dm² bằng bao nhiêu đề-xi-mét vuông?",
+      "options": [
+        "625 dm²",
+        "6 025 dm²",
+        "85 dm²",
+        "6250 dm²"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: MCQ cơ bản",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3 500 cm² bằng bao nhiêu đề-xi-mét vuông?",
+      "options": [
+        "3,5 dm²",
+        "35 dm²",
+        "350 dm²",
+        "0,35 dm²"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: MCQ cơ bản",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Đổi 19 m² ra xăng-ti-mét vuông.",
+      "correctAnswer": "190000 cm²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: Trả lời ngắn",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Đổi 8 m² 7 dm² ra mét vuông dưới dạng số thập phân.",
+      "correctAnswer": "8,07 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: Trả lời ngắn",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về đơn vị diện tích.",
+      "items": [
+        {
+          "id": "m5-s1-l16-q07-i1",
+          "statement": "Hai đơn vị diện tích liền nhau hơn kém nhau 100 lần.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l16-q07-i2",
+          "statement": "5 m² = 500 cm².",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l16-q07-i3",
+          "statement": "2,4 dm² = 240 cm².",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: Đúng sai",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "ORDERING",
+      "question": "Sắp xếp các số đo diện tích từ bé đến lớn.",
+      "items": [
+        "0,8 m²",
+        "75 dm²",
+        "8 500 cm²",
+        "1 m²"
+      ],
+      "correctOrder": [
+        1,
+        0,
+        2,
+        3
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: Tương tác",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một tấm bìa rộng 2,5 m². Cắt đi 4 500 cm². Phần còn lại rộng bao nhiêu mét vuông?",
+      "options": [
+        "2,05 m²",
+        "2,45 m²",
+        "2,95 m²",
+        "1,95 m²"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: Vận dụng",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l16-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l16-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một sàn phòng rộng 18 m² 50 dm². Viết diện tích theo mét vuông.",
+      "correctAnswer": "18,5 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T03",
+      "lessonCode": "M5-S1-L16",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Các phép tính với số thập phân",
+        "Bài 16",
+        "Các đơn vị đo diện tích",
+        "Vai trò: Vận dụng",
+        "đơn vị diện tích",
+        "mét vuông"
+      ]
+    }
+  }
+]
