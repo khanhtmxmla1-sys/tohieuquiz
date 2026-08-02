@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { callApi } from '../src/services/apiAdapter';
 import {
+    fetchResultAnswerReview,
     fetchResultAnswers,
     fetchResultAnswersBulk,
 } from '../src/services/results/resultAnswersService';
@@ -34,6 +35,25 @@ describe('result answer retrieval contracts', () => {
         });
     });
 
+    it('returns server-owned review details together with stored answers', async () => {
+        const reviewDetails = [{
+            questionId: 'q1',
+            type: 'DRAG_DROP',
+            status: 'skipped',
+            isCorrect: false,
+            studentAnswer: { kind: 'empty', lines: [{ value: 'Chưa trả lời' }] },
+            correctAnswer: { kind: 'mapping', lines: [{ label: 'Chỗ trống 1', value: '24' }] },
+        }];
+        callApiMock.mockResolvedValueOnce({
+            answers: JSON.stringify({ q1: { selectedAnswer: null, status: 'skipped' } }),
+            reviewDetails,
+        });
+
+        await expect(fetchResultAnswerReview('result-review')).resolves.toEqual({
+            answers: { q1: { selectedAnswer: null, status: 'skipped' } },
+            reviewDetails,
+        });
+    });
     it('preserves object answers and returns an empty map for invalid JSON', async () => {
         callApiMock
             .mockResolvedValueOnce({ answers: '{"q1":{"selectedAnswer":"C"}}' })

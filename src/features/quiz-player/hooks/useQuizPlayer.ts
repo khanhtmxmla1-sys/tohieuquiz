@@ -233,7 +233,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
             quiz.questions.forEach((question) => {
                 const serverResult = validationByQuestionId.get(String(question.id));
                 finalAnswersWithSnapshots[question.id] = {
-                    selectedAnswer: answers[question.id],
+                    selectedAnswer: answers[question.id] ?? null,
                     isCorrect: serverResult?.isCorrect === true,
                     status: serverResult?.status ?? (serverResult?.isCorrect ? 'correct' : 'wrong'),
                     gradingVersion: validationResult.gradingVersion,

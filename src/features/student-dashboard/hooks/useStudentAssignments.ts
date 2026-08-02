@@ -5,7 +5,7 @@ import { useAssignmentStore } from '@/src/stores/useAssignmentStore';
 import { useQuizStore } from '@/stores/quizStore';
 import type { AssignedQuiz } from '@/src/components/HomePage/student-dashboard';
 import { getAssignmentVisualState } from '@/src/components/HomePage/student-dashboard';
-import { fetchResultAnswers } from '@/src/services/results/resultAnswersService';
+import { fetchResultAnswerReview } from '@/src/services/results/resultAnswersService';
 import type { StudentResult } from '@/src/types';
 import { getStudentRoute } from '../../../app/navigationRoutes';
 import {
@@ -119,7 +119,8 @@ export const useStudentAssignments = (studentId?: string) => {
         throw new Error('Không tìm thấy bài làm đã nộp.');
       }
 
-      const storedAnswers = await fetchResultAnswers(result.id);
+      const reviewPayload = await fetchResultAnswerReview(result.id);
+      const storedAnswers = reviewPayload.answers;
       const answeredQuestionIds = Object.keys(storedAnswers)
         .filter((questionId) => !questionId.startsWith('_'));
       if (answeredQuestionIds.length === 0) {
@@ -143,7 +144,7 @@ export const useStudentAssignments = (studentId?: string) => {
 
       setReviewState({
         quiz: reviewQuizData,
-        result: { ...result, answers: storedAnswers },
+        result: { ...result, answers: storedAnswers, reviewDetails: reviewPayload.reviewDetails },
         answers: buildSelectedAssignmentAnswers(storedAnswers),
       });
     } catch (error) {

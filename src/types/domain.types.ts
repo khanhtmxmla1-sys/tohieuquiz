@@ -1,5 +1,6 @@
 import type { QuestionSkillMetadataFields } from '../shared/skillTaxonomy';
 import type { AiQuestionQualityPersistedSummary } from '../../shared/ai-question-quality.contract';
+import type { QuestionAnswerReview } from '../domain/quiz-scoring';
 
 /**
  * Domain Types
@@ -352,6 +353,7 @@ export interface StudentResult {
     submittedAt: string;
     answers: Record<string, any>; // Store student answers
     gradingVersion?: string;
+    reviewDetails?: QuestionAnswerReview[];
     // Server-validated results for each question
     validationDetails?: {
         questionId: string;

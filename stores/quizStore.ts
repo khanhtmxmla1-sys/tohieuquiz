@@ -527,6 +527,7 @@ export const useQuizStore = create<QuizState>()(
                         gradingVersion?: string;
                         answers?: StudentResult['answers'];
                         validationDetails?: StudentResult['validationDetails'];
+                        reviewDetails?: StudentResult['reviewDetails'];
                     }>('submit_result', {
                         ...result,
                         className: result.studentClass,
@@ -547,6 +548,7 @@ export const useQuizStore = create<QuizState>()(
                             gradingVersion: res.gradingVersion ?? result.gradingVersion,
                             answers: res.answers ?? result.answers,
                             validationDetails: res.validationDetails ?? result.validationDetails,
+                            reviewDetails: res.reviewDetails ?? result.reviewDetails,
                         };
                         set((state) => ({
                             results: [...state.results, updatedResult]

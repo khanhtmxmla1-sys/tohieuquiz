@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   QuizGradingServiceError,
   buildAuthoritativeStoredAnswers,
+  buildStoredResultReviewDetails,
   gradeQuizSubmission,
 } from '../workers/src/services/quizGradingService';
 
@@ -71,6 +72,55 @@ describe('Worker quiz grading service', () => {
     expect(JSON.stringify(stored)).not.toContain('isCorrect":false,"questionSnapshot":{"correctAnswer');
   });
 
+  it('stores skipped metadata-only wrappers as a null selected answer', async () => {
+    const grading = await gradeQuizSubmission(new Database(rows) as any, 'quiz-a', {
+      drop: {
+        isCorrect: false,
+        status: 'skipped',
+        gradingVersion: '2.0.0',
+        questionSnapshot: { id: 'drop', type: 'DROPDOWN' },
+      },
+    });
+
+    const stored = buildAuthoritativeStoredAnswers(grading.questions, {
+      drop: {
+        isCorrect: false,
+        status: 'skipped',
+        gradingVersion: '2.0.0',
+        questionSnapshot: { id: 'drop', type: 'DROPDOWN' },
+      },
+    }, grading.details);
+
+    expect(stored.drop).toMatchObject({
+      selectedAnswer: null,
+      isCorrect: false,
+      status: 'skipped',
+      gradingVersion: '2.0.0',
+    });
+  });
+
+  it('infers skipped and wrong statuses for legacy stored results without a status field', () => {
+    const review = buildStoredResultReviewDetails([
+      { id: 'drop', type: 'DROPDOWN', text: '[1]', blanks: [{ id: 'blank-0', options: ['x', 'y'], correctAnswer: 'x' }] },
+      { id: 'match', type: 'MATCHING', pairs: [{ left: 'a', right: '1' }] },
+    ], {
+      drop: {
+        selectedAnswer: {
+          isCorrect: false,
+          gradingVersion: '2.0.0',
+          questionSnapshot: { id: 'drop' },
+        },
+        isCorrect: false,
+      },
+      match: {
+        selectedAnswer: { 'left-0': 'right-0' },
+        isCorrect: false,
+      },
+    });
+
+    expect(review[0]).toMatchObject({ questionId: 'drop', status: 'skipped', isCorrect: false });
+    expect(review[1]).toMatchObject({ questionId: 'match', status: 'wrong', isCorrect: false });
+  });
   it('rejects a quiz with no questions', async () => {
     await expect(gradeQuizSubmission(new Database([]) as any, 'missing', {}))
       .rejects.toMatchObject<Partial<QuizGradingServiceError>>({ status: 404, code: 'QUIZ_QUESTIONS_NOT_FOUND' });

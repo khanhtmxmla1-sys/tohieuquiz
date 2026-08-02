@@ -1,6 +1,12 @@
+import type { QuestionAnswerReview } from '../../domain/quiz-scoring';
 import { callApi } from '../apiAdapter';
 
 export type ResultAnswers = Record<string, any>;
+
+export interface ResultAnswerReviewPayload {
+    answers: ResultAnswers;
+    reviewDetails: QuestionAnswerReview[];
+}
 
 export const normalizeResultAnswers = (raw: unknown): ResultAnswers => {
     if (raw === undefined || raw === null || raw === '') return {};
@@ -29,20 +35,38 @@ export const normalizeResultAnswers = (raw: unknown): ResultAnswers => {
         : {};
 };
 
+export const fetchResultAnswerReview = async (
+    resultId: string | number
+): Promise<ResultAnswerReviewPayload> => {
+    try {
+        const data = await callApi<{ answers?: unknown; reviewDetails?: QuestionAnswerReview[] }>(
+            'get_result_answers',
+            { resultId }
+        );
+        let rawAnswers = data?.answers;
+        if (typeof rawAnswers === 'string') {
+            try {
+                rawAnswers = JSON.parse(rawAnswers) as unknown;
+            } catch (error) {
+                console.error('[fetchResultAnswerReview] Invalid answers JSON:', error);
+                rawAnswers = {};
+            }
+        }
+        return {
+            answers: normalizeResultAnswers(rawAnswers),
+            reviewDetails: Array.isArray(data?.reviewDetails) ? data.reviewDetails : [],
+        };
+    } catch (error) {
+        console.error('[fetchResultAnswerReview] Error:', error);
+        return { answers: {}, reviewDetails: [] };
+    }
+};
+
 export const fetchResultAnswers = async (
     resultId: string | number
 ): Promise<ResultAnswers> => {
-    try {
-        const data = await callApi<{ answers?: unknown }>('get_result_answers', { resultId });
-        const rawAnswers = data?.answers;
-        const parsedAnswers = typeof rawAnswers === 'string'
-            ? JSON.parse(rawAnswers)
-            : rawAnswers;
-        return normalizeResultAnswers(parsedAnswers);
-    } catch (error) {
-        console.error('[fetchResultAnswers] Error:', error);
-        return {};
-    }
+    const payload = await fetchResultAnswerReview(resultId);
+    return payload.answers;
 };
 
 export const fetchResultAnswersBulk = async (
