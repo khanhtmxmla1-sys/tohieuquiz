@@ -162,9 +162,9 @@ jobs:
 
       - name: Verify no placeholder host leaked into the bundle
         run: |
-          # Match a hostname ending in `.invalid`, not any identifier containing it.
-          # A bare '\.invalid' also hits `cacheService.invalidate(...)`, which is bundled.
-          if grep -rIlE --exclude-dir=node_modules '[a-z0-9-]+\.invalid([^a-zA-Z0-9_]|$)' dist; then
+          # Match placeholder URLs or quoted hostnames ending in `.invalid`.
+          # Do not treat property access such as `summary.invalid` as a hostname.
+          if grep -rIlE --exclude-dir=node_modules 'https?://[a-z0-9.-]+\.invalid([^a-zA-Z0-9_]|$)|["'"'][a-z0-9-]+(\.[a-z0-9-]+)*\.invalid["'"']' dist; then
             echo "::error::Placeholder '.invalid' host found in the production bundle."
             exit 1
           fi
