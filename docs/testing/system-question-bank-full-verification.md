@@ -115,6 +115,8 @@ Import safety:
 
 ## Final quality gate
 
+The production bundle placeholder-host gate uses `scripts/check-placeholder-hosts.mjs`; its regression tests distinguish real `.invalid` URLs/hostnames from JavaScript properties such as `summary.invalid`.
+
 Commands and results:
 
 ```text
