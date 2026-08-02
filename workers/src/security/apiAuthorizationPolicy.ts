@@ -132,7 +132,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('ai-proxy', '/api/ai/', 'teacher-owned', ['session', 'route-handler'], 'AI proxy role checks'),
   policy('help', '/api/help', 'authenticated', ['session'], 'help JWT checks'),
   policy('teacher-ai-quota', '/api/teacher-ai-quota', 'teacher-owned', ['session'], 'teacher quota role checks'),
-  policy('test-bank', '/api/test-bank', 'teacher-owned', ['quizId'], 'test-bank teacher/admin checks'),
+  policy('test-bank', '/api/test-bank', 'teacher-owned', ['quizId', 'route-handler'], 'teacher/admin authentication plus row-level scope, owner and publication checks'),
 ] as const;
 
 function matchesPath(entry: ApiAuthorizationPolicy, path: string): boolean {

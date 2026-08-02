@@ -2,8 +2,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 
-const authState = vi.hoisted(() => ({
-  user: null as JWTPayload | null,
+const authState = vi.hoisted(() => ({ user: null as JWTPayload | null }));
+const repo = vi.hoisted(() => ({
+  parse: vi.fn(() => ({ scope: 'SYSTEM', page: 1, pageSize: 30 })),
+  list: vi.fn(),
+  get: vi.fn(),
+}));
+const service = vi.hoisted(() => ({
+  create: vi.fn(),
+  update: vi.fn(),
+  remove: vi.fn(),
+  copy: vi.fn(),
+  bulk: vi.fn(),
 }));
 
 vi.mock('../workers/src/middleware/jwtAuth', () => ({
@@ -13,78 +23,144 @@ vi.mock('../workers/src/middleware/jwtAuth', () => ({
   requireTeacher: vi.fn((user: JWTPayload) => user.role === 'teacher' || user.role === 'admin'),
 }));
 
+vi.mock('../workers/src/services/questionBankRepository', async () => {
+  const actual = await vi.importActual<typeof import('../workers/src/services/questionBankRepository')>(
+    '../workers/src/services/questionBankRepository',
+  );
+  return {
+    ...actual,
+    parseQuestionBankListParams: repo.parse,
+    listQuestionBankItems: repo.list,
+    getQuestionBankItem: repo.get,
+  };
+});
+
+vi.mock('../workers/src/services/questionBankService', async () => {
+  const actual = await vi.importActual<typeof import('../workers/src/services/questionBankService')>(
+    '../workers/src/services/questionBankService',
+  );
+  return {
+    ...actual,
+    createQuestionBankItem: service.create,
+    updateQuestionBankItem: service.update,
+    removeQuestionBankItem: service.remove,
+    copySystemQuestionToPersonal: service.copy,
+    bulkImportSystemItems: service.bulk,
+  };
+});
+
 import { handleTestBankRoutes } from '../workers/src/routes/testBank';
+import { QuestionBankServiceError } from '../workers/src/services/questionBankService';
 
-class TestBankDatabase {
-  queriedTeacherIds: string[] = [];
+const question = {
+  id: 'q-1', type: 'MCQ', question: '2 + 2?', options: ['3', '4'], correctAnswer: 'B',
+};
+const personalItem = {
+  id: 'bank-1', scope: 'PERSONAL', ownerId: 'teacher-a', status: 'PUBLISHED',
+  questionData: question, questionText: '2 + 2?', questionType: 'MCQ', difficulty: 1,
+  explanation: '', metadata: { grade: null, subject: 'MATH', semester: null, topicCode: '', lessonCode: '', source: 'MANUAL', tags: ['math'] },
+  createdBy: 'teacher-a', updatedBy: 'teacher-a', createdAt: '2026-08-02T00:00:00.000Z', updatedAt: '2026-08-02T00:00:00.000Z', publishedAt: '2026-08-02T00:00:00.000Z', archivedAt: null,
+};
+const systemItem = { ...personalItem, id: 'system-1', scope: 'SYSTEM', ownerId: '', createdBy: 'admin', updatedBy: 'admin' };
+const listResult = (items = [systemItem]) => ({
+  items,
+  pagination: { page: 1, pageSize: 30, totalItems: items.length, totalPages: items.length ? 1 : 0 },
+  appliedFilters: { scope: 'SYSTEM', page: 1, pageSize: 30 },
+});
 
-  prepare(_sql: string) {
-    return {
-      bind: (teacherId: string) => ({
-        all: async () => {
-          this.queriedTeacherIds.push(teacherId);
-          return {
-            results: [{
-              id: 'bank-1',
-              teacher_id: teacherId,
-              question_data: JSON.stringify({ id: 'q-1', question: '2 + 2?' }),
-              tags: JSON.stringify(['math']),
-              created_at: '2026-07-30T00:00:00.000Z',
-            }],
-          };
-        },
-      }),
-    };
-  }
-}
+const call = (path: string, method = 'GET', body?: unknown) => {
+  const url = new URL(`https://test${path}`);
+  return handleTestBankRoutes(
+    new Request(url, {
+      method,
+      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }),
+    { DB: {} } as any,
+    url.pathname,
+    method,
+  );
+};
 
-const request = (teacherId: string) => new Request(
-  `https://test/api/test-bank/teacher/${encodeURIComponent(teacherId)}`,
-  { method: 'GET' },
-);
+beforeEach(() => {
+  vi.clearAllMocks();
+  authState.user = { id: 'teacher-a', username: 'teacher-a', role: 'teacher' };
+  repo.list.mockResolvedValue(listResult());
+  repo.get.mockResolvedValue(systemItem);
+  service.create.mockResolvedValue(personalItem);
+  service.update.mockResolvedValue(systemItem);
+  service.remove.mockResolvedValue({ status: 'success' });
+  service.copy.mockResolvedValue(personalItem);
+  service.bulk.mockResolvedValue({ summary: { received: 1, created: 1, duplicates: 0, invalid: 0 }, results: [{ index: 0, status: 'CREATED', id: 'system-1' }] });
+});
 
-const callRoute = (teacherId: string, db: TestBankDatabase) => handleTestBankRoutes(
-  request(teacherId),
-  { DB: db } as any,
-  `/api/test-bank/teacher/${encodeURIComponent(teacherId)}`,
-  'GET',
-);
+describe('test-bank route compatibility and V2 dispatch', () => {
+  it('keeps legacy teacher GET response and owner authorization', async () => {
+    repo.list.mockResolvedValueOnce(listResult([personalItem]));
+    const response = await call('/api/test-bank/teacher/teacher-a');
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ items: [{
+      id: 'bank-1', teacher_id: 'teacher-a', question_data: question,
+      tags: ['math'], created_at: '2026-08-02T00:00:00.000Z',
+    }] });
 
-describe('test-bank teacher and admin authorization', () => {
-  beforeEach(() => {
-    authState.user = null;
+    const forbidden = await call('/api/test-bank/teacher/teacher-b');
+    expect(forbidden.status).toBe(403);
+
+    authState.user = { id: 'admin', username: 'admin', role: 'admin' };
+    repo.list.mockResolvedValueOnce(listResult([{ ...personalItem, ownerId: 'teacher-b' }]));
+    expect((await call('/api/test-bank/teacher/teacher-b')).status).toBe(200);
   });
 
-  it('allows a teacher to load their own question bank', async () => {
-    authState.user = { id: 'teacher-a', username: 'teacher-a', role: 'teacher' };
-    const db = new TestBankDatabase();
-
-    const response = await callRoute('teacher-a', db);
+  it('maps legacy POST payload to PERSONAL while preserving legacy response shape', async () => {
+    const response = await call('/api/test-bank', 'POST', {
+      id: 'bank-1', teacher_id: 'teacher-a', question_data: question, tags: ['math'],
+    });
 
     expect(response.status).toBe(200);
-    expect(db.queriedTeacherIds).toEqual(['teacher-a']);
-    await expect(response.json()).resolves.toMatchObject({
-      items: [{ id: 'bank-1', teacher_id: 'teacher-a', tags: ['math'] }],
+    await expect(response.json()).resolves.toEqual({ status: 'success', id: 'bank-1' });
+    expect(service.create).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ username: 'teacher-a' }), {
+      id: 'bank-1', scope: 'PERSONAL', ownerId: 'teacher-a', questionData: question,
+      metadata: { tags: ['math'] },
     });
   });
 
-  it('rejects a teacher reading another teacher bank', async () => {
-    authState.user = { id: 'teacher-a', username: 'teacher-a', role: 'teacher' };
-    const db = new TestBankDatabase();
+  it('dispatches V2 list, detail, patch, delete, copy and bulk routes', async () => {
+    expect((await call('/api/test-bank?scope=SYSTEM')).status).toBe(200);
+    expect(repo.parse).toHaveBeenCalled();
+    expect(repo.list).toHaveBeenCalled();
 
-    const response = await callRoute('teacher-b', db);
+    expect((await call('/api/test-bank/system-1')).status).toBe(200);
+    expect(repo.get).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'system-1');
 
-    expect(response.status).toBe(403);
-    expect(db.queriedTeacherIds).toEqual([]);
+    expect((await call('/api/test-bank/system-1', 'PATCH', { status: 'PUBLISHED' })).status).toBe(200);
+    expect(service.update).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'system-1', { status: 'PUBLISHED' });
+
+    expect((await call('/api/test-bank/system-1', 'DELETE')).status).toBe(200);
+    expect(service.remove).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'system-1');
+
+    expect((await call('/api/test-bank/system-1/copy-to-personal', 'POST')).status).toBe(201);
+    expect(service.copy).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'system-1');
+
+    expect((await call('/api/test-bank/bulk', 'POST', { items: [{ questionData: question }] })).status).toBe(200);
+    expect(service.bulk).toHaveBeenCalledWith(expect.anything(), expect.anything(), [{ questionData: question }]);
   });
 
-  it('keeps admin access to a requested question bank', async () => {
-    authState.user = { id: 'admin', username: 'admin', role: 'admin' };
-    const db = new TestBankDatabase();
+  it('returns structured V2 errors without exposing internals', async () => {
+    service.create.mockRejectedValueOnce(new QuestionBankServiceError('FORBIDDEN', 403, 'Không có quyền.'));
+    const response = await call('/api/test-bank', 'POST', { scope: 'SYSTEM', questionData: question });
 
-    const response = await callRoute('teacher-b', db);
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: { code: 'FORBIDDEN', message: 'Không có quyền.' },
+    });
+  });
 
-    expect(response.status).toBe(200);
-    expect(db.queriedTeacherIds).toEqual(['teacher-b']);
+  it('rejects unauthenticated and non-teacher requests', async () => {
+    authState.user = null;
+    expect((await call('/api/test-bank?scope=SYSTEM')).status).toBe(401);
+
+    authState.user = { id: 'student-a', username: 'student-a', role: 'student' };
+    expect((await call('/api/test-bank?scope=SYSTEM')).status).toBe(403);
   });
 });
