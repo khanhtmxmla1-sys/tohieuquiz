@@ -49,6 +49,30 @@ describe('staged rollout orchestration', () => {
     ]);
   });
 
+  it('blocks canonical scoring rollout on assessment-specific stop conditions', () => {
+    const result = evaluateRolloutMetrics({
+      stage: 'teachers-5',
+      observationStartedAt: '2026-07-20T00:00:00.000Z',
+      now: new Date('2026-07-29T00:00:00.000Z'),
+      metrics: {
+        scoringInvalidRatePercent: 1.01,
+        validation422RatePercent: 1.01,
+        unexplainedScoreMismatchCount: 1,
+        submissionFailureRatePercent: 1.01,
+        liveExamFailureRatePercent: 1.01,
+      },
+    });
+
+    expect(result.status).toBe('blocked');
+    expect(result.breaches).toEqual([
+      'scoring_invalid_rate',
+      'validation_422_rate',
+      'unexplained_score_mismatch',
+      'submission_failure_rate',
+      'live_exam_failure_rate',
+    ]);
+  });
+
   it('marks a healthy fully observed stage ready', () => {
     const result = evaluateRolloutMetrics({
       stage: 'teachers-5',
