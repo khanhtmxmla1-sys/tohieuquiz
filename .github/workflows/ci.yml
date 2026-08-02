@@ -162,13 +162,7 @@ jobs:
 
       - name: Verify no placeholder host leaked into the bundle
         run: |
-          # Match placeholder URLs or quoted hostnames ending in `.invalid`.
-          # Do not treat property access such as `summary.invalid` as a hostname.
-          if grep -rIlE --exclude-dir=node_modules 'https?://[a-z0-9.-]+\.invalid([^a-zA-Z0-9_]|$)|["'"'][a-z0-9-]+(\.[a-z0-9-]+)*\.invalid["'"']' dist; then
-            echo "::error::Placeholder '.invalid' host found in the production bundle."
-            exit 1
-          fi
-          echo "No placeholder hosts in the bundle."
+          node scripts/check-placeholder-hosts.mjs dist
 
   # E2E runs as TWO jobs, not two steps in one job.
   #
