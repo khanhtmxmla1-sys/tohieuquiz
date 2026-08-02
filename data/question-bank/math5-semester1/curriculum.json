@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "grade": 5,
+  "subject": "MATH",
+  "semester": 1,
+  "bookSeries": "Kết nối tri thức với cuộc sống",
+  "source": "NXB Giáo dục Việt Nam - mục lục học liệu số Vở bài tập Toán 5 Tập 1",
+  "sourceCheckedAt": "2026-08-02",
+  "topics": [
+    {
+      "code": "M5-S1-T01",
+      "order": 1,
+      "title": "Ôn tập và bổ sung",
+      "lessons": [
+        { "code": "M5-S1-L01", "number": 1, "title": "Ôn tập số tự nhiên", "page": null, "keywords": ["số tự nhiên", "hàng và lớp", "so sánh"], "interactionTypes": ["ORDERING", "MATCHING"] },
+        { "code": "M5-S1-L02", "number": 2, "title": "Ôn tập các phép tính với số tự nhiên", "page": null, "keywords": ["cộng", "trừ", "nhân", "chia số tự nhiên"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L03", "number": 3, "title": "Ôn tập phân số", "page": null, "keywords": ["phân số", "rút gọn", "quy đồng", "so sánh"], "interactionTypes": ["MATCHING", "ORDERING"] },
+        { "code": "M5-S1-L04", "number": 4, "title": "Phân số thập phân", "page": null, "keywords": ["phân số thập phân", "mẫu số 10 100 1000", "chuyển đổi"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L05", "number": 5, "title": "Ôn tập các phép tính với phân số", "page": null, "keywords": ["cộng phân số", "trừ phân số", "nhân phân số", "chia phân số"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] }
+      ]
+    },
+    {
+      "code": "M5-S1-T02",
+      "order": 2,
+      "title": "Phân số và số thập phân",
+      "lessons": [
+        { "code": "M5-S1-L06", "number": 6, "title": "Cộng, trừ hai phân số khác mẫu số", "page": null, "keywords": ["quy đồng mẫu số", "cộng phân số", "trừ phân số"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L07", "number": 7, "title": "Hỗn số", "page": null, "keywords": ["hỗn số", "phân số lớn hơn 1", "chuyển đổi"], "interactionTypes": ["MATCHING", "ORDERING"] },
+        { "code": "M5-S1-L08", "number": 8, "title": "Ôn tập hình học và đo lường", "page": null, "keywords": ["chu vi", "diện tích", "đơn vị đo"], "interactionTypes": ["MATCHING", "CATEGORIZATION"] },
+        { "code": "M5-S1-L09", "number": 9, "title": "Luyện tập chung", "page": null, "keywords": ["phân số", "hỗn số", "hình học", "đo lường"], "interactionTypes": ["MULTIPLE_SELECT", "MATCHING"] },
+        { "code": "M5-S1-L10", "number": 10, "title": "Khái niệm số thập phân", "page": null, "keywords": ["số thập phân", "phần nguyên", "phần thập phân"], "interactionTypes": ["MATCHING", "ORDERING"] }
+      ]
+    },
+    {
+      "code": "M5-S1-T03",
+      "order": 3,
+      "title": "Các phép tính với số thập phân",
+      "lessons": [
+        { "code": "M5-S1-L11", "number": 11, "title": "So sánh các số thập phân", "page": null, "keywords": ["so sánh số thập phân", "xếp thứ tự", "giá trị hàng"], "interactionTypes": ["ORDERING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L12", "number": 12, "title": "Viết số đo đại lượng dưới dạng số thập phân", "page": null, "keywords": ["đổi đơn vị", "số đo thập phân", "độ dài khối lượng"], "interactionTypes": ["MATCHING", "CATEGORIZATION"] },
+        { "code": "M5-S1-L13", "number": 13, "title": "Làm tròn số thập phân", "page": null, "keywords": ["làm tròn", "hàng phần mười", "hàng phần trăm"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L14", "number": 14, "title": "Luyện tập chung", "page": null, "keywords": ["số thập phân", "so sánh", "làm tròn", "đổi đơn vị"], "interactionTypes": ["ORDERING", "MATCHING"] },
+        { "code": "M5-S1-L15", "number": 15, "title": "Ki-lô-mét vuông. Héc-ta", "page": null, "keywords": ["ki-lô-mét vuông", "héc-ta", "diện tích lớn"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L16", "number": 16, "title": "Các đơn vị đo diện tích", "page": null, "keywords": ["đơn vị diện tích", "mét vuông", "đổi đơn vị"], "interactionTypes": ["MATCHING", "ORDERING"] }
+      ]
+    },
+    {
+      "code": "M5-S1-T04",
+      "order": 4,
+      "title": "Đại lượng và đo đại lượng",
+      "lessons": [
+        { "code": "M5-S1-L17", "number": 17, "title": "Thực hành và trải nghiệm với một số đơn vị đo đại lượng", "page": null, "keywords": ["thực hành đo", "ước lượng", "độ dài khối lượng thời gian"], "interactionTypes": ["CATEGORIZATION", "MATCHING"] },
+        { "code": "M5-S1-L18", "number": 18, "title": "Luyện tập chung", "page": null, "keywords": ["đại lượng", "đổi đơn vị", "số đo"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L19", "number": 19, "title": "Phép cộng số thập phân", "page": null, "keywords": ["cộng số thập phân", "đặt tính", "bài toán"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L20", "number": 20, "title": "Phép trừ số thập phân", "page": null, "keywords": ["trừ số thập phân", "đặt tính", "tìm hiệu"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L21", "number": 21, "title": "Phép nhân số thập phân", "page": null, "keywords": ["nhân số thập phân", "tích", "bài toán"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L22", "number": 22, "title": "Phép chia số thập phân", "page": null, "keywords": ["chia số thập phân", "thương", "bài toán"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] }
+      ]
+    },
+    {
+      "code": "M5-S1-T05",
+      "order": 5,
+      "title": "Hình học",
+      "lessons": [
+        { "code": "M5-S1-L23", "number": 23, "title": "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …", "page": null, "keywords": ["nhân chia 10 100 1000", "dịch dấu phẩy", "0,1 0,01"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L24", "number": 24, "title": "Luyện tập chung", "page": null, "keywords": ["phép tính số thập phân", "biểu thức", "bài toán"], "interactionTypes": ["MATCHING", "ORDERING"] },
+        { "code": "M5-S1-L25", "number": 25, "title": "Hình tam giác. Diện tích hình tam giác", "page": null, "keywords": ["hình tam giác", "đáy và chiều cao", "diện tích"], "interactionTypes": ["MATCHING", "CATEGORIZATION"] },
+        { "code": "M5-S1-L26", "number": 26, "title": "Hình thang. Diện tích hình thang", "page": null, "keywords": ["hình thang", "hai đáy", "chiều cao", "diện tích"], "interactionTypes": ["MATCHING", "CATEGORIZATION"] },
+        { "code": "M5-S1-L27", "number": 27, "title": "Đường tròn. Chu vi và diện tích hình tròn", "page": null, "keywords": ["đường tròn", "bán kính", "đường kính", "chu vi", "diện tích"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L28", "number": 28, "title": "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình", "page": null, "keywords": ["đo vẽ", "lắp ghép", "tạo hình", "thực hành"], "interactionTypes": ["ORDERING", "CATEGORIZATION"] },
+        { "code": "M5-S1-L29", "number": 29, "title": "Luyện tập chung", "page": null, "keywords": ["tam giác", "hình thang", "hình tròn", "diện tích"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] }
+      ]
+    },
+    {
+      "code": "M5-S1-T06",
+      "order": 6,
+      "title": "Ôn tập học kì I",
+      "lessons": [
+        { "code": "M5-S1-L30", "number": 30, "title": "Ôn tập số thập phân", "page": null, "keywords": ["số thập phân", "so sánh", "làm tròn"], "interactionTypes": ["ORDERING", "MATCHING"] },
+        { "code": "M5-S1-L31", "number": 31, "title": "Ôn tập các phép tính với số thập phân", "page": null, "keywords": ["cộng trừ nhân chia", "số thập phân", "biểu thức"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L32", "number": 32, "title": "Ôn tập một số hình phẳng", "page": null, "keywords": ["tam giác", "hình thang", "hình tròn", "đặc điểm"], "interactionTypes": ["CATEGORIZATION", "MATCHING"] },
+        { "code": "M5-S1-L33", "number": 33, "title": "Ôn tập diện tích, chu vi một số hình phẳng", "page": null, "keywords": ["chu vi", "diện tích", "hình phẳng"], "interactionTypes": ["MATCHING", "MULTIPLE_SELECT"] },
+        { "code": "M5-S1-L34", "number": 34, "title": "Ôn tập đo lường", "page": null, "keywords": ["độ dài", "khối lượng", "diện tích", "thời gian"], "interactionTypes": ["MATCHING", "CATEGORIZATION"] },
+        { "code": "M5-S1-L35", "number": 35, "title": "Ôn tập chung", "page": null, "keywords": ["học kì I", "số và phép tính", "hình học", "đo lường"], "interactionTypes": ["MULTIPLE_SELECT", "MATCHING"] }
+      ]
+    }
+  ]
+}
