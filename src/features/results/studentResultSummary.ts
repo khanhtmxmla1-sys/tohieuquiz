@@ -1,4 +1,5 @@
 import type { StudentResult } from '../../types';
+import { unwrapStoredResultAnswer } from '../../domain/quiz-scoring';
 
 export type AnswerOutcome = 'correct' | 'incorrect' | 'skipped';
 
@@ -25,16 +26,8 @@ export const isSkippedAnswer = (value: unknown): boolean => (
 );
 
 const getSelectedAnswer = (storedAnswer: unknown, fallbackAnswer: unknown): unknown => {
-  if (
-    storedAnswer
-    && typeof storedAnswer === 'object'
-    && !Array.isArray(storedAnswer)
-    && Object.prototype.hasOwnProperty.call(storedAnswer, 'selectedAnswer')
-  ) {
-    return (storedAnswer as { selectedAnswer?: unknown }).selectedAnswer;
-  }
-
-  return fallbackAnswer ?? storedAnswer;
+  const stored = unwrapStoredResultAnswer(storedAnswer);
+  return stored ?? unwrapStoredResultAnswer(fallbackAnswer);
 };
 
 export const getStoredAnswerOutcome = (
@@ -43,8 +36,12 @@ export const getStoredAnswerOutcome = (
   fallbackAnswer?: unknown,
 ): AnswerOutcome => {
   const storedAnswer = result.answers?.[questionId];
-  const selectedAnswer = getSelectedAnswer(storedAnswer, fallbackAnswer);
+  const storedStatus = storedAnswer && typeof storedAnswer === 'object' && !Array.isArray(storedAnswer)
+    ? (storedAnswer as { status?: unknown }).status
+    : undefined;
+  if (storedStatus === 'skipped') return 'skipped';
 
+  const selectedAnswer = getSelectedAnswer(storedAnswer, fallbackAnswer);
   if (isSkippedAnswer(selectedAnswer)) return 'skipped';
 
   if (storedAnswer && typeof storedAnswer === 'object' && !Array.isArray(storedAnswer)) {
@@ -53,6 +50,7 @@ export const getStoredAnswerOutcome = (
   }
 
   const validation = result.validationDetails?.find((detail) => detail.questionId === questionId);
+  if (validation?.status === 'skipped') return 'skipped';
   if (validation) return validation.isCorrect ? 'correct' : 'incorrect';
 
   return 'incorrect';

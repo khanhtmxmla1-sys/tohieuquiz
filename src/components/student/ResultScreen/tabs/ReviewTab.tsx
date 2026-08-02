@@ -1,6 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { CheckCircle2, MinusCircle, XCircle } from 'lucide-react';
 import type { Quiz, StudentResult } from '../../../../types';
+import {
+    buildQuestionAnswerReview,
+    unwrapStoredResultAnswer,
+    type AnswerReviewValue,
+} from '../../../../domain/quiz-scoring';
 import MathSpan from '../../../common/MathSpan';
 import {
     getStoredAnswerOutcome,
@@ -16,42 +21,16 @@ interface ReviewTabProps {
 
 type ReviewFilter = 'all' | 'incorrect' | 'skipped';
 
-const formatAnswer = (value: unknown): string => {
-    if (value === undefined || value === null || value === '') return 'Chưa trả lời';
-    if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : 'Chưa trả lời';
-    if (typeof value === 'object') {
-        const entries = Object.entries(value as Record<string, unknown>)
-            .filter(([key]) => key !== 'selectedLeft' && key !== '__shuffledIds')
-            .map(([key, item]) => `${key}: ${String(item)}`);
-        return entries.length > 0 ? entries.join(' · ') : 'Chưa trả lời';
-    }
-    if (typeof value === 'boolean') return value ? 'Đúng' : 'Sai';
-    return String(value);
-};
-
-const getSelectedAnswer = (result: StudentResult, questionId: string, fallback: unknown): unknown => {
-    const stored = result.answers?.[questionId];
-    if (stored && typeof stored === 'object' && !Array.isArray(stored) && 'selectedAnswer' in stored) {
-        return (stored as { selectedAnswer?: unknown }).selectedAnswer;
-    }
-    return fallback;
-};
-
-const getCorrectAnswer = (result: StudentResult, questionId: string, question: any): unknown => {
-    const stored = result.answers?.[questionId];
-    const snapshot = stored && typeof stored === 'object' && !Array.isArray(stored)
-        ? (stored as { questionSnapshot?: any }).questionSnapshot
-        : null;
-    const validation = result.validationDetails?.find((detail) => detail.questionId === questionId);
-    return validation?.correctAnswer
-        ?? snapshot?.correctAnswer
-        ?? snapshot?.correctAnswers
-        ?? snapshot?.correctWord
-        ?? question.correctAnswer
-        ?? question.correctAnswers
-        ?? question.correctWord
-        ?? null;
-};
+const ReviewValue: React.FC<{ value: AnswerReviewValue }> = ({ value }) => (
+    <div className="space-y-1.5">
+        {value.lines.map((line, index) => (
+            <div key={`${line.label || 'value'}-${index}`} className="break-words">
+                {line.label ? <span className="font-semibold">{line.label}: </span> : null}
+                <MathSpan content={line.value} />
+            </div>
+        ))}
+    </div>
+);
 
 const statusMeta: Record<AnswerOutcome, { label: string; className: string; icon: React.ReactNode }> = {
     correct: {
@@ -114,9 +93,20 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFil
             <div className="space-y-3">
                 {visibleItems.map(({ question, index, outcome }) => {
                     const meta = statusMeta[outcome];
-                    const selectedAnswer = getSelectedAnswer(result, question.id, answers[question.id]);
-                    const correctAnswer = getCorrectAnswer(result, question.id, question);
+                    const storedAnswer = result.answers?.[question.id] ?? answers[question.id];
+                    const serverReview = result.reviewDetails?.find((detail) => detail.questionId === question.id);
+                    const review = serverReview ?? buildQuestionAnswerReview(
+                        question,
+                        unwrapStoredResultAnswer(storedAnswer),
+                        {
+                            questionId: question.id,
+                            type: String(question.type),
+                            status: outcome === 'incorrect' ? 'wrong' : outcome,
+                            isCorrect: outcome === 'correct',
+                        },
+                    );
                     const questionText = (question as any).question || (question as any).mainQuestion || `Câu ${index + 1}`;
+                    const showCorrectAnswer = outcome !== 'correct' && review.correctAnswer.kind !== 'unsupported';
 
                     return (
                         <article key={question.id} className="rounded-[12px] border border-slate-200 bg-white p-4 sm:p-5">
@@ -135,15 +125,15 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFil
                             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                                 <div className="rounded-[9px] bg-slate-50 p-3">
                                     <dt className="font-semibold text-slate-500">Câu trả lời của em</dt>
-                                    <dd className="mt-1 break-words font-medium text-slate-800">
-                                        <MathSpan content={formatAnswer(selectedAnswer)} />
+                                    <dd className="mt-1 font-medium text-slate-800">
+                                        <ReviewValue value={review.studentAnswer} />
                                     </dd>
                                 </div>
-                                {outcome !== 'correct' && correctAnswer !== null ? (
+                                {showCorrectAnswer ? (
                                     <div className="rounded-[9px] bg-emerald-50 p-3">
                                         <dt className="font-semibold text-emerald-700">Đáp án đúng</dt>
-                                        <dd className="mt-1 break-words font-medium text-emerald-900">
-                                            <MathSpan content={formatAnswer(correctAnswer)} />
+                                        <dd className="mt-1 font-medium text-emerald-900">
+                                            <ReviewValue value={review.correctAnswer} />
                                         </dd>
                                     </div>
                                 ) : null}

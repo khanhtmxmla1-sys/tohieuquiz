@@ -63,6 +63,33 @@ describe('student result summary', () => {
     });
   });
 
+  it('treats legacy metadata-only answer wrappers as skipped', () => {
+    const result = makeResult({
+      totalQuestions: 1,
+      answers: {
+        q1: {
+          selectedAnswer: {
+            isCorrect: false,
+            status: 'skipped',
+            gradingVersion: '2.0.0',
+            questionSnapshot: { id: 'q1', type: 'DRAG_DROP' },
+          },
+          isCorrect: false,
+          status: 'skipped',
+        },
+      },
+      validationDetails: [{ questionId: 'q1', isCorrect: false, status: 'skipped' }],
+    });
+
+    expect(getStoredAnswerOutcome(result, 'q1')).toBe('skipped');
+    expect(buildStudentResultSummary(result)).toMatchObject({
+      correct: 0,
+      incorrect: 0,
+      skipped: 1,
+      total: 1,
+    });
+  });
+
   it('formats sub-minute decimal minutes as seconds', () => {
     expect(formatResultDuration(0.5)).toBe('30 giây');
     expect(formatResultDuration(2.25)).toBe('2 phút 15 giây');

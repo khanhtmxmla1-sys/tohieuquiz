@@ -107,6 +107,13 @@ describe('canonical student id on result writes', () => {
     );
 
     expect(response.status).toBe(200);
+    const payload = await response.json() as any;
+    expect(payload.reviewDetails).toEqual([expect.objectContaining({
+      questionId: 'q1',
+      status: 'skipped',
+      studentAnswer: { kind: 'empty', lines: [{ value: 'Chưa trả lời' }] },
+      correctAnswer: { kind: 'text', lines: [{ value: '4' }] },
+    })]);
     const insert = insertedResult(db);
     expect(insert?.sql).toContain('student_id');
     expect(insert?.bindings[0]).toBe('student-canonical');

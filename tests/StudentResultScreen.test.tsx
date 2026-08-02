@@ -102,6 +102,56 @@ describe('student result screen', () => {
     expect(within(review).getByText('Câu ba')).toBeInTheDocument();
   });
 
+  it('does not render technical metadata for a skipped legacy answer', () => {
+    const skippedQuiz: Quiz = {
+      ...quiz,
+      questions: [{
+        id: 'drag-1',
+        type: QuestionType.DRAG_DROP,
+        question: 'Kéo các số vào đúng chỗ trống.',
+        text: '[blank-0]',
+        blanks: [{ id: 'blank-0', correctAnswer: '24' }],
+        distractors: ['24', '6'],
+      } as any],
+    };
+    const skippedResult: StudentResult = {
+      ...result,
+      quizId: skippedQuiz.id,
+      score: 0,
+      correctCount: 0,
+      totalQuestions: 1,
+      answers: {
+        'drag-1': {
+          selectedAnswer: {
+            isCorrect: false,
+            status: 'skipped',
+            gradingVersion: '2.0.0',
+            questionSnapshot: { id: 'drag-1', type: 'DRAG_DROP' },
+          },
+          isCorrect: false,
+          status: 'skipped',
+        },
+      },
+      validationDetails: [{ questionId: 'drag-1', isCorrect: false, status: 'skipped' }],
+    };
+
+    render(
+      <ResultScreen
+        quiz={skippedQuiz}
+        result={skippedResult}
+        answers={{}}
+        initialTab="review"
+        onExit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Chưa trả lời')).toBeInTheDocument();
+    expect(screen.getByText('Chưa làm')).toBeInTheDocument();
+    expect(screen.queryByText(/gradingVersion/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/questionSnapshot/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\[object Object\]/i)).not.toBeInTheDocument();
+  });
+
   it('does not show a study-plan tab when there are no answered incorrect questions', () => {
     const perfectResult: StudentResult = {
       ...result,

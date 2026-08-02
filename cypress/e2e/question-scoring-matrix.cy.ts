@@ -82,6 +82,54 @@ const installQuiz = (win: Window) => {
   }));
 };
 
+
+const skippedQuestions = [
+  ...Array.from({ length: 13 }, (_, index) => ({
+    id: `answered-${index + 1}`,
+    quizId: 'result-review-skipped-15',
+    type: 'MCQ',
+    question: `Câu đã làm ${index + 1}`,
+    options: ['Đúng', 'Sai'],
+    correctAnswer: 'A',
+  })),
+  {
+    id: 'skipped-drag-14', quizId: 'result-review-skipped-15', type: 'DRAG_DROP',
+    question: 'Kéo các số vào đúng chỗ trống để hoàn thành bài giải.',
+    text: '[1]', blanks: [{ id: 'blank-14', correctAnswer: '24' }], distractors: ['6'],
+  },
+  {
+    id: 'skipped-drag-15', quizId: 'result-review-skipped-15', type: 'DRAG_DROP',
+    question: 'Kéo các số vào đúng chỗ trống. Đây là dạng tìm số đơn vị.',
+    text: '[1]', blanks: [{ id: 'blank-15', correctAnswer: '6' }], distractors: ['24'],
+  },
+];
+
+const skippedQuiz = {
+  id: 'result-review-skipped-15',
+  title: 'Kiểm tra xem lại câu bỏ trống',
+  classLevel: '4',
+  category: 'kiem-thu',
+  timeLimit: 30,
+  requireCode: false,
+  isPractice: true,
+  questions: skippedQuestions,
+};
+
+const installSkippedQuiz = (win: Window) => {
+  Object.defineProperty(win.Math, 'random', {
+    configurable: true,
+    value: () => 0.999999,
+  });
+  win.localStorage.setItem('tohieuquiz-store', JSON.stringify({
+    state: {
+      view: 'student',
+      quizzes: [skippedQuiz],
+      selectedQuiz: skippedQuiz,
+      quizzesLoadedAt: Date.now(),
+    },
+    version: 0,
+  }));
+};
 const withinQuestion = (id: string, callback: () => void) => {
   cy.get(`#question-${id}`, { timeout: 15_000 }).should('be.visible').within(callback);
 };
@@ -186,5 +234,72 @@ describe('Canonical scoring browser matrix', () => {
     });
     cy.get('#result-summary-title').should('have.text', '10/10');
     cy.contains('14 đúng · 0 sai · 0 chưa làm').should('be.visible');
+  });
+  it('shows two unanswered drag-drop questions without leaking result metadata', () => {
+    cy.intercept('GET', '**/api/system-settings*', {
+      statusCode: 200,
+      body: { status: 'success', data: { aiAssistantEnabled: false } },
+    });
+
+    cy.intercept('POST', '**/api/validate', (request) => {
+      const grading = gradeQuiz({ questions: skippedQuestions }, request.body.answers ?? {});
+      expect(grading.correctCount).to.equal(13);
+      expect(grading.details.filter((detail) => detail.status === 'skipped')).to.have.length(2);
+      request.reply({
+        statusCode: 200,
+        body: {
+          status: 'success',
+          score: grading.score,
+          correctCount: grading.correctCount,
+          total: grading.totalQuestions,
+          gradingVersion: grading.engineVersion,
+          details: grading.details.map((detail) => ({
+            questionId: detail.questionId,
+            isCorrect: detail.isCorrect,
+            status: detail.status,
+            issueCode: detail.issueCode,
+          })),
+        },
+      });
+    }).as('validateSkippedAnswers');
+
+    cy.visit('/', { onBeforeLoad: installSkippedQuiz });
+    cy.contains('Kiểm tra xem lại câu bỏ trống', { timeout: 15_000 }).should('be.visible');
+    cy.get('input[placeholder="Ví dụ: Lò Văn A"]').type('Học sinh kiểm thử');
+    cy.get('select').select('4A1');
+    cy.contains('button', 'Bắt đầu làm bài!').click();
+
+    for (let index = 1; index <= 10; index += 1) {
+      withinQuestion(`answered-${index}`, () => cy.get('button').eq(0).click());
+    }
+    cy.contains('button', 'Câu tiếp theo').last().click();
+    for (let index = 11; index <= 13; index += 1) {
+      withinQuestion(`answered-${index}`, () => cy.get('button').eq(0).click());
+    }
+
+    cy.contains('button', 'Nộp bài').click();
+    cy.contains('p', 'câu hỏi chưa làm.').should('be.visible').and('contain.text', '2');
+    cy.contains('button', 'Đồng ý nộp').click();
+    cy.wait('@validateSkippedAnswers');
+
+    cy.get('[role="dialog"]').within(() => {
+      cy.contains('13/15 câu đúng').should('be.visible');
+      cy.contains('button', 'Xem kết quả').click();
+    });
+    cy.contains('13 đúng · 0 sai · 2 chưa làm').should('be.visible');
+    cy.get('[role="tab"]', { timeout: 10_000 }).contains('Xem lại bài').click();
+    cy.contains('button', 'Câu sai 0').should('be.visible');
+    cy.contains('button', 'Chưa làm 2').should('be.visible').click();
+    cy.get('[role="tabpanel"]').within(() => {
+      cy.contains('Kéo các số vào đúng chỗ trống để hoàn thành bài giải.').should('be.visible');
+      cy.contains('Kéo các số vào đúng chỗ trống. Đây là dạng tìm số đơn vị.').should('be.visible');
+      cy.contains('Chỗ trống 1').should('be.visible');
+      cy.contains('24').should('be.visible');
+      cy.contains('6').should('be.visible');
+      cy.contains('isCorrect').should('not.exist');
+      cy.contains('gradingVersion').should('not.exist');
+      cy.contains('questionSnapshot').should('not.exist');
+      cy.contains('[object Object]').should('not.exist');
+    });
   });
 });

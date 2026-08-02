@@ -1,16 +1,15 @@
+import { unwrapStoredResultAnswer, withoutUiMetadata } from './legacyAnswerAdapters';
 import { normalizeText } from './questionIdentity';
 import { normalizeAnswerForNormalizedQuestion } from './normalizeAnswer';
 import { normalizeQuestionForGrading } from './normalizeQuestion';
 import type { NormalizedGradableQuestion, QuizAnswer } from './types';
 
 export const isRawAnswerSkipped = (value: unknown): boolean => {
-  if (value === undefined || value === null || value === '') return true;
-  if (Array.isArray(value)) return value.length === 0;
-  if (typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>)
-      .filter(([key]) => key !== 'selectedLeft' && key !== '__shuffledIds' && key !== '_selected' && key !== 'isCorrect' && key !== 'questionSnapshot');
-    if (entries.length === 0) return true;
-    if (entries.length === 1 && entries[0][0] === 'selectedAnswer') return isRawAnswerSkipped(entries[0][1]);
+  const unwrapped = unwrapStoredResultAnswer(value);
+  if (unwrapped === undefined || unwrapped === null || unwrapped === '') return true;
+  if (Array.isArray(unwrapped)) return unwrapped.length === 0;
+  if (typeof unwrapped === 'object') {
+    return Object.keys(withoutUiMetadata(unwrapped)).length === 0;
   }
   return false;
 };

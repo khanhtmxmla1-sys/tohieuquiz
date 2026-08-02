@@ -1,9 +1,12 @@
 import {
   QUIZ_ANSWER_SCHEMA_VERSION,
   QUIZ_SCORING_ENGINE_VERSION,
+  buildQuizAnswerReview,
   gradeQuiz,
+  isRawAnswerSkipped,
   normalizeQuestionForGrading,
   unwrapStoredResultAnswer,
+  type QuestionAnswerReview,
   type QuestionGradingResult,
 } from '../../../src/domain/quiz-scoring';
 import { mapLiveExamQuestionRow } from './liveExamQuestionMapper';
@@ -137,4 +140,49 @@ export function buildAuthoritativeStoredAnswers(
       gradingVersion: QUIZ_SCORING_ENGINE_VERSION,
     }];
   }));
+}
+
+export function buildAuthoritativeReviewDetails(
+  questions: readonly Record<string, unknown>[],
+  submittedAnswers: unknown,
+  details: readonly QuestionGradingResult[],
+): QuestionAnswerReview[] {
+  return buildQuizAnswerReview(questions, submittedAnswers, details);
+}
+
+export function buildStoredResultReviewDetails(
+  questions: readonly Record<string, unknown>[],
+  storedAnswers: unknown,
+): QuestionAnswerReview[] {
+  const answerMap = storedAnswers && typeof storedAnswers === 'object' && !Array.isArray(storedAnswers)
+    ? storedAnswers as Record<string, unknown>
+    : {};
+  const details: QuestionGradingResult[] = questions.map((question) => {
+    const questionId = String(question.id ?? '');
+    const stored = answerMap[questionId];
+    const envelope = stored && typeof stored === 'object' && !Array.isArray(stored)
+      ? stored as Record<string, unknown>
+      : {};
+    const selectedAnswer = unwrapStoredResultAnswer(stored);
+    const rawStatus = String(envelope.status ?? '');
+    const storedStatus = rawStatus === 'correct' || rawStatus === 'wrong' || rawStatus === 'skipped' || rawStatus === 'invalid'
+      ? rawStatus
+      : null;
+    const status = storedStatus
+      ?? (isRawAnswerSkipped(selectedAnswer)
+        ? 'skipped'
+        : envelope.isCorrect === true
+          ? 'correct'
+          : envelope.isCorrect === false
+            ? 'wrong'
+            : 'invalid');
+    return {
+      questionId,
+      type: String(question.type ?? ''),
+      status,
+      isCorrect: envelope.isCorrect === true,
+      normalizedStudentAnswer: selectedAnswer,
+    };
+  });
+  return buildQuizAnswerReview(questions, answerMap, details);
 }

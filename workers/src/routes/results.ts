@@ -4,6 +4,7 @@
 // POST /api/validate - Validate answers (anti-cheat)
 
 import { Env } from '../types';
+import type { QuestionAnswerReview } from '../../../src/domain/quiz-scoring';
 import { jsonResponse, errorResponse } from '../utils/response';
 import { handleValidateAnswers, parseBody } from '../utils/helpers';
 import { JWTPayload } from '../utils/jwt';
@@ -14,8 +15,11 @@ import { createParentNotification } from '../parentPortal/notificationService';
 import { loadResultDashboardSummary } from '../services/resultSummaryService';
 import {
     QuizGradingServiceError,
+    buildAuthoritativeReviewDetails,
     buildAuthoritativeStoredAnswers,
+    buildStoredResultReviewDetails,
     gradeQuizSubmission,
+    loadQuizQuestionsForGrading,
 } from '../services/quizGradingService';
 import {
     recordScoringShadowObservation,
@@ -292,7 +296,23 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
 
         const row = await db.prepare('SELECT answers FROM results WHERE id = ?').bind(id).first<{ answers: string }>();
         if (!row) return errorResponse('Result not found', 404);
-        return jsonResponse({ answers: row.answers });
+        let parsedAnswers: Record<string, unknown> = {};
+        try {
+            const parsed = JSON.parse(row.answers || '{}') as unknown;
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                parsedAnswers = parsed as Record<string, unknown>;
+            }
+        } catch {
+            parsedAnswers = {};
+        }
+        let reviewDetails: QuestionAnswerReview[] = [];
+        try {
+            const questions = await loadQuizQuestionsForGrading(db, String(access.result.quiz_id || ''));
+            reviewDetails = buildStoredResultReviewDetails(questions, parsedAnswers);
+        } catch (error) {
+            if (!(error instanceof QuizGradingServiceError)) throw error;
+        }
+        return jsonResponse({ answers: row.answers, reviewDetails });
     }
 
     // POST /api/results/answers/bulk - Cohort answers for teacher question analysis
@@ -463,6 +483,11 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             body.answers || {},
             grading.details,
         );
+        const reviewDetails = buildAuthoritativeReviewDetails(
+            grading.questions,
+            authoritativeAnswers,
+            grading.details,
+        );
         const submittedAt = new Date().toISOString();
         const insertResult = await db.prepare(`
             INSERT INTO results (
@@ -506,6 +531,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             scoringMode,
             answers: authoritativeAnswers,
             validationDetails: grading.details,
+            reviewDetails,
         });
     }
 
