@@ -16,4 +16,5 @@ export const TeacherCertificatesPage = React.lazy(() => import('../../../feature
 export const AdminTemplatesPage = React.lazy(() => import('../../../features/certificates/AdminTemplatesPage'));
 export const MathAuditPage = React.lazy(() => import('../../../features/math-audit/MathAuditPage'));
 export const OperationsCenterPage = React.lazy(() => import('../../../features/operations/OperationsCenterPage'));
+export const SystemQuestionBankAdminPage = React.lazy(() => import('../../../features/question-bank/SystemQuestionBankAdminPage'));
 export const PersonalSettingsTab = React.lazy(() => import('../PersonalSettingsTab'));

@@ -80,6 +80,8 @@ describe('URL navigation contracts', () => {
     expect(getTeacherRoute('classes')).toBe('/teacher/classes');
     expect(getTeacherRoute('live-exam')).toBe('/teacher/live-exams');
     expect(getTeacherRoute('gift-shop')).toBe('/teacher/gift-shop');
+    expect(getTeacherRoute('system-question-bank')).toBe('/teacher/system-question-bank');
+    expect(resolveTeacherTabFromLocation('/teacher/system-question-bank', '')).toBe('system-question-bank');
     expect(resolveTeacherTabFromLocation('/teacher/quizzes', '?mode=create')).toBe('create');
     expect(resolveTeacherTabFromLocation('/teacher/unknown', '')).toBe('overview');
   });
@@ -163,6 +165,36 @@ describe('URL navigation contracts', () => {
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/overview'));
     expect(screen.queryByText('design-system-page')).not.toBeInTheDocument();
+  });
+
+  it('redirects a non-admin teacher away from the system question bank', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'teacher.one',
+      teacherName: 'Giáo viên Một',
+      isAdmin: false,
+    });
+
+    renderRoutes('/teacher/system-question-bank');
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/overview'));
+    expect(screen.getByText('teacher-dashboard')).toBeInTheDocument();
+  });
+
+  it('renders the system question bank dashboard route for an administrator', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'admin.one',
+      teacherName: 'Quản trị viên',
+      isAdmin: true,
+    });
+
+    renderRoutes('/teacher/system-question-bank');
+
+    expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/teacher/system-question-bank');
   });
 
   it('renders the internal design system for an administrator', async () => {

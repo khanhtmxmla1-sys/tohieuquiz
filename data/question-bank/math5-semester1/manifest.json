@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "datasetVersion": "2026.08.02.1",
+  "grade": 5,
+  "subject": "MATH",
+  "semester": 1,
+  "status": "DRAFT",
+  "source": "CURATED_ORIGINAL",
+  "curriculumSource": "NXB Giáo dục Việt Nam - mục lục học liệu số Vở bài tập Toán 5 Tập 1",
+  "sourceCheckedAt": "2026-08-02",
+  "counts": {
+    "topics": 6,
+    "lessons": 35,
+    "items": 350,
+    "validItems": 350,
+    "duplicateHashes": 0
+  },
+  "topicCounts": {
+    "M5-S1-T01": 50,
+    "M5-S1-T02": 50,
+    "M5-S1-T03": 60,
+    "M5-S1-T04": 60,
+    "M5-S1-T05": 70,
+    "M5-S1-T06": 60
+  },
+  "files": [
+    {
+      "name": "topic-01.json",
+      "topicCode": "M5-S1-T01",
+      "itemCount": 50,
+      "sha256": "3f585063ebf96e668b7e90a18d64021d60478a9b77aaa55ceaa7c9c00c9ace65"
+    },
+    {
+      "name": "topic-02.json",
+      "topicCode": "M5-S1-T02",
+      "itemCount": 50,
+      "sha256": "2722dd91f85018a4d05d9a56c72c19f1f476d8ada760e121d91caf478e01e357"
+    },
+    {
+      "name": "topic-03.json",
+      "topicCode": "M5-S1-T03",
+      "itemCount": 60,
+      "sha256": "67f052b14b8f18fbaf063ff0f3f1d736eaa472850dfd382679da274c1c01f773"
+    },
+    {
+      "name": "topic-04.json",
+      "topicCode": "M5-S1-T04",
+      "itemCount": 60,
+      "sha256": "9743f46cba912773ca04418a9c8d1ecc57045cf09cc5f0b53067240b3ba94d30"
+    },
+    {
+      "name": "topic-05.json",
+      "topicCode": "M5-S1-T05",
+      "itemCount": 70,
+      "sha256": "50c2e9b26805418d7d7b52f2619e99bbd00bf53f431f390b89ca4b11ec2fc882"
+    },
+    {
+      "name": "topic-06.json",
+      "topicCode": "M5-S1-T06",
+      "itemCount": 60,
+      "sha256": "213524e8c2768cd34571ecba3c1abb98e8ec387bd23600b1ad65e933fe0da521"
+    }
+  ],
+  "datasetSha256": "2bc3005c8b0f32d3e2608154031518043e511b8257021d6cea067ff3d9c63232",
+  "importBatches": [
+    100,
+    100,
+    100,
+    50
+  ],
+  "generatedBy": "scripts/question-bank/generate-math5-dataset.ts",
+  "validator": "scripts/question-bank/validate-math5-dataset.ts"
+}

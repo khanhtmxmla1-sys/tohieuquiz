@@ -59,6 +59,8 @@ describe('fresh D1 bootstrap contract', () => {
       'feature_flags',
       'feature_flag_rules',
       'feature_flag_audit',
+      'question_bank_items',
+      'question_bank_audit',
     ]) {
       expect(schema).toContain(`create table if not exists ${table}`);
     }
@@ -105,8 +107,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(58);
-    expect(migrationNames.at(-1)).toBe('0059_quiz_scoring_rollout_flags.sql');
+    expect(migrationNames).toHaveLength(59);
+    expect(migrationNames.at(-1)).toBe('0060_system_question_bank.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);

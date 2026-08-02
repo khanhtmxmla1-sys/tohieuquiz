@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Search, Trash2 } from 'lucide-react';
+import { Copy, Search, Trash2 } from 'lucide-react';
 import { ModuleIcon } from '../../../components/common';
 import MathSpan from '../../../components/common/MathSpan';
 import { QuestionType, type Question } from '../../../types';
+import type { QuestionBankItem } from '../../question-bank/questionBank.types';
 import type { TestBankItem } from '../../../services/testBankService';
 
 export interface TestBankFilters {
@@ -12,7 +13,7 @@ export interface TestBankFilters {
     subject: string | 'all';
 }
 
-const getQuestionText = (question: Question): string => {
+export const getQuestionText = (question: Question): string => {
     const loose = question as Question & { mainQuestion?: string };
     return loose.mainQuestion || ('question' in loose ? String(loose.question || '') : '') || '[Chưa có nội dung]';
 };
@@ -55,7 +56,106 @@ export const cloneQuestionFromBank = (question: Question): Question => {
     return { ...clone, id: createCloneId() } as Question;
 };
 
-interface TestBankBrowserProps {
+export const legacyTestBankItemToQuestionBankItem = (item: TestBankItem): QuestionBankItem => {
+    const question = item.question_data as Question & { subject?: string };
+    const tags = Array.isArray(item.tags) ? item.tags : [];
+    return {
+        id: item.id,
+        scope: 'PERSONAL',
+        ownerId: item.teacher_id,
+        status: 'PUBLISHED',
+        questionData: item.question_data,
+        questionText: getQuestionText(item.question_data),
+        questionType: item.question_data.type,
+        difficulty: item.question_data.difficulty ?? null,
+        explanation: item.question_data.explanation ?? '',
+        metadata: {
+            grade: null,
+            subject: question.subject ?? '',
+            semester: null,
+            topicCode: '',
+            lessonCode: '',
+            source: 'LEGACY',
+            tags,
+        },
+        createdBy: item.teacher_id,
+        updatedBy: item.teacher_id,
+        createdAt: item.created_at,
+        updatedAt: item.created_at,
+        publishedAt: item.created_at,
+        archivedAt: null,
+    };
+};
+
+interface QuestionBankBrowserProps {
+    items: QuestionBankItem[];
+    scope: 'SYSTEM' | 'PERSONAL';
+    loading?: boolean;
+    selectedIds: Set<string>;
+    onToggle: (id: string) => void;
+    onDelete?: (item: QuestionBankItem) => void;
+    onCopyToPersonal?: (item: QuestionBankItem) => void;
+}
+
+export const QuestionBankBrowser: React.FC<QuestionBankBrowserProps> = ({
+    items,
+    scope,
+    loading = false,
+    selectedIds,
+    onToggle,
+    onDelete,
+    onCopyToPersonal,
+}) => (
+    <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 p-4">
+        {loading ? (
+            <div role="status" aria-busy="true" className="grid min-h-48 place-items-center text-sm text-slate-500">Đang tải ngân hàng câu hỏi…</div>
+        ) : items.length === 0 ? (
+            <div role="status" className="flex min-h-48 flex-col items-center justify-center text-center text-slate-500">
+                <ModuleIcon name="question-bank" size="lg" />
+                <p className="mt-3 font-medium">Không có câu hỏi phù hợp.</p>
+                <p className="mt-1 text-sm">Thử thay đổi bộ lọc hoặc chọn kho khác.</p>
+            </div>
+        ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+                {items.map((item) => {
+                    const question = item.questionData;
+                    const selected = selectedIds.has(item.id);
+                    return (
+                        <article key={item.id} className={`rounded-xl border bg-white p-4 transition ${selected ? 'border-sky-500 ring-2 ring-sky-100' : 'border-slate-200 hover:border-sky-300'}`}>
+                            <div className="flex items-start gap-3">
+                                <input type="checkbox" aria-label={item.questionText} checked={selected} onChange={() => onToggle(item.id)} className="mt-1 h-5 w-5 rounded border-slate-300 accent-sky-600" />
+                                <div className="min-w-0 flex-1">
+                                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                        <span className="rounded bg-slate-100 px-2 py-1 font-semibold text-slate-700">{item.questionType}</span>
+                                        {item.difficulty && <span>Mức {item.difficulty}</span>}
+                                        {item.metadata.grade && <span>Lớp {item.metadata.grade}</span>}
+                                        {item.metadata.subject && <span>{item.metadata.subject}</span>}
+                                        {item.metadata.topicCode && <span>{item.metadata.topicCode}</span>}
+                                        {item.metadata.lessonCode && <span>{item.metadata.lessonCode}</span>}
+                                        <span className={scope === 'SYSTEM' ? 'font-semibold text-sky-700' : 'font-semibold text-emerald-700'}>{scope === 'SYSTEM' ? 'Hệ thống' : 'Cá nhân'}</span>
+                                        {question.points !== undefined && <span>{question.points} điểm</span>}
+                                    </div>
+                                    <MathSpan content={item.questionText} as="p" className="line-clamp-3 text-sm font-medium text-slate-800" />
+                                    {item.metadata.tags.length > 0 && <p className="mt-2 line-clamp-1 text-xs text-slate-500">{item.metadata.tags.join(' · ')}</p>}
+                                </div>
+                                <div className="flex shrink-0 flex-col gap-1">
+                                    {scope === 'SYSTEM' && onCopyToPersonal && (
+                                        <button type="button" aria-label={`Sao chép về kho của tôi: ${item.questionText}`} onClick={() => onCopyToPersonal(item)} className="grid h-11 w-11 place-items-center rounded-lg text-slate-400 hover:bg-sky-50 hover:text-sky-700"><Copy className="h-4 w-4" /></button>
+                                    )}
+                                    {scope === 'PERSONAL' && onDelete && (
+                                        <button type="button" aria-label={`Xóa khỏi kho: ${item.questionText}`} onClick={() => onDelete(item)} className="grid h-11 w-11 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>
+                                    )}
+                                </div>
+                            </div>
+                        </article>
+                    );
+                })}
+            </div>
+        )}
+    </div>
+);
+
+interface LegacyTestBankBrowserProps {
     items: TestBankItem[];
     loading?: boolean;
     selectedIds: Set<string>;
@@ -63,9 +163,11 @@ interface TestBankBrowserProps {
     onDelete?: (item: TestBankItem) => void;
 }
 
-const TestBankBrowser: React.FC<TestBankBrowserProps> = ({ items, loading = false, selectedIds, onToggle, onDelete }) => {
+const LegacyTestBankBrowser: React.FC<LegacyTestBankBrowserProps> = ({ items, loading = false, selectedIds, onToggle, onDelete }) => {
     const [filters, setFilters] = useState<TestBankFilters>({ query: '', type: 'all', difficulty: 'all', subject: 'all' });
     const filteredItems = useMemo(() => filterTestBankItems(items, filters), [filters, items]);
+    const mappedItems = useMemo(() => filteredItems.map(legacyTestBankItemToQuestionBankItem), [filteredItems]);
+    const itemById = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
     const types = useMemo(() => Array.from(new Set(items.map((item) => item.question_data.type))), [items]);
     const subjects = useMemo(() => Array.from(new Set(items
         .map((item) => String((item.question_data as Question & { subject?: string }).subject || ''))
@@ -91,37 +193,19 @@ const TestBankBrowser: React.FC<TestBankBrowserProps> = ({ items, loading = fals
                     {subjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
                 </select>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 p-4">
-                {loading ? <div role="status" className="grid min-h-48 place-items-center text-sm text-slate-500">Đang tải kho câu hỏi…</div> : filteredItems.length === 0 ? (
-                    <div className="flex min-h-48 flex-col items-center justify-center text-center text-slate-500">
-                        <ModuleIcon name="question-bank" size="lg" />
-                        <p className="mt-3 font-medium">Không có câu hỏi phù hợp.</p>
-                    </div>
-                ) : (
-                    <div className="grid gap-3 lg:grid-cols-2">
-                        {filteredItems.map((item) => {
-                            const question = item.question_data as Question & { subject?: string };
-                            const text = getQuestionText(question);
-                            const selected = selectedIds.has(item.id);
-                            return (
-                                <article key={item.id} className={`rounded-xl border bg-white p-4 transition ${selected ? 'border-sky-500 ring-2 ring-sky-100' : 'border-slate-200 hover:border-sky-300'}`}>
-                                    <div className="flex items-start gap-3">
-                                        <input type="checkbox" aria-label={text} checked={selected} onChange={() => onToggle(item.id)} className="mt-1 h-5 w-5 rounded border-slate-300 accent-sky-600" />
-                                        <div className="min-w-0 flex-1">
-                                            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500"><span className="rounded bg-slate-100 px-2 py-1 font-semibold text-slate-700">{question.type}</span>{question.difficulty && <span>Mức {question.difficulty}</span>}{question.subject && <span>{question.subject}</span>}{question.points !== undefined && <span>{question.points} điểm</span>}</div>
-                                            <MathSpan content={text} as="p" className="line-clamp-3 text-sm font-medium text-slate-800" />
-                                            {(item.tags ?? []).length > 0 && <p className="mt-2 line-clamp-1 text-xs text-slate-500">{item.tags.join(' · ')}</p>}
-                                        </div>
-                                        {onDelete && <button type="button" aria-label={`Xóa khỏi kho: ${text}`} onClick={() => onDelete(item)} className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}
-                                    </div>
-                                </article>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
+            <QuestionBankBrowser
+                items={mappedItems}
+                scope="PERSONAL"
+                loading={loading}
+                selectedIds={selectedIds}
+                onToggle={onToggle}
+                onDelete={onDelete ? (item) => {
+                    const legacyItem = itemById.get(item.id);
+                    if (legacyItem) onDelete(legacyItem);
+                } : undefined}
+            />
         </div>
     );
 };
 
-export default TestBankBrowser;
+export default LegacyTestBankBrowser;

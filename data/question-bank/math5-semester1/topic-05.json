@@ -1,0 +1,2721 @@
+[
+  {
+    "id": "qb-m5-s1-l23-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "4,25 × 10 bằng bao nhiêu?",
+      "options": [
+        "4,250",
+        "42,5",
+        "425",
+        "0,425"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: MCQ cơ bản",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l23-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3,08 × 100 bằng bao nhiêu?",
+      "options": [
+        "30,8",
+        "308",
+        "3 080",
+        "0,0308"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: MCQ cơ bản",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l23-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "56,7 : 10 bằng bao nhiêu?",
+      "options": [
+        "5,67",
+        "0,567",
+        "567",
+        "56,07"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: MCQ cơ bản",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l23-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "8,4 × 0,01 bằng bao nhiêu?",
+      "options": [
+        "0,84",
+        "0,084",
+        "84",
+        "8,04"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: MCQ cơ bản",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l23-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 1,47 × 1000.",
+      "correctAnswer": "1470"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: Trả lời ngắn",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l23-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 735,2 : 100.",
+      "correctAnswer": "7,352"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: Trả lời ngắn",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l23-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về nhân, chia với lũy thừa của 10.",
+      "items": [
+        {
+          "id": "m5-s1-l23-q07-i1",
+          "statement": "6,3 × 100 = 630.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l23-q07-i2",
+          "statement": "4,5 : 10 = 45.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l23-q07-i3",
+          "statement": "2,8 × 0,1 = 0,28.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: Đúng sai",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l23-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối phép tính với kết quả đúng.",
+      "pairs": [
+        {
+          "left": "7,5 × 10",
+          "right": "75"
+        },
+        {
+          "left": "7,5 : 100",
+          "right": "0,075"
+        },
+        {
+          "left": "7,5 × 0,01",
+          "right": "0,075"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: Tương tác",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l23-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một gói hạt nặng 0,125 kg. 100 gói như thế nặng bao nhiêu ki-lô-gam?",
+      "options": [
+        "1,25 kg",
+        "12,5 kg",
+        "125 kg",
+        "0,0125 kg"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: Vận dụng",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l23-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l23-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một chai chứa 0,75 lít. Lượng nước trong 1 000 chai là bao nhiêu lít?",
+      "correctAnswer": "750 lít"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L23",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 23",
+        "Nhân, chia số thập phân với 10; 100; 1000; ... hoặc với 0,1; 0,01; 0,001; …",
+        "Vai trò: Vận dụng",
+        "nhân chia 10 100 1000",
+        "dịch dấu phẩy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "6,25 + 3,8 bằng bao nhiêu?",
+      "options": [
+        "9,05",
+        "10,05",
+        "10,5",
+        "9,15"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "12 - 4,75 bằng bao nhiêu?",
+      "options": [
+        "7,25",
+        "8,25",
+        "7,75",
+        "16,75"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "2,4 × 3,5 bằng bao nhiêu?",
+      "options": [
+        "7,4",
+        "8,4",
+        "84",
+        "5,9"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "9,45 : 1,5 bằng bao nhiêu?",
+      "options": [
+        "6,3",
+        "5,3",
+        "7,3",
+        "0,63"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 1,58 + 4,65 - 2,5.",
+      "correctAnswer": "3,73"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính (8,4 + 3,6) : 2,5.",
+      "correctAnswer": "4,8"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về biểu thức số thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l24-q07-i1",
+          "statement": "2,5 × 4 + 1 = 11.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l24-q07-i2",
+          "statement": "10 - 3,2 × 2 = 13,6.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l24-q07-i3",
+          "statement": "(4,5 + 5,5) : 2 = 5.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: Đúng sai",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "ORDERING",
+      "question": "Sắp xếp kết quả các phép tính từ bé đến lớn.",
+      "items": [
+        "2,5 + 1,5",
+        "8 : 2",
+        "1,5 × 2",
+        "7 - 2"
+      ],
+      "correctOrder": [
+        2,
+        0,
+        1,
+        3
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: Tương tác",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Mua 2,5 kg táo giá 36 nghìn đồng/kg và 1,2 kg cam giá 40 nghìn đồng/kg. Hết bao nhiêu nghìn đồng?",
+      "options": [
+        "128",
+        "138",
+        "148",
+        "90"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l24-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l24-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một bể có 24,5 lít nước. Thêm 3 can, mỗi can 5,25 lít rồi dùng 8,75 lít. Còn bao nhiêu lít?",
+      "correctAnswer": "31,5 lít"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L24",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 24",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "phép tính số thập phân",
+        "biểu thức"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một hình tam giác có mấy cạnh?",
+      "options": [
+        "2 cạnh",
+        "3 cạnh",
+        "4 cạnh",
+        "5 cạnh"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: MCQ cơ bản",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Công thức tính diện tích hình tam giác là gì?",
+      "options": [
+        "đáy × chiều cao",
+        "đáy × chiều cao : 2",
+        "(đáy + chiều cao) × 2",
+        "đáy + chiều cao"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: MCQ cơ bản",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Tam giác có đáy 34 cm, chiều cao 6 cm. Diện tích là bao nhiêu?",
+      "options": [
+        "102 cm²",
+        "204 cm²",
+        "40 cm²",
+        "80 cm²"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: MCQ cơ bản",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Chiều cao của tam giác phải như thế nào với đáy tương ứng?",
+      "options": [
+        "Song song",
+        "Vuông góc",
+        "Bằng nhau",
+        "Không liên quan"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: MCQ cơ bản",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tam giác có đáy 15 m và chiều cao 8 m. Tính diện tích.",
+      "correctAnswer": "60 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: Trả lời ngắn",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tam giác có diện tích 42 cm² và đáy 12 cm. Tính chiều cao.",
+      "correctAnswer": "7 cm"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: Trả lời ngắn",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về hình tam giác.",
+      "items": [
+        {
+          "id": "m5-s1-l25-q07-i1",
+          "statement": "Diện tích tam giác bằng nửa tích đáy và chiều cao.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l25-q07-i2",
+          "statement": "Mọi tam giác đều có ba góc vuông.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l25-q07-i3",
+          "statement": "Hai tam giác có cùng đáy và cùng chiều cao thì có diện tích bằng nhau.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: Đúng sai",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối đáy và chiều cao với diện tích tam giác.",
+      "pairs": [
+        {
+          "left": "Đáy 10 cm, cao 4 cm",
+          "right": "20 cm²"
+        },
+        {
+          "left": "Đáy 12 cm, cao 5 cm",
+          "right": "30 cm²"
+        },
+        {
+          "left": "Đáy 8 cm, cao 7 cm",
+          "right": "28 cm²"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: Tương tác",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một lá cờ tam giác có đáy 1,2 m, chiều cao 0,8 m. Cần bao nhiêu mét vuông vải cho 5 lá cờ?",
+      "options": [
+        "0,48 m²",
+        "2,4 m²",
+        "4,8 m²",
+        "1,2 m²"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: Vận dụng",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l25-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l25-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một mảnh đất tam giác có đáy 24 m, chiều cao bằng 3/4 đáy. Tính diện tích.",
+      "correctAnswer": "216 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L25",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 25",
+        "Hình tam giác. Diện tích hình tam giác",
+        "Vai trò: Vận dụng",
+        "hình tam giác",
+        "đáy và chiều cao"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình thang có bao nhiêu cặp cạnh đối diện song song ít nhất?",
+      "options": [
+        "Không có",
+        "Một cặp",
+        "Hai cặp bắt buộc",
+        "Ba cặp"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: MCQ cơ bản",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Công thức tính diện tích hình thang là gì?",
+      "options": [
+        "(đáy lớn + đáy bé) × chiều cao : 2",
+        "đáy lớn × đáy bé",
+        "(đáy lớn - đáy bé) × chiều cao",
+        "chu vi × chiều cao"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: MCQ cơ bản",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình thang có hai đáy 37 cm và 33 cm, chiều cao 6 cm. Diện tích là bao nhiêu?",
+      "options": [
+        "210 cm²",
+        "420 cm²",
+        "1221 cm²",
+        "76 cm²"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: MCQ cơ bản",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Đường cao hình thang vuông góc với thành phần nào?",
+      "options": [
+        "Chỉ đáy lớn",
+        "Cả hai đáy",
+        "Cạnh bên bất kì",
+        "Đường chéo"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: MCQ cơ bản",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Hình thang có hai đáy 15 m và 9 m, chiều cao 7 m. Tính diện tích.",
+      "correctAnswer": "84 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: Trả lời ngắn",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Hình thang có diện tích 90 cm², tổng hai đáy 30 cm. Tính chiều cao.",
+      "correctAnswer": "6 cm"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: Trả lời ngắn",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về hình thang.",
+      "items": [
+        {
+          "id": "m5-s1-l26-q07-i1",
+          "statement": "Hai đáy hình thang song song với nhau.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l26-q07-i2",
+          "statement": "Diện tích hình thang bằng tổng hai đáy nhân chiều cao.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l26-q07-i3",
+          "statement": "Hình bình hành cũng có thể xem là một hình thang có hai cặp cạnh đối song song.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: Đúng sai",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối kích thước với diện tích hình thang.",
+      "pairs": [
+        {
+          "left": "Hai đáy 8 cm, 4 cm; cao 5 cm",
+          "right": "30 cm²"
+        },
+        {
+          "left": "Hai đáy 10 cm, 6 cm; cao 4 cm",
+          "right": "32 cm²"
+        },
+        {
+          "left": "Hai đáy 12 cm, 8 cm; cao 3 cm",
+          "right": "30 cm²"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: Tương tác",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một thửa ruộng hình thang có hai đáy 32 m và 18 m, chiều cao 20 m. Mỗi mét vuông thu 0,6 kg thóc. Thu được bao nhiêu ki-lô-gam?",
+      "options": [
+        "300 kg",
+        "500 kg",
+        "600 kg",
+        "1 000 kg"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: Vận dụng",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l26-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l26-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một tấm kính hình thang có hai đáy 1,8 m và 1,2 m, chiều cao 0,9 m. Giá kính là 250 000 đồng/m². Tính tiền tấm kính.",
+      "correctAnswer": "337500 đồng"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L26",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 26",
+        "Hình thang. Diện tích hình thang",
+        "Vai trò: Vận dụng",
+        "hình thang",
+        "hai đáy"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Đường tròn bán kính 31 cm có đường kính bao nhiêu?",
+      "options": [
+        "15.5 cm",
+        "62 cm",
+        "124 cm",
+        "33 cm"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: MCQ cơ bản",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Công thức tính chu vi hình tròn là gì?",
+      "options": [
+        "bán kính × 3,14",
+        "đường kính × 3,14",
+        "bán kính × bán kính",
+        "đường kính × đường kính"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: MCQ cơ bản",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình tròn có đường kính 62 cm. Chu vi (lấy π = 3,14) là bao nhiêu?",
+      "options": [
+        "194,68 cm",
+        "3017,54 cm",
+        "124 cm",
+        "9734 cm"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: MCQ cơ bản",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình tròn bán kính 31 cm. Diện tích là bao nhiêu?",
+      "options": [
+        "3017,54 cm²",
+        "194,68 cm²",
+        "3844 cm²",
+        "9734 cm²"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: MCQ cơ bản",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một hình tròn có đường kính 14 cm. Tính chu vi, lấy π = 3,14.",
+      "correctAnswer": "43,96 cm"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: Trả lời ngắn",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một hình tròn có bán kính 6 m. Tính diện tích, lấy π = 3,14.",
+      "correctAnswer": "113,04 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: Trả lời ngắn",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về đường tròn.",
+      "items": [
+        {
+          "id": "m5-s1-l27-q07-i1",
+          "statement": "Đường kính gấp hai lần bán kính.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l27-q07-i2",
+          "statement": "Chu vi hình tròn bằng bán kính nhân bán kính nhân 3,14.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l27-q07-i3",
+          "statement": "Các bán kính của cùng một đường tròn có độ dài bằng nhau.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: Đúng sai",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối đại lượng với công thức phù hợp.",
+      "pairs": [
+        {
+          "left": "Đường kính",
+          "right": "2 × bán kính"
+        },
+        {
+          "left": "Chu vi hình tròn",
+          "right": "đường kính × 3,14"
+        },
+        {
+          "left": "Diện tích hình tròn",
+          "right": "bán kính × bán kính × 3,14"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: Tương tác",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một bánh xe có bán kính 0,35 m. Bánh xe lăn 100 vòng đi được quãng đường bao nhiêu mét? Lấy π = 3,14.",
+      "options": [
+        "109,9 m",
+        "219,8 m",
+        "384,65 m",
+        "70 m"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: Vận dụng",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l27-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l27-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một sân tròn bán kính 10 m, ở giữa có bồn hoa tròn bán kính 4 m. Diện tích phần sân còn lại là bao nhiêu? Lấy π = 3,14.",
+      "correctAnswer": "263,76 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L27",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 27",
+        "Đường tròn. Chu vi và diện tích hình tròn",
+        "Vai trò: Vận dụng",
+        "đường tròn",
+        "bán kính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Dụng cụ phù hợp nhất để vẽ đường tròn là gì?",
+      "options": [
+        "Ê-ke",
+        "Com-pa",
+        "Thước đo góc",
+        "Cân"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: MCQ cơ bản",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Dụng cụ dùng để kiểm tra góc vuông là gì?",
+      "options": [
+        "Com-pa",
+        "Ê-ke",
+        "Ca đong",
+        "Đồng hồ"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: MCQ cơ bản",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hai tam giác vuông giống nhau có thể ghép thành hình nào?",
+      "options": [
+        "Hình chữ nhật",
+        "Hình tròn",
+        "Đường thẳng",
+        "Hình cầu"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: MCQ cơ bản",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Khi đo độ dài đoạn thẳng, vạch 0 của thước cần đặt ở đâu?",
+      "options": [
+        "Ở trung điểm",
+        "Trùng một đầu đoạn thẳng",
+        "Ngoài đoạn thẳng",
+        "Tùy ý"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: MCQ cơ bản",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một hình vuông cạnh 32 cm được cắt theo đường chéo thành hai tam giác bằng nhau. Diện tích mỗi tam giác là bao nhiêu?",
+      "correctAnswer": "512 cm²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: Trả lời ngắn",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Ghép hai hình chữ nhật 3 cm × 5 cm thành một hình chữ nhật lớn 6 cm × 5 cm. Diện tích hình lớn là bao nhiêu?",
+      "correctAnswer": "30 cm²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: Trả lời ngắn",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về thao tác đo, vẽ và lắp ghép.",
+      "items": [
+        {
+          "id": "m5-s1-l28-q07-i1",
+          "statement": "Cần giữ thước cố định khi kẻ đoạn thẳng.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l28-q07-i2",
+          "statement": "Có thể dùng com-pa để đo khối lượng.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l28-q07-i3",
+          "statement": "Các mảnh ghép không chồng lên nhau khi tính tổng diện tích.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: Đúng sai",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "ORDERING",
+      "question": "Sắp xếp các bước vẽ đường tròn theo thứ tự hợp lí.",
+      "items": [
+        "Quay com-pa một vòng",
+        "Đặt mũi nhọn vào tâm",
+        "Mở com-pa bằng bán kính cần vẽ",
+        "Đánh dấu tâm"
+      ],
+      "correctOrder": [
+        3,
+        2,
+        1,
+        0
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: Tương tác",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một tấm bìa hình chữ nhật 20 cm × 12 cm được cắt thành 4 tam giác bằng nhau. Diện tích mỗi tam giác là bao nhiêu?",
+      "options": [
+        "30 cm²",
+        "60 cm²",
+        "120 cm²",
+        "240 cm²"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: Vận dụng",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l28-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l28-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một hình vuông cạnh 10 cm được khoét một hình tròn bán kính 3 cm. Diện tích phần còn lại là bao nhiêu? Lấy π = 3,14.",
+      "correctAnswer": "71,74 cm²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L28",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 28",
+        "Thực hành và trải nghiệm đo, vẽ, lắp ghép, tạo hình",
+        "Vai trò: Vận dụng",
+        "đo vẽ",
+        "lắp ghép"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Tam giác đáy 8 cm, cao 5 cm có diện tích bao nhiêu?",
+      "options": [
+        "20 cm²",
+        "40 cm²",
+        "13 cm²",
+        "26 cm²"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình thang hai đáy 10 cm và 6 cm, cao 4 cm có diện tích bao nhiêu?",
+      "options": [
+        "16 cm²",
+        "32 cm²",
+        "64 cm²",
+        "40 cm²"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình tròn bán kính 4 cm có chu vi bao nhiêu? Lấy π = 3,14.",
+      "options": [
+        "12,56 cm",
+        "25,12 cm",
+        "50,24 cm",
+        "16 cm"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Hình tròn đường kính 10 cm có diện tích bao nhiêu? Lấy π = 3,14.",
+      "options": [
+        "31,4 cm²",
+        "78,5 cm²",
+        "314 cm²",
+        "157 cm²"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tam giác có đáy 40 cm, cao 8 cm. Tính diện tích.",
+      "correctAnswer": "160 cm²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Hình thang có hai đáy 14 m và 8 m, chiều cao 5 m. Tính diện tích.",
+      "correctAnswer": "55 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về công thức hình học.",
+      "items": [
+        {
+          "id": "m5-s1-l29-q07-i1",
+          "statement": "Diện tích tam giác bằng đáy nhân chiều cao rồi chia 2.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l29-q07-i2",
+          "statement": "Diện tích hình tròn bằng đường kính nhân 3,14.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l29-q07-i3",
+          "statement": "Diện tích hình thang dùng tổng hai đáy.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: Đúng sai",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối hình với công thức diện tích.",
+      "pairs": [
+        {
+          "left": "Tam giác",
+          "right": "đáy × cao : 2"
+        },
+        {
+          "left": "Hình thang",
+          "right": "(đáy lớn + đáy bé) × cao : 2"
+        },
+        {
+          "left": "Hình tròn",
+          "right": "bán kính × bán kính × 3,14"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: Tương tác",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một khu đất gồm hình chữ nhật 20 m × 12 m và một tam giác đáy 12 m, cao 6 m. Tổng diện tích là bao nhiêu?",
+      "options": [
+        "246 m²",
+        "276 m²",
+        "312 m²",
+        "216 m²"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l29-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l29-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một hình tròn bán kính 5 m nằm trong hình vuông cạnh 10 m. Diện tích phần hình vuông ngoài hình tròn là bao nhiêu? Lấy π = 3,14.",
+      "correctAnswer": "21,5 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T05",
+      "lessonCode": "M5-S1-L29",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Hình học",
+        "Bài 29",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "tam giác",
+        "hình thang"
+      ]
+    }
+  }
+]

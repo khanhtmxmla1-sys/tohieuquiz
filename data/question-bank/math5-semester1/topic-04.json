@@ -1,0 +1,2353 @@
+[
+  {
+    "id": "qb-m5-s1-l17-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Đơn vị thích hợp để đo chiều dài bút chì là gì?",
+      "options": [
+        "km",
+        "m",
+        "cm",
+        "ha"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: MCQ cơ bản",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l17-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Đơn vị thích hợp để đo khối lượng một bao gạo là gì?",
+      "options": [
+        "lít",
+        "kg",
+        "m²",
+        "phút"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: MCQ cơ bản",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l17-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Dụng cụ thích hợp để đo chiều dài bàn học là gì?",
+      "options": [
+        "Cân đồng hồ",
+        "Thước mét",
+        "Ca đong",
+        "Đồng hồ bấm giờ"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: MCQ cơ bản",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l17-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Ước lượng hợp lí cho chiều cao cửa lớp là bao nhiêu?",
+      "options": [
+        "2 cm",
+        "2 m",
+        "20 m",
+        "200 km"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: MCQ cơ bản",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l17-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một bước chân dài khoảng 76 cm. Đi 10 bước được khoảng bao nhiêu mét?",
+      "correctAnswer": "7,6 m"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: Trả lời ngắn",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l17-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một chai chứa 1,5 lít nước. Rót đều vào 3 cốc. Mỗi cốc có bao nhiêu lít?",
+      "correctAnswer": "0,5 lít"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: Trả lời ngắn",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l17-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về lựa chọn đơn vị đo.",
+      "items": [
+        {
+          "id": "m5-s1-l17-q07-i1",
+          "statement": "Có thể dùng mét để đo chiều dài lớp học.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l17-q07-i2",
+          "statement": "Có thể dùng ki-lô-gam để đo dung tích can nước.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l17-q07-i3",
+          "statement": "Có thể dùng phút để đo thời gian làm một bài tập.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: Đúng sai",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l17-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "CATEGORIZATION",
+      "question": "Phân loại đại lượng theo nhóm đo lường.",
+      "categories": [
+        {
+          "id": "length",
+          "name": "Độ dài"
+        },
+        {
+          "id": "mass",
+          "name": "Khối lượng"
+        },
+        {
+          "id": "time",
+          "name": "Thời gian"
+        }
+      ],
+      "items": [
+        {
+          "id": "i1",
+          "content": "Chiều dài sân",
+          "categoryId": "length"
+        },
+        {
+          "id": "i2",
+          "content": "Khối lượng cặp sách",
+          "categoryId": "mass"
+        },
+        {
+          "id": "i3",
+          "content": "Thời gian ra chơi",
+          "categoryId": "time"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: Tương tác",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l17-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một nhóm đo chiều dài sân ba lần được 24,8 m; 25,1 m; 25,0 m. Giá trị nào hợp lí nhất để báo cáo?",
+      "options": [
+        "24,8 m",
+        "25,1 m",
+        "25,0 m",
+        "74,9 m"
+      ],
+      "correctAnswer": "C"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: Vận dụng",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l17-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l17-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một bình có vạch 2 lít. Đã có 0,65 lít nước, cần thêm bao nhiêu lít để đầy bình?",
+      "correctAnswer": "1,35 lít"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L17",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 17",
+        "Thực hành và trải nghiệm với một số đơn vị đo đại lượng",
+        "Vai trò: Vận dụng",
+        "thực hành đo",
+        "ước lượng"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "4,25 m bằng bao nhiêu xăng-ti-mét?",
+      "options": [
+        "42,5 cm",
+        "425 cm",
+        "4 250 cm",
+        "0,425 cm"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3,08 kg bằng bao nhiêu gam?",
+      "options": [
+        "308 g",
+        "3 080 g",
+        "30 800 g",
+        "3 008 g"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "2,5 giờ bằng bao nhiêu phút?",
+      "options": [
+        "125 phút",
+        "150 phút",
+        "250 phút",
+        "205 phút"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "0,75 ha bằng bao nhiêu mét vuông?",
+      "options": [
+        "750 m²",
+        "7 500 m²",
+        "75 000 m²",
+        "0,0075 m²"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: MCQ cơ bản",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Đổi 22 m 35 cm ra mét.",
+      "correctAnswer": "22,35 m"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Đổi 4 phút 18 giây ra giây.",
+      "correctAnswer": "258 giây"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: Trả lời ngắn",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về đổi đơn vị đo.",
+      "items": [
+        {
+          "id": "m5-s1-l18-q07-i1",
+          "statement": "1,2 tấn = 1 200 kg.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l18-q07-i2",
+          "statement": "3,5 m = 3 m 5 cm.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l18-q07-i3",
+          "statement": "2 giờ 15 phút = 135 phút.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: Đúng sai",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối số đo với giá trị tương đương.",
+      "pairs": [
+        {
+          "left": "2,4 m",
+          "right": "240 cm"
+        },
+        {
+          "left": "1,75 kg",
+          "right": "1 750 g"
+        },
+        {
+          "left": "0,6 giờ",
+          "right": "36 phút"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: Tương tác",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một vận động viên chạy 1,25 km buổi sáng và 850 m buổi chiều. Tổng quãng đường là bao nhiêu ki-lô-mét?",
+      "options": [
+        "1,335 km",
+        "2,1 km",
+        "2,85 km",
+        "1,85 km"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l18-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l18-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một thùng chứa 12,5 lít dầu. Rót ra 3 chai, mỗi chai 1,25 lít. Thùng còn bao nhiêu lít?",
+      "correctAnswer": "8,75 lít"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L18",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 18",
+        "Luyện tập chung",
+        "Vai trò: Vận dụng",
+        "đại lượng",
+        "đổi đơn vị"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "13,61 + 5,22 bằng bao nhiêu?",
+      "options": [
+        "18,83",
+        "18,93",
+        "17,83",
+        "188,3"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "4,8 + 2,35 bằng bao nhiêu?",
+      "options": [
+        "6,15",
+        "7,15",
+        "7,03",
+        "6,35"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "0,75 + 1,006 bằng bao nhiêu?",
+      "options": [
+        "1,756",
+        "1,081",
+        "0,851",
+        "1,75"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "15 + 3,48 bằng bao nhiêu?",
+      "options": [
+        "18,48",
+        "18,53",
+        "15,348",
+        "3,63"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 7,305 + 2,86.",
+      "correctAnswer": "10,165"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 18,75 + 6,4 + 0,85.",
+      "correctAnswer": "26"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về cộng số thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l19-q07-i1",
+          "statement": "Khi đặt tính, các dấu phẩy phải thẳng cột.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l19-q07-i2",
+          "statement": "5,7 + 0,3 = 6.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l19-q07-i3",
+          "statement": "2,05 + 1,8 = 3,13.",
+          "isCorrect": false
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: Đúng sai",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối phép cộng với kết quả đúng.",
+      "pairs": [
+        {
+          "left": "1,2 + 3,4",
+          "right": "4,6"
+        },
+        {
+          "left": "0,75 + 0,25",
+          "right": "1"
+        },
+        {
+          "left": "12,08 + 2,9",
+          "right": "14,98"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: Tương tác",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Ngày thứ nhất cửa hàng bán 12,75 kg chè, ngày thứ hai bán 8,6 kg và ngày thứ ba bán 9,25 kg. Cả ba ngày bán bao nhiêu?",
+      "options": [
+        "29,6 kg",
+        "30,6 kg",
+        "31,6 kg",
+        "30,06 kg"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: Vận dụng",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l19-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l19-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một xe đi 35,8 km buổi sáng và 27,65 km buổi chiều. Sau đó đi thêm 4,55 km. Tổng quãng đường là bao nhiêu?",
+      "correctAnswer": "68 km"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L19",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 19",
+        "Phép cộng số thập phân",
+        "Vai trò: Vận dụng",
+        "cộng số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "20,16 - 7,29 bằng bao nhiêu?",
+      "options": [
+        "12,87",
+        "27,45",
+        "12,97",
+        "11,87"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "9,5 - 3,27 bằng bao nhiêu?",
+      "options": [
+        "6,23",
+        "6,77",
+        "5,23",
+        "12,77"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "7 - 2,85 bằng bao nhiêu?",
+      "options": [
+        "5,15",
+        "4,15",
+        "4,25",
+        "5,85"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "10,00 - 0,375 bằng bao nhiêu?",
+      "options": [
+        "9,625",
+        "9,725",
+        "10,375",
+        "0,625"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 24,6 - 8,975.",
+      "correctAnswer": "15,625"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tìm x, biết x + 3,75 = 12,4.",
+      "correctAnswer": "8,65"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về trừ số thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l20-q07-i1",
+          "statement": "12,5 - 2,5 = 10.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l20-q07-i2",
+          "statement": "8 - 0,75 = 7,25.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l20-q07-i3",
+          "statement": "5,06 - 1,4 = 4,92.",
+          "isCorrect": false
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: Đúng sai",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối phép trừ với kết quả đúng.",
+      "pairs": [
+        {
+          "left": "6,5 - 2,3",
+          "right": "4,2"
+        },
+        {
+          "left": "10 - 3,75",
+          "right": "6,25"
+        },
+        {
+          "left": "8,04 - 0,9",
+          "right": "7,14"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: Tương tác",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một bể có 25,5 lít nước, đã dùng 8,75 lít rồi thêm 3,25 lít. Bể hiện có bao nhiêu lít?",
+      "options": [
+        "13,5 lít",
+        "20 lít",
+        "17,75 lít",
+        "30 lít"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: Vận dụng",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l20-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l20-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một cuộn vải dài 42,8 m. May áo dùng 18,65 m, may rèm dùng 7,95 m. Còn lại bao nhiêu mét?",
+      "correctAnswer": "16,2 m"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L20",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 20",
+        "Phép trừ số thập phân",
+        "Vai trò: Vận dụng",
+        "trừ số thập phân",
+        "đặt tính"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "3,4 × 5 bằng bao nhiêu?",
+      "options": [
+        "15",
+        "17",
+        "1,7",
+        "170"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "2,35 × 4 bằng bao nhiêu?",
+      "options": [
+        "8,4",
+        "9,4",
+        "9,04",
+        "94"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "1,2 × 0,5 bằng bao nhiêu?",
+      "options": [
+        "0,6",
+        "6",
+        "1,7",
+        "0,06"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "0,75 × 0,8 bằng bao nhiêu?",
+      "options": [
+        "0,06",
+        "0,6",
+        "6",
+        "1,55"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 1,45 × 6.",
+      "correctAnswer": "8,7"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 3,25 × 1,2.",
+      "correctAnswer": "3,9"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về nhân số thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l21-q07-i1",
+          "statement": "2,5 × 4 = 10.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l21-q07-i2",
+          "statement": "0,4 × 0,3 = 1,2.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l21-q07-i3",
+          "statement": "Nhân một số dương với 0,5 được một nửa số đó.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: Đúng sai",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối phép nhân với kết quả đúng.",
+      "pairs": [
+        {
+          "left": "1,5 × 2",
+          "right": "3"
+        },
+        {
+          "left": "0,25 × 4",
+          "right": "1"
+        },
+        {
+          "left": "2,4 × 1,5",
+          "right": "3,6"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: Tương tác",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Một mét vải giá 48,5 nghìn đồng. Mua 3,2 m hết bao nhiêu nghìn đồng?",
+      "options": [
+        "145,5",
+        "155,2",
+        "151,7",
+        "152,5"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: Vận dụng",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l21-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l21-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một mảnh vườn hình chữ nhật dài 12,5 m, rộng 8,4 m. Diện tích mảnh vườn là bao nhiêu?",
+      "correctAnswer": "105 m²"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L21",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 21",
+        "Phép nhân số thập phân",
+        "Vai trò: Vận dụng",
+        "nhân số thập phân",
+        "tích"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q01",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q01",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "8,4 : 4 bằng bao nhiêu?",
+      "options": [
+        "2,1",
+        "21",
+        "3,1",
+        "1,2"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q02",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q02",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "15,75 : 5 bằng bao nhiêu?",
+      "options": [
+        "3,15",
+        "31,5",
+        "2,15",
+        "3,5"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q03",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q03",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "7,2 : 0,8 bằng bao nhiêu?",
+      "options": [
+        "0,9",
+        "9",
+        "90",
+        "5,76"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q04",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q04",
+      "difficulty": 1,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "2,4 : 1,5 bằng bao nhiêu?",
+      "options": [
+        "1,6",
+        "0,16",
+        "3,9",
+        "1,9"
+      ],
+      "correctAnswer": "A"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: MCQ cơ bản",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q05",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q05",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 14,25 : 57.",
+      "correctAnswer": "0,25"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q06",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q06",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Tính 18,9 : 1,4.",
+      "correctAnswer": "13,5"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: Trả lời ngắn",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q07",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q07",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "TRUE_FALSE",
+      "mainQuestion": "Xác định đúng hoặc sai về chia số thập phân.",
+      "items": [
+        {
+          "id": "m5-s1-l22-q07-i1",
+          "statement": "9,6 : 3 = 3,2.",
+          "isCorrect": true
+        },
+        {
+          "id": "m5-s1-l22-q07-i2",
+          "statement": "5 : 0,5 = 2,5.",
+          "isCorrect": false
+        },
+        {
+          "id": "m5-s1-l22-q07-i3",
+          "statement": "Chia một số dương cho 0,1 được số gấp 10 lần.",
+          "isCorrect": true
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: Đúng sai",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q08",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q08",
+      "difficulty": 2,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MATCHING",
+      "question": "Nối phép chia với kết quả đúng.",
+      "pairs": [
+        {
+          "left": "6,3 : 3",
+          "right": "2,1"
+        },
+        {
+          "left": "4,8 : 0,6",
+          "right": "8"
+        },
+        {
+          "left": "7,5 : 2,5",
+          "right": "3"
+        }
+      ]
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: Tương tác",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q09",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q09",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "MCQ",
+      "question": "Có 18,6 lít nước rót đều vào 12 chai. Mỗi chai có bao nhiêu lít?",
+      "options": [
+        "1,45 lít",
+        "1,55 lít",
+        "1,65 lít",
+        "2,55 lít"
+      ],
+      "correctAnswer": "B"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: Vận dụng",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  },
+  {
+    "id": "qb-m5-s1-l22-q10",
+    "scope": "SYSTEM",
+    "status": "DRAFT",
+    "questionData": {
+      "id": "m5-s1-l22-q10",
+      "difficulty": 3,
+      "subject": "MATH",
+      "points": 1,
+      "type": "SHORT_ANSWER",
+      "question": "Một ô tô đi 157,5 km trong 3,5 giờ. Trung bình mỗi giờ đi bao nhiêu ki-lô-mét?",
+      "correctAnswer": "45 km"
+    },
+    "metadata": {
+      "grade": 5,
+      "subject": "MATH",
+      "semester": 1,
+      "topicCode": "M5-S1-T04",
+      "lessonCode": "M5-S1-L22",
+      "source": "CURATED_ORIGINAL",
+      "tags": [
+        "Toán",
+        "Lớp 5",
+        "Học kì 1",
+        "Đại lượng và đo đại lượng",
+        "Bài 22",
+        "Phép chia số thập phân",
+        "Vai trò: Vận dụng",
+        "chia số thập phân",
+        "thương"
+      ]
+    }
+  }
+]

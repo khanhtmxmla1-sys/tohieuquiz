@@ -1,8 +1,13 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeacherAccountMenu } from '../src/components/TeacherDashboard/teacher-dashboard-shell/TeacherAccountMenu';
 import type { TeacherDashboardTab } from '../src/stores/useTeacherDashboardUIStore';
+
+const questionBankFlagMock = vi.hoisted(() => vi.fn(() => ({ ready: true, enabled: false })));
+vi.mock('../src/features/question-bank/useSystemQuestionBankFeatureFlag', () => ({
+  useSystemQuestionBankFeatureFlag: questionBankFlagMock,
+}));
 
 const renderMenu = (options: {
   activeTab?: TeacherDashboardTab;
@@ -35,6 +40,21 @@ const openAccountMenu = () => {
 };
 
 describe('TeacherAccountMenu', () => {
+  beforeEach(() => {
+    questionBankFlagMock.mockReturnValue({ ready: true, enabled: false });
+  });
+
+  it('shows the system question bank only when its rollout flag is enabled', () => {
+    questionBankFlagMock.mockReturnValue({ ready: true, enabled: true });
+    const { onNavigate } = renderMenu({ isAdmin: true });
+
+    openAccountMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Quản trị hệ thống' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Ngân hàng câu hỏi hệ thống' }));
+
+    expect(onNavigate).toHaveBeenCalledWith('system-question-bank');
+  });
+
   it('shows personal settings to teachers and hides system administration', () => {
     const { onNavigate } = renderMenu();
 
