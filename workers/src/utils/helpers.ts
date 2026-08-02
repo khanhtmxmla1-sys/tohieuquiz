@@ -4,10 +4,19 @@
 import { jsonResponse } from './response';
 import { Question, Assignment, PetData, ShopItem, ResultRow } from '../types';
 import { CURRENT_MATH_FORMAT_VERSION, prepareIncomingQuestion } from '../services/questionMath';
+import { QuizGradingServiceError, gradeQuizSubmission } from '../services/quizGradingService';
+import { prepareQuestionScoringContractForSave } from '../services/questionScoringContract';
+import {
+    recordScoringShadowObservation,
+    resolveQuizScoringRolloutMode,
+} from '../services/quizScoringRolloutService';
+import type { FeatureFlagSubject } from '../../../shared/feature-rollout.contract';
 
 // ============ Map question data for D1 insert ============
 export function mapQuestionForSave(q: Partial<Question> & { type: string }, quizId: string): string[] {
-    const normalizedQuestion = prepareIncomingQuestion(q) as Partial<Question> & { type: string };
+    const mathNormalizedQuestion = prepareIncomingQuestion(q) as Partial<Question> & { type: string };
+    const scoringContract = prepareQuestionScoringContractForSave(mathNormalizedQuestion);
+    const normalizedQuestion = scoringContract.question as Partial<Question> & { type: string };
     let options = '';
     let items = '';
     let textField = '';
@@ -97,6 +106,7 @@ export function mapQuestionForSave(q: Partial<Question> & { type: string }, quiz
         wordsField, correctWordIndexesField, imageField, tagsField,
         subjectField, skillCodeField, subskillCodeField, difficultyField,
         CURRENT_MATH_FORMAT_VERSION, pointsField, explanationField, imageAltField,
+        scoringContract.answerSchemaVersion,
     ];
 
     return result.map(v => (v === undefined || v === null) ? '' : String(v));
@@ -155,164 +165,66 @@ export function mapShopItem(i: ShopItem): any {
 export async function handleValidateAnswers(
     db: D1Database,
     body: any,
-    options: { includeCorrectAnswers?: boolean } = {},
+    options: { includeCorrectAnswers?: boolean; subject?: FeatureFlagSubject } = {},
 ): Promise<Response> {
-    const quizId = body.quizId;
-    const studentAnswers = body.answers || {};
-    const isSkippedAnswer = (value: any): boolean => (
-        value === undefined ||
-        value === null ||
-        value === '' ||
-        (Array.isArray(value) && value.length === 0) ||
-        (typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length === 0)
-    );
-
-    const questions = await db.prepare('SELECT * FROM questions WHERE quiz_id = ?').bind(quizId).all();
-    if (questions.results.length === 0) {
-        return jsonResponse({ status: 'error', message: 'No questions found for quiz: ' + quizId });
-    }
-
-    let correctCount = 0;
-    const details: any[] = [];
-
-    for (const row of questions.results as any[]) {
-        const qId = row.id;
-        const qType = row.type;
-        const correctAnswer = row.correct_answer;
-        const items = row.items;
-        const distractors = row.distractors;
-        const studentAnswer = studentAnswers[qId];
-        let isCorrect = false;
-
-        // 🛡️ Guard: A skipped answer is ALWAYS wrong, even if the correct answer in DB is empty
-        const isSkipped = isSkippedAnswer(studentAnswer);
-
-        if (isSkipped) {
-            isCorrect = false;
-        } else if (qType === 'MCQ' || qType === 'SHORT_ANSWER' || qType === 'IMAGE_QUESTION') {
-            if (qType === 'SHORT_ANSWER') {
-                const cleanStudent = String(studentAnswer || '').trim().replace(/^'/, '').toLowerCase();
-                const cleanCorrect = String(correctAnswer || '').trim().replace(/^'/, '').toLowerCase();
-                // Support multiple correct answers separated by |
-                const correctOptions = cleanCorrect.split('|').map(s => s.trim());
-                isCorrect = correctOptions.includes(cleanStudent);
-            } else {
-                let normalizedCorrect = String(correctAnswer || '').trim().toUpperCase();
-                const normalizedStudent = String(studentAnswer || '').trim().toUpperCase();
-                const letterMatch = normalizedCorrect.match(/^([A-Z])[.)]\s*/);
-                if (letterMatch) normalizedCorrect = letterMatch[1];
-                isCorrect = normalizedStudent === normalizedCorrect;
+    try {
+        const scoringMode = await resolveQuizScoringRolloutMode(
+            db,
+            options.subject || { role: 'public', username: null, classIds: [] },
+        );
+        const grading = await gradeQuizSubmission(db, body?.quizId, body?.answers || {});
+        recordScoringShadowObservation(scoringMode, {
+            quizId: String(body?.quizId || ''),
+            canonicalScore: grading.score,
+            canonicalCorrectCount: grading.correctCount,
+            canonicalTotalQuestions: grading.totalQuestions,
+            submittedScore: body?.score,
+            submittedCorrectCount: body?.correctCount,
+            submittedTotalQuestions: body?.totalQuestions,
+        });
+        const questionMap = new Map(grading.questions.map((question) => [String(question.id || ''), question]));
+        const details = grading.details.map((detail) => {
+            const responseDetail: Record<string, unknown> = {
+                questionId: detail.questionId,
+                isCorrect: detail.isCorrect,
+                status: detail.status,
+            };
+            if (detail.issueCode) responseDetail.issueCode = detail.issueCode;
+            if (options.includeCorrectAnswers) {
+                const question = questionMap.get(detail.questionId) || {};
+                responseDetail.correctAnswer = question.correctAnswer
+                    ?? question.correctAnswers
+                    ?? question.correctOrder
+                    ?? question.correctWordIndexes
+                    ?? question.correctWord
+                    ?? null;
             }
-        } else if (qType === 'MULTIPLE_SELECT') {
-            try {
-                let correctRaw: any[] = [];
-                const normalizedCorrectAnswer = String(correctAnswer || '').trim();
-
-                if (normalizedCorrectAnswer.startsWith('[') && normalizedCorrectAnswer.endsWith(']')) {
-                    const parsed = JSON.parse(normalizedCorrectAnswer);
-                    correctRaw = Array.isArray(parsed) ? parsed : [];
-                } else {
-                    // Fallback for pipe-separated format (A|B|C)
-                    correctRaw = normalizedCorrectAnswer.split('|');
-                }
-
-                const normalizeChoices = (values: any[]): string[] => (
-                    Array.from(
-                        new Set(
-                            values
-                                .map((v: any) => String(v ?? '').trim().toUpperCase())
-                                .filter(Boolean)
-                        )
-                    ).sort()
-                );
-
-                const correct = normalizeChoices(correctRaw);
-                const student = normalizeChoices(Array.isArray(studentAnswer) ? studentAnswer : []);
-                isCorrect = correct.length > 0 &&
-                    student.length > 0 &&
-                    correct.length === student.length &&
-                    correct.every((choice, idx) => choice === student[idx]);
-            } catch { isCorrect = false; }
-        } else if (qType === 'TRUE_FALSE') {
-            try {
-                const itemsData = JSON.parse(items);
-                const studentItems = studentAnswer || {};
-                isCorrect = itemsData.every((item: any, i: number) => {
-                    const itemId = item.id || ('item-' + i);
-                    return String(studentItems[itemId]) === String(item.isCorrect);
-                });
-            } catch { isCorrect = false; }
-        } else if (qType === 'MATCHING') {
-            try {
-                const pairs = JSON.parse(items);
-                const studentPairs = studentAnswer || {};
-                isCorrect = pairs.every((pair: any) => studentPairs[pair.left] === pair.right);
-            } catch { isCorrect = false; }
-        } else if (qType === 'ORDERING') {
-            try {
-                const correctOrder = JSON.parse(correctAnswer);
-                isCorrect = JSON.stringify(studentAnswer) === JSON.stringify(correctOrder);
-            } catch { isCorrect = false; }
-        } else if (qType === 'DRAG_DROP' || qType === 'DROPDOWN') {
-            try {
-                const blanks = JSON.parse(row.blanks);
-                let studentBlanks = studentAnswer || [];
-                if (qType === 'DRAG_DROP' && !Array.isArray(studentAnswer) && typeof studentAnswer === 'object' && studentAnswer !== null) {
-                    const sortedKeys = Object.keys(studentAnswer).sort((a, b) => Number(a) - Number(b));
-                    studentBlanks = sortedKeys.map(k => studentAnswer[k]);
-                }
-                if (qType === 'DRAG_DROP') {
-                    const sArr = Array.isArray(studentBlanks) ? studentBlanks : [];
-                    isCorrect = blanks.length === sArr.length && blanks.every((b: string, i: number) => String(b).trim().toLowerCase() === String(sArr[i] || '').trim().toLowerCase());
-                } else {
-                    isCorrect = blanks.every((blank: any) => String(studentAnswer[blank.id] || '').trim().toLowerCase() === String(blank.correctAnswer || '').trim().toLowerCase());
-                }
-            } catch { isCorrect = false; }
-        } else if (qType === 'CATEGORIZATION') {
-            try {
-                const itemsData = JSON.parse(items || '[]');
-                const sAns = studentAnswer || {};
-                isCorrect = itemsData.length > 0 && itemsData.every((item: any) => !item.categoryId || sAns[item.id] === item.categoryId);
-            } catch { isCorrect = false; }
-        } else if (qType === 'UNDERLINE') {
-            try {
-                const correctIndexes = JSON.parse(correctAnswer || '[]');
-                const studentIndexes = Array.isArray(studentAnswer) ? studentAnswer : [];
-                const sortedCorrect = [...correctIndexes].sort((a: number, b: number) => a - b);
-                const sortedStudent = [...studentIndexes].sort((a: number, b: number) => a - b);
-                isCorrect = sortedCorrect.length === sortedStudent.length && sortedCorrect.every((idx: number, i: number) => idx === sortedStudent[i]);
-            } catch { isCorrect = false; }
-        } else if (qType === 'WORD_SCRAMBLE') {
-            try {
-                const letters = JSON.parse(items || '[]');
-                const studentIdxArr = Array.isArray(studentAnswer) ? studentAnswer : [];
-                const studentWord = studentIdxArr.map((idx: number) => letters[idx] || '').join('');
-                isCorrect = studentWord.trim().toLowerCase().replace(/\s+/g, '') === String(correctAnswer).trim().toLowerCase().replace(/\s+/g, '');
-            } catch { isCorrect = false; }
-        } else if (qType === 'RIDDLE') {
-            isCorrect = String(studentAnswer || '').trim().toLowerCase() === String(correctAnswer || '').trim().toLowerCase();
-        } else if (qType === 'ERROR_CORRECTION') {
-            try {
-                const ecStudentWrong = String((studentAnswer?.wrongWord) || '').trim().toLowerCase();
-                const ecStudentCorrect = String((studentAnswer?.correctWord) || '').trim().toLowerCase();
-                isCorrect = ecStudentWrong === String(distractors || '').trim().toLowerCase() && ecStudentCorrect === String(correctAnswer || '').trim().toLowerCase();
-            } catch { isCorrect = false; }
+            return responseDetail;
+        });
+        return jsonResponse({
+            status: 'success',
+            success: true,
+            score: grading.score,
+            correctCount: grading.correctCount,
+            total: grading.totalQuestions,
+            totalQuestions: grading.totalQuestions,
+            gradingVersion: grading.gradingVersion,
+            scoringMode,
+            details,
+        });
+    } catch (error) {
+        if (error instanceof QuizGradingServiceError) {
+            return jsonResponse({
+                status: 'error',
+                success: false,
+                code: error.code,
+                message: error.message,
+                details: error.details,
+            }, error.status);
         }
-
-        if (isCorrect) correctCount++;
-        const detail: Record<string, any> = { questionId: qId, isCorrect };
-        if (options.includeCorrectAnswers) {
-            detail.correctAnswer = String(correctAnswer || '').replace(/^'/, '');
-        }
-        details.push(detail);
+        throw error;
     }
-
-    const total = questions.results.length;
-    const score = total > 0 ? Math.round((correctCount / total) * 10 * 10) / 10 : 0;
-
-    return jsonResponse({ status: 'success', score, correctCount, total, details });
 }
-
 // ============ Parse request body ============
 export async function parseBody(request: Request): Promise<any> {
     try {

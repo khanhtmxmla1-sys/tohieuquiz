@@ -14,6 +14,10 @@ import MathRenderer from './renderers/MathRenderer';
 import GeometryRenderer from './renderers/GeometryRenderer';
 import DragDropRenderer from './renderers/DragDropRenderer';
 import UnderlineRenderer from './renderers/UnderlineRenderer';
+import WordScrambleRenderer from './renderers/WordScrambleRenderer';
+import RiddleRenderer from './renderers/RiddleRenderer';
+import ErrorCorrectionRenderer from './renderers/ErrorCorrectionRenderer';
+import UnsupportedQuestionRenderer from './renderers/UnsupportedQuestionRenderer';
 
 const QuestionRenderer: React.FC<BaseRendererProps> = (props) => {
   const { question: question, index, quizId } = props;
@@ -37,10 +41,13 @@ const QuestionRenderer: React.FC<BaseRendererProps> = (props) => {
     MATH_INPUT: MathRenderer,
     GEOMETRY: GeometryRenderer,
     UNDERLINE: UnderlineRenderer,
+    WORD_SCRAMBLE: WordScrambleRenderer,
+    RIDDLE: RiddleRenderer,
+    ERROR_CORRECTION: ErrorCorrectionRenderer,
   };
 
   const SelectedRenderer = renderers[normalizedType]
-    || ((question as any).mathType ? MathRenderer : MCQRenderer);
+    || ((question as any).mathType ? MathRenderer : UnsupportedQuestionRenderer);
 
   return (
     <section

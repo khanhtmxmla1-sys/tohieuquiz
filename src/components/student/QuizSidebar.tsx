@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle } from 'lucide-react';
-import { Question, QuestionType } from '../../types';
+import { Question } from '../../types';
+import { isQuestionAnswered as hasCompleteAnswer } from '../../domain/quiz-scoring';
 
 interface QuizSidebarProps {
     timeLeft: number;
@@ -9,38 +10,6 @@ interface QuizSidebarProps {
     onSubmit: () => void;
     formatTime: (seconds: number) => string;
 }
-
-/**
- * Helper function to check if a question is answered
- */
-const isQuestionAnswered = (q: Question, answers: Record<string, any>): boolean => {
-    if (q.type === QuestionType.TRUE_FALSE) {
-        return q.items.every((item: any, idx: number) => {
-            const itemKey = item.id || `item-${idx}`;
-            return answers[q.id]?.[itemKey] !== undefined;
-        });
-    } else if (q.type === QuestionType.MATCHING) {
-        const userPairs = answers[q.id] || {};
-        const pairedCount = Object.keys(userPairs).filter(k => k !== 'selectedLeft').length;
-        return pairedCount === q.pairs.length;
-    } else if (q.type === QuestionType.MULTIPLE_SELECT) {
-        return (answers[q.id] as string[])?.length > 0;
-    } else if (q.type === QuestionType.DRAG_DROP) {
-        const qAny = q as any;
-        const text = qAny.text || "";
-        const parts = text.split(/(\[.*?\])/g);
-        const blanks: number[] = [];
-        parts.forEach((part: string, idx: number) => {
-            if (part.startsWith('[') && part.endsWith(']')) {
-                blanks.push(idx);
-            }
-        });
-        const currentAnswers = (answers[q.id] as Record<number, string>) || {};
-        return blanks.length > 0 && blanks.every(idx => currentAnswers[idx] !== undefined);
-    } else {
-        return !!answers[q.id];
-    }
-};
 
 /**
  * Quiz sidebar with timer and question navigation
@@ -52,7 +21,9 @@ const QuizSidebar: React.FC<QuizSidebarProps> = ({
     onSubmit,
     formatTime
 }) => {
-    const answeredCount = questions.filter(q => isQuestionAnswered(q, answers)).length;
+    const answeredCount = questions.filter(
+        (question) => hasCompleteAnswer(question, answers[question.id]),
+    ).length;
 
     const scrollToQuestion = (index: number) => {
         document.getElementById(`question-${index}`)?.scrollIntoView({ behavior: 'smooth' });
@@ -77,7 +48,7 @@ const QuizSidebar: React.FC<QuizSidebarProps> = ({
                     </p>
                     <div className="grid grid-cols-5 gap-2">
                         {questions.map((q, index) => {
-                            const isAnswered = isQuestionAnswered(q, answers);
+                            const isAnswered = hasCompleteAnswer(q, answers[q.id]);
                             return (
                                 <button
                                     key={q.id}

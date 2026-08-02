@@ -18,7 +18,7 @@
     "test:coverage": "vitest run tests/schemas.test.ts tests/questionSchemaCoverage.test.ts tests/InputValidator.test.ts tests/authAndLiveExamSchemas.test.ts --coverage --maxWorkers=1",
     "cypress": "cypress open",
     "cypress:run": "cypress run",
-    "cypress:run:stubbed": "cypress run --e2e --spec \"cypress/e2e/ai-quiz-generation-v2.cy.ts,cypress/e2e/gift-shop.cy.ts,cypress/e2e/manual-quiz-workspace.cy.ts,cypress/e2e/mobile-responsive.cy.ts,cypress/e2e/parent-portal.cy.ts,cypress/e2e/route-scroll.cy.ts,cypress/e2e/unified-notifications.cy.ts\"",
+    "cypress:run:stubbed": "cypress run --e2e --spec \"cypress/e2e/ai-quiz-generation-v2.cy.ts,cypress/e2e/gift-shop.cy.ts,cypress/e2e/manual-quiz-workspace.cy.ts,cypress/e2e/mobile-responsive.cy.ts,cypress/e2e/parent-portal.cy.ts,cypress/e2e/question-scoring-matrix.cy.ts,cypress/e2e/route-scroll.cy.ts,cypress/e2e/unified-notifications.cy.ts\"",
     "cypress:run:blueprint-v3": "cypress run --e2e --spec \"cypress/e2e/ai-question-blueprint-v3.cy.ts\"",
     "cypress:run:production-smoke": "node scripts/run-production-smoke.mjs",
     "rollout:staged": "node scripts/run-staged-rollout.mjs",
@@ -48,7 +48,9 @@
     "perf:budget": "node scripts/analyze-bundle.mjs --check",
     "perf:collections": "node scripts/benchmark-list-endpoints.mjs",
     "d1:migrations:safe": "node workers/scripts/apply-d1-migrations-safe.cjs",
-    "d1:cleanup:test-data": "node workers/scripts/cleanup-production-test-data.cjs"
+    "d1:cleanup:test-data": "node workers/scripts/cleanup-production-test-data.cjs",
+    "audit:scoring-contracts": "node workers/scripts/audit-scoring-contracts.cjs",
+    "report:result-regrading": "node workers/scripts/report-result-regrading.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

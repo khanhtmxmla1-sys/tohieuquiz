@@ -72,12 +72,64 @@ const quiz = (questions: Question[], overrides: Partial<Quiz> = {}): Quiz => ({
 
 const errors = (issues: ManualQuizIssue[]) => issues.filter((issue) => issue.severity === 'error');
 
-const VALID_TYPES = Object.values(QuestionType);
+const VALID_TYPES = Object.values(QuestionType).filter((type) => type !== QuestionType.GEOMETRY);
 
 describe('manual quiz validation engine', () => {
     it.each(VALID_TYPES)('accepts a minimally valid %s question', (type) => {
         const issues = validateManualQuiz(quiz([question(type)]), { targetPoints: 1 });
         expect(errors(issues).filter((issue) => issue.questionId)).toEqual([]);
+    });
+
+    it('blocks geometry from auto-graded publishing until it has an answer contract', () => {
+        const issues = validateManualQuiz(quiz([question(QuestionType.GEOMETRY)]), { targetPoints: 1 });
+        expect(issues).toEqual(expect.arrayContaining([
+            expect.objectContaining({
+                code: 'QUESTION_NOT_AUTO_GRADABLE',
+                severity: 'error',
+                questionId: 'q-GEOMETRY',
+            }),
+        ]));
+    });
+
+    it('rejects blank count and identity mismatches', () => {
+        const dropdownIssues = validateManualQuiz(quiz([question(QuestionType.DROPDOWN, {
+            text: '[blank_0] và [blank_1]',
+            blanks: [
+                { id: 'duplicate', options: ['x', 'y'], correctAnswer: 'x' },
+                { id: 'duplicate', options: ['a', 'b'], correctAnswer: 'a' },
+            ],
+        })]), { targetPoints: 1 });
+        expect(dropdownIssues).toEqual(expect.arrayContaining([
+            expect.objectContaining({ code: 'BLANK_ID_DUPLICATE', questionId: 'q-DROPDOWN' }),
+        ]));
+
+        const dragIssues = validateManualQuiz(quiz([question(QuestionType.DRAG_DROP, {
+            text: '[blank_0] và [blank_1]',
+            blanks: ['xanh'],
+        })]), { targetPoints: 1 });
+        expect(dragIssues).toEqual(expect.arrayContaining([
+            expect.objectContaining({ code: 'BLANK_COUNT_MISMATCH', questionId: 'q-DRAG_DROP' }),
+        ]));
+    });
+
+    it('rejects duplicate true-false and categorization IDs', () => {
+        const tfIssues = validateManualQuiz(quiz([question(QuestionType.TRUE_FALSE, {
+            items: [
+                { id: 'same', statement: 'A', isCorrect: true },
+                { id: 'same', statement: 'B', isCorrect: false },
+            ],
+        })]), { targetPoints: 1 });
+        expect(tfIssues).toEqual(expect.arrayContaining([
+            expect.objectContaining({ code: 'TRUE_FALSE_ID_DUPLICATE', questionId: 'q-TRUE_FALSE' }),
+        ]));
+
+        const categoryIssues = validateManualQuiz(quiz([question(QuestionType.CATEGORIZATION, {
+            categories: [{ id: 'same', name: 'A' }, { id: 'same', name: 'B' }],
+            items: [{ id: 'item', content: 'x', categoryId: 'same' }],
+        })]), { targetPoints: 1 });
+        expect(categoryIssues).toEqual(expect.arrayContaining([
+            expect.objectContaining({ code: 'CATEGORIZATION_ID_DUPLICATE', questionId: 'q-CATEGORIZATION' }),
+        ]));
     });
 
     it('detects empty, duplicate and unreachable MCQ answers', () => {

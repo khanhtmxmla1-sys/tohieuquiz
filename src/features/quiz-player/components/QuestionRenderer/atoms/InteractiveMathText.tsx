@@ -6,6 +6,7 @@ interface InteractiveMathTextProps {
   content: unknown;
   renderBlank: (blankId: string, key: React.Key) => React.ReactNode;
   className?: string;
+  blankIds?: readonly string[];
 }
 
 const OPEN = '\uE000';
@@ -29,12 +30,15 @@ export const getInteractiveBlankIds = (input: string): string[] => {
   return ids;
 };
 
-const encodeBlanks = (input: string): string => {
+const encodeBlanks = (input: string, blankIds?: readonly string[]): string => {
   let sequential = 0;
+  let occurrence = 0;
   return input.replace(/\[([^\]]+)\]/g, (full, raw: string, index: number) => {
     if (isLatexOptionalBracket(input, index)) return full;
     const trimmed = raw.trim();
-    const id = /^\d+$/.test(trimmed) ? trimmed : String(sequential++);
+    const fallbackId = /^\d+$/.test(trimmed) ? trimmed : String(sequential++);
+    const id = blankIds?.[occurrence] || fallbackId;
+    occurrence += 1;
     return `${OPEN}${id}${CLOSE}`;
   });
 };
@@ -167,9 +171,9 @@ const InteractiveMathInner: React.FC<{
   return <>{nodes}</>;
 };
 
-const InteractiveMathText: React.FC<InteractiveMathTextProps> = ({ content, renderBlank, className }) => {
+const InteractiveMathText: React.FC<InteractiveMathTextProps> = ({ content, renderBlank, className, blankIds }) => {
   const source = content === null || content === undefined ? '' : String(content);
-  const encoded = encodeBlanks(source);
+  const encoded = encodeBlanks(source, blankIds);
   const normalized = normalizeMathText(encoded);
   const segments = splitMathSegments(normalized);
 

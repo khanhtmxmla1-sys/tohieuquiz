@@ -75,8 +75,8 @@ beforeEach(() => {
 describe('quiz authoring points and explanations', () => {
     it('maps points and explanation as the final persisted question fields', () => {
         const mapped = mapQuestionForSave(question, 'quiz-a');
-        expect(mapped).toHaveLength(23);
-        expect(mapped.slice(-3)).toEqual(['2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.']);
+        expect(mapped).toHaveLength(24);
+        expect(mapped.slice(-4)).toEqual(['2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.', '2']);
     });
 
     it('persists authoring fields on quiz creation', async () => {
@@ -89,7 +89,7 @@ describe('quiz authoring points and explanations', () => {
         expect(response.status).toBe(200);
         const insert = db.executed.find((statement) => statement.sql.includes('INSERT INTO questions'));
         expect(insert?.sql).toContain('points, explanation, image_alt');
-        expect(insert?.bindings.slice(-3)).toEqual(['2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.']);
+        expect(insert?.bindings.slice(-4)).toEqual(['2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.', '2']);
     });
 
     it('keeps authoring fields when duplicating a quiz', async () => {
@@ -103,7 +103,7 @@ describe('quiz authoring points and explanations', () => {
         const insert = db.executed.find((statement) =>
             statement.sql.includes('INSERT INTO questions') && statement.bindings.length > 0,
         );
-        expect(insert?.bindings.slice(-3)).toEqual(['2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.']);
+        expect(insert?.bindings.slice(-4)).toEqual(['2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.', '1']);
     });
 
     it('hides explanations from students while keeping non-secret points', () => {
@@ -122,6 +122,6 @@ describe('quiz authoring points and explanations', () => {
         const mapped = mapQuestionForSave({
             id: 'q-old', type: 'MCQ', question: 'Câu cũ', options: ['A', 'B'], correctAnswer: 'A',
         }, 'quiz-a');
-        expect(mapped.slice(-3)).toEqual(['', '', '']);
+        expect(mapped.slice(-4)).toEqual(['', '', '', '2']);
     });
 });

@@ -76,6 +76,7 @@ export interface Question {
     points?: number | null;
     explanation?: string;
     image_alt?: string;
+    answer_schema_version?: number;
 }
 
 export interface Assignment {

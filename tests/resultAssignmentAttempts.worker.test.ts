@@ -16,7 +16,15 @@ class Statement {
   constructor(readonly sql: string, readonly db: FakeDatabase) {}
   bind(...values: unknown[]) { this.bindings = values; return this; }
   async first<T>() { this.db.executed.push(this); return this.db.first(this.sql, this.bindings) as T; }
-  async all<T>() { this.db.executed.push(this); return { results: [] as T[] }; }
+  async all<T>() {
+    this.db.executed.push(this);
+    const results = this.sql.includes('FROM questions') ? [{
+      id: 'q1', type: 'MCQ', question: '2 + 2?', options: '3|4', correct_answer: 'B',
+      items: '', text_field: '', blanks: '', distractors: '', sentence: '', words: '',
+      correct_word_indexes: '', image: '', difficulty: 1, answer_schema_version: 1,
+    }] : [];
+    return { results: results as T[] };
+  }
   async run() { this.db.executed.push(this); return { success: true, meta: { changes: 1, last_row_id: 91 } }; }
 }
 

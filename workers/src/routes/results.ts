@@ -12,6 +12,15 @@ import { withD1Retry } from '../utils/d1';
 import { collectionLimit, decodeCollectionCursor, encodeCollectionCursor } from '../utils/cursorPagination';
 import { createParentNotification } from '../parentPortal/notificationService';
 import { loadResultDashboardSummary } from '../services/resultSummaryService';
+import {
+    QuizGradingServiceError,
+    buildAuthoritativeStoredAnswers,
+    gradeQuizSubmission,
+} from '../services/quizGradingService';
+import {
+    recordScoringShadowObservation,
+    resolveQuizScoringRolloutMode,
+} from '../services/quizScoringRolloutService';
 import { handleInterventionRoutes } from './interventions';
 import {
     buildResultSkillBreakdownFromData,
@@ -101,33 +110,6 @@ const validateResultAssignmentPolicy = (
     }
 
     return null;
-};
-
-export const deriveResultMetricsFromAnswers = (
-    answers: unknown,
-    submittedTotalQuestions: unknown,
-): { score: number; correctCount: number; totalQuestions: number } | null => {
-    if (!answers || typeof answers !== 'object') return null;
-
-    const answerEntries = Object.entries(answers as Record<string, unknown>)
-        .filter(([key]) => !key.startsWith('_'));
-    const totalQuestions = Number(submittedTotalQuestions);
-    if (!Number.isInteger(totalQuestions) || totalQuestions <= 0 || answerEntries.length !== totalQuestions) {
-        return null;
-    }
-
-    const everyAnswerIsGraded = answerEntries.every(([, answer]) => (
-        !!answer
-        && typeof answer === 'object'
-        && typeof (answer as { isCorrect?: unknown }).isCorrect === 'boolean'
-    ));
-    if (!everyAnswerIsGraded) return null;
-
-    const correctCount = answerEntries.reduce((count, [, answer]) => (
-        (answer as { isCorrect: boolean }).isCorrect ? count + 1 : count
-    ), 0);
-    const score = Math.round((correctCount / totalQuestions) * 100) / 10;
-    return { score, correctCount, totalQuestions };
 };
 
 const getStudentForUser = async (db: D1Database, user: JWTPayload): Promise<any | null> => {
@@ -445,31 +427,57 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             }
         }
 
-        const derivedMetrics = deriveResultMetricsFromAnswers(body.answers, body.totalQuestions);
-        const submittedScore = Number(body.score);
-        const submittedCorrectCount = Number(body.correctCount);
-        const submittedTotalQuestions = Number(body.totalQuestions);
-        const score = derivedMetrics?.score
-            ?? (Number.isFinite(submittedScore) ? submittedScore : 0);
-        const correctCount = derivedMetrics?.correctCount
-            ?? (Number.isFinite(submittedCorrectCount) ? submittedCorrectCount : 0);
-        const totalQuestions = derivedMetrics?.totalQuestions
-            ?? (Number.isFinite(submittedTotalQuestions) ? submittedTotalQuestions : 0);
-
+        const scoringMode = await resolveQuizScoringRolloutMode(db, {
+            role: user.role as 'admin' | 'teacher' | 'student' | 'parent' | 'public',
+            username: user.username,
+            classIds: studentContext?.class_id ? [String(studentContext.class_id)] : [],
+        });
+        let grading;
+        try {
+            grading = await gradeQuizSubmission(db, quizId, body.answers || {});
+        } catch (error) {
+            if (error instanceof QuizGradingServiceError) {
+                return jsonResponse({
+                    status: 'error',
+                    code: error.code,
+                    message: error.message,
+                    details: error.details,
+                }, error.status);
+            }
+            throw error;
+        }
+        recordScoringShadowObservation(scoringMode, {
+            quizId: String(quizId),
+            canonicalScore: grading.score,
+            canonicalCorrectCount: grading.correctCount,
+            canonicalTotalQuestions: grading.totalQuestions,
+            submittedScore: body.score,
+            submittedCorrectCount: body.correctCount,
+            submittedTotalQuestions: body.totalQuestions,
+        });
+        const score = grading.score;
+        const correctCount = grading.correctCount;
+        const totalQuestions = grading.totalQuestions;
+        const authoritativeAnswers = buildAuthoritativeStoredAnswers(
+            grading.questions,
+            body.answers || {},
+            grading.details,
+        );
         const submittedAt = new Date().toISOString();
         const insertResult = await db.prepare(`
             INSERT INTO results (
                 student_id, assignment_id, student_name, class_name, quiz_id, quiz_title,
-                score, correct_count, total_questions, time_taken, submitted_at, answers
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                score, correct_count, total_questions, time_taken, submitted_at, answers,
+                grading_version
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             canonicalStudentId, assignment?.id || null, studentName, className, quizId,
             body.quizTitle || '', score, correctCount,
             totalQuestions, body.timeTaken || 0,
             submittedAt,
-            JSON.stringify(body.answers || {}),
+            JSON.stringify(authoritativeAnswers),
+            grading.gradingVersion,
         ).run();
-
         const resultId = insertResult.meta.last_row_id;
         if (canonicalStudentId) {
             try {
@@ -487,7 +495,18 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
                 console.error('[ParentNotification] quiz result notification failed', error);
             }
         }
-        return jsonResponse({ status: 'success', resultId, assignmentId: assignment?.id || null });
+        return jsonResponse({
+            status: 'success',
+            resultId,
+            assignmentId: assignment?.id || null,
+            score,
+            correctCount,
+            totalQuestions,
+            gradingVersion: grading.gradingVersion,
+            scoringMode,
+            answers: authoritativeAnswers,
+            validationDetails: grading.details,
+        });
     }
 
     // DELETE /api/results/:id - Delete result
@@ -512,7 +531,14 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             return errorResponse('Forbidden: Authenticated user required', 403);
         }
 
-        return await handleValidateAnswers(db, body, { includeCorrectAnswers: requireTeacher(user) });
+        return await handleValidateAnswers(db, body, {
+            includeCorrectAnswers: requireTeacher(user),
+            subject: {
+                role: user.role as 'admin' | 'teacher' | 'student' | 'parent' | 'public',
+                username: user.username,
+                classIds: [],
+            },
+        });
     }
 
     return errorResponse('Not found: ' + path, 404);

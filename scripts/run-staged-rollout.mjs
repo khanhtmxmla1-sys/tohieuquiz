@@ -60,6 +60,21 @@ export function evaluateRolloutMetrics({ stage, observationStartedAt, metrics, n
   if (baselineP95 > 0 && p95 > baselineP95 * 1.3) breaches.push('p95_latency');
   if (metrics.dataCorruption === true) breaches.push('data_corruption');
   if (metrics.authAnomaly === true) breaches.push('auth_anomaly');
+  if (Number(metrics.scoringInvalidRatePercent || 0) > 1) {
+    breaches.push('scoring_invalid_rate');
+  }
+  if (Number(metrics.validation422RatePercent || 0) > 1) {
+    breaches.push('validation_422_rate');
+  }
+  if (Number(metrics.unexplainedScoreMismatchCount || 0) > 0) {
+    breaches.push('unexplained_score_mismatch');
+  }
+  if (Number(metrics.submissionFailureRatePercent || 0) > 1) {
+    breaches.push('submission_failure_rate');
+  }
+  if (Number(metrics.liveExamFailureRatePercent || 0) > 1) {
+    breaches.push('live_exam_failure_rate');
+  }
   const requiredHours = OBSERVATION_HOURS[stage];
   return {
     status: breaches.length > 0 ? 'blocked' : elapsedHours < requiredHours ? 'observing' : 'ready',

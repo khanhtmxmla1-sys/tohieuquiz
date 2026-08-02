@@ -1,4 +1,5 @@
 import type { Question, ResultRow } from '../types';
+import { gradeQuestion } from '../../../src/domain/quiz-scoring';
 import {
     classifySkillStatus,
     getSubjectLabel,
@@ -101,136 +102,23 @@ function getPersistedCorrectness(answerData: any): boolean | null {
     return null;
 }
 
-function normalizeChoiceList(values: any[]): string[] {
-    return Array.from(
-        new Set(
-            values
-                .map((value) => String(value ?? '').trim().toUpperCase())
-                .filter(Boolean),
-        ),
-    ).sort();
-}
-
-function evaluateAnswer(question: NormalizedQuestionRecord, studentAnswer: any): boolean | null {
-    const questionType = question.type;
-    if (!questionType) return null;
-
-    if (questionType === 'MCQ' || questionType === 'IMAGE_QUESTION' || questionType === 'SHORT_ANSWER') {
-        if (questionType === 'SHORT_ANSWER') {
-            const normalizedStudent = String(studentAnswer ?? '').trim().replace(/^'/, '').toLowerCase();
-            const normalizedCorrect = String(question.correctAnswer ?? '').trim().replace(/^'/, '').toLowerCase();
-            const correctOptions = normalizedCorrect.split('|').map((item) => item.trim()).filter(Boolean);
-            return correctOptions.includes(normalizedStudent);
-        }
-
-        let normalizedCorrect = String(question.correctAnswer ?? '').trim().toUpperCase();
-        const normalizedStudent = String(studentAnswer ?? '').trim().toUpperCase();
-        const letterMatch = normalizedCorrect.match(/^([A-Z])[.)]\s*/);
-        if (letterMatch) normalizedCorrect = letterMatch[1];
-        return normalizedStudent === normalizedCorrect;
-    }
-
-    if (questionType === 'MULTIPLE_SELECT') {
-        const normalizedCorrectAnswer = String(question.correctAnswer ?? '').trim();
-        let correctRaw: any[] = [];
-
-        if (normalizedCorrectAnswer.startsWith('[') && normalizedCorrectAnswer.endsWith(']')) {
-            correctRaw = parseJsonSafely<any[]>(normalizedCorrectAnswer, []);
-        } else {
-            correctRaw = normalizedCorrectAnswer.split('|');
-        }
-
-        const correct = normalizeChoiceList(correctRaw);
-        const student = normalizeChoiceList(Array.isArray(studentAnswer) ? studentAnswer : []);
-        return correct.length > 0 &&
-            student.length > 0 &&
-            correct.length === student.length &&
-            correct.every((choice, index) => choice === student[index]);
-    }
-
-    if (questionType === 'TRUE_FALSE') {
-        const items = Array.isArray(question.items) ? question.items : parseJsonSafely<any[]>(question.items, []);
-        const studentItems = studentAnswer || {};
-        return items.length > 0 && items.every((item: any, index: number) => {
-            const actual = item.isCorrect ?? item.isTrue ?? false;
-            return studentItems[index] === actual;
-        });
-    }
-
-    if (questionType === 'MATCHING') {
-        const pairs = Array.isArray(question.items) ? question.items : parseJsonSafely<any[]>(question.items, []);
-        const studentPairs = studentAnswer || {};
-        return pairs.length > 0 && pairs.every((pair: any) => studentPairs[pair.left] === pair.right);
-    }
-
-    if (questionType === 'DRAG_DROP') {
-        const blanks = Array.isArray(question.blanks) ? question.blanks : parseJsonSafely<any[]>(question.blanks, []);
-        const studentBlanks = studentAnswer || {};
-        return blanks.length > 0 && blanks.every((blank: any, index: number) => studentBlanks[index] === blank);
-    }
-
-    if (questionType === 'DROPDOWN') {
-        const blanks = Array.isArray(question.blanks) ? question.blanks : parseJsonSafely<any[]>(question.blanks, []);
-        const studentDropdowns = studentAnswer || {};
-        return blanks.length > 0 && blanks.every((blank: any, index: number) => {
-            const expected = blank.correctAnswer ?? blank.answer;
-            return studentDropdowns[index] === expected;
-        });
-    }
-
-    if (questionType === 'ORDERING') {
-        const expectedOrder = Array.isArray(question.correctAnswer)
-            ? question.correctAnswer
-            : parseJsonSafely<any[]>(question.correctAnswer, []);
-        const actualOrder = Array.isArray(studentAnswer) ? studentAnswer : [];
-        return expectedOrder.length > 0 &&
-            expectedOrder.length === actualOrder.length &&
-            expectedOrder.every((value, index) => Number(value) === Number(actualOrder[index]));
-    }
-
-    if (questionType === 'UNDERLINE') {
-        const expectedIndexes = Array.isArray(question.correctWordIndexes)
-            ? question.correctWordIndexes
-            : parseJsonSafely<any[]>(question.correctWordIndexes || question.correctAnswer, []);
-        const actualIndexes = Array.isArray(studentAnswer) ? studentAnswer : [];
-        return expectedIndexes.length > 0 &&
-            expectedIndexes.length === actualIndexes.length &&
-            expectedIndexes.every((value, index) => Number(value) === Number(actualIndexes[index]));
-    }
-
-    if (questionType === 'CATEGORIZATION') {
-        const items = Array.isArray(question.items) ? question.items : parseJsonSafely<any[]>(question.items, []);
-        const studentCategories = studentAnswer || {};
-        return items.length > 0 && items.every((item: any) => studentCategories[item.id] === item.categoryId);
-    }
-
-    if (questionType === 'WORD_SCRAMBLE') {
-        return String(studentAnswer ?? '').trim().toLowerCase() === String(question.correctAnswer ?? '').trim().toLowerCase();
-    }
-
-    if (questionType === 'ERROR_CORRECTION' || questionType === 'RIDDLE') {
-        return String(studentAnswer ?? '').trim().toLowerCase() === String(question.correctAnswer ?? '').trim().toLowerCase();
-    }
-
-    return null;
-}
-
 function resolveAnswerCorrectness(questionSources: Array<any>, answerData: any): boolean | null {
-    const persistedCorrectness = getPersistedCorrectness(answerData);
-    if (persistedCorrectness !== null) return persistedCorrectness;
-
     const selectedAnswer = getSelectedAnswer(answerData);
     if (isSkippedAnswer(selectedAnswer)) return null;
 
     for (const source of questionSources) {
-        const normalizedQuestion = normalizeQuestionRecord(source);
-        const evaluation = evaluateAnswer(normalizedQuestion, selectedAnswer);
-        if (typeof evaluation === 'boolean') return evaluation;
+        if (!source || typeof source !== 'object') continue;
+        const grading = gradeQuestion({
+            ...source,
+            id: String(source.id || '__weakness-profile-question__'),
+        }, selectedAnswer);
+        if (grading.status === 'correct' || grading.status === 'wrong') {
+            return grading.isCorrect;
+        }
     }
 
-    return null;
+    return getPersistedCorrectness(answerData);
 }
-
 function resolveQuestionSkillMetadataFromSources(
     dbQuestion: any,
     answerData: any,

@@ -518,15 +518,36 @@ export const useQuizStore = create<QuizState>()(
 
             submitResult: async (result) => {
                 try {
-                    const res = await callApi<{ status: string; resultId?: number }>('submit_result', {
+                    const res = await callApi<{
+                        status: string;
+                        resultId?: number;
+                        score?: number;
+                        correctCount?: number;
+                        totalQuestions?: number;
+                        gradingVersion?: string;
+                        answers?: StudentResult['answers'];
+                        validationDetails?: StudentResult['validationDetails'];
+                    }>('submit_result', {
                         ...result,
                         className: result.studentClass,
                         quizTitle: result.quizTitle || 'Unknown Quiz'
                     });
                     if (res && res.status === 'success') {
                         cacheService.invalidatePrefix('results:');
-                        // Update result with server-generated ID
-                        const updatedResult = res.resultId ? { ...result, id: String(res.resultId) } : result;
+                        const updatedResult: StudentResult = {
+                            ...result,
+                            id: res.resultId ? String(res.resultId) : result.id,
+                            score: typeof res.score === 'number' ? res.score : result.score,
+                            correctCount: typeof res.correctCount === 'number'
+                                ? res.correctCount
+                                : result.correctCount,
+                            totalQuestions: typeof res.totalQuestions === 'number'
+                                ? res.totalQuestions
+                                : result.totalQuestions,
+                            gradingVersion: res.gradingVersion ?? result.gradingVersion,
+                            answers: res.answers ?? result.answers,
+                            validationDetails: res.validationDetails ?? result.validationDetails,
+                        };
                         set((state) => ({
                             results: [...state.results, updatedResult]
                         }));

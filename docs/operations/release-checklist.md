@@ -7,6 +7,7 @@ Tài liệu liên quan:
 - [Quan sát hệ thống](./observability.md)
 - [Xử lý sự cố](./incident-runbook.md)
 - [Rollback](./rollback.md)
+- [Canonical Quiz Scoring V2](./canonical-quiz-scoring-rollout.md)
 
 ## 1. Hồ sơ phát hành
 
@@ -44,6 +45,14 @@ npm run release:readiness -- --base=origin/main
 - [ ] Không có migration phá hủy chưa được phê duyệt và chưa có kế hoạch khôi phục dữ liệu.
 - [ ] Bundle JavaScript không vượt ngưỡng release gate.
 - [ ] Production smoke gần nhất xanh 4/4.
+
+Nếu phát hành Canonical Quiz Scoring V2:
+
+- [ ] Browser scoring matrix đạt 14/14 dạng câu hỏi.
+- [ ] Live exam service matrix đạt 14/14 và ghi `grading_version`.
+- [ ] Contract audit không có blocker.
+- [ ] Historical regrade report đã được review; không có thao tác tự sửa dữ liệu.
+- [ ] File metric rollout có đủ invalid, 422, score mismatch, submit failure và live exam failure.
 
 ### 2.2 Khả năng quan sát và rollback
 
@@ -107,6 +116,7 @@ Dừng mở rộng ngay và chuyển sang mục 5 khi có một trong các tín 
 - Response lỗi không có `x-request-id`, hoặc hơn **5%** mẫu response không có request ID.
 - Latency tăng gấp đôi baseline trong 10 phút và ảnh hưởng luồng chính.
 - Không thể xác định phiên bản hiện tại hoặc không thể thực hiện rollback đã chuẩn bị.
+- Với scoring: invalid hoặc 422 vượt **1%**, có chênh điểm chưa giải thích, submit failure vượt **1%**, hoặc live exam failure vượt **1%**.
 
 Khi STOP:
 

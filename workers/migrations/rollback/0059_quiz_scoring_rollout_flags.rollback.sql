@@ -1,0 +1,4 @@
+-- Rollback migration 0059 through the feature rollout control plane:
+-- disable quiz_scoring_canonical_v2 and quiz_scoring_shadow_v2, with an audit reason.
+-- Compatibility mode continues to use the canonical scoring engine so a rollback
+-- cannot re-enable the known incorrect legacy graders.

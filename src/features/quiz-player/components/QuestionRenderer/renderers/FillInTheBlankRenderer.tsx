@@ -3,6 +3,7 @@ import { BaseRendererProps } from '../types';
 import SmartText from '../utils/SmartText';
 import LatexDropdown from '../atoms/LatexDropdown';
 import InteractiveMathText, { getInteractiveBlankIds } from '../atoms/InteractiveMathText';
+import { getBlankId } from '../../../../../domain/quiz-scoring';
 
 const seededShuffle = <T,>(values: T[], seedText: string): T[] => {
     const output = [...values];
@@ -35,7 +36,11 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
     const text = String((q as any).text || (q as any).content || '');
     const blanksData = (q as any).blanks;
     const distractors = Array.isArray((q as any).distractors) ? (q as any).distractors : [];
-    const blankIds = useMemo(() => getInteractiveBlankIds(text), [text]);
+    const placeholderIds = useMemo(() => getInteractiveBlankIds(text), [text]);
+    const blankIds = useMemo(
+        () => placeholderIds.map((_, index) => getBlankId(q, index)),
+        [placeholderIds, q],
+    );
 
     const pool = useMemo(() => {
         if (!isDragDrop) return [];
@@ -122,6 +127,7 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
             <div className="rounded-[10px] border border-slate-200 bg-white p-5 text-[18px] font-medium leading-relaxed text-slate-800 md:p-7 md:text-xl">
                 <InteractiveMathText
                     content={text}
+                    blankIds={blankIds}
                     renderBlank={renderBlank}
                     className="quiz-interactive-math-text"
                 />

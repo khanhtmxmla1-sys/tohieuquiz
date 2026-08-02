@@ -18,6 +18,8 @@ export default tseslint.config(
       '**/dist/**',
       '**/coverage/**',
       '**/.worktrees/**',
+      '**/.agent/**',
+      '**/.agents/**',
       '**/.claude/**',
       '**/.gitnexus/**',
       '**/.wrangler/**',

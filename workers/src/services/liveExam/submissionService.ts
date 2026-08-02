@@ -1,5 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import { calculateStudentScore } from '../../../../src/features/quiz-player/utils/quizScoring';
+import { QUIZ_SCORING_ENGINE_VERSION, gradeQuiz } from '../../../../src/domain/quiz-scoring';
 import { getEffectiveParticipantEndsAt } from './deadlineService';
 import { LiveExamServiceError } from './errors';
 import { loadLiveExamQuiz } from './quizLoader';
@@ -104,11 +104,11 @@ export async function submitAnswers(
   if (!participant) throw new LiveExamServiceError('Forbidden: Join session first', 403);
 
   const quiz = await loadLiveExamQuiz(db, session);
-  const grading = calculateStudentScore(quiz, params.answers || {});
-  const wrongCount = Math.max(0, grading.totalItems - grading.correctCount);
+  const grading = gradeQuiz(quiz, params.answers || {});
+  const wrongCount = Math.max(0, grading.totalQuestions - grading.correctCount);
   const result = await db.prepare(`
     UPDATE live_exam_participants
-    SET answers = ?, submitted_at = ?, score = ?, correct_count = ?, wrong_count = ?, updated_at = ?
+    SET answers = ?, submitted_at = ?, score = ?, correct_count = ?, wrong_count = ?, grading_version = ?, updated_at = ?
     WHERE live_exam_id = ? AND student_id = ? AND submitted_at IS NULL
   `).bind(
     JSON.stringify(params.answers || {}),
@@ -116,6 +116,7 @@ export async function submitAnswers(
     grading.score,
     grading.correctCount,
     wrongCount,
+    QUIZ_SCORING_ENGINE_VERSION,
     timestamp,
     params.liveExamId,
     params.studentId,

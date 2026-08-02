@@ -147,7 +147,7 @@ describe('quiz answer confidentiality and ownership', () => {
       correct_answer: '',
     });
     expect(safe.text_field).toBe('Báº§u trá»i [1] vÃ  mÃ¢y [2].');
-    expect(JSON.parse(safe.blanks)).toEqual([]);
+    expect(JSON.parse(safe.blanks)).toEqual([{ id: 'blank-0' }, { id: 'blank-1' }]);
     const pool = JSON.parse(safe.distractors);
     expect(pool.sort()).toEqual(['xanh', 'tráº¯ng', 'Ä‘á»'].sort());
     expect(safe.text_field).not.toContain('xanh');

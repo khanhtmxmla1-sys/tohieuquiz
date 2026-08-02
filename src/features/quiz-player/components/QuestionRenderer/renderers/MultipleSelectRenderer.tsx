@@ -1,6 +1,7 @@
 import React from 'react';
 import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
+import { optionIdAt, selectedOptionIds } from '../utils/answerState';
 
 const MultipleSelectRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -8,13 +9,14 @@ const MultipleSelectRenderer: React.FC<BaseRendererProps> = ({
   onAnswerChange,
 }) => {
   const options = (question as any).options ?? [];
+  const currentOptionIds = selectedOptionIds(question, answers[question.id]);
 
   return (
     <div className="grid grid-cols-1 gap-3">
       {options.map((option: unknown, index: number) => {
         const label = String.fromCharCode(65 + index);
-        const currentAnswers = (answers[question.id] as string[]) || [];
-        const isSelected = currentAnswers.includes(label);
+        const optionId = optionIdAt(index);
+        const isSelected = currentOptionIds.includes(optionId);
 
         return (
           <button
@@ -22,10 +24,10 @@ const MultipleSelectRenderer: React.FC<BaseRendererProps> = ({
             type="button"
             aria-pressed={isSelected}
             onClick={() => {
-              const newAnswers = isSelected
-                ? currentAnswers.filter((answer) => answer !== label)
-                : [...currentAnswers, label].sort();
-              onAnswerChange(question.id, newAnswers);
+              const optionIds = isSelected
+                ? currentOptionIds.filter((answerId) => answerId !== optionId)
+                : [...currentOptionIds, optionId].sort();
+              onAnswerChange(question.id, { type: 'MULTIPLE_SELECT', optionIds });
             }}
             className={`flex min-h-14 items-center rounded-[10px] border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
               isSelected

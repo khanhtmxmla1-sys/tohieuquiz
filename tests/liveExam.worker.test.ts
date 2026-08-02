@@ -206,6 +206,32 @@ describe('live exam P0 authorization and integrity', () => {
     expect(update).toBeDefined();
   });
 
+  it('uses canonical blank identity and records the grading version', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => {
+      if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow();
+      if (sql.includes('SELECT id, submitted_at')) return { id: 'participant-a', submitted_at: null, individual_ends_at: null };
+      if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'Toán 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
+      return null;
+    };
+    db.all = (sql) => sql.includes('FROM questions')
+      ? [{
+          id: 'q-drop', type: 'DROPDOWN', question: 'Chọn', options: '', correct_answer: '', items: '',
+          text_field: '[blank_0]', blanks: JSON.stringify([{ id: 'blank_0', options: ['x'], correctAnswer: 'x' }]),
+          distractors: '', words: '', correct_word_indexes: '',
+        }]
+      : [];
+
+    const result = await LiveExamService.submitAnswers(db as any, {
+      liveExamId: 'live-1', studentId: 'student-a', answers: { 'q-drop': { 0: 'x' } },
+    });
+
+    expect(result).toMatchObject({ score: 10, correctCount: 1, wrongCount: 0 });
+    const update = db.executed.find((statement) => statement.sql.includes('UPDATE live_exam_participants') && statement.sql.includes('submitted_at IS NULL'));
+    expect(update?.sql).toContain('grading_version');
+    expect(update?.bindings).toContain('2.0.0');
+  });
+
   it('rejects a raced duplicate when the atomic update changes no row', async () => {
     const db = new FakeDB();
     db.first = (sql) => {

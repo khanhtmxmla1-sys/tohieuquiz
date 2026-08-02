@@ -1,5 +1,6 @@
 import { QuestionType, type Question } from '../../../types';
 import { validateQuestionMath } from '../../../utils/questionMath';
+import { extractPlaceholderTokens } from '../../../domain/quiz-scoring';
 import {
     createQuizIssue,
     hasUnsafeMediaValue,
@@ -14,6 +15,49 @@ const labelsFor = (length: number): string[] => Array.from(
     { length },
     (_, index) => String.fromCharCode(65 + index),
 );
+
+const validateBlankIdentity = (
+    questionId: string,
+    textValue: unknown,
+    blanksValue: unknown,
+    requireExplicitIds: boolean,
+): ManualQuizIssue[] => {
+    const blanks = asArray<any>(blanksValue);
+    const placeholderCount = extractPlaceholderTokens(textValue).length;
+    const issues: ManualQuizIssue[] = [];
+    if (placeholderCount !== blanks.length) {
+        issues.push(questionIssue(
+            questionId,
+            'BLANK_COUNT_MISMATCH',
+            'S? ? tr?ng trong n?i dung ph?i b?ng s? ??p ?n ?? khai b?o.',
+            'blanks',
+        ));
+    }
+    const ids = blanks.map((blank, index) => {
+        if (blank && typeof blank === 'object' && !Array.isArray(blank)) {
+            return String(blank.id ?? '').trim();
+        }
+        return requireExplicitIds ? '' : `blank-${index}`;
+    });
+    if (requireExplicitIds && ids.some((id) => !id)) {
+        issues.push(questionIssue(
+            questionId,
+            'BLANK_ID_REQUIRED',
+            'M?i ? tr?ng c?n m?t m? ??nh danh ?n ??nh.',
+            'blanks',
+        ));
+    }
+    const nonEmptyIds = ids.filter(Boolean);
+    if (new Set(nonEmptyIds).size !== nonEmptyIds.length) {
+        issues.push(questionIssue(
+            questionId,
+            'BLANK_ID_DUPLICATE',
+            'M? ??nh danh ? tr?ng kh?ng ???c tr?ng nhau.',
+            'blanks',
+        ));
+    }
+    return issues;
+};
 
 const promptFor = (question: Question): string => {
     const data = question as any;
@@ -65,6 +109,14 @@ const validateTrueFalse = (question: any): ManualQuizIssue[] => {
     if (items.length === 0) {
         issues.push(questionIssue(question.id, 'TRUE_FALSE_ITEMS_REQUIRED', 'Cần ít nhất một mệnh đề đúng/sai.', 'items'));
     }
+    const itemIds = items.map((item) => String(item?.id ?? '').trim());
+    if (itemIds.some((id) => !id)) {
+        issues.push(questionIssue(question.id, 'TRUE_FALSE_ID_REQUIRED', 'M?i m?nh ?? c?n m?t m? ??nh danh ?n ??nh.', 'items'));
+    }
+    const nonEmptyIds = itemIds.filter(Boolean);
+    if (new Set(nonEmptyIds).size !== nonEmptyIds.length) {
+        issues.push(questionIssue(question.id, 'TRUE_FALSE_ID_DUPLICATE', 'M? m?nh ?? ??ng/sai kh?ng ???c tr?ng.', 'items'));
+    }
     items.forEach((item, index) => {
         if (!normalizeAuthoringText(item?.statement)) {
             issues.push(questionIssue(question.id, 'TRUE_FALSE_STATEMENT_EMPTY', `Mệnh đề ${index + 1} đang để trống.`, `items[${index}].statement`));
@@ -107,7 +159,7 @@ const validateOrdering = (question: any): ManualQuizIssue[] => {
 
 const validateDropdown = (question: any): ManualQuizIssue[] => {
     const blanks = asArray<any>(question.blanks);
-    const issues: ManualQuizIssue[] = [];
+    const issues: ManualQuizIssue[] = validateBlankIdentity(question.id, question.text, blanks, true);
     if (!normalizeAuthoringText(question.text) || blanks.length === 0) {
         issues.push(questionIssue(question.id, 'DROPDOWN_CONTENT_REQUIRED', 'Cần nội dung và ít nhất một ô chọn.', 'text'));
     }
@@ -141,9 +193,18 @@ const validateQuestionSpecific = (question: Question): ManualQuizIssue[] => {
         case QuestionType.MATCHING:
             return validateMatching(data);
         case QuestionType.DRAG_DROP: {
-            const blanks = asArray<string>(data.blanks);
-            return normalizeAuthoringText(data.text) && blanks.length > 0 && blanks.every((item) => normalizeAuthoringText(item))
-                ? [] : [questionIssue(question.id, 'DRAG_DROP_CONTENT_INVALID', 'Nội dung kéo thả cần có văn bản và đáp án cho mọi ô trống.', 'blanks')];
+            const blanks = asArray<any>(data.blanks);
+            const issues = validateBlankIdentity(question.id, data.text, blanks, false);
+            const hasValidAnswers = blanks.length > 0 && blanks.every((item) => {
+                if (item && typeof item === 'object' && !Array.isArray(item)) {
+                    return normalizeAuthoringText(item.correctAnswer);
+                }
+                return normalizeAuthoringText(item);
+            });
+            if (!normalizeAuthoringText(data.text) || !hasValidAnswers) {
+                issues.push(questionIssue(question.id, 'DRAG_DROP_CONTENT_INVALID', 'N?i dung k?o th? c?n c? v?n b?n v? ??p ?n cho m?i ? tr?ng.', 'blanks'));
+            }
+            return issues;
         }
         case QuestionType.ORDERING:
             return validateOrdering(data);
@@ -161,11 +222,24 @@ const validateQuestionSpecific = (question: Question): ManualQuizIssue[] => {
         case QuestionType.CATEGORIZATION: {
             const categories = asArray<any>(data.categories);
             const items = asArray<any>(data.items);
-            const categoryIds = new Set(categories.map((category) => String(category?.id ?? '')));
+            const categoryIdList = categories.map((category) => String(category?.id ?? '').trim());
+            const itemIdList = items.map((item) => String(item?.id ?? '').trim());
+            const categoryIds = new Set(categoryIdList);
+            const issues: ManualQuizIssue[] = [];
+            const duplicateOrMissingIds = categoryIdList.some((id) => !id)
+                || itemIdList.some((id) => !id)
+                || new Set(categoryIdList.filter(Boolean)).size !== categoryIdList.filter(Boolean).length
+                || new Set(itemIdList.filter(Boolean)).size !== itemIdList.filter(Boolean).length;
+            if (duplicateOrMissingIds) {
+                issues.push(questionIssue(question.id, 'CATEGORIZATION_ID_DUPLICATE', 'M? nh?m v? m? m?c ph?n lo?i ph?i t?n t?i v? kh?ng ???c tr?ng.', 'items'));
+            }
             const valid = categories.length > 0 && items.length > 0
                 && categories.every((category) => normalizeAuthoringText(category?.name))
                 && items.every((item) => normalizeAuthoringText(item?.content) && categoryIds.has(String(item?.categoryId ?? '')));
-            return valid ? [] : [questionIssue(question.id, 'CATEGORIZATION_CONTENT_INVALID', 'Mỗi mục phân loại phải có nội dung và thuộc một nhóm tồn tại.', 'items')];
+            if (!valid) {
+                issues.push(questionIssue(question.id, 'CATEGORIZATION_CONTENT_INVALID', 'M?i m?c ph?n lo?i ph?i c? n?i dung v? thu?c m?t nh?m t?n t?i.', 'items'));
+            }
+            return issues;
         }
         case QuestionType.WORD_SCRAMBLE:
             return asArray<string>(data.letters).length >= 2 && normalizeAuthoringText(data.correctWord)
@@ -177,8 +251,12 @@ const validateQuestionSpecific = (question: Question): ManualQuizIssue[] => {
             return normalizeAuthoringText(data.passage) && normalizeAuthoringText(data.wrongWord) && normalizeAuthoringText(data.correctWord)
                 ? [] : [questionIssue(question.id, 'ERROR_CORRECTION_CONTENT_INVALID', 'Cần đoạn văn, từ sai và từ sửa đúng.', 'passage')];
         case QuestionType.GEOMETRY:
-            return data.geometryData || normalizeAuthoringText(data.image)
-                ? [] : [questionIssue(question.id, 'GEOMETRY_DATA_REQUIRED', 'Cần dữ liệu hình học hoặc ảnh minh họa.', 'geometryData')];
+            return [questionIssue(
+                question.id,
+                'QUESTION_NOT_AUTO_GRADABLE',
+                'C?u h?nh h?c ch?a c? h?p ??ng ??p ?n ?? ch?m t? ??ng v? ch?a th? xu?t b?n.',
+                'type',
+            )];
         default:
             return [questionIssue(questionId, 'QUESTION_TYPE_UNSUPPORTED', 'Dạng câu hỏi này chưa được hỗ trợ.', 'type')];
     }

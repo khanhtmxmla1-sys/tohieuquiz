@@ -56,6 +56,13 @@ class FakeDatabase {
     if (sql.includes('FROM students s') && sql.includes('JOIN classes c')) {
       return this.matchingStudents;
     }
+    if (sql.includes('FROM questions')) {
+      return [{
+        id: 'q1', type: 'MCQ', question: '2 + 2?', options: '4|5', correct_answer: 'A',
+        items: '', text_field: '', blanks: '', distractors: '', sentence: '', words: '',
+        correct_word_indexes: '', image: '', difficulty: 1, answer_schema_version: 1,
+      }];
+    }
     return [];
   }
 }
