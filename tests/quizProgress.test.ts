@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeProgressQuestionType } from '../src/domain/quiz-progress';
+import { getQuestionProgress, normalizeProgressQuestionType } from '../src/domain/quiz-progress';
 
 describe('normalizeProgressQuestionType', () => {
   it.each([
@@ -20,5 +20,71 @@ describe('normalizeProgressQuestionType', () => {
   it('returns UNKNOWN instead of throwing', () => {
     expect(normalizeProgressQuestionType({ type: 'NEW_TYPE' })).toBe('UNKNOWN');
     expect(normalizeProgressQuestionType(null)).toBe('UNKNOWN');
+  });
+});
+
+describe('getQuestionProgress simple answers', () => {
+  it('marks short answer complete without correctAnswer in student-safe DTO', () => {
+    expect(getQuestionProgress(
+      { id: 'q12', type: 'SHORT_ANSWER', question: 'The eraser is ____.' },
+      'mine',
+    )).toEqual({
+      state: 'complete',
+      hasInteraction: true,
+      completedParts: 1,
+      requiredParts: 1,
+    });
+  });
+
+  it('returns empty after the answer is cleared', () => {
+    expect(getQuestionProgress(
+      { id: 'q12', type: 'SHORT_ANSWER' },
+      '   ',
+    )).toEqual({
+      state: 'empty',
+      hasInteraction: false,
+      completedParts: 0,
+      requiredParts: 1,
+    });
+  });
+
+  it.each([
+    [{ id: 'mcq', type: 'MCQ', options: ['Một', 'Hai'] }, 'B'],
+    [{ id: 'mcq-canonical', type: 'MCQ', options: ['Một', 'Hai'] }, { type: 'MCQ', optionId: 'option-1' }],
+    [{ id: 'image', type: 'IMAGE_QUESTION', options: ['Một', 'Hai'] }, 0],
+    [{ id: 'riddle', type: 'RIDDLE' }, { type: 'RIDDLE', value: 'hoa' }],
+    [{ id: 'geometry', type: 'GEOMETRY' }, '42'],
+    [{ id: 'unknown', type: 'NEW_TYPE' }, 'something'],
+  ])('marks a scalar or single-choice answer complete for %o', (question, answer) => {
+    expect(getQuestionProgress(question, answer)).toMatchObject({
+      state: 'complete',
+      hasInteraction: true,
+      completedParts: 1,
+      requiredParts: 1,
+    });
+  });
+
+  it.each([
+    [['A'], 'legacy array'],
+    [{ type: 'MULTIPLE_SELECT', optionIds: ['option-0'] }, 'canonical object'],
+  ])('marks multiple select complete for %s', (answer) => {
+    expect(getQuestionProgress(
+      { id: 'multi', type: 'MULTIPLE_SELECT', options: ['A', 'B'] },
+      answer,
+    ).state).toBe('complete');
+  });
+
+  it('marks underline complete when at least one word is selected', () => {
+    expect(getQuestionProgress(
+      { id: 'underline', type: 'UNDERLINE', words: ['Em', 'học'] },
+      { type: 'UNDERLINE', indexes: [1] },
+    ).state).toBe('complete');
+  });
+
+  it('unwraps stored result answer envelopes', () => {
+    expect(getQuestionProgress(
+      { id: 'stored', type: 'SHORT_ANSWER' },
+      { selectedAnswer: 'mine', isCorrect: false, status: 'wrong' },
+    ).state).toBe('complete');
   });
 });
