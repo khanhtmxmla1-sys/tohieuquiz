@@ -81,7 +81,7 @@ export interface StudentSession {
 
 // --- Assignment ---
 
-export type AssignmentStatus = 'OPEN' | 'CLOSED';
+export type AssignmentStatus = 'OPEN' | 'CLOSED' | 'REVOKED';
 
 export interface Assignment {
     id: string;
@@ -99,6 +99,22 @@ export interface Assignment {
     submittedCount?: number;    // How many students submitted
     totalStudents?: number;     // Total students in class
     attemptCount?: number;      // How many times current student has submitted
+    revokedAt?: string | null;
+    revokedBy?: string | null;
+    revokedReason?: string | null;
+    previousStatus?: Exclude<AssignmentStatus, 'REVOKED'> | null;
+    submissionCountAtRevoke?: number;
+}
+
+export interface AssignmentRevocationResult {
+    assignmentId: string;
+    status: 'REVOKED';
+    previousStatus: Exclude<AssignmentStatus, 'REVOKED'>;
+    revokedAt: string;
+    revokedBy: string;
+    revokedReason: string;
+    submissionCountAtRevoke: number;
+    replayed: boolean;
 }
 
 export interface CreateAssignmentPayload {

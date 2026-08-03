@@ -31,10 +31,10 @@ vi.mock('../src/components/TeacherDashboard/SmartAssignmentInsightCard', () => (
 }));
 
 vi.mock('../src/components/TeacherDashboard/AssignmentTrackingSection', () => ({
-  default: ({ onDelete, onUpdateDeadline, onUpdateStatus, assignments }: any) => (
+  default: ({ onRevoke, onUpdateDeadline, onUpdateStatus, assignments }: any) => (
     <section data-testid="tracking-section">
       <span>{assignments.length} assignments</span>
-      <button onClick={() => onDelete('assignment-1')}>Xóa tracking</button>
+      <button onClick={() => onRevoke('assignment-1', 'Đáp án chưa chính xác')}>Thu hồi tracking</button>
       <button onClick={() => onUpdateDeadline('assignment-1', '2026-08-01T00:00:00.000Z')}>Đổi hạn</button>
       <button onClick={() => onUpdateStatus('assignment-1', 'CLOSED')}>Đóng bài</button>
     </section>
@@ -87,6 +87,16 @@ const resetStores = (options: { isAdmin?: boolean; classError?: string | null; a
     fetchAllAssignments: vi.fn().mockResolvedValue(undefined),
     addAssignment: vi.fn(async payload => ({ id: 'assignment-new', ...payload })),
     removeAssignment: vi.fn().mockResolvedValue(true),
+    revokeAssignment: vi.fn().mockResolvedValue({
+      assignmentId: 'assignment-1',
+      status: 'REVOKED',
+      previousStatus: 'OPEN',
+      revokedAt: '2026-08-03T16:00:00.000Z',
+      revokedBy: 'teacher-a',
+      revokedReason: 'Đáp án chưa chính xác',
+      submissionCountAtRevoke: 0,
+      replayed: false,
+    }),
     updateAssignmentDeadline: vi.fn().mockResolvedValue(true),
     updateAssignmentStatus: vi.fn().mockResolvedValue(true),
     clearError: vi.fn(() => useAssignmentStore.setState({ error: null })),
@@ -152,18 +162,16 @@ describe('AssignmentTab shell contracts', () => {
     await waitFor(() => expect(useAssignmentStore.getState().fetchTeacherAssignments).toHaveBeenCalledTimes(2));
   });
 
-  it('confirms delete and refreshes after every successful tracking mutation', async () => {
+  it('revokes safely and refreshes after every successful tracking mutation', async () => {
     render(<AssignmentTab />);
     await waitFor(() => expect(useAssignmentStore.getState().fetchTeacherAssignments).toHaveBeenCalledTimes(1));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Xóa tracking' }));
-    await waitFor(() => expect(useAssignmentStore.getState().removeAssignment).toHaveBeenCalledWith('assignment-1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Thu hồi tracking' }));
+    await waitFor(() => expect(useAssignmentStore.getState().revokeAssignment).toHaveBeenCalledWith(
+      'assignment-1',
+      'Đáp án chưa chính xác',
+    ));
     await waitFor(() => expect(useAssignmentStore.getState().fetchTeacherAssignments).toHaveBeenCalledTimes(2));
-    expect(mocks.showConfirm).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'Xoa bai giao nay?',
-      confirmLabel: 'Xoa',
-      destructive: true,
-    }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Đổi hạn' }));
     await waitFor(() => expect(useAssignmentStore.getState().updateAssignmentDeadline).toHaveBeenCalledWith(

@@ -88,6 +88,11 @@ export interface Assignment {
     max_attempts: number;
     status: string;
     created_at: string;
+    revoked_at?: string | null;
+    revoked_by?: string | null;
+    revoked_reason?: string | null;
+    previous_status?: string | null;
+    submission_count_at_revoke?: number | null;
 }
 
 export interface ResultRow {

@@ -134,6 +134,30 @@ describe('assignment-scoped result attempt limits', () => {
     expect(fallbackQuery?.sql).toContain("COALESCE(a.student_id, '') = '' OR a.student_id = ?");
   });
 
+  it('rejects a stale result submission for a revoked assignment', async () => {
+    const db = new FakeDatabase();
+    const originalFirst = db.first.bind(db);
+    db.first = (sql: string, bindings: unknown[]) => {
+      const result = originalFirst(sql, bindings) as any;
+      if (sql.includes('FROM assignments') && sql.includes('WHERE a.id = ?') && result) {
+        return { ...result, status: 'REVOKED' };
+      }
+      return result;
+    };
+
+    const response = await handleResultRoutes(
+      makeRequest(),
+      { DB: db } as any,
+      '/api/results',
+      'POST',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(409);
+    expect(payload.code).toBe('ASSIGNMENT_REVOKED');
+    expect(db.executed.some(statement => statement.sql.includes('INSERT INTO results'))).toBe(false);
+  });
+
   it('rejects an assignment id that does not belong to the submitted quiz', async () => {
     const db = new FakeDatabase();
     db.first = (sql: string, bindings: unknown[]) => {

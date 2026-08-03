@@ -9,8 +9,7 @@ export const getAdminAssignments = async (db: D1Database) => {
             (
                 SELECT COUNT(DISTINCT r.student_name)
                 FROM results r
-                WHERE r.quiz_id = a.quiz_id
-                AND (r.class_name = c.name OR r.class_name = 'Lớp ' || c.name OR REPLACE(r.class_name, 'Lớp ', '') = c.name)
+                WHERE r.assignment_id = a.id
                 AND r.answers != '{"status":"STARTED"}'
             ) as submitted_count
         FROM assignments a

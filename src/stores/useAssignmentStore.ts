@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Assignment, CreateAssignmentPayload } from '../types/classroom.types';
+import type { Assignment, AssignmentRevocationResult, CreateAssignmentPayload } from '../types/classroom.types';
 import * as classroomService from '../services/classroomService';
 
 interface AssignmentStore {
@@ -15,6 +15,7 @@ interface AssignmentStore {
     removeAssignment: (assignmentId: string) => Promise<boolean>;
     updateAssignmentDeadline: (assignmentId: string, newDeadline: string) => Promise<boolean>;
     updateAssignmentStatus: (assignmentId: string, newStatus: 'OPEN' | 'CLOSED') => Promise<boolean>;
+    revokeAssignment: (assignmentId: string, reason: string) => Promise<AssignmentRevocationResult | null>;
     startAssignmentAttempt: (assignmentId: string, studentId: string) => Promise<boolean>;
     resetAssignments: () => void;
     clearError: () => void;
@@ -142,6 +143,34 @@ export const useAssignmentStore = create<AssignmentStore>((set) => ({
         } catch {
             set({ error: 'Loi khi cap nhat trang thai.', isLoading: false });
             return false;
+        }
+    },
+
+    revokeAssignment: async (assignmentId, reason) => {
+        set({ isLoading: true, error: null });
+        try {
+            const result = await classroomService.revokeAssignment(assignmentId, reason);
+            set((state) => ({
+                assignments: state.assignments.map((assignment) =>
+                    assignment.id === assignmentId
+                        ? {
+                            ...assignment,
+                            status: 'REVOKED',
+                            revokedAt: result.revokedAt,
+                            revokedBy: result.revokedBy,
+                            revokedReason: result.revokedReason,
+                            previousStatus: result.previousStatus,
+                            submissionCountAtRevoke: result.submissionCountAtRevoke,
+                        }
+                        : assignment
+                ),
+                isLoading: false,
+            }));
+            return result;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Không thể thu hồi bài đã giao.';
+            set({ error: message, isLoading: false });
+            return null;
         }
     },
 

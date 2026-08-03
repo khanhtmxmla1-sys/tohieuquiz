@@ -20,6 +20,16 @@ export async function handleAssignmentDeadlineRoute(context: ClassroomRouteConte
     if (!Number.isFinite(deadlineMs)) return errorResponse('newDeadline must be a valid date');
     if (deadlineMs <= Date.parse(nowIso)) return errorResponse('newDeadline must be in the future');
 
+    const current = await db.prepare('SELECT status FROM assignments WHERE id = ?')
+        .bind(assignmentId).first<{ status: string }>();
+    if (String(current?.status || '').toUpperCase() === 'REVOKED') {
+        return jsonResponse({
+            status: 'error',
+            code: 'ASSIGNMENT_REVOKED',
+            message: 'Bài đã được thu hồi và không thể gia hạn.',
+        }, 409);
+    }
+
     const newDeadline = new Date(deadlineMs).toISOString();
     await db.prepare('UPDATE assignments SET deadline = ?, status = ? WHERE id = ?')
         .bind(newDeadline, 'OPEN', assignmentId).run();

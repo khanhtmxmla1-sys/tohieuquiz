@@ -107,7 +107,15 @@ const validateResultAssignmentPolicy = (
         return errorResponse('Forbidden: Assignment is not available to this student', 403);
     }
 
-    const isClosed = String(assignment.status || '').toUpperCase() === 'CLOSED';
+    const status = String(assignment.status || '').toUpperCase();
+    if (status === 'REVOKED') {
+        return jsonResponse({
+            status: 'error',
+            code: 'ASSIGNMENT_REVOKED',
+            message: 'Bài đã được giáo viên thu hồi.',
+        }, 409);
+    }
+    const isClosed = status === 'CLOSED';
     const deadline = Date.parse(String(assignment.deadline || ''));
     if (isClosed || (Number.isFinite(deadline) && deadline < Date.now())) {
         return errorResponse('Assignment is closed or expired', 409);

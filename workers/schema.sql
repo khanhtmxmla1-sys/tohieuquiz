@@ -225,7 +225,12 @@ CREATE TABLE IF NOT EXISTS assignments (
   max_attempts INTEGER DEFAULT 1,
   intervention_group_id TEXT,
   status TEXT DEFAULT 'OPEN',
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  revoked_at TEXT,
+  revoked_by TEXT,
+  revoked_reason TEXT,
+  previous_status TEXT,
+  submission_count_at_revoke INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_results_assignment_student

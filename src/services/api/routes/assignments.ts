@@ -62,6 +62,12 @@ export const assignmentRoutes: RouteRegistry = {
         auth: 'session',
         path: ({ assignmentId }) => `/api/assignments/${assignmentId}/status`,
     },
+    revoke_assignment: {
+        method: 'POST',
+        auth: 'session',
+        path: ({ assignmentId }) => `/api/assignments/${assignmentId}/revoke`,
+        body: (_action, { assignmentId: _assignmentId, ...payload }) => payload,
+    },
     start_assignment_attempt: {
         method: 'POST',
         auth: 'session',

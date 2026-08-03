@@ -25,10 +25,12 @@ export async function handleAssignmentStartRoute(context: ClassroomRouteContext)
             if (!asn) return jsonResponse({ status: 'error', message: 'Assignment not found' });
 
             const deadline = String(asn.deadline || '');
+            const status = String(asn.status || 'OPEN').toUpperCase();
             const isExpired = deadline ? deadline < nowIso : false;
-            const isClosed = String(asn.status || '').toUpperCase() === 'CLOSED' || isExpired;
+            const isRevoked = status === 'REVOKED';
+            const isClosed = status === 'CLOSED' || isExpired;
 
-            if (isExpired && String(asn.status || '').toUpperCase() !== 'CLOSED') {
+            if (isExpired && status === 'OPEN') {
                 await db.prepare("UPDATE assignments SET status = 'CLOSED' WHERE id = ?").bind(assignmentId).run();
             }
 
@@ -38,8 +40,15 @@ export async function handleAssignmentStartRoute(context: ClassroomRouteContext)
             if (String(asn.student_id || '') && String(asn.student_id || '') !== String(stu.id || '')) {
                 return errorResponse('Forbidden: Assignment is not assigned to you', 403);
             }
+            if (isRevoked) {
+                return jsonResponse({
+                    status: 'error',
+                    message: 'Bài đã được giáo viên thu hồi.',
+                    code: 'ASSIGNMENT_REVOKED',
+                }, 409);
+            }
             if (isClosed) {
-                return jsonResponse({ status: 'error', message: 'Assignment is closed', code: 'ASSIGNMENT_CLOSED' });
+                return jsonResponse({ status: 'error', message: 'Assignment is closed', code: 'ASSIGNMENT_CLOSED' }, 409);
             }
 
             const cnt = await db.prepare(
