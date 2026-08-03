@@ -36,8 +36,8 @@ vi.mock('../src/components/student/QuestionRenderer', () => ({
 }));
 
 vi.mock('../src/features/quiz-player/components/QuizHeader', () => ({
-  default: ({ answeredCount }: { answeredCount: number }) => (
-    <div data-testid="completed-count">{answeredCount}</div>
+  default: ({ completedCount }: { completedCount: number }) => (
+    <div data-testid="completed-count">{completedCount}</div>
   ),
 }));
 

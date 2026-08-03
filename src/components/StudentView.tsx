@@ -67,16 +67,14 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
   }
 
   if (step === 'quiz') {
-    const answeredCount = quizProgress.completeCount;
-    const unansweredCount = quizProgress.emptyCount + quizProgress.partialCount;
-
     return (
       <div className="student-quiz-shell flex min-h-screen flex-col bg-[#FFFDF7] font-['Be_Vietnam_Pro'] text-[#172033]">
         <QuizHeader
           title={quiz.title}
           timeLeft={timeLeft}
           totalQuestions={shuffledQuestions.length}
-          answeredCount={answeredCount}
+          completedCount={quizProgress.completeCount}
+          partialCount={quizProgress.partialCount}
           isPractice={quiz.isPractice || false}
           studentName={studentName}
           avatar={studentAvatar}
@@ -135,7 +133,8 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
 
         <SubmitConfirmModal
           isOpen={showSubmitConfirm}
-          unansweredCount={unansweredCount}
+          emptyCount={quizProgress.emptyCount}
+          partialCount={quizProgress.partialCount}
           onCancel={() => setShowSubmitConfirm(false)}
           onConfirm={() => {
             setShowSubmitConfirm(false);

@@ -172,9 +172,6 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
         questionsPerPage: QUESTIONS_PER_PAGE,
         setCurrentPage,
     });
-    const answeredCount = quizProgress.completeCount;
-    const unansweredCount = quizProgress.emptyCount + quizProgress.partialCount;
-
     const handleSubmit = async () => {
         if (!isOnline) {
             setError('Thiết bị đang ngoại tuyến. Đáp án đã được lưu trên thiết bị; hãy nộp lại khi có mạng.');
@@ -211,9 +208,9 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
                 currentPage,
                 QUESTIONS_PER_PAGE,
             ),
-            answeredCount,
+            answeredCount: quizProgress.completeCount,
         });
-    }, [activeQuestionId, currentPage, answeredCount, isSubmitting, questions, totalQuestions, updateActivity]);
+    }, [activeQuestionId, currentPage, quizProgress.completeCount, isSubmitting, questions, totalQuestions, updateActivity]);
 
     if (questions.length === 0) {
         return (
@@ -229,7 +226,8 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
                 title={quizTitle}
                 timeLeft={timeRemaining}
                 totalQuestions={questions.length}
-                answeredCount={answeredCount}
+                completedCount={quizProgress.completeCount}
+          partialCount={quizProgress.partialCount}
                 isPractice={false}
                 studentName="Thi trực tiếp"
                 avatar={null}
@@ -295,7 +293,8 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
 
             <SubmitConfirmModal
                 isOpen={showSubmitConfirm}
-                unansweredCount={unansweredCount}
+                emptyCount={quizProgress.emptyCount}
+          partialCount={quizProgress.partialCount}
                 onCancel={() => setShowSubmitConfirm(false)}
                 onConfirm={() => {
                     setShowSubmitConfirm(false);
