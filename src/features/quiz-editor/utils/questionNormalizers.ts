@@ -57,6 +57,39 @@ export function normalizeTrueFalseItems(items: unknown): TrueFalseItem[] {
 }
 
 // ---------------------------------------------------------------------------
+// normalizeDragDropBlanks
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalizes DRAG_DROP answers for the authoring UI.
+ *
+ * Newly persisted questions store blanks as objects with stable IDs:
+ *   { id: 'blank-0', correctAnswer: 'ours' }
+ *
+ * The editor draft intentionally uses a simple string array, so both the
+ * canonical object shape and older string arrays must be supported here.
+ */
+export function normalizeDragDropBlanks(blanks: unknown): string[] {
+    if (!Array.isArray(blanks)) return [];
+
+    return blanks.map((blank: unknown) => {
+        if (blank && typeof blank === 'object') {
+            const raw = blank as Record<string, unknown>;
+            return String(
+                raw.correctAnswer
+                ?? raw.correct_answer
+                ?? raw.answer
+                ?? raw.correct
+                ?? raw.value
+                ?? '',
+            ).trim();
+        }
+
+        return String(blank ?? '').trim();
+    });
+}
+
+// ---------------------------------------------------------------------------
 // normalizeDropdownBlanks
 // ---------------------------------------------------------------------------
 
