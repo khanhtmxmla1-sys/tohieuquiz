@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { EXPECTED_LATEST_MIGRATION } from '../workers/src/services/operationsService';
 
 const root = process.cwd();
 const migrationsDir = path.join(root, 'workers', 'migrations');
@@ -32,6 +33,7 @@ describe('D1 migration layout', () => {
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
     expect(migrations.at(-1)).toBe('0060_system_question_bank.sql');
+    expect(EXPECTED_LATEST_MIGRATION).toBe(migrations.at(-1));
   });
 
   it('stores assignment-scoped result identity in migration 0040', () => {

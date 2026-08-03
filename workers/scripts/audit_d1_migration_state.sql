@@ -434,6 +434,46 @@ WITH checks(migration, check_name, ok) AS (
           OR NOT EXISTS (SELECT 1 FROM json_each(template.fields_config) WHERE json_extract(value, '$.key')='date')
           OR NOT EXISTS (SELECT 1 FROM json_each(template.fields_config) WHERE json_extract(value, '$.key')='teacher_name')
         )
+      )),
+
+    ('0057_unified_quiz_editor_versioning.sql', 'unified quiz editor columns',
+      (SELECT COUNT(*)=5 FROM pragma_table_info('quizzes')
+       WHERE name IN ('source_type','parent_quiz_id','version_number','revision','updated_at'))),
+    ('0057_unified_quiz_editor_versioning.sql', 'unified quiz editor indexes',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='index'
+       AND name IN ('idx_quizzes_parent_version','idx_quizzes_source_type'))),
+
+    ('0058_canonical_quiz_scoring_v2.sql', 'canonical scoring schema columns',
+      EXISTS(SELECT 1 FROM pragma_table_info('questions') WHERE name='answer_schema_version')
+      AND EXISTS(SELECT 1 FROM pragma_table_info('results') WHERE name='grading_version')
+      AND EXISTS(SELECT 1 FROM pragma_table_info('live_exam_participants') WHERE name='grading_version')),
+
+    ('0059_quiz_scoring_rollout_flags.sql', 'canonical scoring rollout flags',
+      (SELECT COUNT(*)=2 FROM feature_flags
+       WHERE flag_key IN ('quiz_scoring_canonical_v2','quiz_scoring_shadow_v2'))),
+    ('0059_quiz_scoring_rollout_flags.sql', 'canonical scoring rollout rules',
+      (SELECT COUNT(*)=2 FROM feature_flag_rules
+       WHERE flag_key IN ('quiz_scoring_canonical_v2','quiz_scoring_shadow_v2'))),
+
+    ('0060_system_question_bank.sql', 'system question bank tables',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table'
+       AND name IN ('question_bank_items','question_bank_audit'))),
+    ('0060_system_question_bank.sql', 'system question bank indexes',
+      (SELECT COUNT(*)=6 FROM sqlite_master WHERE type='index'
+       AND name IN (
+         'idx_question_bank_unique_content','idx_question_bank_browse',
+         'idx_question_bank_owner','idx_question_bank_type_difficulty',
+         'idx_question_bank_audit_item_created','idx_question_bank_audit_actor_created'
+       ))),
+    ('0060_system_question_bank.sql', 'system question bank rollout configuration',
+      EXISTS(SELECT 1 FROM feature_flags WHERE flag_key='system_question_bank_v1')
+      AND EXISTS(SELECT 1 FROM feature_flag_rules WHERE flag_key='system_question_bank_v1')),
+    ('0060_system_question_bank.sql', 'legacy personal question bank backfill complete',
+      NOT EXISTS(
+        SELECT 1
+        FROM test_bank AS legacy
+        LEFT JOIN question_bank_items AS current ON current.id=legacy.id
+        WHERE current.id IS NULL
       ))
 
 ), summary AS (
