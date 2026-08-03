@@ -92,7 +92,7 @@ const scoringContractValidationResponse = (
 ): Response => jsonResponse({
     status: 'error',
     code: 'INVALID_QUESTION_SCORING_CONTRACT',
-    message: 'M?t ho?c nhi?u c?u h?i ch?a c? h?p ??ng ??p ?n h?p l? ?? ch?m t? ??ng.',
+    message: 'Một hoặc nhiều câu hỏi chưa có hợp đồng đáp án hợp lệ để chấm tự động.',
     issues: error.issues,
 }, 400);
 

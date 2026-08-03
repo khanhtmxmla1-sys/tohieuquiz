@@ -24,17 +24,22 @@ class Statement {
 
 class Database {
     executed: Statement[] = [];
+    persistedQuestionCount = 0;
     prepare(sql: string) { return new Statement(sql, this); }
     first(sql: string) {
         if (sql.includes('FROM teachers t')) {
             return { username: 'teacher-a', full_name: 'Cô A', full_name_count: 1 };
         }
         if (sql.includes('SELECT created_by FROM quizzes')) return { created_by: 'teacher-a' };
+        if (sql.includes('SELECT COUNT(*) AS count')) return { count: 0 };
+        if (sql.includes('SELECT COUNT(*) as cnt FROM questions')) {
+            return { cnt: this.persistedQuestionCount };
+        }
         if (sql.includes('SELECT * FROM quizzes WHERE id')) {
             return {
                 id: 'quiz-a', title: 'Đề gốc', class_level: '4A', category: 'toan',
                 time_limit: 20, created_at: '2026-07-21T08:00:00.000Z',
-                require_code: 'FALSE', tags: '[]', created_by: 'teacher-a',
+                require_code: 'FALSE', tags: '[]', created_by: 'teacher-a', revision: 1,
             };
         }
         return null;
@@ -50,6 +55,9 @@ class Database {
         }];
     }
     async batch(statements: Statement[]) {
+        this.persistedQuestionCount = statements.filter((statement) =>
+            statement.sql.includes('INSERT INTO questions'),
+        ).length;
         this.executed.push(...statements);
         return statements.map(() => ({ success: true }));
     }
@@ -90,6 +98,45 @@ describe('quiz authoring points and explanations', () => {
         const insert = db.executed.find((statement) => statement.sql.includes('INSERT INTO questions'));
         expect(insert?.sql).toContain('points, explanation, image_alt');
         expect(insert?.bindings.slice(-4)).toEqual(['2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.', '2']);
+    });
+
+    it('accepts a short answer when correctAnswers is empty but correctAnswer is present', async () => {
+        const db = new Database();
+        const response = await handleQuizRoutes(request('/api/quizzes/quiz-a', 'PUT', {
+            id: 'quiz-a', title: 'Đề Tiếng Anh', classLevel: '4', category: 'tieng-anh',
+            timeLimit: 25, revision: 1, questions: [{
+                id: 'short-1', type: 'SHORT_ANSWER', question: 'The cap is ____.',
+                correctAnswer: 'mine', correctAnswers: [], points: 1,
+            }],
+        }), env(db), '/api/quizzes/quiz-a', 'PUT');
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toMatchObject({
+            status: 'success', questionCount: 1, revision: 2,
+        });
+        const insert = db.executed.find((statement) => statement.sql.includes('INSERT INTO questions'));
+        expect(insert?.bindings[5]).toBe('mine');
+    });
+
+    it('returns a readable Vietnamese message for invalid scoring contracts', async () => {
+        const db = new Database();
+        const response = await handleQuizRoutes(request('/api/quizzes/quiz-a', 'PUT', {
+            id: 'quiz-a', title: 'Đề Tiếng Anh', classLevel: '4', category: 'tieng-anh',
+            timeLimit: 25, revision: 1, questions: [{
+                id: 'short-empty', type: 'SHORT_ANSWER', question: 'The cap is ____.',
+                correctAnswer: '', correctAnswers: [], points: 1,
+            }],
+        }), env(db), '/api/quizzes/quiz-a', 'PUT');
+
+        expect(response.status).toBe(400);
+        await expect(response.json()).resolves.toMatchObject({
+            status: 'error',
+            code: 'INVALID_QUESTION_SCORING_CONTRACT',
+            message: 'Một hoặc nhiều câu hỏi chưa có hợp đồng đáp án hợp lệ để chấm tự động.',
+            issues: [expect.objectContaining({
+                questionId: 'short-empty', code: 'MISSING_CORRECT_ANSWER',
+            })],
+        });
     });
 
     it('keeps authoring fields when duplicating a quiz', async () => {
