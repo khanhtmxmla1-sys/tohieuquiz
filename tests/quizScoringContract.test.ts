@@ -89,6 +89,20 @@ describe('canonical scoring contract for 14 published types', () => {
     expect(isQuestionAnswered(question, undefined)).toBe(false);
   });
 
+  it('falls back to correctAnswer when an empty correctAnswers array is present', () => {
+    const question = {
+      id: 'short-with-empty-array',
+      type: 'SHORT_ANSWER',
+      correctAnswer: 'mine',
+      correctAnswers: [],
+    };
+
+    expect(gradeQuestion(question, { type: 'SHORT_ANSWER', value: 'mine' })).toMatchObject({
+      status: 'correct',
+      isCorrect: true,
+    });
+  });
+
   it('grades an entire quiz with one shared formula', () => {
     const quiz = { questions: correctCases.map(({ question }) => question) };
     const answers = Object.fromEntries(correctCases.map(({ question, answer }) => [String(question.id), answer]));

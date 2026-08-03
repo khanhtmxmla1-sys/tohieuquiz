@@ -49,6 +49,14 @@ const parseCorrectValues = (value: unknown): unknown[] => {
   return [parsed];
 };
 
+const firstNonEmptyCorrectValues = (...sources: unknown[]): unknown[] => {
+  for (const source of sources) {
+    const values = parseCorrectValues(source);
+    if (values.length > 0) return values;
+  }
+  return [];
+};
+
 const resolveOptionId = (raw: unknown, options: ReturnType<typeof buildOptions>): string | null => {
   const value = String(raw ?? '').trim();
   if (!value) return null;
@@ -93,7 +101,7 @@ export const normalizeQuestionForGrading = (input: unknown): NormalizedQuestionR
 
   if (type === 'MULTIPLE_SELECT') {
     const options = buildOptions(raw.options);
-    const correctValues = parseCorrectValues(raw.correctAnswers ?? raw.correctAnswer ?? raw.correct_answer);
+    const correctValues = firstNonEmptyCorrectValues(raw.correctAnswers, raw.correctAnswer, raw.correct_answer);
     const correctOptionIds = Array.from(new Set(correctValues.map((value) => resolveOptionId(value, options)).filter((value): value is string => Boolean(value)))).sort();
     if (options.length < 2 || correctOptionIds.length === 0 || correctOptionIds.length !== correctValues.length) {
       return { ok: false, questionId: id, type, issues: [issue(id, 'INVALID_MULTIPLE_SELECT_CONTRACT', 'Every correct choice must resolve to an existing option.')] };
@@ -102,7 +110,7 @@ export const normalizeQuestionForGrading = (input: unknown): NormalizedQuestionR
   }
 
   if (type === 'SHORT_ANSWER' || type === 'RIDDLE') {
-    const values = parseCorrectValues(raw.correctAnswers ?? raw.correctAnswer ?? raw.correct_answer).map(normalizeText).filter(Boolean);
+    const values = firstNonEmptyCorrectValues(raw.correctAnswers, raw.correctAnswer, raw.correct_answer).map(normalizeText).filter(Boolean);
     if (values.length === 0) return { ok: false, questionId: id, type, issues: [issue(id, 'MISSING_CORRECT_ANSWER', 'A correct answer is required.')] };
     return { ok: true, question: { id, type, originalType, acceptedValues: Array.from(new Set(values)) } };
   }

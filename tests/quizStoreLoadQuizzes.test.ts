@@ -14,7 +14,7 @@ vi.mock('../src/services/logger', () => ({
   logger: { debug: mocks.debug },
 }));
 
-import { useQuizStore } from '../stores/quizStore';
+import { normalizeQuestionRow, useQuizStore } from '../stores/quizStore';
 
 const quizRows = [{
   id: 'quiz-1',
@@ -32,6 +32,26 @@ const installSuccessfulApi = () => {
     throw new Error(`Unexpected action: ${action}`);
   });
 };
+
+describe('normalizeQuestionRow for authoring', () => {
+  it('maps canonical option IDs back to authoring labels', () => {
+    const mcq = normalizeQuestionRow({
+      id: 'mcq',
+      type: 'MCQ',
+      options: 'mine|yours|hers|theirs',
+      correct_answer: 'option-0',
+    });
+    const multiple = normalizeQuestionRow({
+      id: 'multi',
+      type: 'MULTIPLE_SELECT',
+      options: 'ours|our|yours|your',
+      correct_answer: JSON.stringify(['option-0', 'option-2']),
+    });
+
+    expect(mcq.correctAnswer).toBe('A');
+    expect(multiple.correctAnswers).toEqual(['A', 'C']);
+  });
+});
 
 describe('quizStore.loadQuizzes', () => {
   beforeEach(() => {
