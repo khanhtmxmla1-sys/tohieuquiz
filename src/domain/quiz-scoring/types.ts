@@ -134,7 +134,7 @@ export type NormalizedAnswerResult =
   | { ok: true; answer: QuizAnswer }
   | { ok: false; issueCode: string; message: string };
 
-export type GradingStatus = 'correct' | 'wrong' | 'skipped' | 'invalid';
+export type GradingStatus = 'correct' | 'wrong' | 'skipped' | 'invalid' | 'voided';
 
 export interface QuestionGradingResult {
   questionId: string;
@@ -150,7 +150,9 @@ export interface QuizGradingResult {
   answerSchemaVersion: typeof QUIZ_ANSWER_SCHEMA_VERSION;
   score: number;
   correctCount: number;
+  questionCount: number;
   totalQuestions: number;
+  voidedCount: number;
   details: QuestionGradingResult[];
   issues: GradingIssue[];
 }

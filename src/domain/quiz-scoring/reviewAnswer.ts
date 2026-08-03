@@ -34,6 +34,11 @@ const unsupportedReview = (): AnswerReviewValue => ({
   lines: [{ value: 'Không thể hiển thị câu trả lời' }],
 });
 
+const voidedReview = (): AnswerReviewValue => ({
+  kind: 'unsupported',
+  lines: [{ value: 'Câu hỏi không được tính điểm do lỗi dữ liệu' }],
+});
+
 const textReview = (value: unknown): AnswerReviewValue => {
   const text = String(value ?? '').trim();
   return text ? { kind: 'text', lines: [{ value: text }] } : emptyReview();
@@ -214,6 +219,17 @@ export const buildQuestionAnswerReview = (
 ): QuestionAnswerReview => {
   const normalized = normalizeQuestionForGrading(questionInput);
   const status = detail?.status ?? (isRawAnswerSkipped(answerInput) ? 'skipped' : 'invalid');
+  if (status === 'voided') {
+    const raw = asRecord(questionInput);
+    return {
+      questionId: detail?.questionId ?? (normalized.ok === true ? normalized.question.id : normalized.questionId) ?? String(raw.id ?? ''),
+      type: detail?.type ?? (normalized.ok === true ? normalized.question.type : normalized.type) ?? String(raw.type ?? ''),
+      status: 'voided',
+      isCorrect: false,
+      studentAnswer: voidedReview(),
+      correctAnswer: voidedReview(),
+    };
+  }
   if (normalized.ok === false) {
     return {
       questionId: normalized.questionId,
