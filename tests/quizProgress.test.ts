@@ -88,3 +88,76 @@ describe('getQuestionProgress simple answers', () => {
     ).state).toBe('complete');
   });
 });
+
+describe('getQuestionProgress structured answers', () => {
+  const trueFalse = {
+    id: 'tf',
+    type: 'TRUE_FALSE',
+    items: [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
+  };
+
+  it('tracks true/false from empty through partial to complete', () => {
+    expect(getQuestionProgress(trueFalse, {})).toMatchObject({
+      state: 'empty',
+      completedParts: 0,
+      requiredParts: 3,
+    });
+    expect(getQuestionProgress(trueFalse, { a: true })).toMatchObject({
+      state: 'partial',
+      completedParts: 1,
+      requiredParts: 3,
+    });
+    expect(getQuestionProgress(trueFalse, { a: true, b: false, c: true })).toMatchObject({
+      state: 'complete',
+      completedParts: 3,
+      requiredParts: 3,
+    });
+  });
+
+  const matching = {
+    id: 'm',
+    type: 'MATCHING',
+    pairs: [],
+    leftItems: [{ id: 'l-0' }, { id: 'l-1' }],
+    rightItems: [{ id: 'r-0' }, { id: 'r-1' }],
+  };
+
+  it('does not count matching UI metadata as an answer', () => {
+    expect(getQuestionProgress(matching, { __shuffledIds: ['r-1', 'r-0'] })).toMatchObject({
+      state: 'empty',
+      completedParts: 0,
+      requiredParts: 2,
+    });
+  });
+
+  it('tracks matching pairs from partial to complete', () => {
+    expect(getQuestionProgress(matching, {
+      'l-0': 'r-0',
+      __shuffledIds: ['r-1', 'r-0'],
+    })).toMatchObject({ state: 'partial', completedParts: 1, requiredParts: 2 });
+    expect(getQuestionProgress(matching, {
+      'l-0': 'r-0',
+      'l-1': 'r-1',
+    })).toMatchObject({ state: 'complete', completedParts: 2, requiredParts: 2 });
+  });
+
+  it.each(['DROPDOWN', 'DRAG_DROP'])('tracks %s blanks by declared IDs', (type) => {
+    const question = { id: type, type, blanks: [{ id: 'b1' }, { id: 'b2' }] };
+    expect(getQuestionProgress(question, {})).toMatchObject({
+      state: 'empty', completedParts: 0, requiredParts: 2,
+    });
+    expect(getQuestionProgress(question, { b1: 'x' })).toMatchObject({
+      state: 'partial', completedParts: 1, requiredParts: 2,
+    });
+    expect(getQuestionProgress(question, { b1: 'x', b2: 'y' })).toMatchObject({
+      state: 'complete', completedParts: 2, requiredParts: 2,
+    });
+  });
+
+  it('supports array answers and string blank fallback', () => {
+    expect(getQuestionProgress(
+      { id: 'drag', type: 'DRAG_DROP', blanks: ['x', 'y'] },
+      ['x'],
+    )).toMatchObject({ state: 'partial', completedParts: 1, requiredParts: 2 });
+  });
+});
