@@ -161,3 +161,72 @@ describe('getQuestionProgress structured answers', () => {
     )).toMatchObject({ state: 'partial', completedParts: 1, requiredParts: 2 });
   });
 });
+
+describe('getQuestionProgress advanced answers', () => {
+  const ordering = {
+    id: 'ordering',
+    type: 'ORDERING',
+    items: ['B', 'A'],
+  };
+
+  it('requires unique complete ordering ranks', () => {
+    expect(getQuestionProgress(ordering, { ranks: {} })).toMatchObject({
+      state: 'empty', completedParts: 0, requiredParts: 2,
+    });
+    expect(getQuestionProgress(ordering, { ranks: { 'item-0': 1 } })).toMatchObject({
+      state: 'partial', completedParts: 1, requiredParts: 2,
+    });
+    expect(getQuestionProgress(ordering, { ranks: { 'item-0': 1, 'item-1': 2 } })).toMatchObject({
+      state: 'complete', completedParts: 2, requiredParts: 2,
+    });
+    expect(getQuestionProgress(ordering, { ranks: { 'item-0': 1, 'item-1': 1 } })).toMatchObject({
+      state: 'partial', completedParts: 1, requiredParts: 2,
+    });
+  });
+
+  const categorization = {
+    id: 'categorization',
+    type: 'CATEGORIZATION',
+    items: [{ id: 'a' }, { id: 'b' }],
+  };
+
+  it('tracks categorization assignments', () => {
+    expect(getQuestionProgress(categorization, { a: 'group-1' })).toMatchObject({
+      state: 'partial', completedParts: 1, requiredParts: 2,
+    });
+    expect(getQuestionProgress(categorization, {
+      categoriesByItemId: { a: 'group-1', b: 'group-2' },
+    })).toMatchObject({ state: 'complete', completedParts: 2, requiredParts: 2 });
+  });
+
+  const errorCorrection = { id: 'error', type: 'ERROR_CORRECTION' };
+
+  it('requires both error-correction fields', () => {
+    expect(getQuestionProgress(errorCorrection, { wrongWord: 'ngoãn' })).toMatchObject({
+      state: 'partial', completedParts: 1, requiredParts: 2,
+    });
+    expect(getQuestionProgress(errorCorrection, {
+      wrongWord: 'ngoãn', correctWord: 'ngoan',
+    })).toMatchObject({ state: 'complete', completedParts: 2, requiredParts: 2 });
+  });
+
+  it('tracks both fields of a math fraction', () => {
+    const fraction = { id: 'fraction', type: 'MATH_INPUT', mathType: 'fraction' };
+    expect(getQuestionProgress(fraction, { numerator: '1', denominator: '' })).toMatchObject({
+      state: 'partial', completedParts: 1, requiredParts: 2,
+    });
+    expect(getQuestionProgress(fraction, { numerator: '1', denominator: '2' })).toMatchObject({
+      state: 'complete', completedParts: 2, requiredParts: 2,
+    });
+  });
+
+  it('requires all letters for word scramble', () => {
+    const scramble = { id: 'scramble', type: 'WORD_SCRAMBLE', letters: ['H', 'O', 'A'] };
+    expect(getQuestionProgress(scramble, [0, 1])).toMatchObject({
+      state: 'partial', completedParts: 2, requiredParts: 3,
+    });
+    expect(getQuestionProgress(scramble, {
+      type: 'WORD_SCRAMBLE', letterIndexes: [0, 1, 2],
+    })).toMatchObject({ state: 'complete', completedParts: 3, requiredParts: 3 });
+  });
+});

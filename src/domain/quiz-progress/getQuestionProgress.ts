@@ -117,6 +117,61 @@ const blanksProgress = (question: unknown, answer: unknown): QuestionProgressRes
   return result(filledRecordValueCount(source), required);
 };
 
+const orderingProgress = (question: unknown, answer: unknown): QuestionProgressResult => {
+  const required = Math.max(1, questionArray(question, 'items').length);
+  const record = asRecord(answer);
+  const rawRanks = Object.prototype.hasOwnProperty.call(record, 'ranks') ? record.ranks : answer;
+  if (Array.isArray(rawRanks)) {
+    const unique = new Set(rawRanks.map(Number).filter((value) => Number.isInteger(value)));
+    return result(unique.size, required);
+  }
+  const ranks = Object.values(withoutUiMetadata(rawRanks))
+    .map(Number)
+    .filter((value) => Number.isInteger(value) && value >= 1 && value <= required);
+  return result(new Set(ranks).size, required);
+};
+
+const categorizationProgress = (question: unknown, answer: unknown): QuestionProgressResult => {
+  const items = questionArray(question, 'items');
+  const required = Math.max(1, items.length);
+  const record = asRecord(answer);
+  const rawAssignments = Object.prototype.hasOwnProperty.call(record, 'categoriesByItemId')
+    ? record.categoriesByItemId
+    : answer;
+  const assignments = withoutUiMetadata(rawAssignments);
+  const itemIds = items.map((item) => String(asRecord(item).id ?? '')).filter(Boolean);
+  const completed = itemIds.length > 0
+    ? itemIds.filter((id) => hasText(assignments[id])).length
+    : Object.entries(assignments).filter(([key, value]) => key !== 'type' && hasText(value)).length;
+  return result(completed, required);
+};
+
+const errorCorrectionProgress = (answer: unknown): QuestionProgressResult => {
+  const record = asRecord(answer);
+  const completed = Number(hasText(record.wrongWord)) + Number(hasText(record.correctWord));
+  return result(completed, 2);
+};
+
+const mathProgress = (question: unknown, answer: unknown): QuestionProgressResult => {
+  const mathType = String(asRecord(question).mathType ?? '').trim().toLowerCase();
+  if (mathType !== 'fraction') return result(hasText(scalarValue(answer)) ? 1 : 0);
+  const record = asRecord(answer);
+  const completed = Number(hasText(record.numerator)) + Number(hasText(record.denominator));
+  return result(completed, 2);
+};
+
+const wordScrambleProgress = (question: unknown, answer: unknown): QuestionProgressResult => {
+  const required = Math.max(1, questionArray(question, 'letters').length);
+  const record = asRecord(answer);
+  const rawIndexes = Object.prototype.hasOwnProperty.call(record, 'letterIndexes')
+    ? record.letterIndexes
+    : answer;
+  const indexes = Array.isArray(rawIndexes)
+    ? rawIndexes.map(Number).filter((value) => Number.isInteger(value) && value >= 0 && value < required)
+    : [];
+  return result(new Set(indexes).size, required);
+};
+
 export const getQuestionProgress = (
   question: unknown,
   rawAnswer: unknown,
@@ -139,9 +194,18 @@ export const getQuestionProgress = (
     case 'DROPDOWN':
     case 'DRAG_DROP':
       return blanksProgress(question, answer);
+    case 'ORDERING':
+      return orderingProgress(question, answer);
+    case 'CATEGORIZATION':
+      return categorizationProgress(question, answer);
+    case 'ERROR_CORRECTION':
+      return errorCorrectionProgress(answer);
+    case 'WORD_SCRAMBLE':
+      return wordScrambleProgress(question, answer);
+    case 'MATH_INPUT':
+      return mathProgress(question, answer);
     case 'SHORT_ANSWER':
     case 'RIDDLE':
-    case 'MATH_INPUT':
     case 'GEOMETRY':
       return result(hasText(scalarValue(answer)) ? 1 : 0);
     case 'UNKNOWN':
