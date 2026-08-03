@@ -1,6 +1,6 @@
 import { QuestionType, type Question } from '../../../types';
 import { validateQuestionMath } from '../../../utils/questionMath';
-import { extractPlaceholderTokens } from '../../../domain/quiz-scoring';
+import { extractPlaceholderTokens, normalizeQuestionForGrading } from '../../../domain/quiz-scoring';
 import {
     createQuizIssue,
     hasUnsafeMediaValue,
@@ -16,6 +16,59 @@ const labelsFor = (length: number): string[] => Array.from(
     (_, index) => String.fromCharCode(65 + index),
 );
 
+const SCORING_ISSUE_EQUIVALENTS: Record<string, string[]> = {
+    INVALID_CHOICE_CONTRACT: ['MCQ_OPTIONS_TOO_FEW', 'MCQ_OPTION_EMPTY', 'MCQ_CORRECT_ANSWER_MISSING'],
+    INVALID_MULTIPLE_SELECT_CONTRACT: ['MCQ_OPTIONS_TOO_FEW', 'MCQ_OPTION_EMPTY', 'MCQ_CORRECT_ANSWER_MISSING'],
+    MISSING_CORRECT_ANSWER: ['SHORT_ANSWER_REQUIRED', 'RIDDLE_CONTENT_INVALID'],
+    INVALID_TRUE_FALSE_CONTRACT: ['TRUE_FALSE_ITEMS_REQUIRED', 'TRUE_FALSE_ANSWER_REQUIRED'],
+    INVALID_MATCHING_CONTRACT: ['MATCHING_PAIRS_TOO_FEW', 'MATCHING_PAIR_EMPTY'],
+    INVALID_BLANK_CONTRACT: [
+        'BLANK_COUNT_MISMATCH',
+        'BLANK_ID_REQUIRED',
+        'BLANK_ID_DUPLICATE',
+        'DRAG_DROP_CONTENT_INVALID',
+        'DROPDOWN_CONTENT_REQUIRED',
+        'DROPDOWN_OPTIONS_INVALID',
+        'DROPDOWN_ANSWER_INVALID',
+    ],
+    INVALID_ORDERING_CONTRACT: ['ORDERING_ITEMS_INVALID', 'ORDERING_CORRECT_ORDER_INVALID'],
+    INVALID_CATEGORIZATION_CONTRACT: ['CATEGORIZATION_ID_DUPLICATE', 'CATEGORIZATION_CONTENT_INVALID'],
+    INVALID_UNDERLINE_CONTRACT: ['UNDERLINE_CONTENT_INVALID'],
+    INVALID_WORD_SCRAMBLE_CONTRACT: ['WORD_SCRAMBLE_CONTENT_INVALID'],
+    INVALID_ERROR_CORRECTION_CONTRACT: ['ERROR_CORRECTION_CONTENT_INVALID'],
+    QUESTION_NOT_AUTO_GRADABLE: ['QUESTION_NOT_AUTO_GRADABLE'],
+    UNSUPPORTED_QUESTION_TYPE: ['QUESTION_TYPE_UNSUPPORTED'],
+};
+
+const scoringIssueMessage = (code: string): string => {
+    if (code === 'INVALID_MULTIPLE_SELECT_CONTRACT') {
+        return 'Mỗi đáp án đúng phải thuộc danh sách phương án và không được khai báo trùng.';
+    }
+    return `Dữ liệu câu hỏi chưa đủ điều kiện để chấm tự động (${code}).`;
+};
+
+const appendScoringContractIssues = (
+    question: Question,
+    issues: ManualQuizIssue[],
+): void => {
+    const normalizedQuestion = normalizeQuestionForGrading(question);
+    if (normalizedQuestion.ok === true) return;
+
+    for (const scoringIssue of normalizedQuestion.issues) {
+        const equivalentCodes = SCORING_ISSUE_EQUIVALENTS[scoringIssue.code] ?? [];
+        const alreadyCovered = issues.some((issue) => (
+            issue.code === scoringIssue.code || equivalentCodes.includes(issue.code)
+        ));
+        if (alreadyCovered) continue;
+        issues.push(questionIssue(
+            question.id,
+            scoringIssue.code,
+            scoringIssueMessage(scoringIssue.code),
+            'correctAnswer',
+        ));
+    }
+};
+
 const validateBlankIdentity = (
     questionId: string,
     textValue: unknown,
@@ -29,7 +82,7 @@ const validateBlankIdentity = (
         issues.push(questionIssue(
             questionId,
             'BLANK_COUNT_MISMATCH',
-            'S? ? tr?ng trong n?i dung ph?i b?ng s? ??p ?n ?? khai b?o.',
+            'Số ô trống trong nội dung phải bằng số đáp án đã khai báo.',
             'blanks',
         ));
     }
@@ -43,7 +96,7 @@ const validateBlankIdentity = (
         issues.push(questionIssue(
             questionId,
             'BLANK_ID_REQUIRED',
-            'M?i ? tr?ng c?n m?t m? ??nh danh ?n ??nh.',
+            'Mỗi ô trống cần một mã định danh ổn định.',
             'blanks',
         ));
     }
@@ -52,7 +105,7 @@ const validateBlankIdentity = (
         issues.push(questionIssue(
             questionId,
             'BLANK_ID_DUPLICATE',
-            'M? ??nh danh ? tr?ng kh?ng ???c tr?ng nhau.',
+            'Mã định danh ô trống không được trùng nhau.',
             'blanks',
         ));
     }
@@ -111,11 +164,11 @@ const validateTrueFalse = (question: any): ManualQuizIssue[] => {
     }
     const itemIds = items.map((item) => String(item?.id ?? '').trim());
     if (itemIds.some((id) => !id)) {
-        issues.push(questionIssue(question.id, 'TRUE_FALSE_ID_REQUIRED', 'M?i m?nh ?? c?n m?t m? ??nh danh ?n ??nh.', 'items'));
+        issues.push(questionIssue(question.id, 'TRUE_FALSE_ID_REQUIRED', 'Mỗi mệnh đề cần một mã định danh ổn định.', 'items'));
     }
     const nonEmptyIds = itemIds.filter(Boolean);
     if (new Set(nonEmptyIds).size !== nonEmptyIds.length) {
-        issues.push(questionIssue(question.id, 'TRUE_FALSE_ID_DUPLICATE', 'M? m?nh ?? ??ng/sai kh?ng ???c tr?ng.', 'items'));
+        issues.push(questionIssue(question.id, 'TRUE_FALSE_ID_DUPLICATE', 'Mã mệnh đề đúng/sai không được trùng nhau.', 'items'));
     }
     items.forEach((item, index) => {
         if (!normalizeAuthoringText(item?.statement)) {
@@ -202,7 +255,7 @@ const validateQuestionSpecific = (question: Question): ManualQuizIssue[] => {
                 return normalizeAuthoringText(item);
             });
             if (!normalizeAuthoringText(data.text) || !hasValidAnswers) {
-                issues.push(questionIssue(question.id, 'DRAG_DROP_CONTENT_INVALID', 'N?i dung k?o th? c?n c? v?n b?n v? ??p ?n cho m?i ? tr?ng.', 'blanks'));
+                issues.push(questionIssue(question.id, 'DRAG_DROP_CONTENT_INVALID', 'Nội dung kéo thả cần có văn bản và đáp án cho mỗi ô trống.', 'blanks'));
             }
             return issues;
         }
@@ -231,13 +284,13 @@ const validateQuestionSpecific = (question: Question): ManualQuizIssue[] => {
                 || new Set(categoryIdList.filter(Boolean)).size !== categoryIdList.filter(Boolean).length
                 || new Set(itemIdList.filter(Boolean)).size !== itemIdList.filter(Boolean).length;
             if (duplicateOrMissingIds) {
-                issues.push(questionIssue(question.id, 'CATEGORIZATION_ID_DUPLICATE', 'M? nh?m v? m? m?c ph?n lo?i ph?i t?n t?i v? kh?ng ???c tr?ng.', 'items'));
+                issues.push(questionIssue(question.id, 'CATEGORIZATION_ID_DUPLICATE', 'Mã nhóm và mã mục phân loại phải tồn tại và không được trùng.', 'items'));
             }
             const valid = categories.length > 0 && items.length > 0
                 && categories.every((category) => normalizeAuthoringText(category?.name))
                 && items.every((item) => normalizeAuthoringText(item?.content) && categoryIds.has(String(item?.categoryId ?? '')));
             if (!valid) {
-                issues.push(questionIssue(question.id, 'CATEGORIZATION_CONTENT_INVALID', 'M?i m?c ph?n lo?i ph?i c? n?i dung v? thu?c m?t nh?m t?n t?i.', 'items'));
+                issues.push(questionIssue(question.id, 'CATEGORIZATION_CONTENT_INVALID', 'Mỗi mục phân loại phải có nội dung và thuộc một nhóm tồn tại.', 'items'));
             }
             return issues;
         }
@@ -254,7 +307,7 @@ const validateQuestionSpecific = (question: Question): ManualQuizIssue[] => {
             return [questionIssue(
                 question.id,
                 'QUESTION_NOT_AUTO_GRADABLE',
-                'C?u h?nh h?c ch?a c? h?p ??ng ??p ?n ?? ch?m t? ??ng v? ch?a th? xu?t b?n.',
+                'Câu hình học chưa có hợp đồng đáp án để chấm tự động và chưa thể xuất bản.',
                 'type',
             )];
         default:
@@ -268,6 +321,7 @@ export const validateQuestionForAuthoring = (question: Question): ManualQuizIssu
         issues.push(questionIssue(question.id, 'QUESTION_PROMPT_REQUIRED', 'Nội dung câu hỏi đang để trống.', 'question'));
     }
     issues.push(...validateQuestionSpecific(question));
+    appendScoringContractIssues(question, issues);
 
     const points = Number((question as any).points);
     if (!Number.isFinite(points) || points <= 0) {

@@ -43,3 +43,12 @@ export const isParentPortalEnabled = (): boolean => resolveFeatureFlag(
     import.meta.env.VITE_FEATURE_PARENT_PORTAL_V1,
     false,
 );
+
+/**
+ * Quiz Progress V2 starts disabled so production can compare the old boolean
+ * completion rule with the empty/partial/complete engine before switching UI.
+ */
+export const isQuizProgressV2Enabled = (): boolean => resolveFeatureFlag(
+    import.meta.env.VITE_FEATURE_QUIZ_PROGRESS_V2,
+    false,
+);

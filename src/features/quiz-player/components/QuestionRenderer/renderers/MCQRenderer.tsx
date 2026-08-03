@@ -3,6 +3,7 @@ import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
 import ChoiceIndicator from '../atoms/ChoiceIndicator';
 import { optionIdAt, selectedOptionId } from '../utils/answerState';
+import { selectedAnswerClass, unselectedAnswerClass } from '../../answer-state/stateStyles';
 
 const MCQRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -34,8 +35,8 @@ const MCQRenderer: React.FC<BaseRendererProps> = ({
                     onClick={() => onAnswerChange(answerKey, `${groupIndex}-${label}`)}
                     className={`flex min-h-14 items-center rounded-[12px] border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                       isSelected
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-950'
-                        : 'border-slate-200 bg-white text-slate-800 hover:border-sky-300 hover:bg-slate-50'
+                        ? selectedAnswerClass
+                        : unselectedAnswerClass + ' hover:border-sky-300'
                     }`}
                   >
                     <ChoiceIndicator label={label} isSelected={isSelected} />
@@ -68,8 +69,8 @@ const MCQRenderer: React.FC<BaseRendererProps> = ({
             onClick={() => onAnswerChange(question.id, { type: 'MCQ', optionId })}
             className={`group flex min-h-16 items-center rounded-[12px] border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
               isSelected
-                ? 'border-emerald-500 bg-emerald-50 text-emerald-950'
-                : 'border-slate-200 bg-white text-slate-800 hover:border-sky-300 hover:bg-slate-50'
+                ? selectedAnswerClass
+                : unselectedAnswerClass + ' hover:border-sky-300'
             }`}
           >
             <ChoiceIndicator label={label} isSelected={isSelected} />

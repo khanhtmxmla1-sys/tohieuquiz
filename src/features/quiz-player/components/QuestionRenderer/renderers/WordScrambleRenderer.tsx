@@ -1,5 +1,6 @@
 import React from 'react';
 import type { BaseRendererProps } from '../types';
+import { selectedAnswerClass, unselectedAnswerClass } from '../../answer-state/stateStyles';
 
 const WordScrambleRenderer: React.FC<BaseRendererProps> = ({ question, answers, onAnswerChange }) => {
   const letters = Array.isArray((question as any).letters)
@@ -36,8 +37,8 @@ const WordScrambleRenderer: React.FC<BaseRendererProps> = ({ question, answers, 
               onClick={() => toggleLetter(index)}
               className={`flex h-12 min-w-12 items-center justify-center rounded-[10px] border px-3 text-lg font-bold transition-colors ${
                 isSelected
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
-                  : 'border-slate-300 bg-white text-slate-800 hover:border-sky-400 hover:bg-sky-50'
+                  ? selectedAnswerClass
+                  : unselectedAnswerClass + ' hover:border-sky-400'
               }`}
             >
               {letter}

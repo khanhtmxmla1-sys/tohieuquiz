@@ -4,7 +4,6 @@ import {
   buildQuizAnswerReview,
   gradeQuiz,
   isRawAnswerSkipped,
-  normalizeQuestionForGrading,
   unwrapStoredResultAnswer,
   type QuestionAnswerReview,
   type QuestionGradingResult,
@@ -28,7 +27,9 @@ export interface AuthoritativeQuizGrading {
   answerSchemaVersion: typeof QUIZ_ANSWER_SCHEMA_VERSION;
   score: number;
   correctCount: number;
+  questionCount: number;
   totalQuestions: number;
+  voidedCount: number;
   details: QuestionGradingResult[];
   questions: Array<Record<string, unknown>>;
 }
@@ -72,26 +73,15 @@ export async function gradeQuizSubmission(
   answers: unknown,
 ): Promise<AuthoritativeQuizGrading> {
   const questions = await loadQuizQuestionsForGrading(db, quizId);
-  const questionIssues = questions.flatMap((question) => {
-    const normalized = normalizeQuestionForGrading(question);
-    return normalized.ok === false ? normalized.issues : [];
-  });
-  if (questionIssues.length > 0) {
-    throw new QuizGradingServiceError(
-      'Quiz contains questions that cannot be graded safely',
-      422,
-      'INVALID_QUESTION_CONTRACT',
-      questionIssues,
-    );
-  }
-
   const grading = gradeQuiz({ questions }, answers);
   return {
     gradingVersion: grading.engineVersion,
     answerSchemaVersion: grading.answerSchemaVersion,
     score: grading.score,
     correctCount: grading.correctCount,
+    questionCount: grading.questionCount,
     totalQuestions: grading.totalQuestions,
+    voidedCount: grading.voidedCount,
     details: grading.details,
     questions,
   };
@@ -165,7 +155,11 @@ export function buildStoredResultReviewDetails(
       : {};
     const selectedAnswer = unwrapStoredResultAnswer(stored);
     const rawStatus = String(envelope.status ?? '');
-    const storedStatus = rawStatus === 'correct' || rawStatus === 'wrong' || rawStatus === 'skipped' || rawStatus === 'invalid'
+    const storedStatus = rawStatus === 'correct'
+      || rawStatus === 'wrong'
+      || rawStatus === 'skipped'
+      || rawStatus === 'invalid'
+      || rawStatus === 'voided'
       ? rawStatus
       : null;
     const status = storedStatus

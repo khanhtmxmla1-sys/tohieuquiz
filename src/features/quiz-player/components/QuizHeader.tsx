@@ -5,7 +5,8 @@ interface QuizHeaderProps {
   title: string;
   timeLeft: number;
   totalQuestions: number;
-  answeredCount: number;
+  completedCount: number;
+  partialCount: number;
   isPractice: boolean;
   studentName?: string;
   avatar?: string | null;
@@ -15,7 +16,8 @@ const QuizHeader: React.FC<QuizHeaderProps> = ({
   title,
   timeLeft,
   totalQuestions,
-  answeredCount,
+  completedCount,
+  partialCount,
   isPractice,
   studentName,
 }) => {
@@ -26,8 +28,9 @@ const QuizHeader: React.FC<QuizHeaderProps> = ({
   };
 
   const progressPercentage = totalQuestions > 0
-    ? Math.min(100, Math.max(0, (answeredCount / totalQuestions) * 100))
+    ? Math.min(100, Math.max(0, (completedCount / totalQuestions) * 100))
     : 0;
+  const partialSuffix = partialCount > 0 ? ` · Đang làm ${partialCount} câu` : '';
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#E5E7EB] bg-[#FFFDF7]">
@@ -37,7 +40,7 @@ const QuizHeader: React.FC<QuizHeaderProps> = ({
             <div className="min-w-0">
               <h1 className="truncate text-base font-semibold text-[#172033] sm:text-lg">{title}</h1>
               <p className="mt-0.5 truncate text-xs text-[#526174]">
-                {studentName ? `${studentName} · ` : ''}Đã làm {answeredCount}/{totalQuestions} câu
+                {studentName ? `${studentName} · ` : ''}Đã hoàn thành {completedCount}/{totalQuestions} câu{partialSuffix}
               </p>
             </div>
           </div>
@@ -62,7 +65,7 @@ const QuizHeader: React.FC<QuizHeaderProps> = ({
           aria-label="Tiến độ trả lời"
           aria-valuemin={0}
           aria-valuemax={Math.max(0, totalQuestions)}
-          aria-valuenow={Math.min(Math.max(0, answeredCount), Math.max(0, totalQuestions))}
+          aria-valuenow={Math.min(Math.max(0, completedCount), Math.max(0, totalQuestions))}
           className="mt-3 h-1.5 overflow-hidden rounded-[3px] bg-slate-200"
         >
           <div

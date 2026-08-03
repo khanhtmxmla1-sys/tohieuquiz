@@ -3,21 +3,22 @@ import { AlertCircle } from 'lucide-react';
 
 interface SubmitConfirmModalProps {
     isOpen: boolean;
-    unansweredCount: number;
+    emptyCount: number;
+    partialCount: number;
     onConfirm: () => void;
     onCancel: () => void;
 }
 
-/**
- * Confirmation modal for quiz submission
- */
 const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
     isOpen,
-    unansweredCount,
+    emptyCount,
+    partialCount,
     onConfirm,
-    onCancel
+    onCancel,
 }) => {
     if (!isOpen) return null;
+
+    const hasIncompleteQuestions = emptyCount > 0 || partialCount > 0;
 
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -28,11 +29,16 @@ const SubmitConfirmModal: React.FC<SubmitConfirmModalProps> = ({
                     </div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-2">Nộp bài ngay?</h3>
 
-                    {unansweredCount > 0 ? (
-                        <p className="text-gray-600">
-                            Bạn vẫn còn <span className="font-bold text-red-500">{unansweredCount}</span> câu hỏi chưa làm.
-                            <br />Bạn có chắc chắn muốn nộp bài không?
-                        </p>
+                    {hasIncompleteQuestions ? (
+                        <div className="space-y-1 text-gray-600">
+                            {emptyCount > 0 ? (
+                                <p><span className="font-bold text-orange-700">{emptyCount} câu chưa bắt đầu</span></p>
+                            ) : null}
+                            {partialCount > 0 ? (
+                                <p><span className="font-bold text-amber-700">{partialCount} câu đang làm dở</span></p>
+                            ) : null}
+                            <p className="pt-1">Bạn có chắc chắn muốn nộp bài không?</p>
+                        </div>
                     ) : (
                         <p className="text-gray-600">
                             Bạn đã hoàn thành tất cả câu hỏi.

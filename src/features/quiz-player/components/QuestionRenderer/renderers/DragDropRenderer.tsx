@@ -1,6 +1,7 @@
 import React from 'react';
 import { BaseRendererProps } from '../types';
 import SmartText from '../utils/SmartText';
+import { selectedAnswerClass } from '../../answer-state/stateStyles';
 
 const DragDropRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -46,7 +47,7 @@ const DragDropRenderer: React.FC<BaseRendererProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => handleAssign(item.id, null)}
-                    className="rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-[#E76F51] hover:text-[#B94D36] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className={`rounded-[8px] border px-3 py-2 text-sm font-medium transition-colors hover:border-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${selectedAnswerClass}`}
                   >
                     <SmartText content={item.content} />
                   </button>
@@ -97,7 +98,7 @@ const DragDropRenderer: React.FC<BaseRendererProps> = ({
           ))}
 
           {unassignedItems.length === 0 ? (
-            <p className="py-4 text-center text-sm font-medium text-emerald-700">
+            <p className="py-4 text-center text-sm font-medium text-sky-700">
               Đã phân loại xong tất cả.
             </p>
           ) : null}

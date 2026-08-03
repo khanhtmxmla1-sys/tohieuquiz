@@ -26,8 +26,8 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
     enteredCode, setEnteredCode, codeError, answers, timeLeft, result,
     shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
     showSubmitConfirm, setShowSubmitConfirm,
-    rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage,
-    handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward, isQuestionAnswered,
+    rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
+    handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward,
   } = useQuizPlayer({ quiz, onExit, onSaveResult });
 
   const QUESTIONS_PER_PAGE = 10;
@@ -67,16 +67,14 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
   }
 
   if (step === 'quiz') {
-    const answeredCount = shuffledQuestions.filter(isQuestionAnswered).length;
-    const unansweredCount = shuffledQuestions.length - answeredCount;
-
     return (
       <div className="student-quiz-shell flex min-h-screen flex-col bg-[#FFFDF7] font-['Be_Vietnam_Pro'] text-[#172033]">
         <QuizHeader
           title={quiz.title}
           timeLeft={timeLeft}
           totalQuestions={shuffledQuestions.length}
-          answeredCount={answeredCount}
+          completedCount={quizProgress.completeCount}
+          partialCount={quizProgress.partialCount}
           isPractice={quiz.isPractice || false}
           studentName={studentName}
           avatar={studentAvatar}
@@ -87,7 +85,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
             <aside className="hidden w-60 shrink-0 lg:block">
               <QuizNavigation
                 questions={shuffledQuestions}
-                isQuestionAnswered={isQuestionAnswered}
+                progressByQuestionId={quizProgress.byQuestionId}
                 activeQuestionId={activeQuestionId}
                 QUESTIONS_PER_PAGE={QUESTIONS_PER_PAGE}
                 onPageChange={changePage}
@@ -135,7 +133,8 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
 
         <SubmitConfirmModal
           isOpen={showSubmitConfirm}
-          unansweredCount={unansweredCount}
+          emptyCount={quizProgress.emptyCount}
+          partialCount={quizProgress.partialCount}
           onCancel={() => setShowSubmitConfirm(false)}
           onConfirm={() => {
             setShowSubmitConfirm(false);

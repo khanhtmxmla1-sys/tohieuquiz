@@ -11,7 +11,7 @@ import { useLiveExamTimer, useLiveExamActivity } from '../../hooks';
 import { getAnswerSnapshot, saveAnswerSnapshot, submitAnswers } from '../../services/liveExamService';
 import type { LiveExamSubmissionResponse, StudentAnswers } from '../../types/liveExam.types';
 import type { Question, Quiz } from '../../types';
-import { isQuestionAnswered as hasCompleteAnswer } from '../../domain/quiz-scoring';
+import { useQuizProgressRollout } from '../../features/quiz-player/hooks/useQuizProgressRollout';
 import QuestionRenderer from '../student/QuestionRenderer';
 import QuizHeader from '../../features/quiz-player/components/QuizHeader';
 import QuizNavigation from '../../features/quiz-player/components/QuizNavigation';
@@ -160,9 +160,11 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
         });
     };
 
-    const isQuestionAnswered = (question: Question) => (
-        hasCompleteAnswer(question, answers[question.id])
-    );
+    const quizProgress = useQuizProgressRollout({
+        quizId: sessionId,
+        questions,
+        answers,
+    });
     const questionsOnCurrentPage = questions.slice((currentPage - 1) * QUESTIONS_PER_PAGE, currentPage * QUESTIONS_PER_PAGE);
     const { activeQuestionId, changePage } = useQuizPageNavigation({
         questions,
@@ -171,9 +173,6 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
         questionsPerPage: QUESTIONS_PER_PAGE,
         setCurrentPage,
     });
-    const answeredCount = questions.filter(isQuestionAnswered).length;
-    const unansweredCount = totalQuestions - answeredCount;
-
     const handleSubmit = async () => {
         if (!isOnline) {
             setError('Thiết bị đang ngoại tuyến. Đáp án đã được lưu trên thiết bị; hãy nộp lại khi có mạng.');
@@ -210,9 +209,9 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
                 currentPage,
                 QUESTIONS_PER_PAGE,
             ),
-            answeredCount,
+            answeredCount: quizProgress.completeCount,
         });
-    }, [activeQuestionId, currentPage, answeredCount, isSubmitting, questions, totalQuestions, updateActivity]);
+    }, [activeQuestionId, currentPage, quizProgress.completeCount, isSubmitting, questions, totalQuestions, updateActivity]);
 
     if (questions.length === 0) {
         return (
@@ -228,7 +227,8 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
                 title={quizTitle}
                 timeLeft={timeRemaining}
                 totalQuestions={questions.length}
-                answeredCount={answeredCount}
+                completedCount={quizProgress.completeCount}
+          partialCount={quizProgress.partialCount}
                 isPractice={false}
                 studentName="Thi trực tiếp"
                 avatar={null}
@@ -246,7 +246,7 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
                     <aside className="hidden lg:block w-72 flex-shrink-0">
                         <QuizNavigation
                             questions={questions}
-                            isQuestionAnswered={isQuestionAnswered}
+                            progressByQuestionId={quizProgress.byQuestionId}
                             activeQuestionId={activeQuestionId}
                             QUESTIONS_PER_PAGE={QUESTIONS_PER_PAGE}
                             onPageChange={changePage}
@@ -294,7 +294,8 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
 
             <SubmitConfirmModal
                 isOpen={showSubmitConfirm}
-                unansweredCount={unansweredCount}
+                emptyCount={quizProgress.emptyCount}
+          partialCount={quizProgress.partialCount}
                 onCancel={() => setShowSubmitConfirm(false)}
                 onConfirm={() => {
                     setShowSubmitConfirm(false);

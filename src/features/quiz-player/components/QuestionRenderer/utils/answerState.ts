@@ -64,5 +64,36 @@ export const selectedOrderingRanks = (
   answer: unknown,
 ): Record<string, number> => {
   const normalized = normalizedRendererAnswer(question, answer);
-  return normalized?.type === 'ORDERING' ? normalized.ranks : {};
+  if (normalized?.type === 'ORDERING') return normalized.ranks;
+
+  const record = answer && typeof answer === 'object' && !Array.isArray(answer)
+    ? answer as Record<string, unknown>
+    : {};
+  const rawRanks = Object.prototype.hasOwnProperty.call(record, 'ranks') ? record.ranks : answer;
+  const ranks: Record<string, number> = {};
+
+  if (Array.isArray(rawRanks)) {
+    rawRanks.forEach((originalIndex, rankIndex) => {
+      const itemIndex = Number(originalIndex);
+      if (Number.isInteger(itemIndex) && itemIndex >= 0) {
+        ranks[orderingItemIdAt(itemIndex)] = rankIndex + 1;
+      }
+    });
+    return ranks;
+  }
+
+  if (!rawRanks || typeof rawRanks !== 'object') return ranks;
+  Object.entries(rawRanks as Record<string, unknown>).forEach(([key, value]) => {
+    const rank = Number(value);
+    if (!Number.isInteger(rank) || rank < 1) return;
+    const itemMatch = key.match(/^item-(\d+)$/i);
+    const numericKey = /^\d+$/.test(key) ? Number(key) : null;
+    const itemId = itemMatch
+      ? orderingItemIdAt(Number(itemMatch[1]))
+      : numericKey !== null
+        ? orderingItemIdAt(numericKey)
+        : null;
+    if (itemId) ranks[itemId] = rank;
+  });
+  return ranks;
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
+import { selectedAnswerClass, unselectedAnswerClass } from '../../answer-state/stateStyles';
 
 const TrueFalseRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -28,8 +29,8 @@ const TrueFalseRenderer: React.FC<BaseRendererProps> = ({
                 aria-pressed={value === true}
                 className={`min-h-10 min-w-16 rounded-[8px] border px-3 text-sm font-semibold transition-colors ${
                   value === true
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                    ? selectedAnswerClass
+                    : unselectedAnswerClass + ' text-slate-500'
                 }`}
               >
                 Đúng
@@ -40,8 +41,8 @@ const TrueFalseRenderer: React.FC<BaseRendererProps> = ({
                 aria-pressed={value === false}
                 className={`min-h-10 min-w-16 rounded-[8px] border px-3 text-sm font-semibold transition-colors ${
                   value === false
-                    ? 'border-red-500 bg-red-50 text-red-700'
-                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                    ? selectedAnswerClass
+                    : unselectedAnswerClass + ' text-slate-500'
                 }`}
               >
                 Sai

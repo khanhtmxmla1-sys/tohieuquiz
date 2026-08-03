@@ -126,9 +126,36 @@ describe('Worker quiz grading service', () => {
       .rejects.toMatchObject<Partial<QuizGradingServiceError>>({ status: 404, code: 'QUIZ_QUESTIONS_NOT_FOUND' });
   });
 
-  it('rejects invalid question contracts instead of silently scoring zero', async () => {
-    const invalid = [{ ...rows[0], type: 'GEOMETRY', id: 'geometry' }];
-    await expect(gradeQuizSubmission(new Database(invalid) as any, 'quiz-a', { geometry: '42' }))
-      .rejects.toMatchObject<Partial<QuizGradingServiceError>>({ status: 422, code: 'INVALID_QUESTION_CONTRACT' });
+  it('voids an invalid source question without rejecting the whole submission', async () => {
+    const invalidRow = {
+      id: 'broken', type: 'SHORT_ANSWER', question: 'Điền', options: '', correct_answer: '', items: '',
+      text_field: '', blanks: '', distractors: '', sentence: '', words: '', correct_word_indexes: '', image: '', difficulty: 1,
+      answer_schema_version: 1,
+    };
+    const result = await gradeQuizSubmission(new Database([...rows, invalidRow]) as any, 'quiz-a', {
+      drop: { 0: 'x' },
+      match: { 'l-0': 'r-0', 'l-1': 'r-1' },
+      broken: 'mine',
+    });
+
+    expect(result).toMatchObject({
+      questionCount: 3,
+      totalQuestions: 2,
+      voidedCount: 1,
+      correctCount: 2,
+      score: 10,
+    });
+    expect(result.details.find((detail) => detail.questionId === 'broken')).toMatchObject({
+      status: 'voided',
+      issueCode: 'MISSING_CORRECT_ANSWER',
+    });
+
+    const stored = buildAuthoritativeStoredAnswers(result.questions, { broken: 'mine' }, result.details);
+    expect(stored.broken).toMatchObject({ status: 'voided', isCorrect: false });
+    const review = buildStoredResultReviewDetails(result.questions, stored);
+    expect(review.find((detail) => detail.questionId === 'broken')).toMatchObject({
+      status: 'voided',
+      studentAnswer: { lines: [{ value: 'Câu hỏi không được tính điểm do lỗi dữ liệu' }] },
+    });
   });
 });

@@ -5,7 +5,7 @@ import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
 import { playTingSound, showError } from '../../../utils/toast';
-import { isQuestionAnswered as hasCompleteAnswer } from '../../../domain/quiz-scoring';
+import { useQuizProgressRollout } from './useQuizProgressRollout';
 
 interface UseQuizPlayerProps {
     quiz: Quiz;
@@ -107,6 +107,11 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         const startIndex = (currentPage - 1) * QUESTIONS_PER_PAGE;
         return shuffledQuestions.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
     }, [currentPage, shuffledQuestions]);
+    const quizProgress = useQuizProgressRollout({
+        quizId: quiz.id,
+        questions: shuffledQuestions,
+        answers,
+    });
 
     // Timer logic
     useEffect(() => {
@@ -243,9 +248,15 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
 
             const detailCorrectCount = validationDetails.filter((detail) => detail.isCorrect === true).length;
             const authoritativeTotalQuestions = Number.isFinite(Number(validationResult.total))
-                && Number(validationResult.total) > 0
+                && Number(validationResult.total) >= 0
                 ? Number(validationResult.total)
                 : quiz.questions.length;
+            const authoritativeQuestionCount = Number.isFinite(Number(validationResult.questionCount))
+                ? Number(validationResult.questionCount)
+                : quiz.questions.length;
+            const authoritativeVoidedCount = Number.isFinite(Number(validationResult.voidedCount))
+                ? Number(validationResult.voidedCount)
+                : validationDetails.filter((detail) => detail.status === 'voided').length;
             const authoritativeCorrectCount = Number.isFinite(Number(validationResult.correctCount))
                 ? Number(validationResult.correctCount)
                 : detailCorrectCount;
@@ -263,7 +274,9 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
                 studentClass,
                 score: authoritativeScore,
                 correctCount: authoritativeCorrectCount,
+                questionCount: authoritativeQuestionCount,
                 totalQuestions: authoritativeTotalQuestions,
+                voidedCount: authoritativeVoidedCount,
                 timeTaken,
                 submittedAt: new Date().toISOString(),
                 answers: {
@@ -373,15 +386,15 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     }, [classroomStore.studentSession?.username, rewardData]);
 
     const isQuestionAnswered = useCallback(
-        (question: Question) => hasCompleteAnswer(question, answers[question.id]),
-        [answers],
+        (question: Question) => quizProgress.byQuestionId[question.id]?.state === 'complete',
+        [quizProgress.byQuestionId],
     );
     return {
         step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
         enteredCode, setEnteredCode, codeError, answers, timeLeft, result,
         shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
         showSubmitConfirm, setShowSubmitConfirm,
-        rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage,
+        rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
         handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward, isQuestionAnswered
     };
 };

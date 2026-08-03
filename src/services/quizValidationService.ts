@@ -10,12 +10,14 @@ interface ValidationResult {
     success: boolean;
     score: number;
     correctCount: number;
+    questionCount?: number;
     total: number;
+    voidedCount?: number;
     gradingVersion?: string;
     details?: {
         questionId: string;
         isCorrect: boolean;
-        status?: 'correct' | 'wrong' | 'skipped' | 'invalid';
+        status?: 'correct' | 'wrong' | 'skipped' | 'invalid' | 'voided';
         issueCode?: string;
         correctAnswer?: unknown;
     }[];
@@ -57,9 +59,11 @@ export const validateAnswersOnServer = async (
 
         return {
             success: true,
-            score: data?.score || 0,
-            correctCount: data?.correctCount || 0,
+            score: data?.score ?? 0,
+            correctCount: data?.correctCount ?? 0,
+            questionCount: data?.questionCount,
             total: data?.total ?? data?.totalQuestions ?? 0,
+            voidedCount: data?.voidedCount,
             gradingVersion: data?.gradingVersion,
             details: data?.details || []
         };

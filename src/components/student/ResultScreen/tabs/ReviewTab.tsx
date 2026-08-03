@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, MinusCircle, XCircle } from 'lucide-react';
+import { Ban, CheckCircle2, MinusCircle, XCircle } from 'lucide-react';
 import type { Quiz, StudentResult } from '../../../../types';
 import {
     buildQuestionAnswerReview,
@@ -47,6 +47,11 @@ const statusMeta: Record<AnswerOutcome, { label: string; className: string; icon
         label: 'Chưa làm',
         className: 'border-slate-200 bg-slate-50 text-slate-600',
         icon: <MinusCircle className="h-4 w-4" aria-hidden="true" />,
+    },
+    voided: {
+        label: 'Không tính điểm',
+        className: 'border-amber-200 bg-amber-50 text-amber-800',
+        icon: <Ban className="h-4 w-4" aria-hidden="true" />,
     },
 };
 
@@ -106,7 +111,9 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFil
                         },
                     );
                     const questionText = (question as any).question || (question as any).mainQuestion || `Câu ${index + 1}`;
-                    const showCorrectAnswer = outcome !== 'correct' && review.correctAnswer.kind !== 'unsupported';
+                    const showCorrectAnswer = outcome !== 'correct'
+                        && outcome !== 'voided'
+                        && review.correctAnswer.kind !== 'unsupported';
 
                     return (
                         <article key={question.id} className="rounded-[12px] border border-slate-200 bg-white p-4 sm:p-5">

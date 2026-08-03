@@ -36,7 +36,7 @@ const QuizNavigationHarness = () => {
         <div>
             <QuizNavigation
                 questions={questions}
-                isQuestionAnswered={() => false}
+                progressByQuestionId={{}}
                 activeQuestionId={activeQuestionId}
                 QUESTIONS_PER_PAGE={QUESTIONS_PER_PAGE}
                 onPageChange={changePage}

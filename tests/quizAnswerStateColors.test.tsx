@@ -52,7 +52,7 @@ const underlineQuestion = {
 } as unknown as Question;
 
 describe('quiz answer state colors', () => {
-  it('shows a selected multiple-choice answer in green', () => {
+  it('shows a selected multiple-choice answer in blue', () => {
     render(
       <MCQRenderer
         question={mcqQuestion}
@@ -64,11 +64,11 @@ describe('quiz answer state colors', () => {
 
     const selectedAnswer = screen.getByRole('button', { name: /Hai/ });
     expect(selectedAnswer).toHaveAttribute('aria-pressed', 'true');
-    expect(selectedAnswer).toHaveClass('border-emerald-500', 'bg-emerald-50', 'text-emerald-950');
-    expect(selectedAnswer.querySelector('span')).toHaveClass('bg-emerald-500');
+    expect(selectedAnswer).toHaveClass('border-sky-600', 'bg-sky-100', 'text-sky-950');
+    expect(selectedAnswer.querySelector('span')).toHaveClass('bg-sky-600');
   });
 
-  it('uses green for other selectable answer types', () => {
+  it('uses blue for other selectable answer types', () => {
     const { unmount } = render(
       <MultipleSelectRenderer
         question={multipleSelectQuestion}
@@ -78,8 +78,8 @@ describe('quiz answer state colors', () => {
       />,
     );
     expect(screen.getByRole('button', { name: /Một/ })).toHaveClass(
-      'border-emerald-500',
-      'bg-emerald-50',
+      'border-sky-600',
+      'bg-sky-100',
     );
     unmount();
 
@@ -92,8 +92,8 @@ describe('quiz answer state colors', () => {
       />,
     );
     expect(screen.getByRole('button', { name: /Hình hai/ })).toHaveClass(
-      'border-emerald-500',
-      'bg-emerald-50',
+      'border-sky-600',
+      'bg-sky-100',
     );
     imageRender.unmount();
 
@@ -106,12 +106,12 @@ describe('quiz answer state colors', () => {
       />,
     );
     expect(screen.getByRole('button', { name: 'từ hai' })).toHaveClass(
-      'border-emerald-500',
-      'bg-emerald-50',
+      'border-sky-600',
+      'bg-sky-100',
     );
   });
 
-  it('uses green for Đúng and red for Sai after selection', () => {
+  it('uses the same blue selected state for Đúng and Sai', () => {
     const Harness = () => {
       const [answers, setAnswers] = useState<Record<string, any>>({});
       return (
@@ -135,31 +135,40 @@ describe('quiz answer state colors', () => {
     const falseButton = screen.getByRole('button', { name: 'Sai' });
 
     fireEvent.click(trueButton);
-    expect(trueButton).toHaveClass('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+    expect(trueButton).toHaveClass('border-sky-600', 'bg-sky-100', 'text-sky-950');
     expect(falseButton).not.toHaveClass('bg-red-50');
 
     fireEvent.click(falseButton);
-    expect(falseButton).toHaveClass('border-red-500', 'bg-red-50', 'text-red-700');
-    expect(trueButton).not.toHaveClass('bg-emerald-50');
+    expect(falseButton).toHaveClass('border-sky-600', 'bg-sky-100', 'text-sky-950');
+    expect(trueButton).not.toHaveClass('bg-sky-100');
   });
 
-  it('marks answered question numbers in green while preserving the active focus ring', () => {
+  it('shows clear empty, partial, and complete question states while preserving the active ring', () => {
+    const partialQuestion = { ...mcqQuestion, id: 'mcq-2' } as Question;
+    const emptyQuestion = { ...mcqQuestion, id: 'mcq-3' } as Question;
     render(
       <QuizNavigation
-        questions={[mcqQuestion, { ...mcqQuestion, id: 'mcq-2' } as Question]}
-        isQuestionAnswered={(question) => question.id === 'mcq-1'}
+        questions={[mcqQuestion, partialQuestion, emptyQuestion]}
+        progressByQuestionId={{
+          'mcq-1': { state: 'complete', hasInteraction: true, completedParts: 1, requiredParts: 1 },
+          'mcq-2': { state: 'partial', hasInteraction: true, completedParts: 1, requiredParts: 2 },
+          'mcq-3': { state: 'empty', hasInteraction: false, completedParts: 0, requiredParts: 1 },
+        }}
         activeQuestionId="mcq-1"
         QUESTIONS_PER_PAGE={10}
         onPageChange={vi.fn()}
       />,
     );
 
-    const answeredQuestion = screen.getByRole('button', { name: 'Đi đến câu 1' });
-    const unansweredQuestion = screen.getByRole('button', { name: 'Đi đến câu 2' });
+    const completeButton = screen.getByRole('button', { name: 'Đi đến câu 1' });
+    const partialButton = screen.getByRole('button', { name: 'Đi đến câu 2' });
+    const emptyButton = screen.getByRole('button', { name: 'Đi đến câu 3' });
 
-    expect(answeredQuestion).toHaveClass('border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
-    expect(answeredQuestion).toHaveClass('ring-1', 'ring-sky-500');
-    expect(unansweredQuestion).toHaveClass('border-slate-200', 'bg-white');
-    expect(screen.getByText('Đã trả lời').previousElementSibling).toHaveClass('bg-emerald-50');
+    expect(completeButton).toHaveClass('bg-emerald-600', 'border-emerald-700', 'text-white');
+    expect(completeButton).toHaveClass('ring-2', 'ring-sky-500');
+    expect(partialButton).toHaveClass('bg-amber-100', 'border-amber-500', 'text-amber-950');
+    expect(emptyButton).toHaveClass('bg-white', 'border-slate-300');
+    expect(screen.getByText('Đang làm')).toBeInTheDocument();
+    expect(screen.getByText('Đã hoàn thành')).toBeInTheDocument();
   });
 });

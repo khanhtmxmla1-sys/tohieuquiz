@@ -4,6 +4,7 @@ import SmartText from '../utils/SmartText';
 import LatexDropdown from '../atoms/LatexDropdown';
 import InteractiveMathText, { getInteractiveBlankIds } from '../atoms/InteractiveMathText';
 import { getBlankId } from '../../../../../domain/quiz-scoring';
+import { answerInputClasses } from '../../answer-state/stateStyles';
 
 const seededShuffle = <T,>(values: T[], seedText: string): T[] => {
     const output = [...values];
@@ -111,11 +112,7 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
                 value={currentValue}
                 onChange={(event) => handleFill(blankId, event.target.value)}
                 placeholder="..."
-                className={`mx-1 inline-block w-20 min-w-[72px] rounded-[8px] border px-2 py-1 text-center align-middle outline-none transition-colors ${
-                    isDragDrop
-                        ? 'cursor-pointer border-sky-300 bg-sky-50 focus:border-sky-500'
-                        : 'border-slate-300 bg-white focus:border-sky-500 focus:ring-2 focus:ring-sky-100'
-                }`}
+                className={`mx-1 inline-block w-20 min-w-[72px] rounded-[8px] border px-2 py-1 text-center align-middle outline-none transition-colors ${answerInputClasses(Boolean(currentValue.trim()))} ${isDragDrop ? 'cursor-pointer focus:border-sky-500' : 'focus:border-sky-500 focus:ring-2 focus:ring-sky-100'}`}
                 onClick={() => isDragDrop && currentValue && handleFill(blankId, '')}
                 readOnly={isDragDrop}
             />

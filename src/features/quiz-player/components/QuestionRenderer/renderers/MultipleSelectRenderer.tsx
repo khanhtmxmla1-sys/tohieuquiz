@@ -2,6 +2,12 @@ import React from 'react';
 import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
 import { optionIdAt, selectedOptionIds } from '../utils/answerState';
+import {
+  selectedAnswerClass,
+  selectedIndicatorClass,
+  unselectedAnswerClass,
+  unselectedIndicatorClass,
+} from '../../answer-state/stateStyles';
 
 const MultipleSelectRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -31,15 +37,13 @@ const MultipleSelectRenderer: React.FC<BaseRendererProps> = ({
             }}
             className={`flex min-h-14 items-center rounded-[10px] border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
               isSelected
-                ? 'border-emerald-500 bg-emerald-50 text-emerald-950'
-                : 'border-slate-200 bg-white text-slate-800 hover:border-sky-300 hover:bg-slate-50'
+                ? selectedAnswerClass
+                : unselectedAnswerClass + ' hover:border-sky-300'
             }`}
           >
             <span
               className={`mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] border text-xs font-semibold ${
-                isSelected
-                  ? 'border-emerald-500 bg-emerald-500 text-white'
-                  : 'border-slate-300 bg-white text-slate-500'
+                isSelected ? selectedIndicatorClass : unselectedIndicatorClass
               }`}
             >
               {label}

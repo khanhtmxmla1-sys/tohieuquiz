@@ -2,6 +2,12 @@ import React from 'react';
 import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
 import { optionIdAt, selectedOptionId } from '../utils/answerState';
+import {
+  selectedAnswerClass,
+  selectedIndicatorClass,
+  unselectedAnswerClass,
+  unselectedIndicatorClass,
+} from '../../answer-state/stateStyles';
 
 const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -30,15 +36,15 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
                 onClick={() => onAnswerChange(question.id, { type: 'IMAGE_QUESTION', optionId })}
                 className={`relative flex flex-col overflow-hidden rounded-[10px] border text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                   isSelected
-                    ? 'border-emerald-500 bg-emerald-50'
-                    : 'border-slate-200 bg-white hover:border-sky-300'
+                    ? selectedAnswerClass
+                    : unselectedAnswerClass + ' hover:border-sky-300'
                 }`}
               >
                 <span
                   className={`absolute left-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-[7px] border text-xs font-semibold ${
                     isSelected
-                      ? 'border-emerald-500 bg-emerald-500 text-white'
-                      : 'border-slate-300 bg-white/95 text-slate-600'
+                      ? selectedIndicatorClass
+                      : unselectedIndicatorClass + ' bg-white/95 text-slate-600'
                   }`}
                 >
                   {label}
@@ -79,15 +85,15 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
                 onClick={() => onAnswerChange(question.id, { type: 'IMAGE_QUESTION', optionId })}
                 className={`flex min-h-14 items-center rounded-[10px] border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                   isSelected
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-950'
-                    : 'border-slate-200 bg-white text-slate-800 hover:border-sky-300 hover:bg-slate-50'
+                    ? selectedAnswerClass
+                    : unselectedAnswerClass + ' hover:border-sky-300'
                 }`}
               >
                 <span
                   className={`mr-3 flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] border text-xs font-semibold ${
                     isSelected
-                      ? 'border-emerald-500 bg-emerald-500 text-white'
-                      : 'border-slate-300 bg-white text-slate-600'
+                      ? selectedIndicatorClass
+                      : unselectedIndicatorClass + ' text-slate-600'
                   }`}
                 >
                   {label}

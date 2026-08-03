@@ -1,6 +1,8 @@
 import React from 'react';
 import { BaseRendererProps } from './types';
 import SmartText from './utils/SmartText';
+import { getQuestionProgress } from '../../../../domain/quiz-progress';
+import { QuestionProgressBadge } from '../answer-state';
 
 import MCQRenderer from './renderers/MCQRenderer';
 import TrueFalseRenderer from './renderers/TrueFalseRenderer';
@@ -23,6 +25,7 @@ const QuestionRenderer: React.FC<BaseRendererProps> = (props) => {
   const { question: question, index, quizId } = props;
   const rawType = (question.type || 'MCQ').toString().toUpperCase();
   const normalizedType = rawType.replace(/-/g, '_');
+  const progress = getQuestionProgress(question, props.answers[question.id]);
 
   const renderers: Record<string, React.FC<BaseRendererProps>> = {
     MCQ: MCQRenderer,
@@ -61,12 +64,13 @@ const QuestionRenderer: React.FC<BaseRendererProps> = (props) => {
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-sm font-semibold text-slate-600">
           {index + 1}
         </span>
-        <div className="min-h-9 flex-1 py-1 text-base font-medium leading-7 text-[#172033] sm:text-lg">
+        <div className="min-h-9 min-w-0 flex-1 py-1 text-base font-medium leading-7 text-[#172033] sm:text-lg">
           <SmartText
             content={(question as any).mainQuestion || (question as any).content || (question as any).question}
             className="leading-relaxed"
           />
         </div>
+        <QuestionProgressBadge progress={progress} />
       </div>
 
       <div className="space-y-6 p-5 sm:p-6 md:p-7">
