@@ -132,6 +132,25 @@ describe('manual quiz validation engine', () => {
         ]));
     });
 
+    it('accepts canonical persisted option IDs during authoring validation', () => {
+        const issues = validateManualQuiz(quiz([
+            question(QuestionType.MCQ, {
+                id: 'q-canonical-mcq',
+                options: ['mine', 'yours', 'hers', 'theirs'],
+                correctAnswer: 'option-0',
+                points: 0.5,
+            }),
+            question(QuestionType.MULTIPLE_SELECT, {
+                id: 'q-canonical-multi',
+                options: ['ours', 'our', 'yours', 'your'],
+                correctAnswers: ['option-0', 'option-2'],
+                points: 0.5,
+            }),
+        ]), { targetPoints: 1 });
+
+        expect(errors(issues).filter((issue) => issue.questionId)).toEqual([]);
+    });
+
     it('detects empty, duplicate and unreachable MCQ answers', () => {
         const issues = validateManualQuiz(quiz([question(QuestionType.MCQ, {
             options: ['Hai', '  hai ', ''],

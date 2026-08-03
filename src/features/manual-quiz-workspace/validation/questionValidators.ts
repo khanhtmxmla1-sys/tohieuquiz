@@ -141,7 +141,15 @@ const validateOptions = (
     const labels = new Set(labelsFor(options.length));
     const optionValues = new Set(nonEmpty);
     const answers = multiple ? asArray<string>(correctValue) : [String(correctValue ?? '')];
-    const normalizedAnswers = answers.map((answer) => normalizeAuthoringText(answer).toUpperCase()).filter(Boolean);
+    const normalizedAnswers = answers.map((answer) => {
+        const value = normalizeAuthoringText(answer);
+        const optionIdMatch = value.match(/^option-(\d+)$/i);
+        if (optionIdMatch) {
+            const index = Number(optionIdMatch[1]);
+            return index >= 0 && index < options.length ? String.fromCharCode(65 + index) : value.toUpperCase();
+        }
+        return value.toUpperCase();
+    }).filter(Boolean);
     const hasMissing = normalizedAnswers.length === 0 || normalizedAnswers.some((answer) => (
         !labels.has(answer) && !optionValues.has(answer.toLocaleLowerCase('vi'))
     ));

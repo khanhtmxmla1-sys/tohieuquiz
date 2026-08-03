@@ -15,9 +15,19 @@ let activeQuizLoad: Promise<void> | null = null;
 
 type ViewType = 'home' | 'student' | 'teacher_login' | 'teacher_dash' | 'student_portal' | 'shop';
 
-const parseMultipleSelectAnswersForQuestion = (raw: any): string[] => {
+const optionReferenceForAuthoring = (raw: unknown, optionCount: number): string => {
+    const value = String(raw ?? '').trim();
+    const optionIdMatch = value.match(/^option-(\d+)$/i);
+    if (optionIdMatch) {
+        const index = Number(optionIdMatch[1]);
+        if (index >= 0 && index < optionCount) return String.fromCharCode(65 + index);
+    }
+    return value.toUpperCase();
+};
+
+const parseMultipleSelectAnswersForQuestion = (raw: any, optionCount: number): string[] => {
     if (Array.isArray(raw)) {
-        return raw.map((v: any) => String(v).trim().toUpperCase()).filter(Boolean);
+        return raw.map((value: unknown) => optionReferenceForAuthoring(value, optionCount)).filter(Boolean);
     }
 
     if (raw === undefined || raw === null) return [];
@@ -30,14 +40,14 @@ const parseMultipleSelectAnswersForQuestion = (raw: any): string[] => {
         try {
             const parsed = JSON.parse(normalized);
             if (Array.isArray(parsed)) {
-                return parsed.map((v: any) => String(v).trim().toUpperCase()).filter(Boolean);
+                return parsed.map((value: unknown) => optionReferenceForAuthoring(value, optionCount)).filter(Boolean);
             }
         } catch {
             // Fall through to pipe format.
         }
     }
 
-    return normalized.split('|').map((v: string) => v.trim().toUpperCase()).filter(Boolean);
+    return normalized.split('|').map((value: string) => optionReferenceForAuthoring(value, optionCount)).filter(Boolean);
 };
 
 export const normalizeQuestionRow = (q: any): any => {
@@ -73,6 +83,10 @@ export const normalizeQuestionRow = (q: any): any => {
     }
 
     const qType = parsed.type;
+    const optionCount = Array.isArray(parsed.options) ? parsed.options.length : 0;
+    if (qType === 'MCQ' || qType === 'IMAGE_QUESTION') {
+        parsed.correctAnswer = optionReferenceForAuthoring(parsed.correctAnswer, optionCount);
+    }
     if (qType === 'IMAGE_QUESTION') {
         parsed.optionImages = parsed.distractors || [];
     } else if (qType === 'UNDERLINE') {
@@ -102,7 +116,7 @@ export const normalizeQuestionRow = (q: any): any => {
         parsed.rightItems = Array.isArray(parsed.rightItems) ? parsed.rightItems : [];
     } else if (qType === 'MULTIPLE_SELECT') {
         const sourceCorrect = parsed.correctAnswers ?? parsed.correctAnswer;
-        parsed.correctAnswers = parseMultipleSelectAnswersForQuestion(sourceCorrect);
+        parsed.correctAnswers = parseMultipleSelectAnswersForQuestion(sourceCorrect, optionCount);
         if (!parsed.correctAnswer && parsed.correctAnswers.length > 0) {
             parsed.correctAnswer = JSON.stringify(parsed.correctAnswers);
         }
