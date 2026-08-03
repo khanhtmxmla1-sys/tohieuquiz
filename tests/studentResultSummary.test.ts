@@ -57,6 +57,7 @@ describe('student result summary', () => {
       correct: 1,
       incorrect: 1,
       skipped: 1,
+      voided: 0,
       total: 3,
       score10: 3.3,
       accuracyPercent: 33,

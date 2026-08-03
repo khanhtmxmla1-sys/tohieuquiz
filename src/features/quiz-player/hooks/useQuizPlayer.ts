@@ -244,9 +244,15 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
 
             const detailCorrectCount = validationDetails.filter((detail) => detail.isCorrect === true).length;
             const authoritativeTotalQuestions = Number.isFinite(Number(validationResult.total))
-                && Number(validationResult.total) > 0
+                && Number(validationResult.total) >= 0
                 ? Number(validationResult.total)
                 : quiz.questions.length;
+            const authoritativeQuestionCount = Number.isFinite(Number(validationResult.questionCount))
+                ? Number(validationResult.questionCount)
+                : quiz.questions.length;
+            const authoritativeVoidedCount = Number.isFinite(Number(validationResult.voidedCount))
+                ? Number(validationResult.voidedCount)
+                : validationDetails.filter((detail) => detail.status === 'voided').length;
             const authoritativeCorrectCount = Number.isFinite(Number(validationResult.correctCount))
                 ? Number(validationResult.correctCount)
                 : detailCorrectCount;
@@ -264,7 +270,9 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
                 studentClass,
                 score: authoritativeScore,
                 correctCount: authoritativeCorrectCount,
+                questionCount: authoritativeQuestionCount,
                 totalQuestions: authoritativeTotalQuestions,
+                voidedCount: authoritativeVoidedCount,
                 timeTaken,
                 submittedAt: new Date().toISOString(),
                 answers: {

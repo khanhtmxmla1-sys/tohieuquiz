@@ -215,6 +215,55 @@ describe('useQuizPlayer result rewards', () => {
       }),
     }));
   });
+  it('preserves authoritative voided counts and zero-safe denominators', async () => {
+    const voidedQuiz = {
+      ...makeQuiz(),
+      id: 'quiz-voided-result',
+      questions: [
+        { id: 'q1', type: QuestionType.MCQ, question: 'Câu 1', options: ['A', 'B'], correctAnswer: 'A' },
+        { id: 'q2', type: QuestionType.MCQ, question: 'Câu 2', options: ['A', 'B'], correctAnswer: 'A' },
+        { id: 'q3', type: QuestionType.SHORT_ANSWER, question: 'Câu lỗi', correctAnswer: '' },
+      ],
+    } as Quiz;
+    mocks.validateAnswersOnServer.mockResolvedValueOnce({
+      success: true,
+      score: 10,
+      correctCount: 2,
+      questionCount: 3,
+      total: 2,
+      voidedCount: 1,
+      gradingVersion: '2.0.0',
+      details: [
+        { questionId: 'q1', isCorrect: true, status: 'correct' },
+        { questionId: 'q2', isCorrect: true, status: 'correct' },
+        { questionId: 'q3', isCorrect: false, status: 'voided', issueCode: 'MISSING_CORRECT_ANSWER' },
+      ],
+    });
+
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz: voidedQuiz,
+      onExit: vi.fn(),
+      onSaveResult: mocks.onSaveResult,
+    }));
+
+    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    await act(async () => result.current.handleSubmit());
+
+    expect(mocks.onSaveResult).toHaveBeenCalledWith(expect.objectContaining({
+      score: 10,
+      correctCount: 2,
+      questionCount: 3,
+      totalQuestions: 2,
+      voidedCount: 1,
+      validationDetails: expect.arrayContaining([
+        expect.objectContaining({ questionId: 'q3', status: 'voided' }),
+      ]),
+      answers: expect.objectContaining({
+        q3: expect.objectContaining({ status: 'voided', isCorrect: false }),
+      }),
+    }));
+  });
+
   it('claims the reward with the saved result id and shows completion at zero correct', async () => {
     const { result } = renderHook(() => useQuizPlayer({
       quiz: makeQuiz(),

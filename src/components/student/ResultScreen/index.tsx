@@ -31,15 +31,34 @@ const ResultScreen: React.FC<Props> = ({ quiz, result, answers, onExit, initialT
 
     const displayResult = useMemo<StudentResult>(() => {
         const summary = buildStudentResultSummary(result, answers);
-        const validationDetails = quiz.questions.map((question) => ({
-            questionId: question.id,
-            isCorrect: getStoredAnswerOutcome(result, question.id, answers[question.id]) === 'correct',
-        }));
+        const validationByQuestionId = new Map(
+            (result.validationDetails || []).map((detail) => [detail.questionId, detail]),
+        );
+        const validationDetails = quiz.questions.map((question) => {
+            const outcome = getStoredAnswerOutcome(result, question.id, answers[question.id]);
+            const storedDetail = validationByQuestionId.get(question.id);
+            return {
+                questionId: question.id,
+                isCorrect: outcome === 'correct',
+                status: outcome === 'correct'
+                    ? 'correct' as const
+                    : outcome === 'skipped'
+                        ? 'skipped' as const
+                        : outcome === 'voided'
+                            ? 'voided' as const
+                            : storedDetail?.status === 'invalid'
+                                ? 'invalid' as const
+                                : 'wrong' as const,
+                issueCode: storedDetail?.issueCode,
+            };
+        });
 
         return {
             ...result,
             correctCount: summary.correct,
+            questionCount: result.questionCount ?? quiz.questions.length,
             totalQuestions: summary.total,
+            voidedCount: summary.voided,
             score: summary.score10,
             validationDetails,
         };

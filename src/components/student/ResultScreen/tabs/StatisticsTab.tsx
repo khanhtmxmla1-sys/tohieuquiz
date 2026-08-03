@@ -80,7 +80,9 @@ const StatisticsTab: React.FC<Props> = ({ quiz, result, answers }) => {
     }));
 
     // Calculate performance metrics
-    const accuracy = Math.round((result.correctCount / result.totalQuestions) * 100);
+    const accuracy = result.totalQuestions > 0
+        ? Math.round((result.correctCount / result.totalQuestions) * 100)
+        : 0;
     const performance = accuracy >= 80 ? 'Xuất sắc' : accuracy >= 60 ? 'Khá' : accuracy >= 40 ? 'Trung bình' : 'Cần cải thiện';
 
     return (

@@ -48,6 +48,12 @@ const OverviewTab: React.FC<Props> = ({ result, answers, onOpenReview, onOpenStu
         <section role="tabpanel" aria-label="Kết quả" className="space-y-4 p-4 sm:p-6">
             <ResultSummaryHeader summary={summary} durationLabel={formatResultDuration(result.timeTaken)} />
 
+            {summary.voided > 0 ? (
+                <p className="rounded-[12px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+                    Điểm được tính trên {summary.total} câu hợp lệ. {summary.voided} câu không được tính do lỗi dữ liệu.
+                </p>
+            ) : null}
+
             <section aria-labelledby="next-step-title" className="rounded-[14px] border border-sky-200 bg-sky-50 p-5 sm:p-6">
                 <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border border-sky-200 bg-white text-sky-700">

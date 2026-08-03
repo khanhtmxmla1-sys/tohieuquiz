@@ -348,7 +348,12 @@ export interface StudentResult {
     studentClass: string;
     score: number; // 0-10
     correctCount: number;
+    /** Total number of authored questions, including voided source questions. */
+    questionCount?: number;
+    /** Number of valid questions used as the score denominator. */
     totalQuestions: number;
+    /** Questions excluded because the source contract was invalid. */
+    voidedCount?: number;
     timeTaken: number; // in minutes
     submittedAt: string;
     answers: Record<string, any>; // Store student answers
@@ -358,7 +363,7 @@ export interface StudentResult {
     validationDetails?: {
         questionId: string;
         isCorrect: boolean;
-        status?: 'correct' | 'wrong' | 'skipped' | 'invalid';
+        status?: 'correct' | 'wrong' | 'skipped' | 'invalid' | 'voided';
         issueCode?: string;
         correctAnswer?: unknown;
     }[];

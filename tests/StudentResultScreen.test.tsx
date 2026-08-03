@@ -152,6 +152,37 @@ describe('student result screen', () => {
     expect(screen.queryByText(/\[object Object\]/i)).not.toBeInTheDocument();
   });
 
+  it('explains voided questions and keeps them out of wrong-answer counts', () => {
+    const voidedResult: StudentResult = {
+      ...result,
+      score: 10,
+      correctCount: 2,
+      questionCount: 3,
+      totalQuestions: 2,
+      voidedCount: 1,
+      answers: {
+        q1: { selectedAnswer: 'A', isCorrect: true, status: 'correct', questionSnapshot: quiz.questions[0] },
+        q2: { selectedAnswer: 'B', isCorrect: true, status: 'correct', questionSnapshot: quiz.questions[1] },
+        q3: { selectedAnswer: '10', isCorrect: false, status: 'voided', questionSnapshot: quiz.questions[2] },
+      },
+      validationDetails: [
+        { questionId: 'q1', isCorrect: true, status: 'correct' },
+        { questionId: 'q2', isCorrect: true, status: 'correct' },
+        { questionId: 'q3', isCorrect: false, status: 'voided', issueCode: 'MISSING_CORRECT_ANSWER' },
+      ],
+    };
+
+    renderScreen(voidedResult);
+
+    expect(screen.getByText('2 đúng · 0 sai · 0 chưa làm')).toBeInTheDocument();
+    expect(screen.getByText('Điểm được tính trên 2 câu hợp lệ. 1 câu không được tính do lỗi dữ liệu.')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Kế hoạch ôn tập' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Xem lại bài' }));
+    expect(screen.getByText('Không tính điểm')).toBeInTheDocument();
+    expect(screen.getAllByText('Câu hỏi không được tính điểm do lỗi dữ liệu').length).toBeGreaterThan(0);
+  });
+
   it('does not show a study-plan tab when there are no answered incorrect questions', () => {
     const perfectResult: StudentResult = {
       ...result,
