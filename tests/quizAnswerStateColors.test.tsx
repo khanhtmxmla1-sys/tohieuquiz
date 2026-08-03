@@ -143,23 +143,32 @@ describe('quiz answer state colors', () => {
     expect(trueButton).not.toHaveClass('bg-emerald-50');
   });
 
-  it('marks answered question numbers in green while preserving the active focus ring', () => {
+  it('shows clear empty, partial, and complete question states while preserving the active ring', () => {
+    const partialQuestion = { ...mcqQuestion, id: 'mcq-2' } as Question;
+    const emptyQuestion = { ...mcqQuestion, id: 'mcq-3' } as Question;
     render(
       <QuizNavigation
-        questions={[mcqQuestion, { ...mcqQuestion, id: 'mcq-2' } as Question]}
-        isQuestionAnswered={(question) => question.id === 'mcq-1'}
+        questions={[mcqQuestion, partialQuestion, emptyQuestion]}
+        progressByQuestionId={{
+          'mcq-1': { state: 'complete', hasInteraction: true, completedParts: 1, requiredParts: 1 },
+          'mcq-2': { state: 'partial', hasInteraction: true, completedParts: 1, requiredParts: 2 },
+          'mcq-3': { state: 'empty', hasInteraction: false, completedParts: 0, requiredParts: 1 },
+        }}
         activeQuestionId="mcq-1"
         QUESTIONS_PER_PAGE={10}
         onPageChange={vi.fn()}
       />,
     );
 
-    const answeredQuestion = screen.getByRole('button', { name: 'Đi đến câu 1' });
-    const unansweredQuestion = screen.getByRole('button', { name: 'Đi đến câu 2' });
+    const completeButton = screen.getByRole('button', { name: 'Đi đến câu 1' });
+    const partialButton = screen.getByRole('button', { name: 'Đi đến câu 2' });
+    const emptyButton = screen.getByRole('button', { name: 'Đi đến câu 3' });
 
-    expect(answeredQuestion).toHaveClass('border-emerald-500', 'bg-emerald-50', 'text-emerald-800');
-    expect(answeredQuestion).toHaveClass('ring-1', 'ring-sky-500');
-    expect(unansweredQuestion).toHaveClass('border-slate-200', 'bg-white');
-    expect(screen.getByText('Đã trả lời').previousElementSibling).toHaveClass('bg-emerald-50');
+    expect(completeButton).toHaveClass('bg-emerald-600', 'border-emerald-700', 'text-white');
+    expect(completeButton).toHaveClass('ring-2', 'ring-sky-500');
+    expect(partialButton).toHaveClass('bg-amber-100', 'border-amber-500', 'text-amber-950');
+    expect(emptyButton).toHaveClass('bg-white', 'border-slate-300');
+    expect(screen.getByText('Đang làm')).toBeInTheDocument();
+    expect(screen.getByText('Đã hoàn thành')).toBeInTheDocument();
   });
 });

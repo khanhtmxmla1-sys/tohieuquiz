@@ -53,3 +53,16 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #2563eb, #7c3aed);
 }
+
+/* Quiz answer progress semantic tokens */
+:root {
+  --quiz-progress-empty-bg: #ffffff;
+  --quiz-progress-empty-border: #cbd5e1;
+  --quiz-progress-partial-bg: #fef3c7;
+  --quiz-progress-partial-border: #d97706;
+  --quiz-progress-complete-bg: #16a34a;
+  --quiz-progress-complete-border: #15803d;
+  --quiz-answer-selected-bg: #dbeafe;
+  --quiz-answer-selected-border: #2563eb;
+  --quiz-answer-selected-text: #1e3a8a;
+}

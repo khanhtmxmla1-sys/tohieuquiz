@@ -161,9 +161,6 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
     };
 
     const quizProgress = useQuizProgress(questions, answers);
-    const isQuestionAnswered = (question: Question) => (
-        quizProgress.byQuestionId[question.id]?.state === 'complete'
-    );
     const questionsOnCurrentPage = questions.slice((currentPage - 1) * QUESTIONS_PER_PAGE, currentPage * QUESTIONS_PER_PAGE);
     const { activeQuestionId, changePage } = useQuizPageNavigation({
         questions,
@@ -245,7 +242,7 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
                     <aside className="hidden lg:block w-72 flex-shrink-0">
                         <QuizNavigation
                             questions={questions}
-                            isQuestionAnswered={isQuestionAnswered}
+                            progressByQuestionId={quizProgress.byQuestionId}
                             activeQuestionId={activeQuestionId}
                             QUESTIONS_PER_PAGE={QUESTIONS_PER_PAGE}
                             onPageChange={changePage}

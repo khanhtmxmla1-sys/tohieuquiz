@@ -27,7 +27,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
     shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
     showSubmitConfirm, setShowSubmitConfirm,
     rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
-    handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward, isQuestionAnswered,
+    handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward,
   } = useQuizPlayer({ quiz, onExit, onSaveResult });
 
   const QUESTIONS_PER_PAGE = 10;
@@ -85,7 +85,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
             <aside className="hidden w-60 shrink-0 lg:block">
               <QuizNavigation
                 questions={shuffledQuestions}
-                isQuestionAnswered={isQuestionAnswered}
+                progressByQuestionId={quizProgress.byQuestionId}
                 activeQuestionId={activeQuestionId}
                 QUESTIONS_PER_PAGE={QUESTIONS_PER_PAGE}
                 onPageChange={changePage}
