@@ -278,7 +278,7 @@ describe('Canonical scoring browser matrix', () => {
     }
 
     cy.contains('button', 'Nộp bài').click();
-    cy.contains('p', 'câu hỏi chưa làm.').should('be.visible').and('contain.text', '2');
+    cy.contains('p', '2 câu chưa bắt đầu').should('be.visible');
     cy.contains('button', 'Đồng ý nộp').click();
     cy.wait('@validateSkippedAnswers');
 
