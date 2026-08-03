@@ -11,7 +11,7 @@ import { useLiveExamTimer, useLiveExamActivity } from '../../hooks';
 import { getAnswerSnapshot, saveAnswerSnapshot, submitAnswers } from '../../services/liveExamService';
 import type { LiveExamSubmissionResponse, StudentAnswers } from '../../types/liveExam.types';
 import type { Question, Quiz } from '../../types';
-import { useQuizProgress } from '../../features/quiz-player/hooks/useQuizProgress';
+import { useQuizProgressRollout } from '../../features/quiz-player/hooks/useQuizProgressRollout';
 import QuestionRenderer from '../student/QuestionRenderer';
 import QuizHeader from '../../features/quiz-player/components/QuizHeader';
 import QuizNavigation from '../../features/quiz-player/components/QuizNavigation';
@@ -160,7 +160,11 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
         });
     };
 
-    const quizProgress = useQuizProgress(questions, answers);
+    const quizProgress = useQuizProgressRollout({
+        quizId: sessionId,
+        questions,
+        answers,
+    });
     const questionsOnCurrentPage = questions.slice((currentPage - 1) * QUESTIONS_PER_PAGE, currentPage * QUESTIONS_PER_PAGE);
     const { activeQuestionId, changePage } = useQuizPageNavigation({
         questions,

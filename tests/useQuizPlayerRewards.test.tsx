@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QuestionType, type Quiz, type StudentResult } from '../src/types';
 
 const mocks = vi.hoisted(() => ({
@@ -95,6 +95,7 @@ const savedResult = (result: StudentResult): StudentResult => ({ ...result, id: 
 
 describe('useQuizPlayer result rewards', () => {
   beforeEach(() => {
+    vi.stubEnv('VITE_FEATURE_QUIZ_PROGRESS_V2', 'true');
     vi.clearAllMocks();
     mocks.validateAnswersOnServer.mockResolvedValue({
       success: true,
@@ -122,6 +123,10 @@ describe('useQuizPlayer result rewards', () => {
       leveledUp: false,
       mood: 'excited',
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('tracks a student-safe short answer without requiring the correct answer', async () => {

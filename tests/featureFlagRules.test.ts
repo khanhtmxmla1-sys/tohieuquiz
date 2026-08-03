@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FeatureFlagConfig } from '../shared/feature-rollout.contract';
 import { resolveFeatureFlag, stableFeatureBucket } from '../workers/src/services/featureFlagService';
+import { isQuizProgressV2Enabled } from '../src/config/featureFlags';
 
 const config = (overrides: Partial<FeatureFlagConfig> = {}): FeatureFlagConfig => ({
   key: 'unified_notifications_v1',
@@ -23,6 +24,24 @@ const config = (overrides: Partial<FeatureFlagConfig> = {}): FeatureFlagConfig =
   updatedBy: 'admin',
   updatedAt: '2026-07-29T00:00:00.000Z',
   ...overrides,
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe('frontend quiz progress flag', () => {
+  it('defaults disabled for shadow rollout', () => {
+    vi.stubEnv('VITE_FEATURE_QUIZ_PROGRESS_V2', '');
+    expect(isQuizProgressV2Enabled()).toBe(false);
+  });
+
+  it('enables and disables from explicit environment values', () => {
+    vi.stubEnv('VITE_FEATURE_QUIZ_PROGRESS_V2', 'true');
+    expect(isQuizProgressV2Enabled()).toBe(true);
+    vi.stubEnv('VITE_FEATURE_QUIZ_PROGRESS_V2', 'false');
+    expect(isQuizProgressV2Enabled()).toBe(false);
+  });
 });
 
 describe('runtime feature rollout rules', () => {

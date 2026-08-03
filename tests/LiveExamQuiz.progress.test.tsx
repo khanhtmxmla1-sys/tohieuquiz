@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Question } from '../src/types';
 import { LiveExamQuiz } from '../src/components/LiveExam/LiveExamQuiz';
 
@@ -55,9 +55,14 @@ vi.mock('../src/components/student', () => ({
 
 describe('LiveExamQuiz progress', () => {
   beforeEach(() => {
+    vi.stubEnv('VITE_FEATURE_QUIZ_PROGRESS_V2', 'true');
     vi.clearAllMocks();
     mocks.saveAnswerSnapshot.mockResolvedValue({ attemptVersion: 1, answers: { q12: 'mine' } });
     window.sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('counts a student-safe short answer immediately and reports it to activity tracking', async () => {

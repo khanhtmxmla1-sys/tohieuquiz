@@ -80,3 +80,39 @@ export const reportManualQuizTelemetry = (
         // Telemetry is best-effort and must never interrupt authoring.
     }
 };
+
+export interface QuizProgressMismatchTelemetry {
+    event: 'quiz_progress_mismatch';
+    quizId: string;
+    questionId: string;
+    questionType: string;
+    legacyComplete: boolean;
+    v2State: 'empty' | 'partial' | 'complete';
+    releaseId: string;
+}
+
+const safeTelemetryId = (value: unknown, maxLength: number): string => String(value ?? '')
+    .replace(/[^a-zA-Z0-9._:-]/g, '')
+    .slice(0, maxLength);
+
+export const buildQuizProgressMismatchPayload = (
+    input: QuizProgressMismatchTelemetry,
+): Record<string, string | boolean> => ({
+    event: 'quiz_progress_mismatch',
+    quizId: safeTelemetryId(input.quizId, 100),
+    questionId: safeTelemetryId(input.questionId, 100),
+    questionType: safeTelemetryId(input.questionType, 40).toUpperCase(),
+    legacyComplete: input.legacyComplete,
+    v2State: input.v2State,
+    releaseId: safeTelemetryId(input.releaseId, 100),
+});
+
+export const reportQuizProgressMismatch = (
+    input: QuizProgressMismatchTelemetry,
+): void => {
+    try {
+        track('quiz_progress_mismatch', buildQuizProgressMismatchPayload(input));
+    } catch {
+        // Shadow telemetry must never affect quiz input or autosave.
+    }
+};

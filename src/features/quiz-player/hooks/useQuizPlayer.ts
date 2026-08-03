@@ -5,7 +5,7 @@ import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
 import { playTingSound, showError } from '../../../utils/toast';
-import { useQuizProgress } from './useQuizProgress';
+import { useQuizProgressRollout } from './useQuizProgressRollout';
 
 interface UseQuizPlayerProps {
     quiz: Quiz;
@@ -107,7 +107,11 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         const startIndex = (currentPage - 1) * QUESTIONS_PER_PAGE;
         return shuffledQuestions.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
     }, [currentPage, shuffledQuestions]);
-    const quizProgress = useQuizProgress(shuffledQuestions, answers);
+    const quizProgress = useQuizProgressRollout({
+        quizId: quiz.id,
+        questions: shuffledQuestions,
+        answers,
+    });
 
     // Timer logic
     useEffect(() => {
