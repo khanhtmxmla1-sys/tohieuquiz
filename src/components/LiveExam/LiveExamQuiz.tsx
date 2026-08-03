@@ -11,7 +11,7 @@ import { useLiveExamTimer, useLiveExamActivity } from '../../hooks';
 import { getAnswerSnapshot, saveAnswerSnapshot, submitAnswers } from '../../services/liveExamService';
 import type { LiveExamSubmissionResponse, StudentAnswers } from '../../types/liveExam.types';
 import type { Question, Quiz } from '../../types';
-import { isQuestionAnswered as hasCompleteAnswer } from '../../domain/quiz-scoring';
+import { useQuizProgress } from '../../features/quiz-player/hooks/useQuizProgress';
 import QuestionRenderer from '../student/QuestionRenderer';
 import QuizHeader from '../../features/quiz-player/components/QuizHeader';
 import QuizNavigation from '../../features/quiz-player/components/QuizNavigation';
@@ -160,8 +160,9 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
         });
     };
 
+    const quizProgress = useQuizProgress(questions, answers);
     const isQuestionAnswered = (question: Question) => (
-        hasCompleteAnswer(question, answers[question.id])
+        quizProgress.byQuestionId[question.id]?.state === 'complete'
     );
     const questionsOnCurrentPage = questions.slice((currentPage - 1) * QUESTIONS_PER_PAGE, currentPage * QUESTIONS_PER_PAGE);
     const { activeQuestionId, changePage } = useQuizPageNavigation({
@@ -171,8 +172,8 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
         questionsPerPage: QUESTIONS_PER_PAGE,
         setCurrentPage,
     });
-    const answeredCount = questions.filter(isQuestionAnswered).length;
-    const unansweredCount = totalQuestions - answeredCount;
+    const answeredCount = quizProgress.completeCount;
+    const unansweredCount = quizProgress.emptyCount + quizProgress.partialCount;
 
     const handleSubmit = async () => {
         if (!isOnline) {
