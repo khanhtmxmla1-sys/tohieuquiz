@@ -52,7 +52,7 @@ const underlineQuestion = {
 } as unknown as Question;
 
 describe('quiz answer state colors', () => {
-  it('shows a selected multiple-choice answer in green', () => {
+  it('shows a selected multiple-choice answer in blue', () => {
     render(
       <MCQRenderer
         question={mcqQuestion}
@@ -64,11 +64,11 @@ describe('quiz answer state colors', () => {
 
     const selectedAnswer = screen.getByRole('button', { name: /Hai/ });
     expect(selectedAnswer).toHaveAttribute('aria-pressed', 'true');
-    expect(selectedAnswer).toHaveClass('border-emerald-500', 'bg-emerald-50', 'text-emerald-950');
-    expect(selectedAnswer.querySelector('span')).toHaveClass('bg-emerald-500');
+    expect(selectedAnswer).toHaveClass('border-sky-600', 'bg-sky-100', 'text-sky-950');
+    expect(selectedAnswer.querySelector('span')).toHaveClass('bg-sky-600');
   });
 
-  it('uses green for other selectable answer types', () => {
+  it('uses blue for other selectable answer types', () => {
     const { unmount } = render(
       <MultipleSelectRenderer
         question={multipleSelectQuestion}
@@ -78,8 +78,8 @@ describe('quiz answer state colors', () => {
       />,
     );
     expect(screen.getByRole('button', { name: /Một/ })).toHaveClass(
-      'border-emerald-500',
-      'bg-emerald-50',
+      'border-sky-600',
+      'bg-sky-100',
     );
     unmount();
 
@@ -92,8 +92,8 @@ describe('quiz answer state colors', () => {
       />,
     );
     expect(screen.getByRole('button', { name: /Hình hai/ })).toHaveClass(
-      'border-emerald-500',
-      'bg-emerald-50',
+      'border-sky-600',
+      'bg-sky-100',
     );
     imageRender.unmount();
 
@@ -106,12 +106,12 @@ describe('quiz answer state colors', () => {
       />,
     );
     expect(screen.getByRole('button', { name: 'từ hai' })).toHaveClass(
-      'border-emerald-500',
-      'bg-emerald-50',
+      'border-sky-600',
+      'bg-sky-100',
     );
   });
 
-  it('uses green for Đúng and red for Sai after selection', () => {
+  it('uses the same blue selected state for Đúng and Sai', () => {
     const Harness = () => {
       const [answers, setAnswers] = useState<Record<string, any>>({});
       return (
@@ -135,12 +135,12 @@ describe('quiz answer state colors', () => {
     const falseButton = screen.getByRole('button', { name: 'Sai' });
 
     fireEvent.click(trueButton);
-    expect(trueButton).toHaveClass('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+    expect(trueButton).toHaveClass('border-sky-600', 'bg-sky-100', 'text-sky-950');
     expect(falseButton).not.toHaveClass('bg-red-50');
 
     fireEvent.click(falseButton);
-    expect(falseButton).toHaveClass('border-red-500', 'bg-red-50', 'text-red-700');
-    expect(trueButton).not.toHaveClass('bg-emerald-50');
+    expect(falseButton).toHaveClass('border-sky-600', 'bg-sky-100', 'text-sky-950');
+    expect(trueButton).not.toHaveClass('bg-sky-100');
   });
 
   it('shows clear empty, partial, and complete question states while preserving the active ring', () => {

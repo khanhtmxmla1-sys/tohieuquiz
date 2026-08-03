@@ -8,6 +8,7 @@ import React, {
 import { createPortal } from 'react-dom';
 import MathSpan from './MathSpan';
 import { hasMathSyntax } from '../../../../../utils/mathText';
+import { selectedAnswerClass, unselectedAnswerClass } from '../../answer-state/stateStyles';
 
 interface LatexDropdownProps {
   options: string[];
@@ -134,8 +135,8 @@ const LatexDropdown: React.FC<LatexDropdownProps> = React.memo(({
         onChange={(event) => onChange(event.target.value)}
         className={`mx-1 cursor-pointer rounded-[8px] border px-2 py-1 font-medium transition-colors ${
           value
-            ? 'border-sky-500 bg-sky-50 text-sky-700'
-            : 'border-slate-300 bg-white text-slate-600 hover:border-sky-300'
+            ? selectedAnswerClass
+            : unselectedAnswerClass + ' text-slate-600 hover:border-sky-300'
         } ${className}`}
       >
         <option value="">{placeholder}</option>
@@ -208,8 +209,8 @@ const LatexDropdown: React.FC<LatexDropdownProps> = React.memo(({
         aria-expanded={isOpen}
         className={`inline-flex min-w-[70px] cursor-pointer items-center gap-1.5 rounded-[8px] border px-2 py-1 font-medium transition-colors ${
           value
-            ? 'border-sky-500 bg-sky-50 text-sky-700'
-            : 'border-slate-300 bg-white text-slate-600 hover:border-sky-300'
+            ? selectedAnswerClass
+            : unselectedAnswerClass + ' text-slate-600 hover:border-sky-300'
         }`}
       >
         {value ? (
