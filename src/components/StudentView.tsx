@@ -26,7 +26,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
     enteredCode, setEnteredCode, codeError, answers, timeLeft, result,
     shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
     showSubmitConfirm, setShowSubmitConfirm,
-    rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage,
+    rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
     handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward, isQuestionAnswered,
   } = useQuizPlayer({ quiz, onExit, onSaveResult });
 
@@ -67,8 +67,8 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
   }
 
   if (step === 'quiz') {
-    const answeredCount = shuffledQuestions.filter(isQuestionAnswered).length;
-    const unansweredCount = shuffledQuestions.length - answeredCount;
+    const answeredCount = quizProgress.completeCount;
+    const unansweredCount = quizProgress.emptyCount + quizProgress.partialCount;
 
     return (
       <div className="student-quiz-shell flex min-h-screen flex-col bg-[#FFFDF7] font-['Be_Vietnam_Pro'] text-[#172033]">

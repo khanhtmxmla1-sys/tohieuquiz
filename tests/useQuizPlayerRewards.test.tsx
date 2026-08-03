@@ -81,6 +81,16 @@ const makeMatchingQuiz = (): Quiz => ({
   } as any],
 });
 
+const makeStudentSafeShortAnswerQuiz = (): Quiz => ({
+  ...makeQuiz(),
+  id: 'quiz-student-safe-short-answer',
+  questions: [{
+    id: 'q12',
+    type: QuestionType.SHORT_ANSWER,
+    question: 'The eraser is ____.',
+  } as any],
+});
+
 const savedResult = (result: StudentResult): StudentResult => ({ ...result, id: '42' });
 
 describe('useQuizPlayer result rewards', () => {
@@ -112,6 +122,32 @@ describe('useQuizPlayer result rewards', () => {
       leveledUp: false,
       mood: 'excited',
     });
+  });
+
+  it('tracks a student-safe short answer without requiring the correct answer', async () => {
+    const quiz = makeStudentSafeShortAnswerQuiz();
+    const question = quiz.questions[0];
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult: mocks.onSaveResult,
+    }));
+
+    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    expect(result.current.quizProgress).toMatchObject({
+      emptyCount: 1,
+      partialCount: 0,
+      completeCount: 0,
+    });
+
+    act(() => result.current.handleAnswerChange(question.id, 'mine'));
+
+    expect(result.current.quizProgress).toMatchObject({
+      emptyCount: 0,
+      partialCount: 0,
+      completeCount: 1,
+    });
+    expect(result.current.isQuestionAnswered(question)).toBe(true);
   });
 
   it('does not mark a matching question answered from shuffle metadata or a partial pair', async () => {

@@ -5,7 +5,7 @@ import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
 import { playTingSound, showError } from '../../../utils/toast';
-import { isQuestionAnswered as hasCompleteAnswer } from '../../../domain/quiz-scoring';
+import { useQuizProgress } from './useQuizProgress';
 
 interface UseQuizPlayerProps {
     quiz: Quiz;
@@ -107,6 +107,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         const startIndex = (currentPage - 1) * QUESTIONS_PER_PAGE;
         return shuffledQuestions.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
     }, [currentPage, shuffledQuestions]);
+    const quizProgress = useQuizProgress(shuffledQuestions, answers);
 
     // Timer logic
     useEffect(() => {
@@ -373,15 +374,15 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     }, [classroomStore.studentSession?.username, rewardData]);
 
     const isQuestionAnswered = useCallback(
-        (question: Question) => hasCompleteAnswer(question, answers[question.id]),
-        [answers],
+        (question: Question) => quizProgress.byQuestionId[question.id]?.state === 'complete',
+        [quizProgress.byQuestionId],
     );
     return {
         step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
         enteredCode, setEnteredCode, codeError, answers, timeLeft, result,
         shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
         showSubmitConfirm, setShowSubmitConfirm,
-        rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage,
+        rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
         handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward, isQuestionAnswered
     };
 };
