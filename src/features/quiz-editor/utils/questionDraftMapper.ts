@@ -13,6 +13,7 @@ import type { Question } from '../../../types';
 import { QuestionType } from '../../../types';
 import {
     normalizeTrueFalseItems,
+    normalizeDragDropBlanks,
     normalizeDropdownBlanks,
 } from '../utils/questionNormalizers';
 import type {
@@ -104,7 +105,7 @@ export function questionToDraft(question: Question): AnyEditorDraft {
         }
 
         case QuestionType.DRAG_DROP: {
-            const blanks = Array.isArray(q.blanks) ? (q.blanks as string[]) : [];
+            const blanks = normalizeDragDropBlanks(q.blanks);
             const distractors = Array.isArray(q.distractors)
                 ? (q.distractors as string[])
                 : [];
