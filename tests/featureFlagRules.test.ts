@@ -31,9 +31,9 @@ afterEach(() => {
 });
 
 describe('frontend quiz progress flag', () => {
-  it('defaults disabled for shadow rollout', () => {
+  it('defaults enabled after production rollout approval', () => {
     vi.stubEnv('VITE_FEATURE_QUIZ_PROGRESS_V2', '');
-    expect(isQuizProgressV2Enabled()).toBe(false);
+    expect(isQuizProgressV2Enabled()).toBe(true);
   });
 
   it('enables and disables from explicit environment values', () => {
