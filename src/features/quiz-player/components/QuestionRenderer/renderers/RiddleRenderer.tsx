@@ -1,6 +1,7 @@
 import React from 'react';
 import type { BaseRendererProps } from '../types';
 import SmartText from '../utils/SmartText';
+import { answerInputClasses } from '../../answer-state/stateStyles';
 
 const RiddleRenderer: React.FC<BaseRendererProps> = ({ question, answers, onAnswerChange }) => {
   const lines = Array.isArray((question as any).riddleLines)
@@ -26,7 +27,7 @@ const RiddleRenderer: React.FC<BaseRendererProps> = ({ question, answers, onAnsw
           type="text"
           value={value}
           onChange={(event) => onAnswerChange(question.id, event.target.value)}
-          className="h-12 w-full rounded-[10px] border border-slate-300 bg-white px-4 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+          className={`h-12 w-full rounded-[10px] border px-4 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${answerInputClasses(Boolean(value.trim()))}`}
           placeholder="Nhập đáp án của em"
         />
       </label>

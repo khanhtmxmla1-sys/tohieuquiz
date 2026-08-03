@@ -7,6 +7,7 @@ describe('normalizeProgressQuestionType', () => {
     ['MULTIPLE_CHOICE', 'MCQ'],
     ['IMAGE', 'IMAGE_QUESTION'],
     ['IMAGE_MCQ', 'IMAGE_QUESTION'],
+    ['FILL_IN_THE_BLANK', 'DROPDOWN'],
     ['MATH_INPUT', 'MATH_INPUT'],
     ['geometry', 'GEOMETRY'],
   ])('maps %s to %s', (input, expected) => {

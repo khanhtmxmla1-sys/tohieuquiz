@@ -1,13 +1,15 @@
 import React from 'react';
 import { BaseRendererProps } from '../types';
 import GeometryContainer from '../../../../../components/common/GeometryRenderer';
+import { answerInputClasses } from '../../answer-state/stateStyles';
 
 const GeometryRenderer: React.FC<BaseRendererProps> = ({
-  question: question,
+  question,
   answers,
   onAnswerChange,
 }) => {
   const geometryData = (question as any).geometryData;
+  const value = String(answers[question.id] ?? '');
 
   if (!geometryData) {
     return (
@@ -26,10 +28,10 @@ const GeometryRenderer: React.FC<BaseRendererProps> = ({
       <div className="mt-6 w-full max-w-sm">
         <input
           type="text"
-          value={answers[question.id] || ''}
+          value={value}
           onChange={(event) => onAnswerChange(question.id, event.target.value)}
           placeholder="Nhập kết quả quan sát được..."
-          className="w-full rounded-[10px] border border-slate-300 bg-white p-4 text-center text-lg font-semibold text-slate-800 outline-none transition-colors focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+          className={`w-full rounded-[10px] border p-4 text-center text-lg font-semibold outline-none transition-colors focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${answerInputClasses(Boolean(value.trim()))}`}
         />
       </div>
     </div>

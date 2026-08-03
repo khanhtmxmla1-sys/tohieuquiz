@@ -3,6 +3,7 @@ import { RefreshCcw } from 'lucide-react';
 import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
 import { orderingItemIdAt, selectedOrderingRanks } from '../utils/answerState';
+import { answerInputClasses } from '../../answer-state/stateStyles';
 
 /**
  * Robust helper: extract text from any item format (String, Number, Object).
@@ -91,7 +92,7 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
                                 value={currentRanks[orderingItemIdAt(item.idx)] || ''}
                                 onChange={(e) => handleOrderChange(item.idx, e.target.value)}
                                 placeholder="?"
-                                className="w-12 h-12 text-center text-[16px] md:text-xl font-bold border-2 border-amber-400 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
+                                className={`w-12 h-12 rounded-lg border-2 text-center text-[16px] font-bold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 md:text-xl ${answerInputClasses(Boolean(currentRanks[orderingItemIdAt(item.idx)]))}`}
                             />
                         </div>
                         <div className="flex-1 pt-2">

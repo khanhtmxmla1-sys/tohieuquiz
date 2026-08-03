@@ -1,6 +1,7 @@
 import React from 'react';
 import type { BaseRendererProps } from '../types';
 import SmartText from '../utils/SmartText';
+import { answerInputClasses } from '../../answer-state/stateStyles';
 
 interface ErrorCorrectionAnswer {
   wrongWord: string;
@@ -36,7 +37,7 @@ const ErrorCorrectionRenderer: React.FC<BaseRendererProps> = ({ question, answer
             type="text"
             value={value.wrongWord}
             onChange={(event) => update('wrongWord', event.target.value)}
-            className="h-12 w-full rounded-[10px] border border-slate-300 px-4 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className={`h-12 w-full rounded-[10px] border px-4 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${answerInputClasses(Boolean(value.wrongWord.trim()))}`}
           />
         </label>
         <label className="space-y-2">
@@ -46,7 +47,7 @@ const ErrorCorrectionRenderer: React.FC<BaseRendererProps> = ({ question, answer
             type="text"
             value={value.correctWord}
             onChange={(event) => update('correctWord', event.target.value)}
-            className="h-12 w-full rounded-[10px] border border-slate-300 px-4 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+            className={`h-12 w-full rounded-[10px] border px-4 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${answerInputClasses(Boolean(value.correctWord.trim()))}`}
           />
         </label>
       </div>
