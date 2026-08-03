@@ -32,7 +32,7 @@ describe('D1 migration layout', () => {
     expect(new Set(registered).size).toBe(registered.length);
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
-    expect(migrations.at(-1)).toBe('0060_system_question_bank.sql');
+    expect(migrations.at(-1)).toBe('0061_assignment_revocation.sql');
     expect(EXPECTED_LATEST_MIGRATION).toBe(migrations.at(-1));
   });
 

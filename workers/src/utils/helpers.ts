@@ -119,6 +119,11 @@ export function mapAssignment(a: Assignment): any {
         studentId: a.student_id || '', deadline: a.deadline,
         maxAttempts: Number(a.max_attempts) || 1, status: a.status,
         createdAt: a.created_at,
+        revokedAt: a.revoked_at || null,
+        revokedBy: a.revoked_by || null,
+        revokedReason: a.revoked_reason || null,
+        previousStatus: a.previous_status || null,
+        submissionCountAtRevoke: Number(a.submission_count_at_revoke) || 0,
     };
 }
 

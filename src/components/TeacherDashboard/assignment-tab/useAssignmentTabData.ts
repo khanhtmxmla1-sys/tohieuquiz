@@ -4,7 +4,6 @@ import { useQuizStore } from '../../../../stores/quizStore';
 import { useAssignmentStore } from '../../../stores/useAssignmentStore';
 import { useClassStore } from '../../../stores/useClassStore';
 import { useTeacherDashboardUIStore } from '../../../stores/useTeacherDashboardUIStore';
-import { showConfirm } from '../../../utils/toast';
 
 export const useAssignmentTabData = () => {
   const authStore = useAuthStore();
@@ -39,14 +38,11 @@ export const useAssignmentTabData = () => {
     if (result) await refreshAssignments();
     return Boolean(result);
   };
-  const deleteAssignment = (id: string) => showConfirm({
-    message: 'Xoa bai giao nay?',
-    confirmLabel: 'Xoa',
-    destructive: true,
-    onConfirm: async () => {
-      if (await assignmentStore.removeAssignment(id)) await refreshAssignments();
-    },
-  });
+  const revokeAssignment = async (id: string, reason: string) => {
+    const result = await assignmentStore.revokeAssignment(id, reason);
+    if (result) await refreshAssignments();
+    return Boolean(result);
+  };
   const updateDeadline = async (id: string, deadline: string) => {
     const ok = await assignmentStore.updateAssignmentDeadline(id, deadline);
     if (ok) await refreshAssignments();
@@ -66,7 +62,7 @@ export const useAssignmentTabData = () => {
     draft,
     clearDraft,
     createAssignment,
-    deleteAssignment,
+    revokeAssignment,
     updateDeadline,
     updateStatus,
   };

@@ -110,6 +110,37 @@ describe('Classroom route contracts', () => {
         expect(response.status).toBe(403);
     });
 
+    it('hides revoked assignments from the student list query', async () => {
+        asStudent('class-a');
+        const db = new ClassroomDatabase({
+            student: { id: 'student-a', username: 'student-a', full_name: 'Lan', class_id: 'class-a' },
+        });
+
+        const response = await callRoute('/api/assignments?studentId=student-a', 'GET', db);
+
+        expect(response.status).toBe(200);
+        expect(db.executed.some(statement => (
+            statement.sql.includes("UPPER(COALESCE(status, 'OPEN')) != 'REVOKED'")
+        ))).toBe(true);
+    });
+
+    it('rejects starting a revoked assignment from a stale student screen', async () => {
+        asStudent('class-a');
+        const db = new ClassroomDatabase({
+            student: { id: 'student-a', username: 'student-a', full_name: 'Lan', class_id: 'class-a' },
+            assignment: {
+                id: 'assignment-a', class_id: 'class-a', student_id: '', status: 'REVOKED',
+                deadline: '2099-01-01T00:00:00.000Z',
+            },
+        });
+
+        const response = await callRoute('/api/assignments/assignment-a/start', 'POST', db, '{}');
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toMatchObject({
+            code: 'ASSIGNMENT_REVOKED',
+        });
+    });
+
     it('rejects starting an assignment from another class', async () => {
         asStudent('class-a');
         const db = new ClassroomDatabase({

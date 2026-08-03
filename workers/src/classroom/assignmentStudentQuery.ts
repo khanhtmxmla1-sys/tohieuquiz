@@ -21,7 +21,11 @@ export const getStudentAssignmentsResponse = async (
     }
 
     const assignments = await db.prepare(
-        `SELECT * FROM assignments WHERE class_id = ? AND (student_id = '' OR student_id = ?) ORDER BY created_at DESC`
+        `SELECT * FROM assignments
+         WHERE class_id = ?
+           AND (student_id = '' OR student_id = ?)
+           AND UPPER(COALESCE(status, 'OPEN')) != 'REVOKED'
+         ORDER BY created_at DESC`
     ).bind(student.class_id, student.id).all();
     if (assignments.results.length === 0) {
         return jsonResponse({ status: 'success', data: [] });

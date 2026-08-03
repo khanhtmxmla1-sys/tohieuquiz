@@ -7,10 +7,11 @@
 
 // classroomService uses the canonical Worker API adapter
 import { callApi } from './apiAdapter';
+import { ApiError } from './api/errors';
 import {
     Classroom, CreateClassPayload,
     Student, CreateStudentPayload, StudentLoginPayload, StudentSession,
-    Assignment, CreateAssignmentPayload,
+    Assignment, AssignmentRevocationResult, CreateAssignmentPayload,
     SmartAssignmentPreviewApiResponse,
     SmartAssignmentPreviewData, SmartAssignmentPreviewErrorData, SmartAssignmentPreviewRequest,
     ClassroomApiResponse,
@@ -27,7 +28,11 @@ const callWorkerApi = async <T = any>(action: string, payload: Record<string, an
     } catch (error: unknown) {
         const normalizedError = error instanceof Error ? error : new Error(String(error));
         console.error(`[ClassroomService] API Error [${action}]:`, error);
-        return { status: 'error', message: normalizedError.message || 'Unknown API error' };
+        return {
+            status: 'error',
+            message: normalizedError.message || 'Unknown API error',
+            code: error instanceof ApiError ? error.code : undefined,
+        };
     }
 };
 
@@ -279,6 +284,23 @@ export const updateAssignmentStatus = async (
         console.error('[ClassroomService] updateAssignmentStatus failed:', res.message);
     }
     return res.status === 'success';
+};
+
+/**
+ * Revoke an assignment while preserving its audit history.
+ */
+export const revokeAssignment = async (
+    assignmentId: string,
+    reason: string,
+): Promise<AssignmentRevocationResult> => {
+    const res = await callWorkerApi<AssignmentRevocationResult>('revoke_assignment', {
+        assignmentId,
+        reason,
+    });
+    if (res.status === 'success' && res.data) return res.data;
+    const error = new Error(res.message || 'Không thể thu hồi bài đã giao.') as Error & { code?: string };
+    error.code = res.code;
+    throw error;
 };
 
 /**

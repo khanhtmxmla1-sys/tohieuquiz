@@ -24,7 +24,7 @@ const AssignmentTab = () => {
       />
       <AssignmentTrackingSection
         assignments={data.assignmentStore.assignments}
-        onDelete={data.deleteAssignment}
+        onRevoke={data.revokeAssignment}
         onUpdateDeadline={data.updateDeadline}
         onUpdateStatus={data.updateStatus}
         isLoading={data.assignmentStore.isLoading}
