@@ -1,0 +1,38 @@
+[
+  {
+    "quiz_id": "quiz-valid",
+    "id": "q-valid",
+    "type": "SHORT_ANSWER",
+    "question": "The eraser is ____.",
+    "correct_answer": "mine",
+    "options": "",
+    "items": "[]",
+    "blanks": "[]",
+    "distractors": "[]",
+    "words": "[]"
+  },
+  {
+    "quiz_id": "quiz-invalid-short",
+    "id": "q-invalid-short",
+    "type": "SHORT_ANSWER",
+    "question": "The eraser is ____.",
+    "correct_answer": "",
+    "options": "",
+    "items": "[]",
+    "blanks": "[]",
+    "distractors": "[]",
+    "words": "[]"
+  },
+  {
+    "quiz_id": "quiz-invalid-matching",
+    "id": "q-invalid-matching",
+    "type": "MATCHING",
+    "question": "Nối hai cột",
+    "correct_answer": "",
+    "options": "",
+    "items": "[]",
+    "blanks": "[]",
+    "distractors": "[]",
+    "words": "[]"
+  }
+]
