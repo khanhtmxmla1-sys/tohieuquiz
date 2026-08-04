@@ -102,9 +102,12 @@ export function calculateResultSummaryStatistics(rawScores: number[]): ResultSum
     };
 }
 
-export function getIctDayBounds(now = new Date()): { start: string; end: string } {
+export function getSystemDayBounds(now = new Date()): { start: string; end: string } {
     return getSystemDayUtcRange(now);
 }
+
+/** @deprecated Use getSystemDayBounds. */
+export const getIctDayBounds = getSystemDayBounds;
 
 const buildScopedCte = (scope: ResultSummaryScope): { sql: string; bindings: unknown[] } => {
     const whereClause = scope.role === 'teacher'
@@ -154,7 +157,7 @@ export async function loadResultDashboardSummary(
     now = new Date(),
 ): Promise<ResultDashboardSummary> {
     const scoped = buildScopedCte(scope);
-    const dayBounds = getIctDayBounds(now);
+    const dayBounds = getSystemDayBounds(now);
 
     const activitySql = `${scoped.sql}
         SELECT

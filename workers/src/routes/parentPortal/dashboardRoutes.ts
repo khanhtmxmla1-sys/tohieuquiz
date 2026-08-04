@@ -1,7 +1,7 @@
 import type { ParentSessionPayload } from '../../parentPortal/types';
 import {
   createParentDashboardService,
-  resolveIctWeekWindow,
+  resolveSystemWeekWindow,
   type ParentDashboardService,
 } from '../../parentPortal/dashboardService';
 import type { Env } from '../../types';
@@ -37,7 +37,7 @@ export async function handleParentDashboardRoutes(
   if (session instanceof Response) return session;
   try {
     const requested = new URL(request.url).searchParams.get('weekStart') || undefined;
-    const window = resolveIctWeekWindow(requested, runtime.now());
+    const window = resolveSystemWeekWindow(requested, runtime.now());
     return parentRouteSuccess(await runtime.service.loadDashboard(session.studentId, window, runtime.now()));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid dashboard request';

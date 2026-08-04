@@ -132,7 +132,7 @@ const AnnouncementSettings: React.FC = () => {
         <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 className="text-2xl font-bold text-slate-900">Thông báo hệ thống</h2>
-                <p className="text-sm text-slate-600">Soạn bản nháp, chọn đối tượng và đặt lịch theo giờ Việt Nam.</p>
+                <p className="text-sm text-slate-600">Soạn bản nháp, chọn đối tượng và đặt lịch theo giờ Hà Nội (GMT+7).</p>
             </div>
             <button onClick={() => setForm(emptyForm)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-700">
                 <Plus className="h-4 w-4" />Thông báo mới

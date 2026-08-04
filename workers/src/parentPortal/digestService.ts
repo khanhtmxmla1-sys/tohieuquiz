@@ -1,5 +1,5 @@
 import type { ParentDashboardPayload, ParentDigestSnapshot } from '../../../shared/parent-portal.contract';
-import { createParentDashboardService, resolveIctWeekWindow } from './dashboardService';
+import { createParentDashboardService, resolveSystemWeekWindow } from './dashboardService';
 import type { ParentEmailProvider } from './emailProvider';
 import { isMinuteInQuietHours } from './accountService';
 import { getSystemDateTimeParts } from '../utils/systemTime';
@@ -120,7 +120,7 @@ export async function runWeeklyParentDigests(
       AND p.digest_hour = ?
   `).bind(systemClock.weekday, systemClock.hour).all<DigestCandidateRow>();
   const dashboardService = createParentDashboardService(db);
-  const week = resolveIctWeekWindow(undefined, now);
+  const week = resolveSystemWeekWindow(undefined, now);
   const summary: ParentDigestRunSummary = {
     rolloutReady: true,
     eligibleCount: candidates.results.length,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AssignmentTrackingSection from '../src/components/TeacherDashboard/AssignmentTrackingSection';
 
@@ -57,6 +57,36 @@ describe('AssignmentTrackingSection', () => {
     const rows = screen.getAllByRole('row');
     expect(within(rows[1]).getByText('Bài sắp đến hạn')).toBeTruthy();
     expect(screen.getAllByRole('button', { name: 'Sửa hạn nộp' }).length).toBeGreaterThan(0);
+  });
+
+  it('uses the normalized Hanoi ISO deadline when deciding whether to reopen a closed assignment', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-04T18:00:00.000Z'));
+    const onUpdateDeadline = vi.fn().mockResolvedValue(true);
+    const onUpdateStatus = vi.fn().mockResolvedValue(true);
+    render(
+      <AssignmentTrackingSection
+        assignments={[{ ...assignments[0], id: 'closed', status: 'CLOSED' }]}
+        onRevoke={vi.fn()}
+        onUpdateDeadline={onUpdateDeadline}
+        onUpdateStatus={onUpdateStatus}
+        isLoading={false}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Mở lại bài giao' })[0]);
+    const deadlineInput = screen.getAllByLabelText('Hạn nộp theo giờ Hà Nội GMT+7')[0];
+    fireEvent.change(deadlineInput, { target: { value: '2026-08-05T00:30' } });
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Lưu hạn nộp' })[0]);
+      await Promise.resolve();
+    });
+
+    expect(onUpdateDeadline).toHaveBeenCalledWith(
+      'closed',
+      '2026-08-04T17:30:00.000Z',
+    );
+    expect(onUpdateStatus).not.toHaveBeenCalled();
   });
 
   it('applies the Action Center status/due filter from the URL and keeps changes in the URL', () => {

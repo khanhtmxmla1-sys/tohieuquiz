@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import type { Assignment, AssignmentStatus } from '../../types/classroom.types';
 import {
-    getVietnamDefaultDeadline,
+    getSystemDefaultDeadline,
     toSystemDateTimeLocal,
     systemDateTimeLocalToIso,
 } from '../../utils/dateTime';
@@ -243,7 +243,7 @@ const AssignmentRow: React.FC<AssignmentRowProps> = ({
     };
     const reopen = () => {
         if (isRevoked) return;
-        setEditDeadline(getVietnamDefaultDeadline());
+        setEditDeadline(getSystemDefaultDeadline());
         setIsEditing(true);
     };
     const saveDeadline = async () => {
@@ -251,7 +251,7 @@ const AssignmentRow: React.FC<AssignmentRowProps> = ({
         setIsSaving(true);
         const newDeadline = systemDateTimeLocalToIso(editDeadline);
         const ok = await onUpdateDeadline(assignment.id, newDeadline);
-        if (ok && !isOpen && new Date(editDeadline) > new Date()) {
+        if (ok && !isOpen && new Date(newDeadline) > new Date()) {
             await onUpdateStatus(assignment.id, 'OPEN');
         }
         setIsSaving(false);
@@ -338,7 +338,7 @@ const AssignmentCardRow: React.FC<AssignmentRowProps> = ({
         setIsSaving(true);
         const deadline = systemDateTimeLocalToIso(editDeadline);
         const ok = await onUpdateDeadline(assignment.id, deadline);
-        if (ok && !isOpen && new Date(editDeadline) > new Date()) {
+        if (ok && !isOpen && new Date(deadline) > new Date()) {
             await onUpdateStatus(assignment.id, 'OPEN');
         }
         setIsSaving(false);
@@ -401,7 +401,7 @@ const AssignmentCardRow: React.FC<AssignmentRowProps> = ({
                                 onConfirm: () => { void onUpdateStatus(assignment.id, 'CLOSED'); },
                             });
                         } else {
-                            setEditDeadline(getVietnamDefaultDeadline());
+                            setEditDeadline(getSystemDefaultDeadline());
                             setIsEditing(true);
                         }
                     }}

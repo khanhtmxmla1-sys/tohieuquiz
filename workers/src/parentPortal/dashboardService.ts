@@ -6,8 +6,9 @@ import {
   getSystemWeekKey,
   getSystemWeekUtcRange,
 } from '../utils/systemTime';
+import { SYSTEM_UTC_OFFSET } from '../../../shared/time-zone.contract';
 
-export interface IctWeekWindow {
+export interface SystemWeekWindow {
   weekStart: string;
   weekEnd: string;
   previousWeekStart: string;
@@ -16,7 +17,7 @@ export interface IctWeekWindow {
   previousStartUtc: string;
 }
 
-export function resolveIctWeekWindow(
+export function resolveSystemWeekWindow(
   requestedWeekStart?: string,
   now = new Date(),
 ): IctWeekWindow {
@@ -30,7 +31,7 @@ export function resolveIctWeekWindow(
       throw new Error('Invalid weekStart date');
     }
     if (label.getUTCDay() !== 1) throw new Error('weekStart must be a Monday');
-    weekKey = getSystemWeekKey(new Date(`${requestedWeekStart}T12:00:00+07:00`));
+    weekKey = getSystemWeekKey(new Date(`${requestedWeekStart}T12:00:00${SYSTEM_UTC_OFFSET}`));
   }
 
   const current = getSystemWeekUtcRange(weekKey);
@@ -49,10 +50,15 @@ export function resolveIctWeekWindow(
   };
 }
 
+/** @deprecated Use SystemWeekWindow. */
+export type IctWeekWindow = SystemWeekWindow;
+/** @deprecated Use resolveSystemWeekWindow. */
+export const resolveIctWeekWindow = resolveSystemWeekWindow;
+
 export interface ParentDashboardService {
   loadDashboard(
     studentId: string,
-    window: IctWeekWindow,
+    window: SystemWeekWindow,
     now: Date,
   ): Promise<ParentDashboardPayload>;
 }
