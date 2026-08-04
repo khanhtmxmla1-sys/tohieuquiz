@@ -1,3 +1,4 @@
+import { formatSystemTime } from '../../utils/dateTime';
 /**
  * Results Room Component
  * 
@@ -145,7 +146,7 @@ export const ResultsRoom: React.FC<ResultsRoomProps> = ({
                                 <TrendingUp className="text-green-600" size={40} />
                             </div>
                             <div className="text-lg font-bold text-green-600 mb-1">
-                                {new Date(participant.submittedAt).toLocaleTimeString('vi-VN')}
+                                {formatSystemTime(participant.submittedAt)}
                             </div>
                             <p className="text-slate-600">Nộp bài lúc</p>
                         </div>

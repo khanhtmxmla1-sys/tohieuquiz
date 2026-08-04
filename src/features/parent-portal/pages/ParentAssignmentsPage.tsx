@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../../utils/dateTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock3, FileCheck2 } from 'lucide-react';
 import type { ParentHomeworkHistoryItem } from '../../../../shared/parent-portal.contract';
@@ -62,7 +63,7 @@ export default function ParentAssignmentsPage() {
               <div className="min-w-0">
                 <span className={`inline-flex rounded-[9px] px-2.5 py-1 text-xs font-bold ${statusTone[item.status]}`}>{tabs.find(value => value.id === item.status)?.label}</span>
                 <h2 className="mt-3 truncate text-lg font-bold tracking-[-0.02em] text-[#1e293b]">{item.title}</h2>
-                <p className="mt-1 text-sm text-[#64748b]">{item.subject} · Hạn {new Date(item.deadline).toLocaleString('vi-VN')}</p>
+                <p className="mt-1 text-sm text-[#64748b]">{item.subject} · Hạn {formatSystemDateTime(item.deadline)}</p>
               </div>
               {item.score !== null && <span className={`shrink-0 rounded-[12px] px-3 py-2 text-lg font-bold ${item.score >= 8 ? 'bg-[#ecfdf5] text-[#15803d]' : 'bg-[#fff7ed] text-[#b45309]'}`}>{item.score.toFixed(1)}/10</span>}
             </div>

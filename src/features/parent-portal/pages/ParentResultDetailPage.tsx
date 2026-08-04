@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Heart, ShieldCheck, Target } from 'lucide-react';
 import { Link, useParams } from 'react-router';
@@ -27,7 +28,7 @@ export default function ParentResultDetailPage() {
       <section className="relative overflow-hidden rounded-[24px] border border-[#bfdbfe] bg-white p-5 shadow-[0_24px_58px_-44px_rgba(37,99,235,0.75)] sm:p-6">
         <div aria-hidden="true" className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#dbeafe]/60" />
         <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
-          <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2563eb]">{item.subject}</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[#1e3a8a] sm:text-3xl">{item.title}</h1><p className="mt-2 text-sm text-[#64748b]">Hoàn thành ngày {new Date(item.submittedAt).toLocaleDateString('vi-VN')}</p></div>
+          <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#2563eb]">{item.subject}</p><h1 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[#1e3a8a] sm:text-3xl">{item.title}</h1><p className="mt-2 text-sm text-[#64748b]">Hoàn thành ngày {formatSystemDate(item.submittedAt)}</p></div>
           <div className="flex items-end gap-5">
             <p className={`text-5xl font-bold tracking-[-0.05em] ${item.score >= 8 ? 'text-[#15803d]' : item.score >= 5 ? 'text-[#b45309]' : 'text-[#dc2626]'}`}>{item.score.toFixed(1)}<span className="text-xl text-[#64748b]">/10</span></p>
             <div className="pb-1"><p className="font-semibold text-[#1e293b]">{item.correctCount}/{item.totalQuestions} câu đúng</p><p className="mt-1 text-sm text-[#64748b]">Chính xác {item.correctRate}% · {item.classification}</p></div>

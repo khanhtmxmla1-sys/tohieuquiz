@@ -1,3 +1,4 @@
+import { formatSystemTime } from '../../utils/dateTime';
 /**
  * Active Exam Monitor Component
  * 
@@ -288,7 +289,7 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                                                             Đã nộp
                                                         </span>
                                                     ) : participant.connectionState === 'reconnecting' ? (
-                                                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm" title={`Lần cuối: ${new Date(participant.lastSeen).toLocaleTimeString('vi-VN')}`}>
+                                                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm" title={`Lần cuối: ${formatSystemTime(participant.lastSeen)}`}>
                                                             Đang kết nối lại
                                                         </span>
                                                     ) : participant.isOnline ? (
@@ -298,13 +299,13 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                                                         </span>
                                                     ) : (
                                                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                                                            <span title={`Lần cuối: ${new Date(participant.lastSeen).toLocaleTimeString('vi-VN')}`}>Offline</span>
+                                                            <span title={`Lần cuối: ${formatSystemTime(participant.lastSeen)}`}>Offline</span>
                                                         </span>
                                                     )}
                                                 </td>
                                                 <td className="py-3 px-4 text-center text-sm text-slate-600">
                                                     {participant.individualEndsAt
-                                                        ? new Date(participant.individualEndsAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                                        ? formatSystemTime(participant.individualEndsAt)
                                                         : 'Theo phòng'}
                                                 </td>
                                                 <td className="py-3 px-4 text-center">
@@ -357,7 +358,7 @@ export const ActiveExamMonitor: React.FC<ActiveExamMonitorProps> = ({
                                     <li>• Không thể hoàn tác sau khi kết thúc</li>
                                     <li>• Hệ thống sẽ tự động chấm điểm</li>
                                 </ul>
-                                {confirmationExpiresAt && <p className="mt-2 text-xs text-yellow-700">Xác nhận hết hạn lúc {new Date(confirmationExpiresAt).toLocaleTimeString('vi-VN')}.</p>}
+                                {confirmationExpiresAt && <p className="mt-2 text-xs text-yellow-700">Xác nhận hết hạn lúc {formatSystemTime(confirmationExpiresAt)}.</p>}
                             </div>
                             <label className="block text-sm font-semibold text-slate-700">
                                 Lý do kết thúc sớm

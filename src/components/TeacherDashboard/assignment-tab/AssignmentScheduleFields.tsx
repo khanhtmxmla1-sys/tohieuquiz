@@ -19,7 +19,7 @@ export const AssignmentScheduleFields = (props: AssignmentScheduleFieldsProps) =
         onChange={event => props.setDeadline(event.target.value)}
         className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none text-sm"
       />
-      <p className="text-xs text-gray-400 mt-1">Giờ Việt Nam (UTC+7)</p>
+      <p className="text-xs text-gray-400 mt-1">Giờ Hà Nội (GMT+7)</p>
     </div>
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1.5">

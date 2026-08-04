@@ -1,3 +1,4 @@
+import { formatSystemDate, formatSystemTime } from '../../utils/dateTime';
 import React, { useMemo, useState } from 'react';
 import {
     Check,
@@ -14,8 +15,8 @@ import {
 import type { Assignment, AssignmentStatus } from '../../types/classroom.types';
 import {
     getVietnamDefaultDeadline,
-    toVietnamDateTimeLocal,
-    vietnamDateTimeLocalToIso,
+    toSystemDateTimeLocal,
+    systemDateTimeLocalToIso,
 } from '../../utils/dateTime';
 import { ResponsiveDataView } from '../common';
 import { showConfirm } from '../../utils/toast';
@@ -237,7 +238,7 @@ const AssignmentRow: React.FC<AssignmentRowProps> = ({
 
     const editCurrentDeadline = () => {
         if (isRevoked) return;
-        setEditDeadline(toVietnamDateTimeLocal(deadlineDate));
+        setEditDeadline(toSystemDateTimeLocal(deadlineDate));
         setIsEditing(true);
     };
     const reopen = () => {
@@ -248,7 +249,7 @@ const AssignmentRow: React.FC<AssignmentRowProps> = ({
     const saveDeadline = async () => {
         if (!editDeadline || isRevoked) return;
         setIsSaving(true);
-        const newDeadline = vietnamDateTimeLocalToIso(editDeadline);
+        const newDeadline = systemDateTimeLocalToIso(editDeadline);
         const ok = await onUpdateDeadline(assignment.id, newDeadline);
         if (ok && !isOpen && new Date(editDeadline) > new Date()) {
             await onUpdateStatus(assignment.id, 'OPEN');
@@ -335,7 +336,7 @@ const AssignmentCardRow: React.FC<AssignmentRowProps> = ({
     const saveDeadline = async () => {
         if (!editDeadline || isRevoked) return;
         setIsSaving(true);
-        const deadline = vietnamDateTimeLocalToIso(editDeadline);
+        const deadline = systemDateTimeLocalToIso(editDeadline);
         const ok = await onUpdateDeadline(assignment.id, deadline);
         if (ok && !isOpen && new Date(editDeadline) > new Date()) {
             await onUpdateStatus(assignment.id, 'OPEN');
@@ -382,7 +383,7 @@ const AssignmentCardRow: React.FC<AssignmentRowProps> = ({
                     <DeadlineDisplay
                         deadlineDate={deadlineDate}
                         onEdit={() => {
-                            setEditDeadline(toVietnamDateTimeLocal(deadlineDate));
+                            setEditDeadline(toSystemDateTimeLocal(deadlineDate));
                             setIsEditing(true);
                         }}
                     />
@@ -450,6 +451,7 @@ const DeadlineEditor: React.FC<{
             value={editDeadline}
             onChange={event => setEditDeadline(event.target.value)}
             className="w-44 rounded-lg border border-orange-300 bg-orange-50 px-2 py-1.5 text-xs outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500"
+            aria-label="Hạn nộp theo giờ Hà Nội GMT+7"
         />
         <button
             type="button"
@@ -477,10 +479,10 @@ const DeadlineDisplay: React.FC<{ deadlineDate: Date; onEdit: () => void }> = ({
     <div className="group flex items-center gap-1.5">
         <div>
             <div className="text-sm text-gray-700">
-                {deadlineDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                {formatSystemDate(deadlineDate)}
             </div>
             <div className="text-xs text-gray-400">
-                {deadlineDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                {formatSystemTime(deadlineDate)}
             </div>
         </div>
         <button

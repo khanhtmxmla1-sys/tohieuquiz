@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { toVietnamDateTimeLocal } from '../../../utils/dateTime';
+import { toSystemDateTimeLocal } from '../../../utils/dateTime';
 import type { Classroom, SmartAssignmentWarning } from '../../../types/classroom.types';
 import type { Quiz } from '../../../types';
 import type { AssignmentComposerDraft } from '../../../stores/useTeacherDashboardUIStore';
@@ -49,7 +49,7 @@ export const useAssignmentDraftHydration = (options: DraftHydrationOptions) => {
     options.setSelectedQuizId(options.draft.quizId);
     options.setSelectedClassId(options.draft.classId);
     options.setSelectedStudentId(options.draft.studentId || '');
-    options.setDeadline(toVietnamDateTimeLocal(options.draft.deadline));
+    options.setDeadline(toSystemDateTimeLocal(options.draft.deadline));
     options.setMaxAttempts(options.draft.maxAttempts);
   }, [options.draft]);
 

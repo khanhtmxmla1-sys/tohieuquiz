@@ -44,6 +44,36 @@ describe('FeatureRolloutPanel', () => {
     }));
   });
 
+  it('treats rollout datetime inputs as Hanoi time and sends UTC ISO values', async () => {
+    mocks.list.mockResolvedValueOnce([{
+      ...flag,
+      startsAt: '2026-08-05T00:30:00.000Z',
+    }]);
+    mocks.patch.mockResolvedValueOnce({
+      ...flag,
+      startsAt: '2026-08-06T00:30:00.000Z',
+      version: 3,
+    });
+
+    render(<FeatureRolloutPanel />);
+    await screen.findByText(/Preview cohort:/);
+    fireEvent.change(screen.getByLabelText('Trường thay đổi'), { target: { value: 'startsAt' } });
+
+    const valueInput = screen.getByTestId('rollout-value');
+    await waitFor(() => expect(valueInput).toHaveValue('2026-08-05T07:30'));
+    expect(screen.getByText('Giờ Hà Nội (GMT+7)')).toBeInTheDocument();
+
+    fireEvent.change(valueInput, { target: { value: '2026-08-06T07:30' } });
+    fireEvent.change(screen.getByLabelText('Lý do bắt buộc'), { target: { value: 'Mở lúc đầu giờ học' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu một trường' }));
+
+    await waitFor(() => expect(mocks.patch).toHaveBeenCalledWith('unified_notifications_v1', {
+      field: 'startsAt',
+      value: '2026-08-06T00:30:00.000Z',
+      reason: 'Mở lúc đầu giờ học',
+    }));
+  });
+
   it('requires a reason and can rollback without a deploy', async () => {
     render(<FeatureRolloutPanel />);
     await screen.findByText(/Preview cohort:/);

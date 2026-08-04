@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { AssignedWorkSkeleton, DashboardEmptyState, DashboardSectionError } from './DashboardStates';
 import type { AssignedWorkSectionProps } from './dashboard.types';
@@ -64,7 +65,7 @@ export function AssignedWorkSection({
             const remainingAttempts = Math.max(0, maxAttempts - attemptCount);
             const deadline = assignment?.deadline ? new Date(assignment.deadline) : null;
             const deadlineText = deadline && !Number.isNaN(deadline.getTime())
-              ? deadline.toLocaleDateString('vi-VN')
+              ? formatSystemDate(deadline)
               : 'Không giới hạn';
 
             return (

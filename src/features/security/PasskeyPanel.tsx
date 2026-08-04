@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../utils/dateTime';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Fingerprint, KeyRound, Loader2, Plus, Trash2 } from 'lucide-react';
 import {
@@ -11,8 +12,7 @@ import { showError, showSuccess } from '../../utils/toast';
 
 const formatDate = (value: string | null): string => {
   if (!value) return 'Chưa sử dụng';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 'Không xác định' : date.toLocaleString('vi-VN');
+  return formatSystemDateTime(value, 'Không xác định');
 };
 
 export const PasskeyPanel: React.FC = () => {

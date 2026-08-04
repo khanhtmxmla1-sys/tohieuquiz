@@ -1,3 +1,4 @@
+import { formatSystemDateTime, systemDateTimeLocalToIso, toSystemDateTimeLocal } from '../../../utils/dateTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Archive, BookText, CalendarClock, ChevronRight, Clock, Copy, LayoutGrid, List, Lock, Pencil, Plus, Search, Unlock, Users } from 'lucide-react';
@@ -67,14 +68,16 @@ export const HomeworkTab: React.FC = () => {
 
   const updateDeadline = async (event: React.MouseEvent, assignment: HomeworkAssignment) => {
     event.stopPropagation();
-    const current = new Date(assignment.deadline);
-    const localValue = new Date(current.getTime() - current.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    const value = window.prompt('Nhập hạn nộp mới (YYYY-MM-DDTHH:mm)', localValue);
+    const localValue = toSystemDateTimeLocal(assignment.deadline);
+    const value = window.prompt('Nhập hạn nộp mới theo giờ Hà Nội (YYYY-MM-DDTHH:mm)', localValue);
     if (!value) return;
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return toast.error('Hạn nộp không hợp lệ');
-    try { await updateAssignment(assignment.id, { deadline: parsed.toISOString(), status: 'OPEN' }); toast.success('Đã gia hạn bài tập'); }
-    catch (err) { toast.error(err instanceof Error ? err.message : 'Không thể gia hạn'); }
+    try {
+      const deadline = systemDateTimeLocalToIso(value);
+      await updateAssignment(assignment.id, { deadline, status: 'OPEN' });
+      toast.success('Đã gia hạn bài tập');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Hạn nộp không hợp lệ');
+    }
   };
 
   const editAssignment = async (event: React.MouseEvent, assignment: HomeworkAssignment) => {
@@ -177,7 +180,7 @@ export const HomeworkTab: React.FC = () => {
               <button aria-label="Nhân bản" title="Nhân bản" onClick={event => duplicate(event, hw)} className="p-2 text-slate-400 hover:text-blue-700"><Copy className="w-4 h-4" /></button>
               <button aria-label="Lưu trữ bài" title="Lưu trữ" onClick={event => archive(event, hw)} className="p-2 text-slate-400 hover:text-rose-600"><Archive className="w-4 h-4" /></button>
             </div>
-            <div className="flex items-start gap-4 pr-8"><div className="p-3 rounded-2xl bg-indigo-50 text-blue-600"><BookText className="w-6 h-6" /></div><div className="min-w-0"><h3 className="font-bold text-blue-900 truncate">{hw.title}</h3><div className="flex flex-wrap gap-2 mt-2 text-xs text-blue-900"><span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg"><Users className="w-3.5 h-3.5" />Lớp {hw.class?.name || hw.class_id}</span><span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg"><Clock className="w-3.5 h-3.5" />{new Date(hw.deadline).toLocaleString('vi-VN')}</span></div></div></div>
+            <div className="flex items-start gap-4 pr-8"><div className="p-3 rounded-2xl bg-indigo-50 text-blue-600"><BookText className="w-6 h-6" /></div><div className="min-w-0"><h3 className="font-bold text-blue-900 truncate">{hw.title}</h3><div className="flex flex-wrap gap-2 mt-2 text-xs text-blue-900"><span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg"><Users className="w-3.5 h-3.5" />Lớp {hw.class?.name || hw.class_id}</span><span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg"><Clock className="w-3.5 h-3.5" />{formatSystemDateTime(hw.deadline)}</span></div></div></div>
             {viewMode === 'grid' ? (
               <div className="mt-6 space-y-3">
                 <div className="flex justify-between text-xs">

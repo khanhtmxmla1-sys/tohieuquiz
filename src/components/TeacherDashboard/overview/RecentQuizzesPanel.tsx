@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 import React from 'react';
 import { ArrowRight, Clock3, FilePlus2, Files, ListChecks } from 'lucide-react';
 import type { Quiz } from '../../../types';
@@ -8,11 +9,7 @@ interface RecentQuizzesPanelProps {
     onManageQuizzes: () => void;
 }
 
-const formatQuizDate = (value: string): string => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Chưa cập nhật';
-    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
+const formatQuizDate = (value: string): string => formatSystemDate(value, 'Chưa cập nhật');
 
 const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({ quizzes, onCreateQuiz, onManageQuizzes }) => (
     <section aria-labelledby="recent-quizzes-heading" className="min-w-0 max-w-full overflow-hidden rounded-[14px] border border-slate-200 bg-white">

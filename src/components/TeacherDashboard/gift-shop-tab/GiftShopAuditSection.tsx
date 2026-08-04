@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../../utils/dateTime';
 import { History } from 'lucide-react';
 import type { GiftShopEventLog } from '../../../types/giftShop.types';
 import { EVENT_LABEL_MAP } from './giftShopConfig';
@@ -36,7 +37,7 @@ export const GiftShopAuditSection = ({ events }: Props) => (
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-semibold text-slate-800">{EVENT_LABEL_MAP[event.type]}</p>
                 <time className="shrink-0 text-xs text-slate-500" dateTime={event.createdAt}>
-                  {new Date(event.createdAt).toLocaleString('vi-VN')}
+                  {formatSystemDateTime(event.createdAt)}
                 </time>
               </div>
               {summary && <p className="mt-1 text-xs text-slate-500">{summary}</p>}

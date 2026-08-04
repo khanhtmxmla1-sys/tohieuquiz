@@ -1,3 +1,4 @@
+import { formatSystemDateTime, getSystemDefaultDeadline, systemDateTimeLocalToIso } from '../../../utils/dateTime';
 import { useEffect, useMemo, useState } from 'react';
 import {
   BookOpenCheck,
@@ -22,7 +23,6 @@ import {
   createInterventionGroup,
   getInterventionDashboard,
 } from '../../../services/results/interventionService';
-import { vietnamDateTimeLocalToIso } from '../../../utils/dateTime';
 import { Card } from '../../common';
 
 interface InterventionPanelProps {
@@ -32,13 +32,7 @@ interface InterventionPanelProps {
   isOnline: boolean;
 }
 
-const defaultDeadline = (): string => {
-  const value = new Date();
-  value.setDate(value.getDate() + 7);
-  value.setHours(23, 59, 0, 0);
-  const local = new Date(value.getTime() - value.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
-};
+const defaultDeadline = (): string => getSystemDefaultDeadline(7);
 
 const percentage = (value: number): string => `${Math.round(value * 100)}%`;
 const scoreDeltaLabel = (value: number): string => `${value > 0 ? '+' : ''}${value.toFixed(1)}`;
@@ -149,7 +143,7 @@ const GroupCard = ({
     try {
       const result = await createInterventionAssignments(group.id, {
         quizId,
-        deadline: vietnamDateTimeLocalToIso(deadline),
+        deadline: systemDateTimeLocalToIso(deadline),
         maxAttempts,
         idempotencyKey,
       });
@@ -212,6 +206,7 @@ const GroupCard = ({
             <label className="text-sm font-medium text-slate-700">
               Hạn hoàn thành
               <input type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+              <span className="mt-1 block text-xs font-normal text-slate-500">Giờ Hà Nội (GMT+7)</span>
             </label>
             <label className="text-sm font-medium text-slate-700">
               Số lượt làm
@@ -274,7 +269,7 @@ const GroupCard = ({
                 {group.notes.slice(0, 3).map((item) => (
                   <div key={item.id} className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700">
                     {item.note}
-                    <span className="ml-2 text-xs text-slate-400">{new Date(item.createdAt).toLocaleString('vi-VN')}</span>
+                    <span className="ml-2 text-xs text-slate-400">{formatSystemDateTime(item.createdAt)}</span>
                   </div>
                 ))}
               </div>

@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../../utils/dateTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Award, Bell, BookOpen, ClipboardCheck, FileText, Megaphone } from 'lucide-react';
 import { useNavigate } from 'react-router';
@@ -70,7 +71,7 @@ export default function ParentNotificationsPage() {
             <button key={item.id} type="button" onClick={() => open(item)} aria-label={`${item.title}: ${item.body}`} className={`w-full rounded-[20px] border p-4 text-left shadow-[0_16px_38px_-34px_rgba(30,58,138,0.7)] transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[#93c5fd] hover:shadow-[0_22px_48px_-36px_rgba(37,99,235,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2 ${item.isRead ? 'border-[#e2e8f0] bg-white' : 'border-[#bfdbfe] bg-[#f8fbff]'}`}>
               <div className="flex gap-3 sm:gap-4">
                 <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] ${meta[item.kind].tone}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
-                <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="font-bold text-[#1e293b]">{item.title}</span>{!item.isRead && <span className="rounded-full bg-[#2563eb] px-2 py-0.5 text-[10px] font-bold text-white">Mới</span>}{item.isImportant && <span className="rounded-full bg-[#fef3c7] px-2 py-0.5 text-[10px] font-bold text-[#92400e]">Quan trọng</span>}</span><span className="mt-1 block text-sm leading-6 text-[#475569]">{item.body}</span><span className="mt-2 block text-xs text-[#94a3b8]">{new Date(item.publishedAt).toLocaleString('vi-VN')}</span></span>
+                <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="font-bold text-[#1e293b]">{item.title}</span>{!item.isRead && <span className="rounded-full bg-[#2563eb] px-2 py-0.5 text-[10px] font-bold text-white">Mới</span>}{item.isImportant && <span className="rounded-full bg-[#fef3c7] px-2 py-0.5 text-[10px] font-bold text-[#92400e]">Quan trọng</span>}</span><span className="mt-1 block text-sm leading-6 text-[#475569]">{item.body}</span><span className="mt-2 block text-xs text-[#94a3b8]">{formatSystemDateTime(item.publishedAt)}</span></span>
               </div>
             </button>
           );

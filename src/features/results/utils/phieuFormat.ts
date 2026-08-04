@@ -1,7 +1,7 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 export function formatPhieuDate(raw: unknown, fallback = '---'): string {
   if (typeof raw !== 'string' || !raw.trim()) return fallback;
-  const date = new Date(raw);
-  return Number.isNaN(date.getTime()) ? fallback : date.toLocaleDateString('vi-VN');
+  return formatSystemDate(raw, fallback);
 }
 
 export function formatPhieuScore(raw: unknown, fallback = '---'): string {

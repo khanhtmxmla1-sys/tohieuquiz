@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../../utils/dateTime';
 import React from 'react';
 import { Cloud, Laptop, Loader2, TriangleAlert } from 'lucide-react';
 import type { ManualQuizDraftRecord } from '../../../../shared/manual-quiz-draft.contract';
@@ -11,14 +12,7 @@ interface DraftConflictDialogProps {
     onUseServer(): void | Promise<void>;
 }
 
-const formatDateTime = (value: string): string => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Không rõ thời gian';
-    return new Intl.DateTimeFormat('vi-VN', {
-        dateStyle: 'short',
-        timeStyle: 'short',
-    }).format(date);
-};
+const formatDateTime = (value: string): string => formatSystemDateTime(value, 'Không rõ thời gian');
 
 const DraftVersionCard: React.FC<{
     icon: React.ReactNode;

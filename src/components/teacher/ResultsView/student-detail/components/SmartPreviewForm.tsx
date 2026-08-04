@@ -67,6 +67,7 @@ export const SmartPreviewForm: React.FC<SmartPreviewFormProps> = (props) => (
                     onChange={(event) => props.onDeadlineChange(event.target.value)}
                     className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal normal-case text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
+                <span className="mt-1 block text-[11px] font-normal normal-case text-slate-500">Giờ Hà Nội (GMT+7)</span>
             </label>
             <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
                 So luot lam
@@ -75,6 +76,7 @@ export const SmartPreviewForm: React.FC<SmartPreviewFormProps> = (props) => (
                     onChange={(event) => props.onMaxAttemptsChange(Math.max(1, Math.min(10, Number(event.target.value) || 1)))}
                     className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-normal normal-case text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                 />
+                <span className="mt-1 block text-[11px] font-normal normal-case text-slate-500">Giờ Hà Nội (GMT+7)</span>
             </label>
         </div>
         <button onClick={props.onUse} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors">

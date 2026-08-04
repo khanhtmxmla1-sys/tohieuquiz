@@ -4,7 +4,7 @@ import type { StudentResult } from '../../../../../types';
 import { getSmartAssignmentPreview } from '../../../../../services/classroomService';
 import { toast } from 'react-hot-toast';
 import { createSmartAssignmentComposerDraft } from '../models/smartAssignmentDraft';
-import { toVietnamDateTimeLocal } from '../../../../../utils/dateTime';
+import { toSystemDateTimeLocal } from '../../../../../utils/dateTime';
 
 export const useSmartAssignmentPreview = (
     result: StudentResult,
@@ -26,7 +26,7 @@ export const useSmartAssignmentPreview = (
     useEffect(() => {
         if (!smartPreview) return;
         setSelectedPreviewQuizId(smartPreview.assignmentDraft.quizId);
-        setSmartDeadline(toVietnamDateTimeLocal(smartPreview.assignmentDraft.deadline));
+        setSmartDeadline(toSystemDateTimeLocal(smartPreview.assignmentDraft.deadline));
         setSmartMaxAttempts(smartPreview.assignmentDraft.maxAttempts);
     }, [smartPreview]);
 

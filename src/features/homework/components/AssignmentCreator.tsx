@@ -1,3 +1,4 @@
+import { systemDateTimeLocalToIso } from '../../../utils/dateTime';
 import React, { useState } from 'react';
 import { Upload, FileText, Calendar, Send, Loader2, X, CheckCircle2, Hash, Users } from 'lucide-react';
 import { Button } from '../../../components/common';
@@ -79,7 +80,7 @@ export const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ onSuccess 
         title: title.trim(),
         description: description.trim(),
         subject: subject.trim(),
-        deadline: new Date(deadline).toISOString(),
+        deadline: systemDateTimeLocalToIso(deadline),
         source_ocr_text: aiContent,
         ai_content: aiContent,
         rubric: aiContent.trim() ? [{ questionId: 'rubric', label: 'Đáp án mẫu / Tiêu chí', score: 0, maxScore: 10, comment: aiContent.trim() }] : [],
@@ -171,6 +172,7 @@ export const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ onSuccess 
                  onChange={(e) => setDeadline(e.target.value)}
                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none"
                />
+               <p className="mt-1 text-xs text-slate-500">Giờ Hà Nội (GMT+7)</p>
              </div>
           </div>
 

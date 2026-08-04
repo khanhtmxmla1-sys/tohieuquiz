@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../../utils/dateTime';
 import React from 'react';
 import { ChevronRight, FileText } from 'lucide-react';
 import type { StudentResultReportSummary } from '../../../../../shared/result-reports.contract';
@@ -7,12 +8,7 @@ interface StudentResultReportCardProps {
   onOpen: (phieuId: string) => void;
 }
 
-const formatDate = (value: string): string => {
-  const date = new Date(value);
-  return Number.isFinite(date.getTime())
-    ? date.toLocaleDateString('vi-VN')
-    : value;
-};
+const formatDate = (value: string): string => formatSystemDate(value, value);
 
 export const StudentResultReportCard: React.FC<StudentResultReportCardProps> = ({ report, onOpen }) => (
   <button

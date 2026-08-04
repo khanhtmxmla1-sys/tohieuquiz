@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 /**
  * Date Range Filter Component
  * 
@@ -59,7 +60,7 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         const startDate = customStart ? new Date(customStart) : null;
         const endDate = customEnd ? new Date(customEnd) : null;
         const label = startDate && endDate
-            ? `${startDate.toLocaleDateString('vi-VN')} - ${endDate.toLocaleDateString('vi-VN')}`
+            ? `${formatSystemDate(startDate)} - ${formatSystemDate(endDate)}`
             : 'Tùy chọn';
         onChange({ startDate, endDate, label });
         setShowCustom(false);

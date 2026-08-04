@@ -1,3 +1,4 @@
+import { formatSystemTime } from '../../../utils/dateTime';
 import { CheckCircle2 } from 'lucide-react';
 import type { StudentLiveExamController } from '../hooks/useStudentLiveExam';
 
@@ -5,7 +6,7 @@ export const LiveExamSubmittedScreen = ({
   submission,
 }: Pick<StudentLiveExamController, 'submission'>) => {
   const submittedAt = submission?.submittedAt
-    ? new Date(submission.submittedAt).toLocaleTimeString('vi-VN') : '';
+    ? formatSystemTime(submission.submittedAt) : '';
   return <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center p-4">
     <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 text-center">
       <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">

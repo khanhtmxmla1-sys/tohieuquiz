@@ -1,3 +1,4 @@
+import { formatSystemTimeWithOptions } from '../../utils/dateTime';
 import React, { useMemo, useState } from 'react';
 import { Loader2, MessageCircle, Send, ShieldAlert } from 'lucide-react';
 import type { WaitingRoomChatMessage } from '../../types/liveExam.types';
@@ -97,7 +98,7 @@ export const WaitingRoomChatPanel: React.FC<WaitingRoomChatPanelProps> = ({
                                         className="break-words text-sm leading-relaxed"
                                     />
                                     <div className={`text-[10px] mt-2 ${isMine ? 'text-blue-100/80' : 'text-slate-400'}`}>
-                                        {new Date(message.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                        {formatSystemTimeWithOptions(message.createdAt, { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </div>
                             </div>

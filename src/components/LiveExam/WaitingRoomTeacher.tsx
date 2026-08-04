@@ -1,3 +1,4 @@
+import { formatSystemTime } from '../../utils/dateTime';
 /**
  * Waiting Room Teacher Component
  * 
@@ -194,7 +195,7 @@ export const WaitingRoomTeacher: React.FC<WaitingRoomTeacherProps> = ({
                                                     {participant.username}
                                                 </div>
                                                 <div className="text-xs text-slate-500">
-                                                    Tham gia lúc {new Date(participant.joinedAt).toLocaleTimeString('vi-VN')}
+                                                    Tham gia lúc {formatSystemTime(participant.joinedAt)}
                                                 </div>
                                             </div>
                                             <span className="w-2 h-2 bg-green-500 rounded-full"></span>

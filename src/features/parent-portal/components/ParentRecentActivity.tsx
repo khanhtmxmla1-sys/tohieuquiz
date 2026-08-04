@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 import React from 'react';
 import { BookOpenCheck, CheckCircle2, ChevronRight } from 'lucide-react';
 import type { ParentDashboardPayload } from '../../../../shared/parent-portal.contract';
@@ -17,7 +18,7 @@ export default function ParentRecentActivity({ items }: { items: ParentDashboard
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-[#1e293b] sm:text-base">{item.title}</p>
-              <p className="mt-1 truncate text-xs text-[#64748b]">{item.subject} · {new Date(item.occurredAt).toLocaleDateString('vi-VN')}</p>
+              <p className="mt-1 truncate text-xs text-[#64748b]">{item.subject} · {formatSystemDate(item.occurredAt)}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
               <span className={`rounded-[10px] px-2.5 py-1.5 text-xs font-bold sm:text-sm ${item.score === null ? 'bg-[#f1f5f9] text-[#475569]' : item.score >= 8 ? 'bg-[#ecfdf5] text-[#15803d]' : 'bg-[#fff7ed] text-[#b45309]'}`}>

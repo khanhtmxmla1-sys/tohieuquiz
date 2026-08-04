@@ -109,6 +109,7 @@ export function AnnouncementDistributionFields({
             onChange={(event) => onChange({ ...draft, startsAt: event.target.value })}
             className="mt-1 h-11 w-full rounded-xl border px-3"
           />
+          <span className="mt-1 block text-xs font-normal text-slate-500">Giờ Hà Nội (GMT+7)</span>
           {errors.startsAt && <span className="block text-red-700">{errors.startsAt}</span>}
         </label>
         <label className="text-sm font-semibold">
@@ -119,6 +120,7 @@ export function AnnouncementDistributionFields({
             onChange={(event) => onChange({ ...draft, endsAt: event.target.value })}
             className="mt-1 h-11 w-full rounded-xl border px-3"
           />
+          <span className="mt-1 block text-xs font-normal text-slate-500">Giờ Hà Nội (GMT+7)</span>
           {errors.endsAt && <span className="block text-red-700">{errors.endsAt}</span>}
         </label>
       </div>

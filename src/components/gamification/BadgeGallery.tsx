@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../utils/dateTime';
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, Lock, Trophy, Star } from 'lucide-react';
@@ -221,7 +222,7 @@ export const BadgeGallery: React.FC<BadgeGalleryProps> = ({
                                                     </p>
                                                     {isUnlocked && unlockedData?.unlockedAt && (
                                                         <p className="text-xs text-slate-400 mt-2">
-                                                            {new Date(unlockedData.unlockedAt).toLocaleDateString('vi-VN')}
+                                                            {formatSystemDate(unlockedData.unlockedAt)}
                                                         </p>
                                                     )}
                                                 </div>

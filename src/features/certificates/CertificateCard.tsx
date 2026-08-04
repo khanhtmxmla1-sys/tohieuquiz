@@ -1,3 +1,4 @@
+import { formatSystemDateWithOptions } from '../../utils/dateTime';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Calendar, Download, Share2, Star, Trophy, User } from 'lucide-react';
@@ -32,7 +33,7 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ cert }) => {
         };
     }, [cert.pngUrl]);
 
-    const formattedDate = new Date(cert.issuedAt).toLocaleDateString('vi-VN', {
+    const formattedDate = formatSystemDateWithOptions(cert.issuedAt, {
         year: 'numeric', month: 'long', day: 'numeric',
     });
 

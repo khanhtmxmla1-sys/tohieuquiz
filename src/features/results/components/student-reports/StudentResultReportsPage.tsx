@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../../../utils/dateTime';
 import React from 'react';
 import { ArrowLeft, FileText, RefreshCw } from 'lucide-react';
 import MathSpan from '../../../../components/common/MathSpan';
@@ -9,12 +10,7 @@ interface StudentResultReportsPageProps {
   selectedReportId?: string | null;
 }
 
-const formatDateTime = (value: string): string => {
-  const date = new Date(value);
-  return Number.isFinite(date.getTime())
-    ? date.toLocaleString('vi-VN')
-    : value;
-};
+const formatDateTime = (value: string): string => formatSystemDateTime(value, value);
 
 const Metric = ({ label, value }: { label: string; value: string | number }) => (
   <div className="rounded-[12px] border border-slate-200 bg-slate-50 p-3">

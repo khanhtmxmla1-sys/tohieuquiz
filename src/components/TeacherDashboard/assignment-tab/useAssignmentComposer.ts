@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRosterStore } from '../../../stores/useRosterStore';
-import { vietnamDateTimeLocalToIso } from '../../../utils/dateTime';
+import { systemDateTimeLocalToIso } from '../../../utils/dateTime';
 import type { CreateAssignmentSectionProps } from './types';
 import { useAssignmentDraftHydration } from './useAssignmentDraftHydration';
 import { useAssignmentFormState } from './useAssignmentFormState';
@@ -60,7 +60,7 @@ export const useAssignmentComposer = (props: CreateAssignmentSectionProps) => {
       quizId: form.selectedQuizId,
       classId: form.selectedClassId,
       studentId: form.selectedStudentId || undefined,
-      deadline: vietnamDateTimeLocalToIso(form.deadline),
+      deadline: systemDateTimeLocalToIso(form.deadline),
       maxAttempts: form.maxAttempts,
     });
     if (!success) return;

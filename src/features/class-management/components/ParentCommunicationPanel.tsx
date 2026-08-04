@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, BellRing, CheckCircle2, Megaphone, RefreshCw, ShieldCheck, ShieldOff } from 'lucide-react';
 import {
@@ -213,7 +214,7 @@ export default function ParentCommunicationPanel({ classId }: ParentCommunicatio
                 </div>
                 <div className="text-right">
                   {item.unreadCount > 0 ? <p className="text-sm font-bold text-amber-700">{item.unreadCount} chưa đọc</p> : <p className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700"><CheckCircle2 className="h-4 w-4" />Đã xem hết</p>}
-                  {item.lastViewedAt && <p className="text-[11px] text-slate-400">Xem gần nhất {new Date(item.lastViewedAt).toLocaleDateString('vi-VN')}</p>}
+                  {item.lastViewedAt && <p className="text-[11px] text-slate-400">Xem gần nhất {formatSystemDate(item.lastViewedAt)}</p>}
                 </div>
               </div>
             ))}
