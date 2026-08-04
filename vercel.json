@@ -1,4 +1,6 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "VITE_FEATURE_AI_QUIZ_V2=true VITE_FEATURE_AI_BLUEPRINT_V3=true VITE_FEATURE_AI_SVG_DIAGRAMS=true npm run build",
   "rewrites": [
     {
       "source": "/api/:path*",
