@@ -1,4 +1,5 @@
-﻿import type { GiftOrderStatus } from './types';
+﻿import { getSystemWeekKey } from '../../utils/systemTime';
+import type { GiftOrderStatus } from './types';
 
 export const nowIso = () => new Date().toISOString();
 
@@ -23,14 +24,7 @@ export const normalizeStatus = (value: unknown): GiftOrderStatus | 'ALL' | null 
     return null;
 };
 
-export const getIsoWeekKey = (date: Date): string => {
-    const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-    const weekday = target.getUTCDay() || 7;
-    target.setUTCDate(target.getUTCDate() + 4 - weekday);
-    const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-    const week = Math.ceil((((target.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7);
-    return `${target.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
-};
+export const getIsoWeekKey = (date: Date): string => getSystemWeekKey(date);
 
 export const gradeFromClassName = (value: unknown): number | null => {
     const match = String(value || '').trim().match(/[1-9]/);

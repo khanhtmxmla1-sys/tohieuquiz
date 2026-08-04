@@ -1,17 +1,11 @@
 ﻿import type { GiftPurchasePayload, GiftPurchaseResponse } from '../../types/giftShop.types';
+import { getSystemWeekKey } from '../../utils/dateTime';
 import { getOrderById } from './mockOrderAccess';
 import { createPurchaseRecords, recordPurchase } from './mockPurchaseRecords';
 import { readMockState, saveMockState } from './mockState';
 import { ensureWallet, nowIso } from './mockStateHelpers';
 
-const currentWeekKey = (value: string) => {
-    const date = new Date(value);
-    const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-    const weekday = target.getUTCDay() || 7;
-    target.setUTCDate(target.getUTCDate() + 4 - weekday);
-    const start = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-    return `${target.getUTCFullYear()}-${Math.ceil((((target.getTime() - start.getTime()) / 86400000) + 1) / 7)}`;
-};
+const currentWeekKey = (value: string): string => getSystemWeekKey(value);
 
 export const purchaseMock = async (payload: GiftPurchasePayload): Promise<GiftPurchaseResponse> => {
     const state = readMockState();

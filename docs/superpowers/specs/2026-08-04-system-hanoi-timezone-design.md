@@ -23,6 +23,7 @@ Tạo `shared/time-zone.contract.ts` chứa:
 - `SYSTEM_TIME_ZONE = 'Asia/Ho_Chi_Minh'`
 - `SYSTEM_LOCALE = 'vi-VN'`
 - `SYSTEM_UTC_OFFSET = '+07:00'`
+- `SYSTEM_UTC_OFFSET_MINUTES = 420`
 
 Frontend và Worker cùng import contract này để tránh chuỗi múi giờ rải rác.
 

@@ -1,4 +1,5 @@
 import type { Env } from '../types';
+import { getSystemDateKey } from '../utils/systemTime';
 import { verifyJWTMiddleware, requireAdmin } from '../middleware/jwtAuth';
 import { hashSHA256, parseBody } from '../utils/helpers';
 import { errorResponse, jsonResponse } from '../utils/response';
@@ -327,7 +328,7 @@ const ingestMathTelemetry = async (request: Request, env: Env): Promise<Response
     if (!payload) return errorResponse('Invalid telemetry payload', 400);
 
     const now = new Date().toISOString();
-    const dayBucket = now.slice(0, 10);
+    const dayBucket = getSystemDateKey(now);
     const fingerprint = await hashSHA256(JSON.stringify([
         dayBucket,
         payload.quizId,

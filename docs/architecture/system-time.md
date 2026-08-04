@@ -4,7 +4,8 @@
 
 The single business time zone is `Asia/Ho_Chi_Minh` (GMT+7). Code imports this
 value from `shared/time-zone.contract.ts`; feature code must not create its own
-UTC offset or use the runtime machine's local calendar.
+UTC offset or use the runtime machine's local calendar. The shared contract also
+provides the canonical `+07:00`, `420`-minute and SQLite `+7 hours` forms.
 
 ## Storage and API boundaries
 

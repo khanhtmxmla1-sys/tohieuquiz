@@ -16,6 +16,11 @@ describe('Gift Shop governance API contracts', () => {
     expect(getIsoWeekKey(new Date('2027-01-01T10:00:00.000Z'))).toBe('2026-W53');
   });
 
+  it('changes the gift-limit week at Monday midnight in Hanoi', () => {
+    expect(getIsoWeekKey(new Date('2026-08-02T16:59:59.999Z'))).toBe('2026-W31');
+    expect(getIsoWeekKey(new Date('2026-08-02T17:00:00.000Z'))).toBe('2026-W32');
+  });
+
   it('maps database governance conflicts to safe API responses', async () => {
     const outOfStock = mapGiftShopDatabaseError(new Error('D1_ERROR: GIFT_OUT_OF_STOCK'));
     expect(outOfStock?.status).toBe(409);
