@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../../utils/dateTime';
 import React from 'react';
 import { Clock3, FileQuestion, RotateCcw, Trash2 } from 'lucide-react';
 import type { ManualQuizDraftEnvelope } from '../types/manualQuizWorkspace.types';
@@ -8,14 +9,7 @@ interface DraftRecoveryDialogProps {
     onDiscard(): void;
 }
 
-const formatSavedAt = (value: string): string => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'không rõ thời gian';
-    return new Intl.DateTimeFormat('vi-VN', {
-        dateStyle: 'short',
-        timeStyle: 'short',
-    }).format(date);
-};
+const formatSavedAt = (value: string): string => formatSystemDateTime(value, 'không rõ thời gian');
 
 const DraftRecoveryDialog: React.FC<DraftRecoveryDialogProps> = ({
     draft,

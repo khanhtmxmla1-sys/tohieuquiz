@@ -96,6 +96,25 @@ describe('Results Intervention suggestion model', () => {
     }));
   });
 
+  it('groups four-week trends by Hanoi Monday boundaries', () => {
+    const suggestions = buildInterventionSuggestionsFromData({
+      now: new Date('2026-08-03T01:00:00.000Z'),
+      students: [{ id: 'student-1', full_name: 'Lan', class_id: 'class-4a', class_name: '4A' }],
+      results: [
+        result({ id: 'r-prev', submitted_at: '2026-08-02T16:59:59.999Z', score: 4 }),
+        result({ id: 'r-current-1', submitted_at: '2026-08-02T17:00:00.000Z', score: 5 }),
+        result({ id: 'r-current-2', submitted_at: '2026-08-02T18:00:00.000Z', score: 6 }),
+      ] as any,
+      questions: [question('q1')],
+      recommendationRows: [],
+    });
+
+    expect(suggestions).toHaveLength(1);
+    const trend = suggestions[0].students[0].fourWeekTrend;
+    expect(trend[2]).toMatchObject({ weekStart: '2026-07-27', attemptCount: 1 });
+    expect(trend[3]).toMatchObject({ weekStart: '2026-08-03', attemptCount: 2 });
+  });
+
   it('does not surface a skill with fewer than three classified attempts', () => {
     const suggestions = buildInterventionSuggestionsFromData({
       now: new Date('2026-07-29T08:00:00.000Z'),

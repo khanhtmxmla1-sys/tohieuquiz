@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../utils/dateTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
@@ -59,12 +60,7 @@ const GiftImage = ({ item, className = '' }: { item: GiftCatalogItem; className?
     );
 };
 
-const formatDate = (value: string) => {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('vi-VN', {
-        hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric',
-    });
-};
+const formatDate = (value: string) => formatSystemDateTime(value, '');
 
 const OrderCard = ({ order, copiedCode, onCopy }: {
     order: GiftOrder;
@@ -263,7 +259,7 @@ const GiftShop: React.FC = () => {
                         <div className="rounded-2xl bg-slate-50 p-4">
                             {nearestGoal ? (
                                 <>
-                                    <p className="text-sm font-semibold text-slate-800">Cần thêm {(nearestGoal.priceCoins - coins).toLocaleString('vi-VN')} xu để đổi {nearestGoal.name}</p>
+                                    <p className="text-sm font-semibold text-slate-800">Cần thêm {(nearestGoal.priceCoins - coins)} xu để đổi {nearestGoal.name}</p>
                                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200" aria-label={`Tiến độ ${goalProgress}%`}>
                                         <div className="h-full rounded-full bg-sky-500" style={{ width: `${goalProgress}%` }} />
                                     </div>

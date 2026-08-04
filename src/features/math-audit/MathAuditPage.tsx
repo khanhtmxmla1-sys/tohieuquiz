@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../utils/dateTime';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     Activity,
@@ -218,7 +219,7 @@ const MathAuditPage: React.FC = () => {
                                 {event.route || '/'} · v{event.math_format_version}
                             </p>
                             <p className="mt-1 text-[10px] text-slate-400">
-                                Gần nhất: {new Date(event.last_seen_at).toLocaleString('vi-VN')}
+                                Gần nhất: {formatSystemDateTime(event.last_seen_at)}
                             </p>
                         </div>
                     ))}

@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../utils/dateTime';
 import React, { useState, useCallback } from 'react';
 import { LayoutTemplate, Plus, RefreshCw, AlertCircle, Inbox, ToggleLeft, ToggleRight, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAdminTemplates } from './useAdminTemplates';
@@ -193,7 +194,7 @@ const AdminTemplatesPage: React.FC = () => {
                                         )}
                                         <p className="text-xs text-slate-400 mt-0.5 truncate">{t.bg_image_r2_key}</p>
                                         <p className="text-xs text-slate-400">
-                                            {parseFields(t.fields_config).length} trường · {new Date(t.created_at).toLocaleDateString('vi-VN')}
+                                            {parseFields(t.fields_config).length} trường · {formatSystemDate(t.created_at)}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">

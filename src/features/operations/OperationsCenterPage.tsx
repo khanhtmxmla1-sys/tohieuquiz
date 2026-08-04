@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../utils/dateTime';
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import {
   Activity,
@@ -44,10 +45,7 @@ const runbookByComponent: Record<string, string[]> = {
   feature_flags: ['Đối chiếu flag mong đợi.', 'Kiểm tra rollout scope.', 'Rollback bằng flag thay vì sửa dữ liệu.'],
 };
 
-const formatDate = (value: string): string => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 'Không xác định' : date.toLocaleString('vi-VN');
-};
+const formatDate = (value: string): string => formatSystemDateTime(value, 'Không xác định');
 
 const copyText = async (label: string, value: string) => {
   try {

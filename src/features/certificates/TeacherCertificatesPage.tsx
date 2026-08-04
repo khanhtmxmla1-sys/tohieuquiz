@@ -1,3 +1,4 @@
+import { formatSystemDateWithOptions } from '../../utils/dateTime';
 import React, { useState, Suspense } from 'react';
 import { Award, Plus, RefreshCw, AlertCircle, Inbox, CheckCircle2, Clock, Send, XCircle, Eye, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -138,7 +139,7 @@ const TeacherCertificatesPage: React.FC = () => {
                                         {b.sent_certificates}/{b.total_certificates} chứng nhận xong
                                     </p>
                                     <p className="text-xs text-slate-400 mt-0.5">
-                                        {new Date(b.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        {formatSystemDateWithOptions(b.created_at, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                 </div>
                                 {/* Progress bar */}

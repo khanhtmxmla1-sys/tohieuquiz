@@ -223,14 +223,15 @@ const probeR2 = async (env: Env): Promise<ProbeResult> => {
   };
 };
 
-const probeAi = async (env: Env): Promise<ProbeResult> => {
+const probeAi = async (env: Env, now: Date): Promise<ProbeResult> => {
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const row = await env.DB.prepare(`
     SELECT COUNT(*) AS total_count,
            SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) AS failed_count,
            SUM(CASE WHEN status = 'RESERVED' THEN 1 ELSE 0 END) AS reserved_count
     FROM ai_generation_actions
-    WHERE usage_date >= date('now', '-1 day')
-  `).first<AiHealthRow>();
+    WHERE created_at >= ?
+  `).bind(since).first<AiHealthRow>();
   const total = numeric(row?.total_count);
   const failed = numeric(row?.failed_count);
   const reserved = numeric(row?.reserved_count);
@@ -333,7 +334,7 @@ export async function buildOperationsSnapshot(
     probe('queue', 'Certificate queue', () => probeQueue(env, now)),
     probe('dlq', 'Certificate DLQ', () => probeDlq(env)),
     probe('r2', 'R2 storage', () => probeR2(env)),
-    probe('ai', 'AI gateway', () => probeAi(env)),
+    probe('ai', 'AI gateway', () => probeAi(env, now)),
     probe('certificates', 'Certificate processing', () => probeCertificates(env, now)),
     probe('backup', 'D1 backup evidence', () => probeBackup(env, now)),
     probe('feature_flags', 'Feature flags', () => probeFlags(env)),

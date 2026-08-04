@@ -106,6 +106,36 @@ describe('server-owned math normalization and observability', () => {
     expect(sanitized).not.toHaveProperty('stack');
   });
 
+  it('changes the telemetry day bucket at midnight in Hanoi', async () => {
+    vi.useFakeTimers();
+    const db = new Database();
+    const payload = {
+      quizId: 'quiz-1', questionId: 'q-1', questionType: 'MCQ',
+      errorCode: 'MATHJAX_MERROR', route: '/quiz', mathFormatVersion: 2,
+    };
+
+    vi.setSystemTime(new Date('2026-08-04T16:59:59.999Z'));
+    await handleMathObservabilityRoutes(
+      request('https://test/api/math/telemetry', payload),
+      env(db),
+      '/api/math/telemetry',
+      'POST',
+    );
+    const beforeFingerprint = String(db.executed.at(-1)?.bindings[0]);
+
+    vi.setSystemTime(new Date('2026-08-04T17:00:00.000Z'));
+    await handleMathObservabilityRoutes(
+      request('https://test/api/math/telemetry', payload),
+      env(db),
+      '/api/math/telemetry',
+      'POST',
+    );
+    const afterFingerprint = String(db.executed.at(-1)?.bindings[0]);
+
+    expect(beforeFingerprint).not.toBe(afterFingerprint);
+    vi.useRealTimers();
+  });
+
   it('stores only privacy-safe telemetry bindings', async () => {
     const db = new Database();
     const response = await handleMathObservabilityRoutes(request('https://test/api/math/telemetry', {

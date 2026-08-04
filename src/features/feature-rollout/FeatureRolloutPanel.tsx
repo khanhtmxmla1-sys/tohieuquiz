@@ -1,3 +1,4 @@
+import { systemDateTimeLocalToIso, toSystemDateTimeLocal } from '../../utils/dateTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, RefreshCw, RotateCcw, Save, SlidersHorizontal } from 'lucide-react';
 import type {
@@ -28,7 +29,7 @@ const valueForField = (flag: FeatureFlagConfig, field: FeatureFlagPatchField): s
   const value = flag[field];
   if (field === 'allowUsers' || field === 'allowClasses') return (value as string[]).join('\n');
   if (field === 'stopConditions') return JSON.stringify(value, null, 2);
-  if (field === 'startsAt' || field === 'endsAt') return value ? String(value).slice(0, 16) : '';
+  if (field === 'startsAt' || field === 'endsAt') return value ? toSystemDateTimeLocal(String(value)) : '';
   return String(value ?? '');
 };
 
@@ -38,7 +39,7 @@ const parsedValue = (field: FeatureFlagPatchField, value: string): unknown => {
   if (field === 'allowUsers' || field === 'allowClasses') {
     return value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
   }
-  if (field === 'startsAt' || field === 'endsAt') return value ? new Date(value).toISOString() : null;
+  if (field === 'startsAt' || field === 'endsAt') return value ? systemDateTimeLocalToIso(value) : null;
   if (field === 'stopConditions') return JSON.parse(value || '{}');
   return value;
 };
@@ -169,6 +170,7 @@ export const FeatureRolloutPanel: React.FC = () => {
                 {['allowUsers', 'allowClasses', 'stopConditions', 'description'].includes(field)
                   ? <textarea data-testid="rollout-value" value={value} onChange={(event) => setValue(event.target.value)} rows={4} className="mt-1 w-full rounded-xl border p-3 font-mono text-sm" />
                   : <input data-testid="rollout-value" type={field === 'percentage' ? 'number' : field === 'startsAt' || field === 'endsAt' ? 'datetime-local' : 'text'} value={value} onChange={(event) => setValue(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border px-3" />}
+                {(field === 'startsAt' || field === 'endsAt') && <span className="mt-1 block text-xs text-slate-500">Giờ Hà Nội (GMT+7)</span>}
               </label>
             )}
           </div>

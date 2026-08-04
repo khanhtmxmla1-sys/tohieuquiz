@@ -4,6 +4,7 @@ import {
   type NotificationSeverity,
   type NotificationType,
 } from '../../../shared/notifications.contract';
+import { SYSTEM_UTC_OFFSET_MINUTES } from '../../../shared/time-zone.contract';
 
 const MINUTES_PER_DAY = 24 * 60;
 
@@ -14,7 +15,7 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   quietHoursEnabled: false,
   quietStart: '21:00',
   quietEnd: '06:30',
-  timezoneOffsetMinutes: 420,
+  timezoneOffsetMinutes: SYSTEM_UTC_OFFSET_MINUTES,
   typePreferences: {},
 };
 

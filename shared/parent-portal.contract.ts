@@ -1,3 +1,5 @@
+import { SYSTEM_TIME_ZONE } from './time-zone.contract';
+
 export const PARENT_NOTIFICATION_KINDS = [
   'quiz_result',
   'result_report',
@@ -101,7 +103,7 @@ export interface ParentContactPreferences {
   weeklyDigestEnabled: boolean;
   digestWeekday: ParentDigestWeekday;
   digestHour: number;
-  timezone: 'Asia/Ho_Chi_Minh';
+  timezone: typeof SYSTEM_TIME_ZONE;
   quietHoursEnabled: boolean;
   quietHoursStart: string;
   quietHoursEnd: string;

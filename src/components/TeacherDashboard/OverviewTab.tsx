@@ -1,3 +1,4 @@
+import { formatSystemDateWithOptions, formatSystemTime, getSystemDateKey } from '../../utils/dateTime';
 import React, { useMemo } from 'react';
 import type { ResultDashboardSummary, ResultSummaryStatistics } from '../../../shared/result-summary.contract';
 import {
@@ -55,21 +56,18 @@ const EMPTY_SUMMARY_STATISTICS: ResultSummaryStatistics = {
     ],
 };
 
-const isSameLocalDay = (first: Date, second: Date): boolean => (
-    first.getFullYear() === second.getFullYear()
-    && first.getMonth() === second.getMonth()
-    && first.getDate() === second.getDate()
-);
+const isSameLocalDay = (first: Date, second: Date): boolean =>
+    getSystemDateKey(first) === getSystemDateKey(second);
 
 const getGreeting = (date: Date): string => {
-    const hour = date.getHours();
+    const hour = Number(formatSystemTime(date).slice(0, 2));
     if (hour < 11) return 'Chào buổi sáng';
     if (hour < 18) return 'Chào buổi chiều';
     return 'Chào buổi tối';
 };
 
 const formatDateLabel = (date: Date): string => {
-    const value = date.toLocaleDateString('vi-VN', {
+    const value = formatSystemDateWithOptions(date, {
         weekday: 'long',
         day: '2-digit',
         month: '2-digit',

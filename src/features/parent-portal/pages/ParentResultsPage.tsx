@@ -1,10 +1,11 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Filter, SlidersHorizontal } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router';
 import type { ParentResultHistoryItem } from '../../../../shared/parent-portal.contract';
 import { listResults } from '../parentPortalService';
 
-const isoDaysAgo = (days: number) => new Date(Date.now() - days * 86400000).toISOString();
+const isoDaysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
 const periodRange = (period: string) => {
   if (period === 'week') return { from: isoDaysAgo(7) };
   if (period === 'month') return { from: isoDaysAgo(30) };
@@ -75,7 +76,7 @@ export default function ParentResultsPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         {items.map(item => (
           <Link key={item.id} to={`/results/${item.id}`} className="group flex min-h-[112px] items-center justify-between gap-4 rounded-[22px] border border-[#e2e8f0] bg-white p-4 shadow-[0_18px_44px_-38px_rgba(30,58,138,0.7)] transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[#93c5fd] hover:shadow-[0_22px_48px_-34px_rgba(37,99,235,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2 sm:p-5">
-            <div className="min-w-0"><p className="truncate font-bold text-[#1e293b]">{item.title}</p><p className="mt-1 text-sm text-[#64748b]">{item.subject} · {new Date(item.submittedAt).toLocaleDateString('vi-VN')}</p><span className="mt-3 inline-flex rounded-[9px] bg-[#eff6ff] px-2.5 py-1 text-xs font-bold text-[#1d4ed8]">{item.classification}{item.hasTeacherReport ? ' · Có nhận xét' : ''}</span></div>
+            <div className="min-w-0"><p className="truncate font-bold text-[#1e293b]">{item.title}</p><p className="mt-1 text-sm text-[#64748b]">{item.subject} · {formatSystemDate(item.submittedAt)}</p><span className="mt-3 inline-flex rounded-[9px] bg-[#eff6ff] px-2.5 py-1 text-xs font-bold text-[#1d4ed8]">{item.classification}{item.hasTeacherReport ? ' · Có nhận xét' : ''}</span></div>
             <div className="flex shrink-0 items-center gap-3"><span className={`text-2xl font-bold ${item.score >= 8 ? 'text-[#15803d]' : item.score >= 5 ? 'text-[#b45309]' : 'text-[#dc2626]'}`}>{item.score.toFixed(1)}</span><ChevronRight className="h-5 w-5 text-[#cbd5e1] transition-transform group-hover:translate-x-0.5 group-hover:text-[#2563eb]" aria-hidden="true" /></div>
           </Link>
         ))}

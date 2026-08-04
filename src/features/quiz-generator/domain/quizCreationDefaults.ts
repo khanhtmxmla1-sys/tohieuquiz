@@ -1,3 +1,4 @@
+import { addSystemCalendarDays, getSystemDateKey } from '../../../utils/dateTime';
 import { QuestionType } from '../../../types';
 import type { LearnerPromptMode, PromptProfileOptions } from '../../../services/geminiService';
 import type { DifficultyLevels, ExpandedSections } from './quizCreation.types';
@@ -32,11 +33,8 @@ export const createDefaultExpandedSections = (): ExpandedSections => ({
     assign: false,
 });
 
-export const createDefaultDeadline = (now = new Date()): string => {
-    const deadline = new Date(now);
-    deadline.setDate(deadline.getDate() + 7);
-    return deadline.toISOString().split('T')[0];
-};
+export const createDefaultDeadline = (now = new Date()): string =>
+    addSystemCalendarDays(getSystemDateKey(now), 7);
 
 export const createRandomAccessCode = (random: () => number = Math.random): string => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

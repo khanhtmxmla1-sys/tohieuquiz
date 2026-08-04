@@ -1,8 +1,8 @@
 import type { Quiz } from '../../../types';
 import type { SmartAssignmentRecommendedQuiz } from '../../../types/classroom.types';
-import { getVietnamDefaultDeadline } from '../../../utils/dateTime';
+import { getSystemDefaultDeadline } from '../../../utils/dateTime';
 
-export const getDefaultDeadline = (): string => getVietnamDefaultDeadline();
+export const getDefaultDeadline = (): string => getSystemDefaultDeadline();
 
 export const orderAssignmentQuizzes = (
   quizzes: Quiz[],

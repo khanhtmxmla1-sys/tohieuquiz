@@ -1,5 +1,6 @@
 import { generateId } from '../utils/response';
 import type { AchievementRow } from './types';
+import { SYSTEM_SQLITE_TIME_MODIFIER } from '../../../shared/time-zone.contract';
 
 export const getAchievementRows = (db: D1Database, username: string) =>
     db.prepare(`
@@ -33,8 +34,8 @@ export const getResultAchievementStats = (db: D1Database, username: string) =>
             COALESCE(SUM(CASE WHEN (q.category LIKE '%Anh%' OR q.category LIKE '%English%') AND r.score >= 80 THEN r.correct_count ELSE 0 END), 0) AS english_correct,
             COALESCE(SUM(CASE WHEN r.time_taken > 0 AND q.time_limit > 0 AND r.time_taken < (q.time_limit * 0.5) THEN 1 ELSE 0 END), 0) AS speed_count,
             COALESCE(SUM(CASE WHEN r.total_questions > 0 AND r.correct_count = r.total_questions THEN 1 ELSE 0 END), 0) AS perfect_count,
-            COALESCE(SUM(CASE WHEN CAST(strftime('%H', r.submitted_at) AS INTEGER) < 7 THEN 1 ELSE 0 END), 0) AS early_bird_count,
-            COALESCE(SUM(CASE WHEN CAST(strftime('%H', r.submitted_at) AS INTEGER) >= 21 THEN 1 ELSE 0 END), 0) AS night_owl_count,
+            COALESCE(SUM(CASE WHEN CAST(strftime('%H', datetime(r.submitted_at, '${SYSTEM_SQLITE_TIME_MODIFIER}')) AS INTEGER) < 7 THEN 1 ELSE 0 END), 0) AS early_bird_count,
+            COALESCE(SUM(CASE WHEN CAST(strftime('%H', datetime(r.submitted_at, '${SYSTEM_SQLITE_TIME_MODIFIER}')) AS INTEGER) >= 21 THEN 1 ELSE 0 END), 0) AS night_owl_count,
             COALESCE(SUM(r.correct_count), 0) AS total_correct
         FROM results r
         LEFT JOIN quizzes q ON r.quiz_id = q.id

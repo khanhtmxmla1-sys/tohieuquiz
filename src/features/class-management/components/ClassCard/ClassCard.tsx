@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../../utils/dateTime';
 import React from 'react';
 import { Users, Archive, RefreshCw, ClipboardList, Activity } from 'lucide-react';
 import { Classroom } from '../../types';
@@ -60,12 +61,12 @@ export const ClassCard: React.FC<ClassCardProps> = ({ classroom, isAdmin, onClic
                 GV phụ trách: {classroom.teacherFullName || classroom.teacherUsername || 'Chưa phân công'}
             </p>
             <p className="text-sm text-gray-400">
-                Tạo ngày {new Date(classroom.createdAt).toLocaleDateString('vi-VN')}
+                Tạo ngày {formatSystemDate(classroom.createdAt)}
             </p>
             <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-gray-100 text-xs text-gray-600">
                 <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5 text-orange-500" /> {classroom.studentCount || 0} học sinh</span>
                 <span className="inline-flex items-center gap-1"><ClipboardList className="w-3.5 h-3.5 text-indigo-500" /> {classroom.assignmentCount || 0} bài giao</span>
-                <span className="col-span-2 inline-flex items-center gap-1 text-gray-400"><Activity className="w-3.5 h-3.5" /> {classroom.lastActivityAt ? `Hoạt động ${new Date(classroom.lastActivityAt).toLocaleDateString('vi-VN')}` : 'Chưa có hoạt động'}</span>
+                <span className="col-span-2 inline-flex items-center gap-1 text-gray-400"><Activity className="w-3.5 h-3.5" /> {classroom.lastActivityAt ? `Hoạt động ${formatSystemDate(classroom.lastActivityAt)}` : 'Chưa có hoạt động'}</span>
             </div>
         </div>
     );

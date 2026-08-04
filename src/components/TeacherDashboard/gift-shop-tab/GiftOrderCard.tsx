@@ -1,4 +1,5 @@
-﻿import { useState } from 'react';
+import { formatSystemDateTime } from '../../../utils/dateTime';
+import { useState } from 'react';
 import { Check, CheckCircle2, Clipboard, Clock3, Coins, Gift, ShieldCheck, XCircle } from 'lucide-react';
 import type { GiftOrder } from '../../../types/giftShop.types';
 import { STATUS_CLASS_MAP, STATUS_LABEL_MAP } from './giftShopConfig';
@@ -11,13 +12,7 @@ interface Props {
   onRequestCancel: (order: GiftOrder) => void;
 }
 
-const formatDateTime = (value: string) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Không rõ thời gian';
-  return date.toLocaleString('vi-VN', {
-    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric',
-  });
-};
+const formatDateTime = (value: string) => formatSystemDateTime(value, 'Không rõ thời gian');
 
 export const GiftOrderCard = ({
   order,

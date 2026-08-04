@@ -1,7 +1,12 @@
-export const getBangkokDateKey = (date = new Date()): string =>
-    new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit',
-    }).format(date);
+import {
+    getSystemDateKey as getHanoiDateKey,
+    getSystemWeekKey as getHanoiWeekKey,
+    getSystemWeekUtcRange,
+} from '../utils/systemTime';
+
+const DAY_MS = 86_400_000;
+
+export const getCurrentDateKey = (date = new Date()): string => getHanoiDateKey(date);
 
 const parseDateKeyToUtc = (dateKey: string): Date => {
     const [year, month, day] = String(dateKey || '').split('-').map((value) => Number(value || 0));
@@ -21,15 +26,15 @@ export const getPreviousDateKey = (dateKey: string): string => {
     return formatUtcDateKey(date);
 };
 
-export const getISOWeekNumber = (date: Date): number => {
-    const value = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = value.getUTCDay() || 7;
-    value.setUTCDate(value.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(value.getUTCFullYear(), 0, 1));
-    return Math.ceil((((value.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-};
+export const getCurrentWeekKey = (date = new Date()): string => getHanoiWeekKey(date);
 
-export const getCurrentWeekKey = (): string => {
-    const now = new Date();
-    return `${now.getFullYear()}-W${String(getISOWeekNumber(now)).padStart(2, '0')}`;
+export const getPreviousWeekKey = (date = new Date()): string =>
+    getHanoiWeekKey(new Date(date.getTime() - 7 * DAY_MS));
+
+export const getWeekUtcRange = (weekKey: string): {
+    startIso: string;
+    endIsoExclusive: string;
+} => {
+    const { startIso, endIsoExclusive } = getSystemWeekUtcRange(weekKey);
+    return { startIso, endIsoExclusive };
 };

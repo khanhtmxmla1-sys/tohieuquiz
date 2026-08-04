@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 import React, { useEffect, useState } from 'react';
 import { Award, CalendarDays, UserRound, X } from 'lucide-react';
 import type { ParentCertificateHistoryItem } from '../../../../shared/parent-portal.contract';
@@ -51,7 +52,7 @@ export default function ParentCertificatesPage() {
               <div className="p-4 sm:p-5">
                 <span className="inline-flex rounded-[9px] bg-[#fff7d6] px-2.5 py-1 text-xs font-bold text-[#92400e]">Thành tích</span>
                 <h2 className="mt-3 line-clamp-2 font-bold text-[#1e293b]">{item.title}</h2>
-                <div className="mt-3 space-y-1.5 text-xs text-[#64748b]"><p className="flex items-center gap-2"><UserRound className="h-4 w-4 text-[#94a3b8]" aria-hidden="true" />{item.teacherName}</p><p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#94a3b8]" aria-hidden="true" />{new Date(item.issuedAt).toLocaleDateString('vi-VN')}</p></div>
+                <div className="mt-3 space-y-1.5 text-xs text-[#64748b]"><p className="flex items-center gap-2"><UserRound className="h-4 w-4 text-[#94a3b8]" aria-hidden="true" />{item.teacherName}</p><p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-[#94a3b8]" aria-hidden="true" />{formatSystemDate(item.issuedAt)}</p></div>
               </div>
             </button>
           );

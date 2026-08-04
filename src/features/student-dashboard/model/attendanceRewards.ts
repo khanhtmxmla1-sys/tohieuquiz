@@ -1,14 +1,9 @@
+import { getSystemDateKey } from '../../../utils/dateTime';
 import { ATTENDANCE_REWARD } from './dashboardConstants';
 import type { AttendanceClaimData, AttendanceQuestion } from './attendanceTypes';
 import { cleanOptionText } from './attendanceQuestions';
 
-export const getLocalDateKey = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+export const getLocalDateKey = () => getSystemDateKey();
 
 export const getAttendanceMultiplier = (day: number) => {
   if (day === 3) return 2;

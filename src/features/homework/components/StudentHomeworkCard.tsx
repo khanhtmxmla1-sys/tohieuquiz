@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../../utils/dateTime';
 import React from 'react';
 import type { HomeworkAssignment, HomeworkSubmission } from '../types';
 import MathSpan from '../../../components/common/MathSpan';
@@ -60,7 +61,7 @@ export const StudentHomeworkCard: React.FC<StudentHomeworkCardProps> = ({
             <span>
               Hạn:{' '}
               <span className={isOverdue || isClosed ? 'text-[#E76F51]' : 'text-amber-700'}>
-                {deadlineDate.toLocaleDateString('vi-VN')}
+                {formatSystemDate(deadlineDate)}
               </span>
             </span>
           </div>

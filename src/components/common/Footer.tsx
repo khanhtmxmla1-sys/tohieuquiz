@@ -1,3 +1,4 @@
+import { getSystemDateParts } from '../../utils/dateTime';
 import React from 'react';
 import { ArrowUpRight, Globe, Mail, ShieldCheck } from 'lucide-react';
 import { SCHOOL_NAME } from '../../config/constants';
@@ -21,7 +22,7 @@ const legalLinks: Array<{ name: string; path: FooterRoutePath }> = [
 ];
 
 const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
-    const currentYear = new Date().getFullYear();
+    const currentYear = getSystemDateParts().year;
 
     if (!showPublicLinks) {
         return (

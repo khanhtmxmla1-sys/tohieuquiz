@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../utils/dateTime';
 import { Archive, BookOpenCheck, FileClock, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { testBankService } from '../../services/testBankService';
@@ -32,10 +33,7 @@ const initialFilters: Filters = {
   pageSize: 30,
 };
 
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('vi-VN');
-};
+const formatDate = (value: string) => formatSystemDate(value, value);
 
 const SystemQuestionBankAdminPage = () => {
   const [filters, setFilters] = useState<Filters>(initialFilters);

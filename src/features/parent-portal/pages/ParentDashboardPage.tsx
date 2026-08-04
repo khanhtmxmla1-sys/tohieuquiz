@@ -16,16 +16,17 @@ import ParentRecentActivity from '../components/ParentRecentActivity';
 import ParentSubjectSummary from '../components/ParentSubjectSummary';
 import { useParentPortalStore } from '../useParentPortalStore';
 
-const addDays = (date: string, days: number) => {
-  const value = new Date(`${date}T00:00:00.000Z`);
+const addDays = (dateKey: string, days: number): string => {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const value = new Date(Date.UTC(year, month - 1, day));
   value.setUTCDate(value.getUTCDate() + days);
   return value.toISOString().slice(0, 10);
 };
 
-const formatDate = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString('vi-VN', {
-  day: '2-digit',
-  month: '2-digit',
-});
+const formatDate = (dateKey: string): string => {
+  const [, month, day] = dateKey.split('-');
+  return `${day}/${month}`;
+};
 
 export default function ParentDashboardPage() {
   const { isOnline } = useOnlineStatus();

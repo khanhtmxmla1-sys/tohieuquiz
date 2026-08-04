@@ -1,3 +1,4 @@
+import { systemDateTimeLocalToIso } from '../../../utils/dateTime';
 import { useState } from 'react';
 import type { Quiz } from '../../../types';
 import type { AiQuestionQualitySummary } from '../../../../shared/ai-question-quality.contract';
@@ -77,7 +78,7 @@ export const useQuizPersistence = ({
                         classId: form.selectedClassId,
                         quizId: quizToSave.id,
                         quizTitle: quizToSave.title,
-                        dueDate: new Date(form.deadline).toISOString(),
+                        dueDate: systemDateTimeLocalToIso(`${form.deadline}T23:59`),
                         type: 'quiz',
                         settings: {
                             duration: quizToSave.timeLimit,

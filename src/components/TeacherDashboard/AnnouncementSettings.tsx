@@ -1,3 +1,4 @@
+import { systemDateTimeLocalToIso, toSystemDateTimeLocal } from '../../utils/dateTime';
 import React, { useEffect, useState } from 'react';
 import { Archive, Loader2, Plus, RefreshCw, XCircle } from 'lucide-react';
 import { callApi } from '../../services/apiAdapter';
@@ -30,9 +31,7 @@ const emptyForm: AnnouncementDraft = {
 
 const toLocalInput = (iso: string | null | undefined) => {
     if (!iso) return '';
-    const date = new Date(iso);
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-    return local.toISOString().slice(0, 16);
+    try { return toSystemDateTimeLocal(iso); } catch { return ''; }
 };
 
 const AnnouncementSettings: React.FC = () => {
@@ -79,8 +78,8 @@ const AnnouncementSettings: React.FC = () => {
         isActive: draft.channels.includes('TICKER'), isBannerActive: draft.channels.includes('BANNER'),
         status: draft.status, audience: draft.audience, priority: draft.priority,
         channels: draft.channels, dismissible: draft.dismissible, surfaceOverrides: draft.surfaceOverrides,
-        startsAt: draft.startsAt ? new Date(draft.startsAt).toISOString() : null,
-        endsAt: draft.endsAt ? new Date(draft.endsAt).toISOString() : null,
+        startsAt: draft.startsAt ? systemDateTimeLocalToIso(draft.startsAt) : null,
+        endsAt: draft.endsAt ? systemDateTimeLocalToIso(draft.endsAt) : null,
         expectedUpdatedAt: draft.updatedAt || undefined,
     });
 
@@ -133,7 +132,7 @@ const AnnouncementSettings: React.FC = () => {
         <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 className="text-2xl font-bold text-slate-900">Thông báo hệ thống</h2>
-                <p className="text-sm text-slate-600">Soạn bản nháp, chọn đối tượng và đặt lịch theo giờ Việt Nam.</p>
+                <p className="text-sm text-slate-600">Soạn bản nháp, chọn đối tượng và đặt lịch theo giờ Hà Nội (GMT+7).</p>
             </div>
             <button onClick={() => setForm(emptyForm)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-700">
                 <Plus className="h-4 w-4" />Thông báo mới

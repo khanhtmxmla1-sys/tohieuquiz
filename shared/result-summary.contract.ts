@@ -1,3 +1,5 @@
+import { SYSTEM_TIME_ZONE } from './time-zone.contract';
+
 export type ResultScoreRange = '0-2' | '3-4' | '5-6' | '7-8' | '9-10';
 
 export interface ResultScoreBucket {
@@ -26,7 +28,7 @@ export interface ResultDashboardSummary {
     uniqueStudents: number;
     statistics: ResultSummaryStatistics;
     attemptPolicy: 'latest';
-    timezone: 'Asia/Ho_Chi_Minh';
+    timezone: typeof SYSTEM_TIME_ZONE;
 }
 
 export interface ResultDashboardSummaryResponse {

@@ -1,64 +1,214 @@
-const VIETNAM_TIME_ZONE = 'Asia/Ho_Chi_Minh';
-const VIETNAM_OFFSET = '+07:00';
+import {
+  SYSTEM_LOCALE,
+  SYSTEM_TIME_ZONE,
+  SYSTEM_UTC_OFFSET,
+} from '../../shared/time-zone.contract';
+
+export type SystemTimeInput = Date | string | number;
+
 const DATE_TIME_LOCAL_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
 
-const formatter = new Intl.DateTimeFormat('en-CA', {
-  timeZone: VIETNAM_TIME_ZONE,
+const systemPartsFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: SYSTEM_TIME_ZONE,
   year: 'numeric',
   month: '2-digit',
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
+  second: '2-digit',
   hourCycle: 'h23',
 });
 
-const getVietnamParts = (value: Date | string) => {
-  const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error('Thời hạn không hợp lệ');
+const parseSystemDate = (value: SystemTimeInput): Date | null => {
+  const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+};
+
+const getSystemParts = (value: SystemTimeInput) => {
+  const date = parseSystemDate(value);
+  if (!date) return null;
   const parts = Object.fromEntries(
-    formatter.formatToParts(date)
-      .filter(part => part.type !== 'literal')
-      .map(part => [part.type, part.value]),
+    systemPartsFormatter.formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]),
   );
+  return {
+    year: String(parts.year),
+    month: String(parts.month),
+    day: String(parts.day),
+    hour: String(parts.hour),
+    minute: String(parts.minute),
+    second: String(parts.second),
+  };
+};
+
+const formatWithOptions = (
+  value: SystemTimeInput,
+  options: Intl.DateTimeFormatOptions,
+  fallback: string,
+): string => {
+  const date = parseSystemDate(value);
+  if (!date) return fallback;
+  return new Intl.DateTimeFormat(SYSTEM_LOCALE, {
+    ...options,
+    timeZone: SYSTEM_TIME_ZONE,
+    hourCycle: options.hourCycle ?? 'h23',
+  }).format(date);
+};
+
+export const formatSystemDate = (
+  value: SystemTimeInput,
+  fallback = 'Không rõ ngày',
+): string => {
+  const parts = getSystemParts(value);
+  return parts ? `${parts.day}/${parts.month}/${parts.year}` : fallback;
+};
+
+export const formatSystemTime = (
+  value: SystemTimeInput,
+  fallback = 'Không rõ giờ',
+): string => {
+  const parts = getSystemParts(value);
+  return parts ? `${parts.hour}:${parts.minute}` : fallback;
+};
+
+export const formatSystemDateTime = (
+  value: SystemTimeInput,
+  fallback = 'Không rõ thời gian',
+): string => {
+  const parts = getSystemParts(value);
+  return parts
+    ? `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`
+    : fallback;
+};
+
+export const formatSystemDateLong = (
+  value: SystemTimeInput,
+  fallback = 'Không rõ ngày',
+): string => {
+  const parts = getSystemParts(value);
+  return parts ? `${parts.day} tháng ${parts.month}, ${parts.year}` : fallback;
+};
+
+export const formatSystemDateWithOptions = (
+  value: SystemTimeInput,
+  options: Intl.DateTimeFormatOptions,
+  fallback = 'Không rõ ngày',
+): string => formatWithOptions(value, options, fallback);
+
+export const formatSystemTimeWithOptions = (
+  value: SystemTimeInput,
+  options: Intl.DateTimeFormatOptions,
+  fallback = 'Không rõ giờ',
+): string => formatWithOptions(value, options, fallback);
+
+export const formatSystemDateTimeWithOptions = (
+  value: SystemTimeInput,
+  options: Intl.DateTimeFormatOptions,
+  fallback = 'Không rõ thời gian',
+): string => formatWithOptions(value, options, fallback);
+
+export const getSystemDateKey = (
+  value: SystemTimeInput = new Date(),
+): string => {
+  const parts = getSystemParts(value);
+  if (!parts) throw new Error('Thời gian không hợp lệ');
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
+
+export interface SystemDateParts {
+  year: number;
+  month: number;
+  day: number;
+  dateKey: string;
+}
+
+export const getSystemDateParts = (
+  value: SystemTimeInput = new Date(),
+): SystemDateParts => {
+  const parts = getSystemParts(value);
+  if (!parts) throw new Error('Thời gian không hợp lệ');
+  const dateKey = `${parts.year}-${parts.month}-${parts.day}`;
   return {
     year: Number(parts.year),
     month: Number(parts.month),
     day: Number(parts.day),
-    hour: Number(parts.hour),
-    minute: Number(parts.minute),
+    dateKey,
   };
 };
 
-const pad = (value: number) => String(value).padStart(2, '0');
-
-export const toVietnamDateTimeLocal = (value: Date | string): string => {
-  const parts = getVietnamParts(value);
-  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`;
+const parseSystemDateKey = (dateKey: string): Date => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateKey || '').trim());
+  if (!match) throw new Error('Ngày hệ thống không hợp lệ');
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== dateKey) {
+    throw new Error('Ngày hệ thống không hợp lệ');
+  }
+  return date;
 };
 
-export const vietnamDateTimeLocalToIso = (value: string): string => {
+export const addSystemCalendarDays = (dateKey: string, days: number): string => {
+  if (!Number.isInteger(days)) throw new Error('Số ngày không hợp lệ');
+  const date = parseSystemDateKey(dateKey);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+export const systemDateKeyToLabelDate = (dateKey: string): Date =>
+  parseSystemDateKey(dateKey);
+
+const isoWeekFromDateKey = (dateKey: string): string => {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const dayNumber = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNumber);
+  const isoYear = date.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+  const week = Math.ceil((((date.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7);
+  return `${isoYear}-W${String(week).padStart(2, '0')}`;
+};
+
+export const getSystemWeekKey = (
+  value: SystemTimeInput = new Date(),
+): string => isoWeekFromDateKey(getSystemDateKey(value));
+
+export const toSystemDateTimeLocal = (value: SystemTimeInput): string => {
+  const parts = getSystemParts(value);
+  if (!parts) throw new Error('Thời hạn không hợp lệ');
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+};
+
+export const systemDateTimeLocalToIso = (value: string): string => {
   const match = DATE_TIME_LOCAL_PATTERN.exec(value);
   if (!match) throw new Error('Thời hạn không hợp lệ');
-  const date = new Date(`${value}:00${VIETNAM_OFFSET}`);
+  const date = new Date(`${value}:00${SYSTEM_UTC_OFFSET}`);
   if (!Number.isFinite(date.getTime())) throw new Error('Thời hạn không hợp lệ');
 
   const [, year, month, day, hour, minute] = match;
-  if (toVietnamDateTimeLocal(date) !== `${year}-${month}-${day}T${hour}:${minute}`) {
+  if (toSystemDateTimeLocal(date) !== `${year}-${month}-${day}T${hour}:${minute}`) {
     throw new Error('Thời hạn không hợp lệ');
   }
   return date.toISOString();
 };
 
-export const getVietnamDefaultDeadline = (days = 7, now = new Date()): string => {
-  const current = getVietnamParts(now);
+export const getSystemDefaultDeadline = (days = 7, now = new Date()): string => {
+  const parts = getSystemParts(now);
+  if (!parts) throw new Error('Thời hạn không hợp lệ');
   const deadline = new Date(Date.UTC(
-    current.year,
-    current.month - 1,
-    current.day + days,
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day) + days,
     16,
     59,
     0,
     0,
   ));
-  return toVietnamDateTimeLocal(deadline);
+  return toSystemDateTimeLocal(deadline);
 };
+
+/** @deprecated Use toSystemDateTimeLocal. */
+export const toVietnamDateTimeLocal = toSystemDateTimeLocal;
+/** @deprecated Use systemDateTimeLocalToIso. */
+export const vietnamDateTimeLocalToIso = systemDateTimeLocalToIso;
+/** @deprecated Use getSystemDefaultDeadline. */
+export const getVietnamDefaultDeadline = getSystemDefaultDeadline;

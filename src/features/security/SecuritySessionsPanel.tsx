@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../utils/dateTime';
 import React, { useCallback, useEffect, useState } from 'react';
 import { History, Loader2, MonitorSmartphone, RefreshCw, ShieldCheck, X } from 'lucide-react';
 import { callApi } from '../../services/apiAdapter';
@@ -33,10 +34,7 @@ const eventLabel = (eventType: string): string => ({
   PASSKEY_REMOVED: 'Đã xóa passkey',
 }[eventType] || 'Sự kiện bảo mật');
 
-const formatDate = (value: string): string => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 'Không xác định' : date.toLocaleString('vi-VN');
-};
+const formatDate = (value: string): string => formatSystemDateTime(value, 'Không xác định');
 
 export const SecuritySessionsPanel: React.FC = () => {
   const [sessions, setSessions] = useState<AccountSession[]>([]);

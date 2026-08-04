@@ -1,13 +1,13 @@
 import { unlockAchievementsIfNeeded } from './achievementService';
 import { getStudentCoins, getWeeklySummary } from './dashboardRepository';
-import { getBangkokDateKey } from './dateKeys';
+import { getCurrentDateKey } from './dateKeys';
 import { areAllMissionsClaimed, getMissionRows } from './missionModel';
 import { safeJsonParse } from './normalization';
 import { ensureProfile, getOrCreateDailyProgress } from './progressRepository';
 import { getRecentRewards } from './rewardService';
 
 export const buildDashboardResponse = async (db: D1Database, username: string) => {
-    const todayDateKey = getBangkokDateKey();
+    const todayDateKey = getCurrentDateKey();
     const profile = await ensureProfile(db, username);
     const progress = await getOrCreateDailyProgress(db, username, todayDateKey);
     const missions = getMissionRows(progress);

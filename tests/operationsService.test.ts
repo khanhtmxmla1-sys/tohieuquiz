@@ -3,7 +3,7 @@ import { buildOperationsSnapshot, runOperationsProbe } from '../workers/src/serv
 
 class Statement {
   bindings: unknown[] = [];
-  constructor(private readonly sql: string, private readonly failCertificates = false) {}
+  constructor(readonly sql: string, private readonly failCertificates = false) {}
   bind(...values: unknown[]) { this.bindings = values; return this; }
   async first<T>() {
     if (this.sql.includes('SELECT 1 AS count')) return { count: 1 } as T;
@@ -28,8 +28,17 @@ class Statement {
   }
 }
 
-const env = (options: { r2Fails?: boolean; certificateQueryFails?: boolean } = {}) => ({
-  DB: { prepare: (sql: string) => new Statement(sql, options.certificateQueryFails) },
+const env = (
+  options: { r2Fails?: boolean; certificateQueryFails?: boolean } = {},
+  prepared: Statement[] = [],
+) => ({
+  DB: {
+    prepare: (sql: string) => {
+      const statement = new Statement(sql, options.certificateQueryFails);
+      prepared.push(statement);
+      return statement;
+    },
+  },
   CERTIFICATE_QUEUE: { send: async () => undefined },
   CERT_IMAGES: { head: async () => options.r2Fails ? Promise.reject(new Error('bucket-id-secret')) : null },
   OG_IMAGES: { head: async () => null },
@@ -63,6 +72,18 @@ describe('operations snapshot service', () => {
       code: 'PROBE_FAILED',
     });
     expect(JSON.stringify(snapshot)).not.toContain('bucket-id-secret');
+  });
+
+  it('measures AI health with an absolute rolling 24-hour timestamp window', async () => {
+    const prepared: Statement[] = [];
+    await buildOperationsSnapshot(env({}, prepared), {
+      now: () => new Date('2026-07-29T08:00:00.000Z'),
+      timeoutMs: 100,
+    });
+
+    const aiQuery = prepared.find((statement) => statement.sql.includes('FROM ai_generation_actions'));
+    expect(aiQuery?.sql).toContain('created_at >= ?');
+    expect(aiQuery?.bindings).toEqual(['2026-07-28T08:00:00.000Z']);
   });
 
   it('keeps independent certificate and queue components useful when their query fails', async () => {

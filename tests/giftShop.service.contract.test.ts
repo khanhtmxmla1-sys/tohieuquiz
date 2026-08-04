@@ -280,6 +280,21 @@ describe('giftShopService mock catalog and query contracts', () => {
         await expect(giftShopService.getOrders({ classId: 'class_3a', status: 'DELIVERED' })).resolves.toEqual([]);
     });
 
+    it('resets the mock weekly purchase limit at Monday midnight in Hanoi', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-08-02T16:59:59.999Z'));
+        await expect(giftShopService.purchase(getPurchasePayload({
+            currentCoins: 1000,
+            idempotencyKey: 'idem-hanoi-week-sunday',
+        }))).resolves.toMatchObject({ status: 'PENDING' });
+
+        vi.setSystemTime(new Date('2026-08-02T17:00:00.000Z'));
+        await expect(giftShopService.purchase(getPurchasePayload({
+            currentCoins: 1000,
+            idempotencyKey: 'idem-hanoi-week-monday',
+        }))).resolves.toMatchObject({ status: 'PENDING' });
+    });
+
     it('falls back from corrupt storage and preserves public validation errors', async () => {
         localStorage.setItem(StorageKeys.GIFT_SHOP_MOCK_STATE, '{broken-json');
         await expect(giftShopService.getCatalog()).resolves.toHaveLength(3);

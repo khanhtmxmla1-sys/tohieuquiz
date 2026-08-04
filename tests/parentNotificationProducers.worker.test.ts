@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
+import { SYSTEM_CRON } from '../workers/src/scheduling/systemCron';
 
 describe('automatic parent notification producers', () => {
   it('publishes quiz results without exposing answer details', async () => {
@@ -23,8 +24,8 @@ describe('automatic parent notification producers', () => {
   it('registers the dedicated daily due-reminder cron', async () => {
     const workerSource = await import('../workers/src/index?raw');
     const wrangler = await import('../workers/wrangler.toml?raw');
-    expect(workerSource.default).toContain("event.cron === '0 23 * * *'");
+    expect(workerSource.default).toContain('event.cron === SYSTEM_CRON.DAILY_SECURITY_AND_REMINDERS');
     expect(workerSource.default).toContain('createDueHomeworkReminders');
-    expect(wrangler.default).toContain('"0 23 * * *"');
+    expect(wrangler.default).toContain(`"${SYSTEM_CRON.DAILY_SECURITY_AND_REMINDERS}"`);
   });
 });

@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../../utils/dateTime';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { HomeworkAssignment, HomeworkAssignmentAnalytics, HomeworkSubmission } from '../types';
@@ -289,7 +290,7 @@ export const AssignmentSubmissionsView: React.FC<AssignmentSubmissionsViewProps>
                     </div>
                     <div>
                       <h4 className="text-xl font-black text-slate-800">Bài làm của {selectedSubmission.student_name}</h4>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nộp lúc: {new Date(selectedSubmission.submitted_at).toLocaleString('vi-VN')}</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nộp lúc: {formatSystemDateTime(selectedSubmission.submitted_at)}</p>
                     </div>
                   </div>
                   <div className={`px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest ${

@@ -1,4 +1,4 @@
-import { getBangkokDateKey, getCurrentWeekKey } from './dateKeys';
+import { getCurrentDateKey, getCurrentWeekKey } from './dateKeys';
 import { getOrCreateDailyProgress } from './progressRepository';
 import { updateWeeklyQuestProgress } from './weeklyQuestService';
 
@@ -23,7 +23,7 @@ export const recordQuizActivity = async (
     `).bind(input.activityId).first<any>();
     if (existing) return;
 
-    const dateKey = getBangkokDateKey();
+    const dateKey = getCurrentDateKey();
     const now = new Date().toISOString();
     const progress = await getOrCreateDailyProgress(db, username, dateKey);
     await db.batch([

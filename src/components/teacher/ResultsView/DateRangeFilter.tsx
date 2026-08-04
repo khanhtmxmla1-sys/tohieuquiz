@@ -1,3 +1,9 @@
+import {
+    addSystemCalendarDays,
+    formatSystemDate,
+    getSystemDateKey,
+    systemDateKeyToLabelDate,
+} from '../../../utils/dateTime';
 /**
  * Date Range Filter Component
  * 
@@ -42,24 +48,31 @@ export const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         } else if (preset.days === 'custom') {
             setShowCustom(true);
         } else if (preset.days === 'month') {
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            onChange({ startDate: startOfMonth, endDate: new Date(), label: preset.label });
+            const todayKey = getSystemDateKey();
+            const startOfMonthKey = `${todayKey.slice(0, 7)}-01`;
+            onChange({
+                startDate: systemDateKeyToLabelDate(startOfMonthKey),
+                endDate: systemDateKeyToLabelDate(todayKey),
+                label: preset.label,
+            });
             setShowDropdown(false);
         } else {
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - preset.days);
-            onChange({ startDate, endDate, label: preset.label });
+            const todayKey = getSystemDateKey();
+            const startDateKey = addSystemCalendarDays(todayKey, -preset.days);
+            onChange({
+                startDate: systemDateKeyToLabelDate(startDateKey),
+                endDate: systemDateKeyToLabelDate(todayKey),
+                label: preset.label,
+            });
             setShowDropdown(false);
         }
     };
 
     const handleCustomApply = () => {
-        const startDate = customStart ? new Date(customStart) : null;
-        const endDate = customEnd ? new Date(customEnd) : null;
+        const startDate = customStart ? systemDateKeyToLabelDate(customStart) : null;
+        const endDate = customEnd ? systemDateKeyToLabelDate(customEnd) : null;
         const label = startDate && endDate
-            ? `${startDate.toLocaleDateString('vi-VN')} - ${endDate.toLocaleDateString('vi-VN')}`
+            ? `${formatSystemDate(startDate)} - ${formatSystemDate(endDate)}`
             : 'Tùy chọn';
         onChange({ startDate, endDate, label });
         setShowCustom(false);

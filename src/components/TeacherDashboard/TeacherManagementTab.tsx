@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../utils/dateTime';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Ban, CheckCircle2, KeyRound, Loader2, Pencil, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { callApi } from '../../services/apiAdapter';
@@ -258,7 +259,7 @@ const TeacherManagementTab: React.FC = () => {
                                     <td className="px-4 py-3">{teacher.role === 'admin' ? 'Quản trị viên' : 'Giáo viên'}</td>
                                     <td className="px-4 py-3">{teacher.classCount} lớp</td>
                                     <td className="px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-semibold ${teacher.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-emerald-900'}`}>{teacher.status === 'ACTIVE' ? 'Hoạt động' : 'Đã khóa'}</span>{teacher.mustChangePassword && <div className="mt-1 text-xs text-amber-700">Cần đổi mật khẩu</div>}</td>
-                                    <td className="px-4 py-3 text-slate-600">{teacher.lastLoginAt ? new Date(teacher.lastLoginAt).toLocaleString('vi-VN') : 'Chưa có'}</td>
+                                    <td className="px-4 py-3 text-slate-600">{teacher.lastLoginAt ? formatSystemDateTime(teacher.lastLoginAt) : 'Chưa có'}</td>
                                     <td className="px-4 py-3"><div className="flex justify-end gap-1">
                                         <button onClick={() => openEdit(teacher)} title="Sửa" aria-label={`Sửa ${teacher.username}`} className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"><Pencil className="h-4 w-4" /></button>
                                         <button onClick={() => resetPassword(teacher)} title="Đặt lại mật khẩu" aria-label={`Đặt lại mật khẩu ${teacher.username}`} className="rounded-lg p-2 text-amber-600 hover:bg-amber-50"><KeyRound className="h-4 w-4" /></button>

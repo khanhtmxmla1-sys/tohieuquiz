@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../utils/systemTime';
 import { Env } from '../types';
 import { verifyJWTMiddleware, isStudent, requireTeacher } from '../middleware/jwtAuth';
 import { errorResponse, jsonResponse } from '../utils/response';
@@ -152,7 +153,7 @@ async function createAssignment(db: D1Database, user: JWTPayload, body: Record<s
                 sourceType: 'homework',
                 sourceId: `${id}:published`,
                 title: 'Có bài tập mới',
-                body: `${title} – hạn nộp ${new Date(deadlineMs).toLocaleString('vi-VN')}.`,
+                body: `${title} – hạn nộp ${formatSystemDateTime(deadlineMs)}.`,
                 payload: { assignmentId: id, subject: String(body.subject || ''), deadline: new Date(deadlineMs).toISOString() },
                 publishedAt: now,
                 createdBy: user.username,
@@ -198,7 +199,7 @@ async function updateAssignment(db: D1Database, user: JWTPayload, assignmentId: 
                 sourceType: 'homework',
                 sourceId: `${assignmentId}:published`,
                 title: 'Có bài tập mới',
-                body: `${title} – hạn nộp ${new Date(deadlineMs).toLocaleString('vi-VN')}.`,
+                body: `${title} – hạn nộp ${formatSystemDateTime(deadlineMs)}.`,
                 payload: { assignmentId, subject, deadline: new Date(deadlineMs).toISOString() },
                 publishedAt: now,
                 createdBy: user.username,

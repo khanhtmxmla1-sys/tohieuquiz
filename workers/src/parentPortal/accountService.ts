@@ -6,11 +6,12 @@ import {
   type ParentNotificationKind,
 } from '../../../shared/parent-portal.contract';
 import { generateActivationToken, hashActivationToken, hashParentPin, validateParentPin } from './crypto';
+import { SYSTEM_TIME_ZONE } from '../../../shared/time-zone.contract';
 import type { ParentEmailProvider } from './emailProvider';
 
 const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 const ACCOUNT_RECOVERY_TTL_MS = 30 * 60 * 1000;
-const TIMEZONE = 'Asia/Ho_Chi_Minh' as const;
+const TIMEZONE = SYSTEM_TIME_ZONE;
 const DEFAULT_KINDS = [...PARENT_NOTIFICATION_KINDS];
 
 export class ParentAccountError extends Error {

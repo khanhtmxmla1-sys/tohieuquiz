@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SYSTEM_TIME_ZONE } from '../../../../shared/time-zone.contract';
 import { ApiError } from '../../../services/api/errors';
 
 const service = vi.hoisted(() => ({
@@ -88,7 +89,7 @@ describe('parent portal store', () => {
   it('loads, updates and verifies communication preferences without browser persistence', async () => {
     const preferences = {
       email: 'parent@example.com', emailVerifiedAt: null, weeklyDigestEnabled: false,
-      digestWeekday: 1, digestHour: 19, timezone: 'Asia/Ho_Chi_Minh',
+      digestWeekday: 1, digestHour: 19, timezone: SYSTEM_TIME_ZONE,
       quietHoursEnabled: true, quietHoursStart: '21:00', quietHoursEnd: '07:00',
       emailKinds: ['quiz_result'], emailRolloutReady: true, updatedAt: null,
     };

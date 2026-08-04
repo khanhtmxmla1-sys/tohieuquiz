@@ -1,3 +1,4 @@
+import { formatSystemTime } from '../../../utils/dateTime';
 import React from 'react';
 import { ArrowRight, CheckCircle2, Clock3, Inbox, TriangleAlert } from 'lucide-react';
 import type { StudentResult } from '../../../types';
@@ -9,11 +10,7 @@ interface RecentSubmissionsPanelProps {
     onViewAll: () => void;
 }
 
-const formatSubmissionTime = (value: string): string => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return 'Không rõ giờ';
-    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-};
+const formatSubmissionTime = (value: string): string => formatSystemTime(value, 'Không rõ giờ');
 
 const RecentSubmissionsPanel: React.FC<RecentSubmissionsPanelProps> = ({
     submissions,

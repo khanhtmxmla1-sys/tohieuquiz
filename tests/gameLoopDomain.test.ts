@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { getBangkokDateKey, getPreviousDateKey } from '../workers/src/gameLoop/dateKeys';
+import {
+    getCurrentDateKey,
+    getCurrentWeekKey,
+    getPreviousDateKey,
+    getPreviousWeekKey,
+    getWeekUtcRange,
+} from '../workers/src/gameLoop/dateKeys';
 import { normalizeGameLoopCategory } from '../workers/src/gameLoop/normalization';
 import { getMissionRows } from '../workers/src/gameLoop/missionModel';
 import { chooseChestReward } from '../workers/src/gameLoop/chestReward';
@@ -17,9 +23,23 @@ const progress = (overrides: Partial<DailyProgressRow> = {}): DailyProgressRow =
 });
 
 describe('Game Loop pure domain contracts', () => {
-    it('uses Bangkok calendar days and crosses year boundaries safely', () => {
-        expect(getBangkokDateKey(new Date('2026-07-18T17:00:00.000Z'))).toBe('2026-07-19');
+    it('uses Hanoi calendar days and crosses year boundaries safely', () => {
+        expect(getCurrentDateKey(new Date('2026-07-18T16:59:59.999Z'))).toBe('2026-07-18');
+        expect(getCurrentDateKey(new Date('2026-07-18T17:00:00.000Z'))).toBe('2026-07-19');
         expect(getPreviousDateKey('2026-01-01')).toBe('2025-12-31');
+    });
+
+    it('uses Hanoi ISO weeks and exposes UTC boundaries for database queries', () => {
+        const beforeMonday = new Date('2026-08-02T16:59:59.999Z');
+        const mondayHanoi = new Date('2026-08-02T17:00:00.000Z');
+
+        expect(getCurrentWeekKey(beforeMonday)).toBe('2026-W31');
+        expect(getCurrentWeekKey(mondayHanoi)).toBe('2026-W32');
+        expect(getPreviousWeekKey(mondayHanoi)).toBe('2026-W31');
+        expect(getWeekUtcRange('2026-W32')).toEqual({
+            startIso: '2026-08-02T17:00:00.000Z',
+            endIsoExclusive: '2026-08-09T17:00:00.000Z',
+        });
     });
 
     it('normalizes the existing Toán and Tiếng Việt aliases only', () => {

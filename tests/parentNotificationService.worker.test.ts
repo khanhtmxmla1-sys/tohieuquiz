@@ -92,6 +92,22 @@ describe('parent notification service', () => {
     expect(String(db.saved[0].bindings[6])).toHaveLength(2000);
   });
 
+  it('changes reminder source dates exactly at midnight in Hanoi', async () => {
+    const beforeDb = new FakeDb();
+    beforeDb.dueRows = [{
+      assignment_id: 'hw-boundary', student_id: 'student-1', title: 'Bài tập', subject: 'Toán',
+      deadline: '2026-08-05T12:00:00.000Z',
+    }];
+    const afterDb = new FakeDb();
+    afterDb.dueRows = [...beforeDb.dueRows];
+
+    await createDueHomeworkReminders(beforeDb as any, new Date('2026-08-04T16:59:59.999Z'));
+    await createDueHomeworkReminders(afterDb as any, new Date('2026-08-04T17:00:00.000Z'));
+
+    expect(beforeDb.saved[0].bindings[4]).toBe('hw-boundary:2026-08-04');
+    expect(afterDb.saved[0].bindings[4]).toBe('hw-boundary:2026-08-05');
+  });
+
   it('creates one due reminder per unsubmitted student using a local-date source id', async () => {
     const db = new FakeDb();
     db.dueRows = [{

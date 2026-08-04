@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../utils/dateTime';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     BookOpen,
@@ -366,7 +367,7 @@ const ManageTab: React.FC<ManageTabProps> = ({ quizzes, onDelete, onEdit, onMana
                                         </span>
                                     ))}
                                     <span className="text-xs text-slate-400">
-                                        {new Date(quiz.createdAt).toLocaleDateString('vi-VN')}
+                                        {formatSystemDate(quiz.createdAt)}
                                         {quiz.createdBy ? ` · ${quiz.createdBy}` : ''}
                                     </span>
                                 </div>

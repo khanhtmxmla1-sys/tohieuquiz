@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../utils/dateTime';
 import React, { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications';
@@ -56,7 +57,7 @@ export default function NotificationBell({
               <button key={notification.id} type="button" onClick={() => openNotification(notification)} className={`w-full p-4 text-left hover:bg-gray-50 ${notification.is_read ? '' : 'bg-indigo-50/60'}`}>
                 <div className="font-medium">{notification.title}</div>
                 <div className="text-sm text-gray-600 mt-1">{notification.body}</div>
-                <div className="text-xs text-gray-400 mt-2">{new Date(notification.created_at).toLocaleString('vi-VN')}</div>
+                <div className="text-xs text-gray-400 mt-2">{formatSystemDateTime(notification.created_at)}</div>
               </button>
             ))}
           </div>

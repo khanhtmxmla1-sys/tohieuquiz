@@ -71,7 +71,9 @@ const renderOverview = (
 describe('TeacherDashboard OverviewTab', () => {
     beforeEach(() => {
         vi.useFakeTimers();
-        vi.setSystemTime(new Date(2026, 6, 17, 10, 0, 0));
+        // 10:00 on 17/07/2026 in Hanoi (UTC+7). Keep the fixture
+        // absolute so it behaves identically on UTC and GMT+7 runners.
+        vi.setSystemTime(new Date('2026-07-17T03:00:00.000Z'));
         useAuthStore.setState({
             isLoggedIn: true,
             username: 'teacher',
@@ -87,7 +89,7 @@ describe('TeacherDashboard OverviewTab', () => {
                     classLevel: 'Lớp 3-A',
                     questions: [],
                     timeLimit: 30,
-                    createdAt: new Date(2026, 6, 17, 7, 0, 0).toISOString(),
+                    createdAt: '2026-07-17T00:00:00.000Z',
                 },
                 {
                     id: 'quiz-13a',
@@ -95,13 +97,13 @@ describe('TeacherDashboard OverviewTab', () => {
                     classLevel: '13A',
                     questions: [],
                     timeLimit: 30,
-                    createdAt: new Date(2026, 6, 16, 7, 0, 0).toISOString(),
+                    createdAt: '2026-07-16T00:00:00.000Z',
                 },
             ] as any,
             results: [
-                makeResult('today-3a', 'An', '3A', 8, new Date(2026, 6, 17, 9, 0, 0).toISOString()),
-                makeResult('yesterday-3a', 'Bình', 'lớp 3-a', 6, new Date(2026, 6, 16, 9, 0, 0).toISOString()),
-                makeResult('today-13a', 'Chi', '13A', 10, new Date(2026, 6, 17, 8, 0, 0).toISOString()),
+                makeResult('today-3a', 'An', '3A', 8, '2026-07-17T02:00:00.000Z'),
+                makeResult('yesterday-3a', 'Bình', 'lớp 3-a', 6, '2026-07-16T02:00:00.000Z'),
+                makeResult('today-13a', 'Chi', '13A', 10, '2026-07-17T01:00:00.000Z'),
             ] as any,
             error: null,
         });

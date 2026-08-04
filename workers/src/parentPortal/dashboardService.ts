@@ -2,10 +2,13 @@ import type {
   ParentDashboardPayload,
   ParentNotificationItem,
 } from '../../../shared/parent-portal.contract';
+import {
+  getSystemWeekKey,
+  getSystemWeekUtcRange,
+} from '../utils/systemTime';
+import { SYSTEM_UTC_OFFSET } from '../../../shared/time-zone.contract';
 
-const ICT_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-export interface IctWeekWindow {
+export interface SystemWeekWindow {
   weekStart: string;
   weekEnd: string;
   previousWeekStart: string;
@@ -14,50 +17,48 @@ export interface IctWeekWindow {
   previousStartUtc: string;
 }
 
-const formatDate = (date: Date): string => date.toISOString().slice(0, 10);
-const addDays = (date: Date, days: number): Date => new Date(date.getTime() + days * 86400000);
-
-export function resolveIctWeekWindow(
+export function resolveSystemWeekWindow(
   requestedWeekStart?: string,
   now = new Date(),
 ): IctWeekWindow {
-  let weekStart = requestedWeekStart;
-  if (weekStart) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) throw new Error('Invalid weekStart format');
-    const parsed = new Date(`${weekStart}T00:00:00.000Z`);
-    if (!Number.isFinite(parsed.getTime()) || formatDate(parsed) !== weekStart) {
+  let weekKey = getSystemWeekKey(now);
+  if (requestedWeekStart) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(requestedWeekStart)) {
+      throw new Error('Invalid weekStart format');
+    }
+    const label = new Date(`${requestedWeekStart}T00:00:00.000Z`);
+    if (!Number.isFinite(label.getTime()) || label.toISOString().slice(0, 10) !== requestedWeekStart) {
       throw new Error('Invalid weekStart date');
     }
-    if (parsed.getUTCDay() !== 1) throw new Error('weekStart must be a Monday');
-  } else {
-    const ictNow = new Date(now.getTime() + ICT_OFFSET_MS);
-    const day = ictNow.getUTCDay() || 7;
-    weekStart = formatDate(new Date(Date.UTC(
-      ictNow.getUTCFullYear(),
-      ictNow.getUTCMonth(),
-      ictNow.getUTCDate() - (day - 1),
-    )));
+    if (label.getUTCDay() !== 1) throw new Error('weekStart must be a Monday');
+    weekKey = getSystemWeekKey(new Date(`${requestedWeekStart}T12:00:00${SYSTEM_UTC_OFFSET}`));
   }
 
-  const labelDate = new Date(`${weekStart}T00:00:00.000Z`);
-  const previous = addDays(labelDate, -7);
-  const sunday = addDays(labelDate, 6);
-  const nextMonday = addDays(labelDate, 7);
-  const toIctUtc = (label: string): string => new Date(`${label}T00:00:00+07:00`).toISOString();
+  const current = getSystemWeekUtcRange(weekKey);
+  if (requestedWeekStart && current.startDateKey !== requestedWeekStart) {
+    throw new Error('weekStart must be a Monday');
+  }
+  const previousWeekKey = getSystemWeekKey(new Date(Date.parse(current.startIso) - 1));
+  const previous = getSystemWeekUtcRange(previousWeekKey);
   return {
-    weekStart,
-    weekEnd: formatDate(sunday),
-    previousWeekStart: formatDate(previous),
-    currentStartUtc: toIctUtc(weekStart),
-    currentEndUtc: toIctUtc(formatDate(nextMonday)),
-    previousStartUtc: toIctUtc(formatDate(previous)),
+    weekStart: current.startDateKey,
+    weekEnd: current.endDateKey,
+    previousWeekStart: previous.startDateKey,
+    currentStartUtc: current.startIso,
+    currentEndUtc: current.endIsoExclusive,
+    previousStartUtc: previous.startIso,
   };
 }
+
+/** @deprecated Use SystemWeekWindow. */
+export type IctWeekWindow = SystemWeekWindow;
+/** @deprecated Use resolveSystemWeekWindow. */
+export const resolveIctWeekWindow = resolveSystemWeekWindow;
 
 export interface ParentDashboardService {
   loadDashboard(
     studentId: string,
-    window: IctWeekWindow,
+    window: SystemWeekWindow,
     now: Date,
   ): Promise<ParentDashboardPayload>;
 }

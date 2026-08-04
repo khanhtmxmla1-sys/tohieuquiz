@@ -1,4 +1,5 @@
 import type { JWTPayload } from '../utils/jwt';
+import { getSystemDateKey } from '../utils/systemTime';
 
 export interface AiTutorQuotaInput {
   requestId: string;
@@ -19,7 +20,7 @@ export const getAiTutorDailyLimit = (role: JWTPayload['role']): number => {
   return 5;
 };
 
-const todayUtc = (): string => new Date().toISOString().slice(0, 10);
+const todaySystemDate = (): string => getSystemDateKey(new Date());
 
 export async function reserveAiTutorQuota(
   db: D1Database,
@@ -35,7 +36,7 @@ export async function reserveAiTutorQuota(
     return { allowed: existing.status !== 'FAILED', reused: true, remaining: 0 };
   }
 
-  const usageDate = todayUtc();
+  const usageDate = todaySystemDate();
   const limit = getAiTutorDailyLimit(input.role);
   await db.prepare(`
     INSERT OR IGNORE INTO ai_tutor_daily_usage (username, usage_date, role, used_count)

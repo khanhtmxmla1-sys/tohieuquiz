@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../../utils/dateTime';
 /**
  * Results Table Component
  * 
@@ -106,16 +107,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
     };
 
     // Format date
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
+    const formatDate = (dateString: string) =>
+        formatSystemDateTime(dateString, 'Không rõ thời gian');
 
     // Get score color
     const getScoreColor = (score: number) => {

@@ -1,3 +1,4 @@
+import { getCurrentDateKey, getCurrentWeekKey, getWeekUtcRange } from '../gameLoop/dateKeys';
 // Gamification API Routes (Pets, Game State, Shop, Leaderboard)
 
 import { Env } from '../types';
@@ -7,15 +8,6 @@ import { verifyJWTMiddleware, isStudent } from '../middleware/jwtAuth';
 import { handleResultRewardClaim } from '../gamification/resultRewardClaim';
 
 const ATTENDANCE_BASE_REWARD = { exp: 50, coins: 50 };
-
-const getBangkokDateKey = (date = new Date()): string => {
-    return new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Bangkok',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-    }).format(date);
-};
 
 const parseDateKeyToUtc = (dateKey: string): Date => {
     const [year, month, day] = String(dateKey || '').split('-').map((v) => Number(v || 0));
@@ -57,30 +49,6 @@ const calculateAttendanceStreak = (days: string[], endDateKey: string): number =
     }
 
     return streak;
-};
-
-// Week 2: Helper functions for leaderboard
-const getWeekNumber = (date: Date): number => {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-};
-
-const getCurrentWeekKey = (): string => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const week = getWeekNumber(now);
-    return `${year}-W${String(week).padStart(2, '0')}`;
-};
-
-const getLastWeekKey = (): string => {
-    const now = new Date();
-    now.setDate(now.getDate() - 7); // Go back 1 week
-    const year = now.getFullYear();
-    const week = getWeekNumber(now);
-    return `${year}-W${String(week).padStart(2, '0')}`;
 };
 
 const ensureAttendanceTable = async (db: D1Database): Promise<void> => {
@@ -230,7 +198,7 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
 
         await ensureAttendanceTable(db);
 
-        const todayDateKey = getBangkokDateKey();
+        const todayDateKey = getCurrentDateKey();
         const weekStartDateKey = getWeekStartDateKey(todayDateKey);
         const weekClaimDates = await getWeekClaimDates(db, username, weekStartDateKey, todayDateKey);
         const claimedToday = weekClaimDates.includes(todayDateKey);
@@ -264,7 +232,7 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
 
         await ensureAttendanceTable(db);
 
-        const todayDateKey = getBangkokDateKey();
+        const todayDateKey = getCurrentDateKey();
         const weekStartDateKey = getWeekStartDateKey(todayDateKey);
 
         const existingClaim = await db.prepare(`
@@ -447,9 +415,10 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
     // GET /api/leaderboard/weekly - Weekly leaderboard (reset mỗi tuần)
     if (path === '/api/leaderboard/weekly' && method === 'GET') {
         const weekKey = url.searchParams.get('week') || getCurrentWeekKey();
-        
+        const { startIso, endIsoExclusive } = getWeekUtcRange(weekKey);
+
         const rows = await db.prepare(`
-            SELECT 
+            SELECT
                 s.username,
                 s.full_name,
                 s.class_id,
@@ -459,11 +428,12 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
                 SUM(r.correct_count) as total_correct
             FROM results r
             JOIN students s ON s.username = r.student_name
-            WHERE strftime('%Y-W%W', r.submitted_at) = ?
+            WHERE r.submitted_at >= ?
+              AND r.submitted_at < ?
             GROUP BY s.username
             ORDER BY total_score DESC
             LIMIT 50
-        `).bind(weekKey).all();
+        `).bind(startIso, endIsoExclusive).all();
         
         return jsonResponse(rows.results || []);
     }

@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../../utils/dateTime';
 import React from 'react';
 import type { InboxNotification } from '../../../../shared/notifications.contract';
 
@@ -46,7 +47,7 @@ export function NotificationListItem({
             </span>
           )}
           <span className="mt-2 block text-xs text-slate-400">
-            {new Date(notification.createdAt).toLocaleString('vi-VN')}
+            {formatSystemDateTime(notification.createdAt)}
           </span>
         </span>
       </span>

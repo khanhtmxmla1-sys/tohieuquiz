@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../../utils/systemTime';
 import type { Env } from '../../types';
 import type { JWTPayload } from '../../utils/jwt';
 import { loadFont } from '../../services/fontLoader';
@@ -40,7 +41,7 @@ export async function renderPreviewSvg(
     quiz_title: context.quizTitle,
     date: context.input.dateLine !== null
       ? context.input.dateLine
-      : new Date().toLocaleDateString('vi-VN'),
+      : formatSystemDate(new Date()),
     teacher_name: teacher?.full_name || 'Giáo viên',
     custom_note: '',
   }, context.template.canvas_width, context.template.canvas_height).replace(

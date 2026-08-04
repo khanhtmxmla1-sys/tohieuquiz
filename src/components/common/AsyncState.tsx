@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../utils/dateTime';
 import React from 'react';
 import { Alert } from './Alert';
 import { Button } from './Button';
@@ -27,13 +28,7 @@ export const DataFreshnessNotice: React.FC<DataFreshnessNoticeProps> = ({
     if (!timestamp && !isOffline && !isRefreshing) return null;
 
     const timestampLabel = timestamp
-        ? timestamp.toLocaleString('vi-VN', {
-            hour: '2-digit',
-            minute: '2-digit',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        })
+        ? formatSystemDateTime(timestamp)
         : null;
     const prefix = isOffline
         ? 'Bạn đang xem dữ liệu đã tải trước đó.'

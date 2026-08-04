@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../utils/dateTime';
 
 import { Quiz, StudentResult, QuestionType } from '../types';
 import { setupUnicodeFont, FONT_NAME } from '../utils/pdfFonts';
@@ -85,7 +86,7 @@ export const exportResultToPDF = async (options: ExportOptions): Promise<void> =
     doc.setFont(FONT_NAME, 'bold');
     doc.text('Ngày làm:', margin, yPos);
     doc.setFont(FONT_NAME, 'normal');
-    doc.text(new Date().toLocaleDateString('vi-VN'), margin + 25, yPos);
+    doc.text(formatSystemDate(new Date()), margin + 25, yPos);
     yPos += 12;
 
     // ===== SCORE SECTION =====

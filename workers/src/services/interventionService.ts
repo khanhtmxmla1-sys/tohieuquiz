@@ -1,3 +1,8 @@
+import {
+  formatSystemDateTime,
+  getSystemWeekKey,
+  getSystemWeekUtcRange,
+} from '../utils/systemTime';
 import type { JWTPayload } from '../utils/jwt';
 import type { Question } from '../types';
 import {
@@ -99,41 +104,31 @@ const safeJson = <T>(value: unknown, fallback: T): T => {
   }
 };
 
-const startOfWeekUtc = (date: Date): Date => {
-  const copy = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const day = copy.getUTCDay() || 7;
-  copy.setUTCDate(copy.getUTCDate() - day + 1);
-  return copy;
-};
-
 const buildFourWeekTrend = (
   results: InterventionResultRow[],
   now: Date,
-): InterventionTrendPoint[] => {
-  const currentWeekStart = startOfWeekUtc(now);
-  return [3, 2, 1, 0].map((weeksAgo) => {
-    const weekStart = new Date(currentWeekStart);
-    weekStart.setUTCDate(weekStart.getUTCDate() - weeksAgo * 7);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
-    const scores = results
-      .filter((result) => {
-        const submittedAt = Date.parse(String(result.submitted_at || ''));
-        return Number.isFinite(submittedAt)
-          && submittedAt >= weekStart.getTime()
-          && submittedAt < weekEnd.getTime();
-      })
-      .map((result) => Number(result.score))
-      .filter(Number.isFinite);
-    return {
-      weekStart: weekStart.toISOString().slice(0, 10),
-      averageScore: scores.length
-        ? round(scores.reduce((sum, score) => sum + score, 0) / scores.length, 1)
-        : null,
-      attemptCount: scores.length,
-    };
-  });
-};
+): InterventionTrendPoint[] => [3, 2, 1, 0].map((weeksAgo) => {
+  const targetInstant = new Date(now.getTime() - weeksAgo * 7 * 86_400_000);
+  const range = getSystemWeekUtcRange(getSystemWeekKey(targetInstant));
+  const startMs = Date.parse(range.startIso);
+  const endMs = Date.parse(range.endIsoExclusive);
+  const scores = results
+    .filter((result) => {
+      const submittedAt = Date.parse(String(result.submitted_at || ''));
+      return Number.isFinite(submittedAt)
+        && submittedAt >= startMs
+        && submittedAt < endMs;
+    })
+    .map((result) => Number(result.score))
+    .filter(Number.isFinite);
+  return {
+    weekStart: range.startDateKey,
+    averageScore: scores.length
+      ? round(scores.reduce((sum, score) => sum + score, 0) / scores.length, 1)
+      : null,
+    attemptCount: scores.length,
+  };
+});
 
 const resolveStudentForResult = (
   result: InterventionResultRow,
@@ -843,7 +838,7 @@ export async function createInterventionAssignments(
       type: 'assignment_created' as const,
       priority: 'IMPORTANT' as const,
       title: 'Em có bài luyện tập mới',
-      body: `${quiz.title || 'Bài luyện tập'} · Hạn làm ${new Date(deadline).toLocaleString('vi-VN')}`,
+      body: `${quiz.title || 'Bài luyện tập'} · Hạn làm ${formatSystemDateTime(deadline)}`,
       actionUrl: `/student?assignment=${encodeURIComponent(assignment.id)}`,
       data: {
         assignment_id: assignment.id,
