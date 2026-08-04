@@ -1,5 +1,5 @@
 import { buildDashboardResponse } from '../../gameLoop/dashboardService';
-import { getBangkokDateKey } from '../../gameLoop/dateKeys';
+import { getCurrentDateKey } from '../../gameLoop/dateKeys';
 import {
     areAllMissionsClaimed,
     getMissionClaimColumn,
@@ -22,7 +22,7 @@ export const handleClaimMissionRoute = async (
     const missionId = String(body.missionId || '').trim() as MissionId;
     if (!missionId) return errorResponse('Missing missionId');
 
-    const dateKey = getBangkokDateKey();
+    const dateKey = getCurrentDateKey();
     const profile = await ensureProfile(db, username);
     const progress = await getOrCreateDailyProgress(db, username, dateKey);
     const missions = getMissionRows(progress);

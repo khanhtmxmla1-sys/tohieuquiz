@@ -1,3 +1,4 @@
+import { formatSystemDateTime } from '../../utils/systemTime';
 import { requireTeacherForClass, requireTeacherForStudent } from '../../classroom/authorization';
 import type { ClassroomRouteContext } from '../../classroom/types';
 import { createNotifications } from '../../services/notificationWriter';
@@ -75,7 +76,7 @@ export async function handleAssignmentCreateRoute(context: ClassroomRouteContext
             type: 'assignment_created',
             priority: 'IMPORTANT',
             title: 'Em có bài được giao mới',
-            body: `${quiz.title || 'Bài kiểm tra'} · Hạn làm ${new Date(deadline).toLocaleString('vi-VN')}`,
+            body: `${quiz.title || 'Bài kiểm tra'} · Hạn làm ${formatSystemDateTime(deadline)}`,
             actionUrl: `/student?assignment=${encodeURIComponent(id)}`,
             data: { assignment_id: id, quiz_id: quizId, deadline },
             sourceType: 'assignment',

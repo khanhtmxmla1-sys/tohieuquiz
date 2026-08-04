@@ -2,8 +2,7 @@ import type { ParentDashboardPayload, ParentDigestSnapshot } from '../../../shar
 import { createParentDashboardService, resolveIctWeekWindow } from './dashboardService';
 import type { ParentEmailProvider } from './emailProvider';
 import { isMinuteInQuietHours } from './accountService';
-
-const ICT_OFFSET_MS = 7 * 60 * 60 * 1000;
+import { getSystemDateTimeParts } from '../utils/systemTime';
 
 interface DigestCandidateRow {
   link_id: string;
@@ -41,15 +40,6 @@ export function buildParentDigestSnapshot(dashboard: ParentDashboardPayload): Pa
     homeSuggestions: dashboard.recommendations.slice(0, 3).map(item => item.slice(0, 240)),
   };
 }
-
-const toIctParts = (now: Date) => {
-  const ict = new Date(now.getTime() + ICT_OFFSET_MS);
-  return {
-    weekday: (ict.getUTCDay() || 7),
-    hour: ict.getUTCHours(),
-    minute: ict.getUTCHours() * 60 + ict.getUTCMinutes(),
-  };
-};
 
 const escapeHtml = (value: string): string => value
   .replace(/&/g, '&amp;')
@@ -116,7 +106,7 @@ export async function runWeeklyParentDigests(
   if (!provider.ready) {
     return { rolloutReady: false, eligibleCount: 0, sentCount: 0, skippedCount: 0, failedCount: 0 };
   }
-  const ict = toIctParts(now);
+  const systemClock = getSystemDateTimeParts(now);
   const candidates = await db.prepare(`
     SELECT p.link_id, l.student_id, p.email_normalized,
            p.quiet_hours_enabled, p.quiet_hours_start_minute, p.quiet_hours_end_minute
@@ -128,7 +118,7 @@ export async function runWeeklyParentDigests(
       AND p.email_normalized IS NOT NULL
       AND p.digest_weekday = ?
       AND p.digest_hour = ?
-  `).bind(ict.weekday, ict.hour).all<DigestCandidateRow>();
+  `).bind(systemClock.weekday, systemClock.hour).all<DigestCandidateRow>();
   const dashboardService = createParentDashboardService(db);
   const week = resolveIctWeekWindow(undefined, now);
   const summary: ParentDigestRunSummary = {
@@ -141,7 +131,7 @@ export async function runWeeklyParentDigests(
 
   for (const candidate of candidates.results) {
     if (Number(candidate.quiet_hours_enabled) === 1 && isMinuteInQuietHours(
-      ict.minute,
+      systemClock.hour * 60 + systemClock.minute,
       Number(candidate.quiet_hours_start_minute),
       Number(candidate.quiet_hours_end_minute),
     )) {

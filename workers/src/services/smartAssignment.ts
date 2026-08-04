@@ -1,3 +1,4 @@
+import { getSystemDeadlineIso } from '../utils/systemTime';
 import type { D1Database } from '@cloudflare/workers-types';
 import type { CreateAssignmentPayload } from '../../../src/types/classroom.types';
 import {
@@ -124,16 +125,12 @@ function normalizeClassName(value: string): string {
 function getDeadlineFromPreset(
     deadlinePreset: SmartAssignmentPreviewRequest['deadlinePreset'],
 ): string {
-    const base = new Date();
     const daysToAdd = deadlinePreset === '3d'
         ? 3
         : deadlinePreset === '14d'
             ? 14
             : 7;
-
-    base.setDate(base.getDate() + daysToAdd);
-    base.setHours(23, 59, 0, 0);
-    return base.toISOString();
+    return getSystemDeadlineIso(daysToAdd);
 }
 
 function humanizeSkillCode(value?: string): string | undefined {

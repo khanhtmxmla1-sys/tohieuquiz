@@ -203,6 +203,24 @@ beforeEach(() => {
 });
 
 describe('teacher AI quota ledger', () => {
+  it('changes the usage date exactly at midnight in Hanoi', async () => {
+    const beforeMidnight = await reserveAiAction(db, {
+      ...teacherInput,
+      actionId: 'ai-before-midnight-1234567890',
+      now: new Date('2026-08-04T16:59:59.999Z'),
+    });
+    const afterMidnight = await reserveAiAction(db, {
+      ...teacherInput,
+      actionId: 'ai-after-midnight-12345678901',
+      now: new Date('2026-08-04T17:00:00.000Z'),
+    });
+
+    expect(beforeMidnight.status).toBe('RESERVED');
+    expect(afterMidnight.status).toBe('RESERVED');
+    expect(fakeDb.actions.get('ai-before-midnight-1234567890')?.usage_date).toBe('2026-08-04');
+    expect(fakeDb.actions.get('ai-after-midnight-12345678901')?.usage_date).toBe('2026-08-05');
+  });
+
   it('reserves one slot only once for the same action id', async () => {
     const first = await reserveAiAction(db, teacherInput);
     const second = await reserveAiAction(db, teacherInput);

@@ -1,15 +1,5 @@
+import { getSystemDateKey } from '../utils/systemTime';
 import { createParentNotification } from './notificationService';
-
-const toLocalDate = (date: Date): string => {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
-};
 
 export async function createDueHomeworkReminders(
   db: D1Database,
@@ -37,7 +27,7 @@ export async function createDueHomeworkReminders(
     deadline: string;
   }>();
 
-  const localDate = toLocalDate(now);
+  const localDate = getSystemDateKey(now);
   let createdCount = 0;
   for (const row of rows.results) {
     const result = await createParentNotification(db, {

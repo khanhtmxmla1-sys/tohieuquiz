@@ -5,9 +5,8 @@ import type {
     ResultSummaryStatistics,
 } from '../../../shared/result-summary.contract';
 import { withD1Retry } from '../utils/d1';
-
-const ICT_OFFSET_MS = 7 * 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { getSystemDayUtcRange } from '../utils/systemTime';
+import { SYSTEM_TIME_ZONE } from '../../../shared/time-zone.contract';
 const SCORE_RANGES: Array<{
     range: ResultScoreRange;
     includes: (score: number) => boolean;
@@ -104,17 +103,7 @@ export function calculateResultSummaryStatistics(rawScores: number[]): ResultSum
 }
 
 export function getIctDayBounds(now = new Date()): { start: string; end: string } {
-    const shifted = new Date(now.getTime() + ICT_OFFSET_MS);
-    const startUtcMs = Date.UTC(
-        shifted.getUTCFullYear(),
-        shifted.getUTCMonth(),
-        shifted.getUTCDate(),
-    ) - ICT_OFFSET_MS;
-
-    return {
-        start: new Date(startUtcMs).toISOString(),
-        end: new Date(startUtcMs + DAY_MS).toISOString(),
-    };
+    return getSystemDayUtcRange(now);
 }
 
 const buildScopedCte = (scope: ResultSummaryScope): { sql: string; bindings: unknown[] } => {
@@ -214,6 +203,6 @@ export async function loadResultDashboardSummary(
         uniqueStudents: toCount(activity?.unique_students),
         statistics: calculateResultSummaryStatistics(scores),
         attemptPolicy: 'latest',
-        timezone: 'Asia/Ho_Chi_Minh',
+        timezone: SYSTEM_TIME_ZONE,
     };
 }

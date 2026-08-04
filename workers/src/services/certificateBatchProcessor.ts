@@ -1,3 +1,4 @@
+import { formatSystemDate } from '../utils/systemTime';
 import type { Env } from '../types';
 import type { FieldConfig } from '../types/certificates';
 import type { CertificateNameFont } from '../../../shared/certificates.contract';
@@ -91,7 +92,7 @@ export async function processBatch(
             student_name: student.student_name,
             score: student.student_score !== null ? `${student.student_score}/10` : '',
             quiz_title: student.quiz_title || '',
-            date: dateLine !== null ? dateLine : new Date().toLocaleDateString('vi-VN'),
+            date: dateLine !== null ? dateLine : formatSystemDate(new Date()),
             teacher_name: teacherName,
             custom_note: message,
           },

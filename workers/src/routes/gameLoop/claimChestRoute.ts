@@ -1,6 +1,6 @@
 import { chooseChestReward } from '../../gameLoop/chestReward';
 import { buildDashboardResponse } from '../../gameLoop/dashboardService';
-import { getBangkokDateKey } from '../../gameLoop/dateKeys';
+import { getCurrentDateKey } from '../../gameLoop/dateKeys';
 import { areAllMissionsClaimed, getMissionRows } from '../../gameLoop/missionModel';
 import { safeJsonParse } from '../../gameLoop/normalization';
 import { ensureProfile, getOrCreateDailyProgress } from '../../gameLoop/progressRepository';
@@ -17,7 +17,7 @@ export const handleClaimChestRoute = async (
     const body = await parseBody(request);
     if (!body) return errorResponse('Invalid JSON body');
 
-    const dateKey = getBangkokDateKey();
+    const dateKey = getCurrentDateKey();
     const profile = await ensureProfile(db, username);
     const progress = await getOrCreateDailyProgress(db, username, dateKey);
     if (!areAllMissionsClaimed(getMissionRows(progress))) {

@@ -1,3 +1,4 @@
+import { getPreviousWeekKey, getWeekUtcRange } from './gameLoop/dateKeys';
 // TôHiệuQuiz Workers API - Main Entry Point
 // Cloudflare Workers API entry point
 
@@ -146,7 +147,8 @@ export default {
             await checkAndAutoCloseExpiredExams(env.DB);
             if (event.cron !== '0 0 * * 1') return;
             const db = env.DB;
-            const lastWeekKey = getLastWeekKey();
+            const lastWeekKey = getPreviousWeekKey();
+            const { startIso, endIsoExclusive } = getWeekUtcRange(lastWeekKey);
             
             // Get top 3 from last week
             const topStudents = await db.prepare(`
@@ -155,11 +157,12 @@ export default {
                     SUM(r.score) as total_score
                 FROM results r
                 JOIN students s ON s.username = r.student_name
-                WHERE strftime('%Y-W%W', r.submitted_at) = ?
+                WHERE r.submitted_at >= ?
+                  AND r.submitted_at < ?
                 GROUP BY s.username
                 ORDER BY total_score DESC
                 LIMIT 3
-            `).bind(lastWeekKey).all();
+            `).bind(startIso, endIsoExclusive).all();
             
             if (!topStudents.results || topStudents.results.length === 0) {
                 console.log('[Cron] No students found for last week');
@@ -220,20 +223,3 @@ export default {
         }
     }
 };
-
-// Helper function for cron job
-function getLastWeekKey(): string {
-    const now = new Date();
-    now.setDate(now.getDate() - 7); // Go back 1 week
-    const year = now.getFullYear();
-    const week = getWeekNumber(now);
-    return `${year}-W${String(week).padStart(2, '0')}`;
-}
-
-function getWeekNumber(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-}

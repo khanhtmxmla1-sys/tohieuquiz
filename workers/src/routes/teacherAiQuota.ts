@@ -1,7 +1,8 @@
 import { Env } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
 import { requireTeacher, verifyJWTMiddleware } from '../middleware/jwtAuth';
-import { expireStaleAiActions, getBangkokDateKey } from '../services/teacherAiQuotaLedger';
+import { expireStaleAiActions } from '../services/teacherAiQuotaLedger';
+import { getSystemDateKey } from '../utils/systemTime';
 
 const TEACHER_DAILY_AI_LIMIT = 5;
 
@@ -70,7 +71,7 @@ export async function handleTeacherAiQuotaRoutes(request: Request, env: Env, pat
         const role = await getTeacherRole(db, username);
         if (!role) return errorResponse('Teacher account not found', 404);
 
-        const usageDate = getBangkokDateKey();
+        const usageDate = getSystemDateKey();
         if (role === 'admin') {
             return jsonResponse({ status: 'success', data: buildQuotaPayload(role, username, usageDate, 0) });
         }

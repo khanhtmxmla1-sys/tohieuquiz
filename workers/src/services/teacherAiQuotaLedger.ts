@@ -1,3 +1,4 @@
+import { getSystemDateKey } from '../utils/systemTime';
 export type AiWorkflow = 'QUIZ_CREATE' | 'QUESTION_REGENERATE' | 'GENERIC';
 export type AiActionStatus = 'RESERVED' | 'SUCCEEDED' | 'FAILED' | 'EXPIRED';
 
@@ -33,13 +34,6 @@ export class AiQuotaError extends Error {
     this.name = 'AiQuotaError';
   }
 }
-
-export const getBangkokDateKey = (date = new Date()): string => new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Bangkok',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-}).format(date);
 
 const getChanges = (result: D1Result<unknown>): number => {
   const changes = Number(result.meta?.changes ?? 0);
@@ -137,7 +131,7 @@ const reactivateAiAction = async (
   now: Date,
 ): Promise<AiActionReservation> => {
   const nowIso = now.toISOString();
-  const usageDate = getBangkokDateKey(now);
+  const usageDate = getSystemDateKey(now);
   const needsQuota = role === 'teacher';
 
   if (needsQuota) {
@@ -232,7 +226,7 @@ export async function reserveAiAction(
 ): Promise<AiActionReservation> {
   const now = input.now ?? new Date();
   const nowIso = now.toISOString();
-  const usageDate = getBangkokDateKey(now);
+  const usageDate = getSystemDateKey(now);
 
   await expireStaleAiActions(db, input.username, now);
 
