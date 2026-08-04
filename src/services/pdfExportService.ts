@@ -3,6 +3,11 @@ import { formatSystemDate } from '../utils/dateTime';
 import { Quiz, StudentResult, QuestionType } from '../types';
 import { setupUnicodeFont, FONT_NAME } from '../utils/pdfFonts';
 import { normalizeWorksheetMath } from './worksheet-export/shared/mathNormalizer';
+import {
+    getPdfSvgDiagramKey,
+    rasterizeSvgDiagramForPdf,
+    type PdfSvgDiagramImage,
+} from './worksheet-export/pdf/pdfSvgDiagram';
 
 interface ExportOptions {
     quiz: Quiz;
@@ -24,6 +29,14 @@ export const exportResultToPDF = async (options: ExportOptions): Promise<void> =
         unit: 'mm',
         format: 'a4'
     });
+
+    const svgDiagrams = new Map<string, PdfSvgDiagramImage>();
+    await Promise.all(quiz.questions.map(async (question, index) => {
+        const svgContent = (question as unknown as Record<string, unknown>).svgContent;
+        if (typeof svgContent !== 'string' || !svgContent.trim()) return;
+        const rasterized = await rasterizeSvgDiagramForPdf(svgContent);
+        if (rasterized) svgDiagrams.set(getPdfSvgDiagramKey(question, index), rasterized);
+    }));
 
     // Setup Unicode support
     setupUnicodeFont(doc);
@@ -164,6 +177,25 @@ export const exportResultToPDF = async (options: ExportOptions): Promise<void> =
         const wrappedQ = splitText(qText, pageWidth - 2 * margin - 5);
         doc.text(wrappedQ, margin + 2, yPos);
         yPos += wrappedQ.length * 5 + 3;
+
+        const diagram = svgDiagrams.get(getPdfSvgDiagramKey(question, index));
+        if (diagram) {
+            const diagramWidth = Math.min(pageWidth - 2 * margin - 8, 120);
+            const diagramHeight = Math.min(70, diagramWidth / diagram.aspectRatio);
+            checkNewPage(diagramHeight + 8);
+            const diagramX = (pageWidth - diagramWidth) / 2;
+            doc.addImage(
+                diagram.dataUrl,
+                'PNG',
+                diagramX,
+                yPos,
+                diagramWidth,
+                diagramHeight,
+                undefined,
+                'FAST',
+            );
+            yPos += diagramHeight + 5;
+        }
 
         // Student's answer
         const studentAns = answers[question.id];

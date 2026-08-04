@@ -5,6 +5,7 @@
 
 import type { QuizGenerationOptions } from '../../geminiService';
 import { buildPromptV3 as buildPromptV3Internal } from './slotPromptBuilder';
+import { buildSvgDiagramPolicyPrompt } from './svgDiagramPolicyPrompt';
 export { buildPromptV3 } from './slotPromptBuilder';
 
 const SCIENTIFIC_GROUNDING_PROMPT = `
@@ -145,6 +146,7 @@ export const buildPrompt = (
   const typesDescription = types.map((t) => typeDescriptions[t] || t).join('\n    - ');
   const typesList = types.join(', ');
   const { pedagogicalPolicySection, learnerProfileSection } = buildPromptProfileSections(classLevel, options);
+  const diagramPolicySection = buildSvgDiagramPolicyPrompt(options?.diagramMode ?? 'off');
 
   let difficultyInstructions = '';
   if (levels) {
@@ -193,6 +195,7 @@ export const buildPrompt = (
     ${intentSection}
     ${pedagogicalPolicySection}
     ${learnerProfileSection}
+    ${diagramPolicySection}
 
     THONG TIN CAU HINH:
     - Tieu de: "${title}"
@@ -214,6 +217,8 @@ export const buildPrompt = (
     ${isDocumentSource ? `
     [PDF MODE - OCR FIRST]
     - Dung noi dung OCR ben duoi la NGUON CHINH.
+    - Không suy đoán dữ kiện hình học hoặc số đo không có trong nguồn tài liệu.
+    - Nếu OCR không đủ dữ kiện để vẽ thì không tạo hình giả.
     OCR CONTENT FROM FILE:
     ${content ? `"${content}"` : '[ERROR: missing OCR content]'}
     ` : `

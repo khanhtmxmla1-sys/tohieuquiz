@@ -6,6 +6,11 @@ import { renderPdfAnswerKey } from './pdfAnswerKey';
 import { drawPdfBackground, drawPdfHeader } from './pdfLayout';
 import { renderPdfQuestion } from './pdfQuestionRenderers';
 import type { PdfRenderContext } from './pdfTypes';
+import {
+    getPdfSvgDiagramKey,
+    rasterizeSvgDiagramForPdf,
+    type PdfSvgDiagramImage,
+} from './pdfSvgDiagram';
 
 function addPdfFooters(doc: PdfRenderContext['doc'], schoolName: string): void {
     const totalPages = doc.getNumberOfPages();
@@ -27,9 +32,21 @@ export async function exportWorksheetPdf(opts: WorksheetExportOptions): Promise<
     try {
         const { default: jsPDF } = await import('jspdf');
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const svgDiagrams = new Map<string, PdfSvgDiagramImage>();
+        await Promise.all(opts.quiz.questions.map(async (question, index) => {
+            const svgContent = (question as unknown as Record<string, unknown>).svgContent;
+            if (typeof svgContent !== 'string' || !svgContent.trim()) return;
+            const rasterized = await rasterizeSvgDiagramForPdf(svgContent);
+            if (rasterized) svgDiagrams.set(getPdfSvgDiagramKey(question, index), rasterized);
+        }));
         setupUnicodeFont(doc);
         drawPdfBackground(doc, opts.paperStyle);
-        const context: PdfRenderContext = { doc, opts, yPos: drawPdfHeader(doc, opts, schoolName) };
+        const context: PdfRenderContext = {
+            doc,
+            opts,
+            svgDiagrams,
+            yPos: drawPdfHeader(doc, opts, schoolName),
+        };
         opts.quiz.questions.forEach((question, index) => renderPdfQuestion(context, question, index));
         addPdfFooters(doc, schoolName);
         if (opts.answerKey === 'separate') renderPdfAnswerKey(doc, opts.quiz, schoolName);

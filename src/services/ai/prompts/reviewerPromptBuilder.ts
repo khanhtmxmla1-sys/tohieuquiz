@@ -10,6 +10,8 @@ export function buildReviewerSystemPromptV3(): string {
     'Không được đổi difficulty.',
     'Không được thêm, xóa hoặc sắp xếp lại câu hỏi.',
     'Không được thêm trường explanation hoặc lời giải vào câu hỏi.',
+    'Không xóa SVG hợp lệ; phải giữ nguyên svgAlt và svgVersion.',
+    'Không thêm SVG khi diagramPolicy là forbidden và không tự sửa cấu trúc SVG ngoài contract.',
     'Chỉ trả về JSON hợp lệ, không giải thích và không xuất suy luận nội bộ.',
   ].join('\n');
 }
@@ -24,6 +26,7 @@ export function buildReviewerUserPromptV3(input: {
     difficulty: slot.difficulty,
     objective: slot.objective,
     imagePolicy: slot.imagePolicy,
+    diagramPolicy: slot.diagramPolicy,
   }));
   return [
     'Giữ nguyên số lượng và cấu trúc câu hỏi. Chỉ sửa nội dung bên trong contract.',

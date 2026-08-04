@@ -3,6 +3,7 @@ import { BaseRendererProps } from './types';
 import SmartText from './utils/SmartText';
 import { getQuestionProgress } from '../../../../domain/quiz-progress';
 import { QuestionProgressBadge } from '../answer-state';
+import SafeSvgDiagram from '../../../../components/common/SafeSvgDiagram';
 
 import MCQRenderer from './renderers/MCQRenderer';
 import TrueFalseRenderer from './renderers/TrueFalseRenderer';
@@ -26,6 +27,17 @@ const QuestionRenderer: React.FC<BaseRendererProps> = (props) => {
   const rawType = (question.type || 'MCQ').toString().toUpperCase();
   const normalizedType = rawType.replace(/-/g, '_');
   const progress = getQuestionProgress(question, props.answers[question.id]);
+  const questionRecord = question as unknown as Record<string, unknown>;
+  const svgContent = typeof questionRecord.svgContent === 'string'
+    ? questionRecord.svgContent
+    : (typeof questionRecord.svg_content === 'string' ? questionRecord.svg_content : '');
+  const svgAlt = typeof questionRecord.svgAlt === 'string'
+    ? questionRecord.svgAlt
+    : (typeof questionRecord.svg_alt === 'string' ? questionRecord.svg_alt : '');
+  const hasStructuredGeometry = normalizedType === 'GEOMETRY'
+    && questionRecord.geometryData
+    && typeof questionRecord.geometryData === 'object';
+  const showSvgDiagram = Boolean(svgContent && svgAlt && !hasStructuredGeometry);
 
   const renderers: Record<string, React.FC<BaseRendererProps>> = {
     MCQ: MCQRenderer,
@@ -74,6 +86,14 @@ const QuestionRenderer: React.FC<BaseRendererProps> = (props) => {
       </div>
 
       <div className="space-y-6 p-5 sm:p-6 md:p-7">
+        {showSvgDiagram ? (
+          <SafeSvgDiagram
+            svgContent={svgContent}
+            alt={svgAlt}
+            className="mb-6"
+          />
+        ) : null}
+
         {question.image && normalizedType !== 'IMAGE' && normalizedType !== 'IMAGE_QUESTION' ? (
           <div className="mb-6 flex justify-center">
             <img

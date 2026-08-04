@@ -4,12 +4,15 @@ import type { AiSelectableQuestionType } from './questionTypeAvailability';
 
 export type BlueprintDifficulty = 1 | 2 | 3;
 export type BlueprintImagePolicy = 'forbidden' | 'optional' | 'required';
+export type BlueprintDiagramPolicy = 'forbidden' | 'optional' | 'required';
+export type DiagramGenerationMode = 'off' | 'auto';
 
 export interface QuestionContractContext {
   classLevel: string;
   intent: 'EXAM' | 'PRACTICE';
   sourceMode: 'TOPIC' | 'DOCUMENT';
   hasImageLibrary: boolean;
+  diagramMode?: DiagramGenerationMode;
 }
 
 export interface QuestionContractSlot {
@@ -22,6 +25,7 @@ export interface QuestionContractSlot {
   skillCode?: string;
   subskillCode?: string;
   imagePolicy: BlueprintImagePolicy;
+  diagramPolicy: BlueprintDiagramPolicy;
 }
 
 export interface QuestionContractIssue {
@@ -34,10 +38,14 @@ export interface QuestionContractIssue {
 export interface GeneratedQuestionCommonV3 {
   slotId: string;
   difficulty: BlueprintDifficulty;
+  diagramPolicy: BlueprintDiagramPolicy;
   explanation?: string;
   subject?: SupportedSkillSubject;
   skillCode?: string;
   subskillCode?: string;
+  svgContent?: string;
+  svgAlt?: string;
+  svgVersion?: 1;
 }
 
 export type GeneratedQuestionV3 = GeneratedQuestionCommonV3 & {

@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FeatureFlagConfig } from '../shared/feature-rollout.contract';
 import { resolveFeatureFlag, stableFeatureBucket } from '../workers/src/services/featureFlagService';
-import { isQuizProgressV2Enabled } from '../src/config/featureFlags';
+import {
+  isAiSvgDiagramsEnabled,
+  isQuizProgressV2Enabled,
+} from '../src/config/featureFlags';
 
 const config = (overrides: Partial<FeatureFlagConfig> = {}): FeatureFlagConfig => ({
   key: 'unified_notifications_v1',
@@ -28,6 +31,17 @@ const config = (overrides: Partial<FeatureFlagConfig> = {}): FeatureFlagConfig =
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe('frontend AI SVG diagram flag', () => {
+  it('defaults disabled and respects explicit environment values', () => {
+    vi.stubEnv('VITE_FEATURE_AI_SVG_DIAGRAMS', '');
+    expect(isAiSvgDiagramsEnabled()).toBe(false);
+    vi.stubEnv('VITE_FEATURE_AI_SVG_DIAGRAMS', 'true');
+    expect(isAiSvgDiagramsEnabled()).toBe(true);
+    vi.stubEnv('VITE_FEATURE_AI_SVG_DIAGRAMS', 'false');
+    expect(isAiSvgDiagramsEnabled()).toBe(false);
+  });
 });
 
 describe('frontend quiz progress flag', () => {

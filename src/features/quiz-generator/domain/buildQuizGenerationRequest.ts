@@ -1,6 +1,7 @@
 import type { ImageLibraryItem, QuestionType } from '../../../types';
 import type { SupportedSkillSubject } from '../../../shared/skillTaxonomy';
 import type { PromptProfileOptions, QuizGenerationOptions } from '../../../services/geminiService';
+import type { DiagramGenerationMode } from '../../../services/ai/question-contracts/questionContract.types';
 import type { DifficultyLevels, QuizMode } from './quizCreation.types';
 import {
     buildBalancedTypeAllocations,
@@ -33,6 +34,7 @@ interface BuildQuizGenerationOptionsInput {
     skillCode?: string;
     subskillCode?: string;
     sourceRefs?: string[];
+    diagramMode?: DiagramGenerationMode;
 }
 
 interface BuildQuizGenerationOptionsConfig {
@@ -41,6 +43,8 @@ interface BuildQuizGenerationOptionsConfig {
 
 export const buildPdfCustomPrompt = (customPrompt: string): string => `⛔ CHẾ ĐỘ TẠO ĐỀ TỪ PDF (OCR) - BẮT BUỘC TUÂN THỦ:
 1. ĐỌC KỸ TOÀN BỘ NỘI DUNG OCR...
+2. Không suy đoán dữ kiện hình học hoặc số đo không có trong nguồn tài liệu.
+3. Chỉ vẽ lại sơ đồ khi nội dung OCR cung cấp đủ dữ kiện; không tuyên bố sao chép chính xác hình gốc nếu OCR không mô tả hình.
 ${customPrompt.trim() ? `\nYêu cầu thêm từ giáo viên: ${customPrompt.trim()}` : ''}`;
 
 const resolveLegacyMode = (input: BuildQuizGenerationOptionsInput): QuizMode => (
@@ -191,6 +195,7 @@ export const buildQuizGenerationOptions = (
                 skillCode: input.skillCode,
                 subskillCode: input.subskillCode,
                 sourceRefs: input.sourceRefs,
+                diagramMode: input.diagramMode ?? 'off',
             }),
         };
         const errors = validateQuizBlueprintV3(blueprintV3);
@@ -215,5 +220,6 @@ export const buildQuizGenerationOptions = (
             ? buildPdfCustomPrompt(input.customPrompt)
             : input.customPrompt.trim() || undefined,
         isPdfMode: blueprint.sourceMode === 'DOCUMENT',
+        diagramMode: input.diagramMode ?? 'off',
     };
 };

@@ -70,6 +70,7 @@ const quizWithOneWrongSlot: GeneratedQuizV3 = {
       slotId: slot3.slotId,
       type: wrongType,
       difficulty: slot3.difficulty,
+      diagramPolicy: slot3.diagramPolicy,
       explanation: 'Câu cố ý sai type.',
       subject: slot3.subject,
       skillCode: slot3.skillCode,

@@ -5,7 +5,7 @@
  * All providers must implement the same interface for interchangeability.
  */
 
-import type { QuestionType } from '../../types';
+import type { DiagramGenerationMode, QuestionType } from '../../types';
 
 /**
  * AI Provider identifier type
@@ -34,6 +34,7 @@ export interface QuizGenerationOptions {
         level3: number; // Hard - Application
     };
     imageLibrary?: ImageLibraryItem[];
+    diagramMode?: DiagramGenerationMode;
 }
 
 /**

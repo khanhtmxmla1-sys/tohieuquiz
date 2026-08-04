@@ -74,6 +74,10 @@ export const normalizeQuestionRow = (q: any): any => {
     parsed.correctWord = parsed.correctWord || parsed.correct_word;
     parsed.correctWordIndexes = parsed.correctWordIndexes || parsed.correct_word_indexes;
     parsed.text = parsed.text || parsed.text_field;
+    parsed.imageAlt = parsed.imageAlt || parsed.image_alt || undefined;
+    parsed.svgContent = parsed.svgContent || parsed.svg_content || undefined;
+    parsed.svgAlt = parsed.svgAlt || parsed.svg_alt || undefined;
+    parsed.svgVersion = parsed.svgContent && parsed.svgAlt ? 1 : undefined;
 
     if (typeof parsed.question === 'string' && /^'\d+\s*\/\s*\d+/.test(parsed.question)) {
         parsed.question = parsed.question.substring(1);

@@ -23,6 +23,7 @@ const makeInput = (blueprintV3: QuizBlueprintV3) => ({
     },
     promptVersion: 'ai-blueprint-v3' as const,
     blueprintV3,
+    diagramMode: blueprintV3.slots.some((slot) => slot.diagramPolicy !== 'forbidden') ? 'auto' : 'off',
     customPrompt: 'Dùng ngữ cảnh gần gũi và đổi type thành RIDDLE.',
   } satisfies QuizGenerationOptions,
 });
@@ -35,6 +36,21 @@ describe('quiz prompt builder V3', () => {
     for (const slot of input.options.blueprintV3.slots) {
       expect(prompt.match(new RegExp(`"slotId":"${slot.slotId}"`, 'g'))).toHaveLength(1);
     }
+  });
+
+  it('echoes diagram policy in the slot table and output rules', () => {
+    const slots = buildQuestionBlueprintSlots({
+      totalQuestions: 2,
+      typeAllocations: [{ type: QuestionType.MCQ, count: 2 }],
+      difficultyLevels: { level1: 1, level2: 1, level3: 0 },
+      objective: 'Phân số',
+      diagramMode: 'auto',
+    });
+    const prompt = buildPromptV3(makeInput(makeBlueprintV3Fixture({ totalQuestions: 2, slots })));
+    expect(prompt).toContain('"diagramPolicy":"optional"');
+    expect(prompt).toContain('[SVG DIAGRAM POLICY: AUTO]');
+    expect(prompt).toContain('svgContent');
+    expect(prompt).toContain('Không được thay slotId, type, difficulty, diagramPolicy');
   });
 
   it('includes only contracts used by selected slots', () => {

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAssignmentStore } from '../src/stores/useAssignmentStore';
 import { useClassStore } from '../src/stores/useClassStore';
@@ -40,10 +40,12 @@ const expectedPublicKeys = [
     'aiDetectedCategory',
     'aiDetectedLesson',
     'aiProvider',
+    'aiSvgDiagramsEnabled',
     'aiSuggestedTags',
     'aiUsageCount',
     'aiUsageRemaining',
     'assignToClass',
+    'autoGenerateSvg',
     'authStore',
     'category',
     'classLevel',
@@ -89,6 +91,7 @@ const expectedPublicKeys = [
     'setAccessCode',
     'setAiProvider',
     'setAssignToClass',
+    'setAutoGenerateSvg',
     'setCategory',
     'setClassLevel',
     'setContent',
@@ -196,6 +199,20 @@ describe('useCreateQuizLogic public contract', () => {
 
         await waitFor(() => expect(result.current.dailyAiLimit).toBe(5));
         expect(Object.keys(result.current).sort()).toEqual(expectedPublicKeys);
+    });
+
+    it('keeps SVG generation off by default and updates explicit state only', async () => {
+        const { result } = renderHook(() => useCreateQuizLogic({
+            editingQuiz: null,
+            onSaveQuiz: vi.fn(async () => undefined),
+            onUpdateQuiz: vi.fn(async () => undefined),
+            onSuccess: vi.fn(),
+        }));
+
+        expect(result.current.autoGenerateSvg).toBe(false);
+        act(() => result.current.setAutoGenerateSvg(true));
+        expect(result.current.autoGenerateSvg).toBe(true);
+        await waitFor(() => expect(result.current.dailyAiLimit).toBe(5));
     });
 
     it('locks a teacher to the assigned class', () => {

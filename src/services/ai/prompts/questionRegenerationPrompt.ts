@@ -1,6 +1,7 @@
 import type { QuestionBlueprintSlot } from '../../../features/quiz-generator/domain/quizBlueprint';
 import type { GeneratedQuestionV3 } from '../question-contracts/questionContract.types';
 import { getAiQuestionContract } from '../question-contracts/questionContractRegistry';
+import { buildSlotDiagramRule } from './svgDiagramPolicyPrompt';
 
 export function buildQuestionRegenerationPrompt(input: {
   slot: QuestionBlueprintSlot;
@@ -13,6 +14,7 @@ export function buildQuestionRegenerationPrompt(input: {
     intent: 'PRACTICE',
     sourceMode: 'TOPIC',
     hasImageLibrary: input.slot.imagePolicy === 'required',
+    diagramMode: input.slot.diagramPolicy === 'forbidden' ? 'off' : 'auto',
   }).replaceAll('"slotId":"slot-1"', '"slotId":"<slotId>"');
   const slotProjection = {
     slotId: input.slot.slotId,
@@ -23,6 +25,7 @@ export function buildQuestionRegenerationPrompt(input: {
     skillCode: input.slot.skillCode,
     subskillCode: input.slot.subskillCode,
     imagePolicy: input.slot.imagePolicy,
+    diagramPolicy: input.slot.diagramPolicy,
   };
   const currentQuestion = { ...input.currentQuestion } as Record<string, unknown>;
   delete currentQuestion.explanation;
@@ -30,7 +33,8 @@ export function buildQuestionRegenerationPrompt(input: {
   return [
     'Sinh lại đúng một câu cho slot sau.',
     JSON.stringify(slotProjection),
-    'Không được đổi slotId, type hoặc difficulty.',
+    'Không được đổi slotId, type, difficulty hoặc diagramPolicy.',
+    buildSlotDiagramRule(input.slot.diagramPolicy),
     contract,
     '[CÂU HIỆN TẠI]',
     JSON.stringify(currentQuestion),

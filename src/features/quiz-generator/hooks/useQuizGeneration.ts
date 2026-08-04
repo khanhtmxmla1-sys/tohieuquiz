@@ -35,6 +35,7 @@ interface UseQuizGenerationOptions {
     teacherName: string | null;
     aiQuizV2Enabled: boolean;
     aiBlueprintV3Enabled: boolean;
+    aiSvgDiagramsEnabled: boolean;
 }
 
 type GenerationRequestKind = 'full' | 'trial';
@@ -56,6 +57,7 @@ export const useQuizGeneration = ({
     teacherName,
     aiQuizV2Enabled,
     aiBlueprintV3Enabled,
+    aiSvgDiagramsEnabled,
 }: UseQuizGenerationOptions) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generationStep, setGenerationStep] = useState<GenerationStep>('idle');
@@ -324,6 +326,7 @@ export const useQuizGeneration = ({
                     ? form.selectedOcrPageNumbers.map((pageNumber) => `page-${pageNumber}`)
                     : undefined,
                 isPdfMode,
+                diagramMode: aiSvgDiagramsEnabled && form.autoGenerateSvg ? 'auto' : 'off',
             }, { enableBlueprintV3: aiBlueprintV3Enabled });
             const options = requestKind === 'trial'
                 ? buildTrialQuizGenerationOptions(fullOptions)
@@ -410,6 +413,7 @@ export const useQuizGeneration = ({
                 skillCode: question.skillCode,
                 subskillCode: question.subskillCode,
                 isPdfMode: false,
+                diagramMode: aiSvgDiagramsEnabled && form.autoGenerateSvg ? 'auto' : 'off',
             }, { enableBlueprintV3: useV3Regeneration });
 
             if (useV3Regeneration && regenerationOptions.blueprintV3) {
@@ -431,6 +435,7 @@ export const useQuizGeneration = ({
                         slotId: slot.slotId,
                         type: slot.type,
                         difficulty: slot.difficulty,
+                        diagramPolicy: slot.diagramPolicy,
                     } as GeneratedQuestionV3,
                     otherQuestionSummaries: (form.generatedQuiz?.questions ?? [])
                         .filter((candidate) => candidate.id !== question.id)

@@ -73,6 +73,7 @@ export const useQuizFormState = ({
     const [generatedQuiz, setGeneratedQuiz] = useState<Quiz | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [customPrompt, setCustomPrompt] = useState('');
+    const [autoGenerateSvg, setAutoGenerateSvg] = useState(false);
     const [quizMode, setQuizMode] = useState<QuizMode>('practice');
     const [quizIntent, setQuizIntent] = useState<QuizIntent>('PRACTICE');
     const [aiProvider, setAiProvider] = useState<AIProvider>(() =>
@@ -140,12 +141,14 @@ export const useQuizFormState = ({
                     sourceRefs: questionBlueprint.sourceMode === 'DOCUMENT'
                         ? selectedOcrPageNumbers.map((pageNumber) => `page-${pageNumber}`)
                         : undefined,
+                    diagramMode: autoGenerateSvg ? 'auto' : 'off',
                 }),
             };
         } catch {
             return null;
         }
     }, [
+        autoGenerateSvg,
         blueprintErrors,
         classLevel,
         questionBlueprint,
@@ -252,6 +255,7 @@ export const useQuizFormState = ({
         setQuizTitle('');
         setContent('');
         setCustomPrompt('');
+        setAutoGenerateSvg(false);
         setRequireCode(false);
         setAccessCode('');
         setShowOnHome(true);
@@ -317,6 +321,11 @@ export const useQuizFormState = ({
         setQuizIntent('PRACTICE');
     }, [editingQuiz, isClassLocked, lockedClass]);
 
+    const editingQuizId = editingQuiz?.id ?? null;
+    useEffect(() => {
+        setAutoGenerateSvg(false);
+    }, [editingQuizId]);
+
     useEffect(() => {
         localStorage.setItem('quiz_image_library', JSON.stringify(imageLibrary));
     }, [imageLibrary]);
@@ -368,6 +377,8 @@ export const useQuizFormState = ({
         setError,
         customPrompt,
         setCustomPrompt,
+        autoGenerateSvg,
+        setAutoGenerateSvg,
         quizMode,
         setQuizMode,
         quizIntent,

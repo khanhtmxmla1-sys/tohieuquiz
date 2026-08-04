@@ -191,6 +191,8 @@ CREATE TABLE IF NOT EXISTS questions (
   points REAL,
   explanation TEXT NOT NULL DEFAULT '',
   image_alt TEXT NOT NULL DEFAULT '',
+  svg_content TEXT NOT NULL DEFAULT '',
+  svg_alt TEXT NOT NULL DEFAULT '',
   answer_schema_version INTEGER NOT NULL DEFAULT 1
 );
 

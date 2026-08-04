@@ -56,6 +56,7 @@ export const makeGeneratedQuizV3Fixture = (
       slotId: slot.slotId,
       type: slot.type,
       difficulty: slot.difficulty,
+      diagramPolicy: slot.diagramPolicy,
       subject: slot.subject,
       skillCode: slot.skillCode,
       subskillCode: slot.subskillCode,

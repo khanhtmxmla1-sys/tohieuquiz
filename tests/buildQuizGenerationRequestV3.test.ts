@@ -24,6 +24,7 @@ const input = {
   sourceMode: 'TOPIC' as const,
   subject: 'math' as const,
   skillCode: 'phan_so',
+  diagramMode: 'off' as const,
 };
 
 describe('buildQuizGenerationOptions V3 adapter', () => {
@@ -37,6 +38,8 @@ describe('buildQuizGenerationOptions V3 adapter', () => {
     expect(options.blueprintV3?.slots).toHaveLength(4);
     expect(options.blueprintV3?.slots.every((slot) => slot.skillCode === 'phan_so')).toBe(true);
     expect(options.blueprint).toBeDefined();
+    expect(options.diagramMode).toBe('off');
+    expect(options.blueprintV3?.slots.every((slot) => slot.diagramPolicy === 'forbidden')).toBe(true);
   });
 
   it('keeps V2-only output when V3 is disabled', () => {
@@ -45,6 +48,12 @@ describe('buildQuizGenerationOptions V3 adapter', () => {
     expect(options.blueprint).toBeDefined();
     expect(options.blueprintV3).toBeUndefined();
     expect(options.promptVersion).toBeUndefined();
+  });
+
+  it('maps auto SVG selection to optional slot policies', () => {
+    const options = buildQuizGenerationOptions({ ...input, diagramMode: 'auto' }, { enableBlueprintV3: true });
+    expect(options.diagramMode).toBe('auto');
+    expect(options.blueprintV3?.slots.every((slot) => slot.diagramPolicy === 'optional')).toBe(true);
   });
 
   it('builds a representative three-question trial without mutating the full blueprint', () => {
@@ -56,6 +65,7 @@ describe('buildQuizGenerationOptions V3 adapter', () => {
         { type: QuestionType.MATCHING, count: 4 },
       ],
       difficultyLevels: { level1: 3, level2: 3, level3: 2 },
+      diagramMode: 'auto',
     }, { enableBlueprintV3: true });
 
     const trialOptions = buildTrialQuizGenerationOptions(fullOptions);
@@ -65,6 +75,8 @@ describe('buildQuizGenerationOptions V3 adapter', () => {
     expect(trialOptions.blueprint?.totalQuestions).toBe(3);
     expect(trialOptions.blueprintV3?.totalQuestions).toBe(3);
     expect(trialOptions.blueprintV3?.slots).toHaveLength(3);
+    expect(trialOptions.diagramMode).toBe('auto');
+    expect(trialOptions.blueprintV3?.slots.every((slot) => slot.diagramPolicy === 'optional')).toBe(true);
     expect(trialOptions.blueprintV3?.slots.map((slot) => slot.slotId)).toEqual([
       'slot-1',
       'slot-2',

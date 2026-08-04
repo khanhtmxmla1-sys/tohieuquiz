@@ -16,7 +16,7 @@ export async function loadLiveExamQuiz(
 
   const questionRows = await db.prepare(`
     SELECT id, type, question, options, correct_answer, items, text_field, blanks,
-           distractors, sentence, words, correct_word_indexes, image, difficulty
+           distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, difficulty
     FROM questions
     WHERE quiz_id = ?
     ORDER BY rowid ASC

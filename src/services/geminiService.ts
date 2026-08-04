@@ -47,8 +47,12 @@ import {
   toGeneratedQuizSchemaIssues,
 } from './ai/quizGenerationErrors';
 import { normalizeGeneratedQuizV3Compatibility } from './ai/schemas/generatedQuizV3Normalizer';
-import type { GeneratedQuizV3 } from './ai/question-contracts/questionContract.types';
+import type {
+  DiagramGenerationMode,
+  GeneratedQuizV3,
+} from './ai/question-contracts/questionContract.types';
 import { mapGeneratedQuizV3ToDomain } from './ai/quizDomainAdapter';
+import { processGeneratedQuizSvg } from './ai/svgDiagramProcessing';
 
 export type AIProvider = 'gemini' | 'perplexity' | 'openai' | 'llm-mux' | 'localhost' | 'native-ocr';
 export type LearnerPromptMode = 'default' | 'gifted' | 'remedial';
@@ -79,6 +83,7 @@ export interface QuizGenerationOptions {
   imageLibrary?: Array<{ id: string; name: string; data?: string }>;
   customPrompt?: string;
   isPdfMode?: boolean;
+  diagramMode?: DiagramGenerationMode;
 }
 
 const toWorkerOptions = (execution?: QuizAiExecutionContext) => execution ? {
@@ -118,10 +123,14 @@ export const validateQuizWithAI = async (
 
 const parseDraftWithOneSchemaRepair = async (
   result: unknown,
+  diagramMode: DiagramGenerationMode,
   execution: QuizAiExecutionContext | undefined,
   onStepChange?: (step: QuizGenerationStep) => void,
 ): Promise<GeneratedQuizPayload> => {
-  const normalized = validateAndFixQuiz(result);
+  const normalized = processGeneratedQuizSvg(
+    validateAndFixQuiz(result),
+    { diagramMode },
+  ).quiz;
   const initial = GeneratedQuizSchema.safeParse(normalized);
   if (initial.success) return initial.data;
 
@@ -147,7 +156,10 @@ const parseDraftWithOneSchemaRepair = async (
     response_format: { type: 'json_object' },
   }, toWorkerOptions({ ...execution, stage: 'REPAIR' }));
 
-  const repairedRaw = validateAndFixQuiz(parseAndRepairJSON(repairedText));
+  const repairedRaw = processGeneratedQuizSvg(
+    validateAndFixQuiz(parseAndRepairJSON(repairedText)),
+    { diagramMode },
+  ).quiz;
   const repaired = GeneratedQuizSchema.safeParse(repairedRaw);
   if (!repaired.success) {
     throw new GeneratedQuizSchemaError(
@@ -160,16 +172,18 @@ const parseDraftWithOneSchemaRepair = async (
 const runDeterministicQualityPipeline = async (
   result: unknown,
   blueprint: QuizBlueprint,
+  diagramMode: DiagramGenerationMode,
   execution: QuizAiExecutionContext | undefined,
   onStepChange?: (step: QuizGenerationStep) => void,
 ): Promise<GeneratedQuizPayload> => {
   const parsedDraft = await parseDraftWithOneSchemaRepair(
     result,
+    diagramMode,
     execution,
     onStepChange,
   );
   let finalQuiz = parsedDraft;
-  let issues = auditGeneratedQuiz(finalQuiz, blueprint);
+  let issues = auditGeneratedQuiz(finalQuiz, blueprint, diagramMode);
 
   if (issues.some((issue) => !issue.repairable)) {
     throw new QuizGenerationValidationError(issues);
@@ -210,7 +224,7 @@ const runDeterministicQualityPipeline = async (
     }
 
     finalQuiz = mergeRepairedQuestions(finalQuiz, repairedQuiz, issues);
-    issues = auditGeneratedQuiz(finalQuiz, blueprint);
+    issues = auditGeneratedQuiz(finalQuiz, blueprint, diagramMode);
     if (issues.length > 0) {
       throw new QuizGenerationValidationError(issues);
     }
@@ -224,8 +238,11 @@ const runDeterministicQualityPipeline = async (
         '',
         { ...execution, stage: 'REVIEW' },
       );
-      const reviewedQuiz = parseGeneratedQuiz(reviewedRaw);
-      if (auditGeneratedQuiz(reviewedQuiz, blueprint).length === 0) {
+      const reviewedQuiz = parseGeneratedQuiz(processGeneratedQuizSvg(
+        reviewedRaw,
+        { diagramMode },
+      ).quiz);
+      if (auditGeneratedQuiz(reviewedQuiz, blueprint, diagramMode).length === 0) {
         finalQuiz = reviewedQuiz;
       }
     } catch (error) {
@@ -249,7 +266,13 @@ const runV3QualityPipeline = async (
   execution: QuizAiExecutionContext | undefined,
   onStepChange?: (step: QuizGenerationStep) => void,
 ): Promise<GeneratedQuizV3> => {
-  let finalQuiz = parseGeneratedQuizV3Compatibility(result);
+  const diagramMode: DiagramGenerationMode = blueprint.slots.some((slot) => slot.diagramPolicy !== 'forbidden')
+    ? 'auto'
+    : 'off';
+  let finalQuiz = parseGeneratedQuizV3Compatibility(processGeneratedQuizSvg(
+    result,
+    { diagramMode, blueprintV3: blueprint },
+  ).quiz);
   let issues = auditGeneratedQuizV3(finalQuiz, blueprint);
 
   if (issues.some((issue) => !issue.repairable)) {
@@ -283,7 +306,10 @@ const runV3QualityPipeline = async (
       temperature: 0.2,
       response_format: { type: 'json_object' },
     }, toWorkerOptions({ ...execution, stage: 'REPAIR' }));
-    const repairedQuiz = parseGeneratedQuizV3Compatibility(parseAndRepairJSON(repairedText));
+    const repairedQuiz = parseGeneratedQuizV3Compatibility(processGeneratedQuizSvg(
+      parseAndRepairJSON(repairedText),
+      { diagramMode, blueprintV3: blueprint },
+    ).quiz);
     finalQuiz = mergeRepairedSlots(finalQuiz, repairedQuiz, repairPlan, blueprint);
     issues = auditGeneratedQuizV3(finalQuiz, blueprint);
     if (issues.length > 0) {
@@ -303,7 +329,10 @@ const runV3QualityPipeline = async (
         temperature: 0.1,
         response_format: { type: 'json_object' },
       }, toWorkerOptions({ ...execution, stage: 'REVIEW' }));
-      const reviewedQuiz = parseGeneratedQuizV3Compatibility(parseAndRepairJSON(reviewedText));
+      const reviewedQuiz = parseGeneratedQuizV3Compatibility(processGeneratedQuizSvg(
+        parseAndRepairJSON(reviewedText),
+        { diagramMode, blueprintV3: blueprint },
+      ).quiz);
       if (auditGeneratedQuizV3(reviewedQuiz, blueprint).length === 0) {
         finalQuiz = reviewedQuiz;
       }
@@ -364,6 +393,14 @@ export const generateQuiz = async (
   execution?: QuizAiExecutionContext,
 ): Promise<any> => {
   onStepChange?.('generating');
+  if (options?.diagramMode === 'auto') {
+    console.info(JSON.stringify({
+      event: 'ai_svg_diagram_mode_requested',
+      workflow: execution?.action.workflow ?? 'QUIZ_CREATE',
+      promptVersion: options.promptVersion ?? 'quiz-v2',
+      totalQuestions: options.blueprintV3?.totalQuestions ?? options.blueprint?.totalQuestions ?? 0,
+    }));
+  }
   const promptText = buildPrompt(topic, classLevel, content, options);
   const useV3 = options?.promptVersion === 'ai-blueprint-v3' && Boolean(options.blueprintV3);
   const systemInstruction = useV3
@@ -433,6 +470,7 @@ export const generateQuiz = async (
     result = await runDeterministicQualityPipeline(
       result,
       options.blueprint,
+      options.diagramMode ?? 'off',
       execution,
       onStepChange,
     );

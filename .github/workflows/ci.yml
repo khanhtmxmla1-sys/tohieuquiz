@@ -154,6 +154,7 @@ jobs:
           VITE_FEATURE_GIFT_SHOP_V2: 'false'
           VITE_FEATURE_AI_QUIZ_V2: 'false'
           VITE_FEATURE_AI_BLUEPRINT_V3: 'false'
+          VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
           VITE_FEATURE_PARENT_PORTAL_V1: 'false'
           VITE_GIFT_SHOP_MODE: api
 
@@ -164,11 +165,11 @@ jobs:
         run: |
           node scripts/check-placeholder-hosts.mjs dist
 
-  # E2E runs as TWO jobs, not two steps in one job.
+  # E2E runs as THREE jobs, not several steps in one job.
   #
-  # Why two: `ai-quiz-generation-v2.cy.ts` asserts the V2 pipeline
-  # (OCR → GENERATE → REPAIR → REVIEW), which Blueprint V3 replaces, so the two AI
-  # specs need opposite values of VITE_FEATURE_AI_BLUEPRINT_V3. See docs/testing/e2e.md.
+  # Why three: `ai-quiz-generation-v2.cy.ts` asserts the V2 pipeline
+  # (OCR → GENERATE → REPAIR → REVIEW), Blueprint V3 replaces it, and SVG diagrams
+  # need V2 + V3 + SVG enabled together. See docs/testing/e2e.md.
   #
   # Why separate jobs rather than two steps: cypress-io/github-action leaves its
   # `start` server running, so a second step finds port 3001 occupied, Vite silently
@@ -212,6 +213,7 @@ jobs:
           VITE_FEATURE_GIFT_SHOP_V2: 'true'
           VITE_FEATURE_AI_QUIZ_V2: 'true'
           VITE_FEATURE_AI_BLUEPRINT_V3: 'false'
+          VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
           VITE_GIFT_SHOP_MODE: api
 
@@ -256,6 +258,7 @@ jobs:
           VITE_FEATURE_GIFT_SHOP_V2: 'true'
           VITE_FEATURE_AI_QUIZ_V2: 'true'
           VITE_FEATURE_AI_BLUEPRINT_V3: 'true'
+          VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
           VITE_GIFT_SHOP_MODE: api
 
@@ -264,6 +267,51 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: cypress-screenshots-blueprint-v3
+          path: cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e-svg-diagrams:
+    name: Cypress — AI SVG diagrams (all AI flags on)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run AI SVG diagram spec
+        uses: cypress-io/github-action@v7
+        with:
+          install: false
+          start: npm run dev
+          wait-on: http://localhost:3001
+          wait-on-timeout: 120
+          command: npm run cypress:run:svg-diagrams
+        env:
+          VITE_FEATURE_GIFT_SHOP_V2: 'true'
+          VITE_FEATURE_AI_QUIZ_V2: 'true'
+          VITE_FEATURE_AI_BLUEPRINT_V3: 'true'
+          VITE_FEATURE_AI_SVG_DIAGRAMS: 'true'
+          VITE_FEATURE_PARENT_PORTAL_V1: 'true'
+          VITE_GIFT_SHOP_MODE: api
+
+      - name: Upload failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cypress-screenshots-svg-diagrams
           path: cypress/screenshots
           if-no-files-found: ignore
           retention-days: 7

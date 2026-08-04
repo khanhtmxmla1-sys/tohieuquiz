@@ -16,6 +16,7 @@ import React from 'react';
 import { QuestionType } from '../../../../types';
 import type { Question } from '../../../../types';
 import { NewlineMathText } from '../../../../components/common';
+import SafeSvgDiagram from '../../../../components/common/SafeSvgDiagram';
 import { getTypeLabel, getDifficultyLabel, getDifficultyColorClass } from '../../utils/questionHelpers';
 import { fixReorderQuestion } from '../../utils/questionNormalizers';
 import type { Difficulty } from '../../types/quiz-editor.types';
@@ -134,6 +135,15 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
         Boolean(q.image);
 
     const difficulty = q.difficulty as Difficulty | undefined;
+    const svgContent = typeof q.svgContent === 'string'
+        ? q.svgContent
+        : (typeof q.svg_content === 'string' ? q.svg_content : '');
+    const svgAlt = typeof q.svgAlt === 'string'
+        ? q.svgAlt
+        : (typeof q.svg_alt === 'string' ? q.svg_alt : '');
+    const hasStructuredGeometry = question.type === QuestionType.GEOMETRY
+        && q.geometryData
+        && typeof q.geometryData === 'object';
 
     return (
         <div
@@ -187,6 +197,15 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                     />
                 </div>
             )}
+
+            {svgContent && svgAlt && !hasStructuredGeometry ? (
+                <SafeSvgDiagram
+                    svgContent={svgContent}
+                    alt={svgAlt}
+                    className="mb-4 ml-8"
+                    maxHeight={320}
+                />
+            ) : null}
 
             {/* Type-specific body */}
             <QuestionBodyRenderer question={question} />
