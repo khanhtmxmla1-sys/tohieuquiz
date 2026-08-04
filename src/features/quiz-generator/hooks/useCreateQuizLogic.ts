@@ -4,6 +4,7 @@ import { useAssignmentStore } from '../../../stores/useAssignmentStore';
 import {
     isAiBlueprintV3Enabled,
     isAiQuizV2Enabled,
+    isAiSvgDiagramsEnabled,
 } from '../../../config/featureFlags';
 import { useClassStore } from '../../../stores/useClassStore';
 import type { UseCreateQuizLogicProps } from '../domain/quizCreation.types';
@@ -24,6 +25,7 @@ export const useCreateQuizLogic = ({
     const assignmentStore = useAssignmentStore();
     const aiQuizV2Enabled = isAiQuizV2Enabled();
     const aiBlueprintV3Enabled = aiQuizV2Enabled && isAiBlueprintV3Enabled();
+    const aiSvgDiagramsEnabled = aiQuizV2Enabled && isAiSvgDiagramsEnabled();
 
     const isTeacherAccount = !authStore.isAdmin;
     const isClassLocked = !authStore.isAdmin && !!authStore.teacherClass;
@@ -48,6 +50,7 @@ export const useCreateQuizLogic = ({
         teacherName: authStore.teacherName,
         aiQuizV2Enabled,
         aiBlueprintV3Enabled,
+        aiSvgDiagramsEnabled,
     });
     const persistence = useQuizPersistence({
         form,
@@ -104,6 +107,8 @@ export const useCreateQuizLogic = ({
         toggleQualityWarningAcknowledgement: quality.toggleWarningAcknowledgement,
         customPrompt: form.customPrompt,
         setCustomPrompt: form.setCustomPrompt,
+        autoGenerateSvg: form.autoGenerateSvg,
+        setAutoGenerateSvg: form.setAutoGenerateSvg,
         promptProfile: form.promptProfile,
         profilePresetNotice: form.profilePresetNotice,
         quizMode: form.quizMode,
@@ -158,6 +163,7 @@ export const useCreateQuizLogic = ({
         isTeacherAccount,
         aiQuizV2Enabled,
         aiBlueprintV3Enabled,
+        aiSvgDiagramsEnabled,
         aiUsageCount: generation.aiUsageCount,
         aiUsageRemaining: generation.aiUsageRemaining,
         hasAiQuota: generation.hasAiQuota,

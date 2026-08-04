@@ -50,6 +50,10 @@ export function mapLiveExamQuestionRow(row: any): Question {
         options: parsePipeList(row.options),
         correctAnswer: parsedCorrectAnswer,
         image: String(row.image || ''),
+        svgContent: String(row.svgContent ?? row.svg_content ?? '') || undefined,
+        svgAlt: String(row.svgAlt ?? row.svg_alt ?? '') || undefined,
+        svgVersion: String(row.svgContent ?? row.svg_content ?? '')
+            && String(row.svgAlt ?? row.svg_alt ?? '') ? 1 : undefined,
         explanation: '',
         difficulty: row.difficulty || undefined,
     };

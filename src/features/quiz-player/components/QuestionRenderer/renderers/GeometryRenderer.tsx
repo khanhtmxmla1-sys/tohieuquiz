@@ -9,10 +9,13 @@ const GeometryRenderer: React.FC<BaseRendererProps> = ({
   onAnswerChange,
 }) => {
   const geometryData = (question as any).geometryData;
+  const rawSvgContent = (question as any).svgContent ?? (question as any).svg_content;
+  const hasSvgDiagram = typeof rawSvgContent === 'string'
+    && Boolean(rawSvgContent.trim());
   const value = String(answers[question.id] ?? '');
   const inputId = `geometry-result-${question.id}`;
 
-  if (!geometryData) {
+  if (!geometryData && !hasSvgDiagram) {
     return (
       <div className="rounded-[10px] border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-sm text-slate-500">
         Không tìm thấy dữ liệu hình học.
@@ -22,9 +25,11 @@ const GeometryRenderer: React.FC<BaseRendererProps> = ({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="w-full max-w-2xl overflow-hidden rounded-[10px] border border-slate-200 bg-white">
-        <GeometryContainer data={geometryData} />
-      </div>
+      {geometryData ? (
+        <div className="w-full max-w-2xl overflow-hidden rounded-[10px] border border-slate-200 bg-white">
+          <GeometryContainer data={geometryData} />
+        </div>
+      ) : null}
 
       <div className="mt-6 w-full max-w-sm">
         <label htmlFor={inputId} className="sr-only">Kết quả hình học</label>

@@ -66,6 +66,19 @@ describe('live exam question mapper — đáp án dạng số', () => {
         expect(ordering.correctOrder).toEqual(['1', '2', '3']);
     });
 
+    it('giữ SVG đã sanitize trong payload thi trực tiếp mà không đổi scoring', () => {
+        const question = mapLiveExamQuestionRow({
+            ...mcqRow('q-svg', 'A', 'A|B|C|D'),
+            svg_content: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="2" /></svg>',
+            svg_alt: 'Một đường tròn',
+        }) as any;
+
+        expect(question.svgContent).toContain('<svg');
+        expect(question.svgAlt).toBe('Một đường tròn');
+        expect(question.svgVersion).toBe(1);
+        expect(question.correctAnswer).toBe('A');
+    });
+
     it('không nhận nhầm chuỗi mở đầu bằng dấu ngoặc thành JSON hỏng', () => {
         // Đáp án văn bản có thể chứa dấu ngoặc; nếu parse thất bại phải giữ nguyên chuỗi gốc.
         const question = mapLiveExamQuestionRow(

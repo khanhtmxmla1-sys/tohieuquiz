@@ -5,6 +5,7 @@ import type {
 } from '../../features/quiz-generator/domain/quizBlueprint';
 import { validateQuestionMath } from '../../utils/questionMath';
 import type {
+  DiagramGenerationMode,
   GeneratedQuestionV3,
   GeneratedQuizV3,
 } from './question-contracts/questionContract.types';
@@ -13,13 +14,16 @@ import {
   validateGeneratedQuestionSemantics,
 } from './question-contracts/questionContractRegistry';
 import type { GeneratedQuestion, GeneratedQuizPayload } from './schemas/quizGenerationSchema';
+import { questionSatisfiesRequiredDiagram } from './svgDiagramProcessing';
 
 export type QuizAuditCode =
   | 'QUESTION_COUNT_MISMATCH'
   | 'TYPE_COUNT_MISMATCH'
   | 'DIFFICULTY_COUNT_MISMATCH'
   | 'DUPLICATE_QUESTION'
-  | 'INVALID_ANSWER';
+  | 'INVALID_ANSWER'
+  | 'SVG_FORBIDDEN'
+  | 'SVG_REQUIRED_MISSING';
 
 export interface QuizAuditIssue {
   code: QuizAuditCode;
@@ -78,6 +82,7 @@ const hasInvalidAnswer = (question: GeneratedQuestion): boolean => {
 export function auditGeneratedQuiz(
   quiz: GeneratedQuizPayload,
   blueprint: QuizBlueprint,
+  diagramMode: DiagramGenerationMode = 'off',
 ): QuizAuditIssue[] {
   const issues: QuizAuditIssue[] = [];
   const questions = quiz.questions;
@@ -155,6 +160,25 @@ export function auditGeneratedQuiz(
   }
 
   questions.forEach((question, index) => {
+    const record = question as unknown as Record<string, unknown>;
+    if (diagramMode === 'off' && typeof record.svgContent === 'string' && record.svgContent.trim()) {
+      issues.push({
+        code: 'SVG_FORBIDDEN',
+        questionIndexes: [index],
+        message: `Câu ${index + 1} có SVG khi diagram mode đang tắt.`,
+        repairable: true,
+      });
+    }
+    if (String(question.type) === QuestionType.GEOMETRY
+      && diagramMode === 'auto'
+      && !questionSatisfiesRequiredDiagram(record)) {
+      issues.push({
+        code: 'SVG_REQUIRED_MISSING',
+        questionIndexes: [index],
+        message: `Câu ${index + 1} cần geometryData hoặc SVG hợp lệ.`,
+        repairable: true,
+      });
+    }
     if (hasInvalidAnswer(question)) {
       issues.push({
         code: 'INVALID_ANSWER',
@@ -178,6 +202,7 @@ export type QuizSlotAuditCode =
   | 'SLOT_SKILL_MISMATCH'
   | 'QUESTION_SCHEMA_INVALID'
   | 'QUESTION_SEMANTIC_INVALID'
+  | 'DIAGRAM_POLICY_VIOLATION'
   | 'DUPLICATE_QUESTION_CONTENT'
   | 'MATH_FORMAT_INVALID';
 
@@ -262,6 +287,32 @@ export function auditGeneratedQuizV3(
         [slot.slotId],
         `${slot.slotId} phải có mức độ ${slot.difficulty}.`,
         ['difficulty'],
+      ));
+    }
+    if (question.diagramPolicy !== slot.diagramPolicy) {
+      issues.push(slotIssue(
+        'DIAGRAM_POLICY_VIOLATION',
+        [slot.slotId],
+        `${slot.slotId} phải echo diagramPolicy=${slot.diagramPolicy}.`,
+        ['diagramPolicy'],
+      ));
+    }
+    const questionRecord = question as unknown as Record<string, unknown>;
+    const hasSvg = typeof questionRecord.svgContent === 'string' && questionRecord.svgContent.trim().length > 0;
+    if (slot.diagramPolicy === 'forbidden' && hasSvg) {
+      issues.push(slotIssue(
+        'DIAGRAM_POLICY_VIOLATION',
+        [slot.slotId],
+        `${slot.slotId} không được phép có SVG.`,
+        ['svgContent'],
+      ));
+    }
+    if (slot.diagramPolicy === 'required' && !questionSatisfiesRequiredDiagram(questionRecord)) {
+      issues.push(slotIssue(
+        'DIAGRAM_POLICY_VIOLATION',
+        [slot.slotId],
+        `${slot.slotId} phải có geometryData hoặc SVG hợp lệ.`,
+        ['svgContent'],
       ));
     }
     if ((slot.subject && question.subject !== slot.subject)

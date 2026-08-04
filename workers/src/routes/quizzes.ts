@@ -26,6 +26,7 @@ import {
     type PersistedQuestionRow,
 } from '../services/questionMath';
 import { QuestionScoringContractValidationError } from '../services/questionScoringContract';
+import { sanitizeSvgDiagram } from '../services/svgDiagramSanitizer';
 import { z } from 'zod';
 
 const canAccessQuiz = async (db: D1Database, user: JWTPayload, quizId: string): Promise<boolean> => {
@@ -97,8 +98,8 @@ const buildQuestionInsertStatement = (db: D1Database) => db.prepare(
         id, quiz_id, type, question, options, correct_answer, items, text_field,
         blanks, distractors, sentence, words, correct_word_indexes, image, tags,
         subject, skill_code, subskill_code, difficulty, math_format_version, points, explanation, image_alt,
-        answer_schema_version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        svg_content, svg_alt, answer_schema_version
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 );
 
 const mapQuestionBatch = (questions: unknown[], quizId: string): string[][] =>
@@ -139,6 +140,23 @@ const copiedQuestionValues = (
         throw new QuestionMathValidationError(audit.remainingIssues);
     }
     const normalized = normalizePersistedQuestionRow(persisted);
+    const rawSvgContent = String(question.svgContent ?? question.svg_content ?? '');
+    const rawSvgAlt = String(question.svgAlt ?? question.svg_alt ?? '').trim();
+    const sanitizedSvg = rawSvgContent.trim() ? sanitizeSvgDiagram(rawSvgContent) : null;
+    const svgContent = sanitizedSvg?.ok && sanitizedSvg.sanitizedSvg && rawSvgAlt
+        ? sanitizedSvg.sanitizedSvg
+        : '';
+    const svgAlt = svgContent ? rawSvgAlt : '';
+    if (rawSvgContent.trim() && !svgContent) {
+        console.info(JSON.stringify({
+            event: 'question_svg_copy_rejected',
+            questionType: question.type,
+            issueCodes: rawSvgAlt
+                ? (sanitizedSvg?.issues.map((issue) => issue.code) ?? ['INVALID_SVG'])
+                : ['INVALID_SVG_METADATA'],
+            sizeBytes: sanitizedSvg?.sizeBytes ?? 0,
+        }));
+    }
     return [
         newQuestionId,
         newQuizId,
@@ -165,6 +183,8 @@ const copiedQuestionValues = (
         String((question as import('../types').Question & { imageAlt?: string; image_alt?: string }).imageAlt
             ?? (question as import('../types').Question & { imageAlt?: string; image_alt?: string }).image_alt
             ?? ''),
+        svgContent,
+        svgAlt,
         String(question.answer_schema_version || 1),
     ];
 };
@@ -244,8 +264,24 @@ const toEditorQuizDto = (quiz: import('../types').Quiz) => ({
     revision: Number(quiz.revision || 1),
 });
 
+export const mapQuestionFromD1 = (question: any): any => {
+    const svgContent = String(question?.svgContent ?? question?.svg_content ?? '');
+    const svgAlt = String(question?.svgAlt ?? question?.svg_alt ?? '');
+    const mapped = {
+        ...question,
+        imageAlt: String(question?.imageAlt ?? question?.image_alt ?? '') || undefined,
+        svgContent: svgContent || undefined,
+        svgAlt: svgContent && svgAlt ? svgAlt : undefined,
+        svgVersion: svgContent && svgAlt ? 1 : undefined,
+    };
+    delete mapped.image_alt;
+    delete mapped.svg_content;
+    delete mapped.svg_alt;
+    return mapped;
+};
+
 export const sanitizeQuestionForStudent = (question: any): any => {
-    const safe = { ...question };
+    const safe = mapQuestionFromD1(question);
     for (const field of [
         'correct_answer', 'correctAnswer', 'correct_answers', 'correctAnswers',
         'explanation',
@@ -389,7 +425,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
 
         return jsonResponse({
             quiz: toEditorQuizDto(quiz),
-            questions: questions.results,
+            questions: questions.results.map(mapQuestionFromD1),
             editability: buildQuizEditability(usage),
         });
     }
@@ -456,7 +492,9 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
         }
 
         const mustSanitize = !user || user.role === 'student';
-        return jsonResponse(mustSanitize ? rows.results.map(sanitizeQuestionForStudent) : rows.results);
+        return jsonResponse(mustSanitize
+            ? rows.results.map(sanitizeQuestionForStudent)
+            : rows.results.map(mapQuestionFromD1));
     }
 
     // POST /api/quizzes - Create quiz (TEACHER/ADMIN only)

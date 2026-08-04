@@ -4,6 +4,7 @@ import { normalizeWorksheetMath } from '../shared/mathNormalizer';
 import { getWorksheetTypeLabel } from '../shared/typeLabels';
 import { ensurePdfSpace } from './pdfLayout';
 import { PDF_MARGIN, type PdfRenderContext, setPdfFont } from './pdfTypes';
+import { renderPdfSvgDiagram } from './pdfSvgDiagram';
 import { renderPdfChoices } from './renderers/choiceRenderer';
 import { renderPdfMatching, renderPdfDragDrop } from './renderers/matchingDragRenderer';
 import { renderPdfCategorization, renderPdfOrdering, renderPdfWordScramble } from './renderers/structuredRenderer';
@@ -31,6 +32,7 @@ export function renderPdfQuestion(ctx: PdfRenderContext, question: any, index: n
         ctx.yPos += rest.length * 5;
     }
     ctx.yPos += 2;
+    renderPdfSvgDiagram(ctx, question, index);
 
     switch (question.type) {
         case QuestionType.MCQ:

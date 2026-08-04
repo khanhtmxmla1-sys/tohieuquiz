@@ -46,6 +46,7 @@ export function buildQuizSchemaRepairPrompt(input: QuizSchemaRepairRequest): str
     'Mọi items[].categoryId phải trùng với một categories[].id.',
     'Mọi DROPDOWN.blanks[] phải là object gồm id, options và correctAnswer.',
     'Không tạo trường explanation trong câu hỏi.',
+    'Nếu câu có SVG, phải giữ đủ svgContent, svgAlt, svgVersion=1 và không đưa SVG raw vào image.',
   ].join('\n');
 }
 
@@ -208,6 +209,7 @@ export function buildQuizSlotRepairPrompt(input: {
       intent: input.blueprint.intent,
       sourceMode: input.blueprint.sourceMode,
       hasImageLibrary: slots.some((slot) => slot.imagePolicy === 'required'),
+      diagramMode: slots.some((slot) => slot.diagramPolicy !== 'forbidden') ? 'auto' : 'off',
     },
   ).map((fragment) => fragment.replaceAll('"slotId":"slot-1"', '"slotId":"<slotId>"'));
   const issueSummary = input.issues
@@ -232,6 +234,7 @@ export function buildQuizSlotRepairPrompt(input: {
       skillCode: slot.skillCode,
       subskillCode: slot.subskillCode,
       imagePolicy: slot.imagePolicy,
+      diagramPolicy: slot.diagramPolicy,
     }))),
     '[CONTRACTS]',
     contracts.join('\n\n'),
@@ -242,7 +245,8 @@ export function buildQuizSlotRepairPrompt(input: {
     '[OUTPUT]',
     'Trả {"promptVersion":"ai-blueprint-v3","blueprintVersion":3,"title":"Phần sửa","questions":[...]}.',
     'Không tạo trường explanation trong các slot sửa.',
-    'Chỉ trả các slot được yêu cầu. Không được đổi slotId, type hoặc difficulty.',
+    'Giữ SVG hợp lệ; khi diagramPolicy=forbidden không được thêm SVG; khi required phải có geometryData hoặc đủ svgContent, svgAlt, svgVersion=1.',
+    'Chỉ trả các slot được yêu cầu. Không được đổi slotId, type, difficulty hoặc diagramPolicy.',
   ].join('\n');
 }
 
@@ -274,8 +278,11 @@ export function mergeRepairedSlots(
   );
   for (const [slotId, question] of repairedBySlotId) {
     const slot = expectedBySlotId.get(slotId);
-    if (!slot || question.type !== slot.type || question.difficulty !== slot.difficulty) {
-      throw new Error(`${slotId} không khớp type hoặc difficulty trong blueprint.`);
+    if (!slot
+      || question.type !== slot.type
+      || question.difficulty !== slot.difficulty
+      || question.diagramPolicy !== slot.diagramPolicy) {
+      throw new Error(`${slotId} không khớp type, difficulty hoặc diagramPolicy trong blueprint.`);
     }
   }
 

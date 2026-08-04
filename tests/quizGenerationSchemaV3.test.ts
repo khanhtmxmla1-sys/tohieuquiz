@@ -20,6 +20,7 @@ const makeAllTypeQuiz = () => ({
     slotId: `slot-${index + 1}`,
     type,
     difficulty: ((index % 3) + 1) as 1 | 2 | 3,
+    diagramPolicy: 'forbidden' as const,
   })),
 });
 
@@ -28,6 +29,20 @@ describe('generated quiz V3 schema', () => {
     const parsed = parseGeneratedQuizV3(makeAllTypeQuiz());
     expect(parsed.questions).toHaveLength(13);
     expect(parsed.questions.map((question) => question.type)).toEqual(AI_SELECTABLE_QUESTION_TYPES);
+  });
+
+  it('accepts complete SVG metadata and rejects partial SVG metadata', () => {
+    const quiz = makeAllTypeQuiz();
+    quiz.questions[0] = {
+      ...quiz.questions[0],
+      svgContent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="2" /></svg>',
+      svgAlt: 'Một đường tròn',
+      svgVersion: 1,
+    };
+    expect(parseGeneratedQuizV3(quiz).questions[0].svgVersion).toBe(1);
+
+    quiz.questions[0] = { ...quiz.questions[0], svgAlt: undefined };
+    expect(GeneratedQuizV3Schema.safeParse(quiz).success).toBe(false);
   });
 
   it('still accepts an optional legacy explanation', () => {

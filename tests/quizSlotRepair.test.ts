@@ -41,6 +41,7 @@ const repaired: GeneratedQuizV3 = {
     slotId: replacementSlot.slotId,
     type: replacementSlot.type,
     difficulty: replacementSlot.difficulty,
+    diagramPolicy: replacementSlot.diagramPolicy,
     explanation: 'Lời giải thay thế hợp lệ.',
   }] as GeneratedQuestionV3[],
 };
@@ -65,6 +66,7 @@ describe('V3 targeted slot repair', () => {
     expect(prompt).not.toContain('"slotId":"slot-1","type"');
     expect(prompt).not.toContain(JSON.stringify(original.questions));
     expect(prompt).toContain('Không tạo trường explanation');
+    expect(prompt).toContain('diagramPolicy');
     expect(prompt).not.toContain('"explanation"');
   });
 
@@ -110,6 +112,6 @@ describe('V3 targeted slot repair', () => {
       },
       { slotIds: ['slot-3'], requestedCount: 1 },
       blueprint,
-    )).toThrow('không khớp type hoặc difficulty');
+    )).toThrow('không khớp type, difficulty hoặc diagramPolicy');
   });
 });

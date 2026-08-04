@@ -35,6 +35,7 @@ jobs:
       VITE_FEATURE_GIFT_SHOP_V2: 'false'
       VITE_FEATURE_AI_QUIZ_V2: 'false'
       VITE_FEATURE_AI_BLUEPRINT_V3: 'false'
+      VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
       VITE_FEATURE_PARENT_PORTAL_V1: 'false'
       VITE_GIFT_SHOP_MODE: api
       RELEASE_BASE_REF: ${{ inputs.base_ref || github.event.pull_request.base.sha || 'origin/main' }}
@@ -110,6 +111,7 @@ jobs:
           VITE_FEATURE_GIFT_SHOP_V2: 'true'
           VITE_FEATURE_AI_QUIZ_V2: 'true'
           VITE_FEATURE_AI_BLUEPRINT_V3: 'false'
+          VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
           VITE_GIFT_SHOP_MODE: api
 
@@ -154,6 +156,7 @@ jobs:
           VITE_FEATURE_GIFT_SHOP_V2: 'true'
           VITE_FEATURE_AI_QUIZ_V2: 'true'
           VITE_FEATURE_AI_BLUEPRINT_V3: 'true'
+          VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
           VITE_GIFT_SHOP_MODE: api
 
@@ -166,9 +169,54 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  e2e-svg-diagrams:
+    name: Cypress AI SVG diagram readiness
+    needs: core-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout candidate commit
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run AI SVG diagram Cypress spec
+        uses: cypress-io/github-action@v7
+        with:
+          install: false
+          start: npm run dev
+          wait-on: http://localhost:3001
+          wait-on-timeout: 120
+          command: npm run cypress:run:svg-diagrams
+        env:
+          VITE_FEATURE_GIFT_SHOP_V2: 'true'
+          VITE_FEATURE_AI_QUIZ_V2: 'true'
+          VITE_FEATURE_AI_BLUEPRINT_V3: 'true'
+          VITE_FEATURE_AI_SVG_DIAGRAMS: 'true'
+          VITE_FEATURE_PARENT_PORTAL_V1: 'true'
+          VITE_GIFT_SHOP_MODE: api
+
+      - name: Upload AI SVG failure screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-readiness-cypress-svg-diagrams-${{ github.run_id }}
+          path: cypress/screenshots
+          if-no-files-found: ignore
+          retention-days: 7
+
   release-ready:
     name: Release ready
-    needs: [core-gate, e2e-stubbed, e2e-blueprint-v3]
+    needs: [core-gate, e2e-stubbed, e2e-blueprint-v3, e2e-svg-diagrams]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -178,6 +226,7 @@ jobs:
           CORE_RESULT: ${{ needs.core-gate.result }}
           E2E_V2_RESULT: ${{ needs.e2e-stubbed.result }}
           E2E_V3_RESULT: ${{ needs.e2e-blueprint-v3.result }}
+          E2E_SVG_RESULT: ${{ needs.e2e-svg-diagrams.result }}
           RELEASE_SHA: ${{ github.sha }}
         run: |
           mkdir -p reports
@@ -187,6 +236,7 @@ jobs:
             coreGate: process.env.CORE_RESULT,
             cypressV2: process.env.E2E_V2_RESULT,
             cypressV3: process.env.E2E_V3_RESULT,
+            cypressSvgDiagrams: process.env.E2E_SVG_RESULT,
           };
           const status = Object.values(checks).every(value => value === 'success')
             ? 'ready'

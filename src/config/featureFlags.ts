@@ -39,6 +39,15 @@ export const isAiBlueprintV3Enabled = (): boolean => resolveFeatureFlag(
     false,
 );
 
+/**
+ * AI-generated SVG diagrams are opt-in and disabled by default in production.
+ * Local/test environments can enable VITE_FEATURE_AI_SVG_DIAGRAMS=true.
+ */
+export const isAiSvgDiagramsEnabled = (): boolean => resolveFeatureFlag(
+    import.meta.env.VITE_FEATURE_AI_SVG_DIAGRAMS,
+    false,
+);
+
 export const isParentPortalEnabled = (): boolean => resolveFeatureFlag(
     import.meta.env.VITE_FEATURE_PARENT_PORTAL_V1,
     false,

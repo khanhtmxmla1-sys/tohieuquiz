@@ -12,6 +12,7 @@ const slot: QuestionBlueprintSlot = {
   difficulty: 2,
   objective: 'Nối phân số với cách đọc',
   imagePolicy: 'optional',
+  diagramPolicy: 'optional',
   subject: 'math',
   skillCode: 'phan_so',
 };
@@ -21,6 +22,7 @@ const currentQuestion = {
   slotId: slot.slotId,
   type: slot.type,
   difficulty: slot.difficulty,
+  diagramPolicy: slot.diagramPolicy,
   explanation: 'Lời giải hiện tại.',
 } as GeneratedQuestionV3;
 
@@ -36,7 +38,8 @@ describe('single question V3 regeneration prompt', () => {
     expect(prompt).toContain('"slotId":"slot-4"');
     expect(prompt).toContain('"type":"MATCHING"');
     expect(prompt).toContain('"difficulty":2');
-    expect(prompt).toContain('Không được đổi slotId, type hoặc difficulty');
+    expect(prompt).toContain('Không được đổi slotId, type, difficulty hoặc diagramPolicy');
+    expect(prompt).toContain('diagramPolicy=optional');
     expect(prompt).toContain('[CONTRACT: MATCHING]');
     expect(prompt).toContain('so sánh hai phân số');
   });

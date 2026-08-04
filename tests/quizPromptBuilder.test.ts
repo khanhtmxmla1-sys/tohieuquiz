@@ -45,6 +45,27 @@ const interactiveOptions: QuizGenerationOptions = {
 };
 
 describe('quiz prompt builder blueprint contract', () => {
+  it('forbids SVG output when diagram mode is off', () => {
+    const prompt = buildPrompt('Phân số', '4', '', makeOptions('PRACTICE'));
+    expect(prompt).toContain('[DIAGRAM POLICY: OFF]');
+    expect(prompt).toContain('Không tạo svgContent');
+    expect(prompt).not.toContain('[SVG DIAGRAM POLICY: AUTO]');
+  });
+
+  it('allows only relevant optional SVG diagrams when auto mode is enabled', () => {
+    const prompt = buildPrompt('Phân số', '4', '', {
+      ...makeOptions('PRACTICE'),
+      diagramMode: 'auto',
+    });
+    expect(prompt).toContain('[SVG DIAGRAM POLICY: AUTO]');
+    expect(prompt).toContain('Không bắt buộc mọi câu hỏi phải có SVG');
+    expect(prompt).toContain('svgContent');
+    expect(prompt).toContain('svgAlt');
+    expect(prompt).toContain('svgVersion = 1');
+    expect(prompt).toContain('foreignObject');
+    expect(prompt).toContain('Không tạo hình trang trí');
+  });
+
   it('writes exact question counts for every selected type', () => {
     const prompt = buildPrompt('Phân số', '4', '', makeOptions('EXAM'));
 

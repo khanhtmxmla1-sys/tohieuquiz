@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CommonSvgQuestionFields } from '../schemas/svgQuestionSchema';
 
 export const NonEmptyText = z.string().trim().min(1);
 export const QuestionText = NonEmptyText.max(4_000);
@@ -13,10 +14,12 @@ export const OptionalImage = z.string().trim().min(1).max(2_000_000).optional();
 export const CommonGeneratedQuestionFields = {
   slotId: z.string().trim().regex(/^slot-\d+$/),
   difficulty: DifficultySchema,
+  diagramPolicy: z.enum(['forbidden', 'optional', 'required']).optional(),
   explanation: ExplanationText.optional(),
   subject: z.enum(['math', 'vietnamese']).optional(),
   skillCode: z.string().trim().min(1).max(160).optional(),
   subskillCode: z.string().trim().min(1).max(160).optional(),
+  ...CommonSvgQuestionFields,
 };
 
 export const normalizeComparableText = (value: string): string => value

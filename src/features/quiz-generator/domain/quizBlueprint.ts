@@ -2,7 +2,9 @@ import { QuestionType } from '../../../types';
 import type { SupportedSkillSubject } from '../../../shared/skillTaxonomy';
 import type {
   BlueprintDifficulty,
+  BlueprintDiagramPolicy,
   BlueprintImagePolicy,
+  DiagramGenerationMode,
   QuestionContractSlot,
 } from '../../../services/ai/question-contracts/questionContract.types';
 import {
@@ -123,6 +125,7 @@ interface BuildQuestionBlueprintSlotsInput {
   skillCode?: string;
   subskillCode?: string;
   sourceRefs?: string[];
+  diagramMode?: DiagramGenerationMode;
 }
 
 const buildDifficultySequence = (
@@ -136,6 +139,14 @@ const buildDifficultySequence = (
 const resolveImagePolicy = (type: AiSelectableQuestionType): BlueprintImagePolicy => (
   type === QuestionType.IMAGE_QUESTION ? 'required' : 'optional'
 );
+
+export const resolveDiagramPolicy = (
+  type: QuestionType,
+  mode: DiagramGenerationMode = 'off',
+): BlueprintDiagramPolicy => {
+  if (mode === 'off') return 'forbidden';
+  return type === QuestionType.GEOMETRY ? 'required' : 'optional';
+};
 
 export function buildQuestionBlueprintSlots(
   input: BuildQuestionBlueprintSlotsInput,
@@ -168,7 +179,7 @@ export function buildQuestionBlueprintSlots(
 
   const allocations = input.typeAllocations.map((allocation, index) => {
     if (!isAiSelectableQuestionType(allocation.type)) {
-      throw new Error(`Dạng ${allocation.type} không thuộc 13 dạng AI được hỗ trợ.`);
+      throw new Error(`Dạng ${allocation.type} không thuộc các dạng AI được hỗ trợ.`);
     }
     return {
       type: allocation.type,
@@ -200,6 +211,7 @@ export function buildQuestionBlueprintSlots(
       skillCode: input.skillCode?.trim() || undefined,
       subskillCode: input.subskillCode?.trim() || undefined,
       imagePolicy: resolveImagePolicy(selected.type),
+      diagramPolicy: resolveDiagramPolicy(selected.type, input.diagramMode),
       sourceRefs: input.sourceRefs ? [...input.sourceRefs] : undefined,
     };
   });
@@ -226,10 +238,17 @@ export function validateQuizBlueprintV3(blueprint: QuizBlueprintV3): string[] {
     errors.push('Slot phải có ordinal và slotId tuần tự.');
   }
   if (blueprint.slots.some(({ type }) => !isAiSelectableQuestionType(type))) {
-    errors.push('Blueprint chứa dạng câu không thuộc 13 dạng AI.');
+    errors.push('Blueprint chứa dạng câu không thuộc các dạng AI được hỗ trợ.');
   }
   if (blueprint.slots.some(({ difficulty }) => ![1, 2, 3].includes(difficulty))) {
     errors.push('Độ khó của slot chỉ được là 1, 2 hoặc 3.');
+  }
+  if (blueprint.slots.some(({ diagramPolicy }) => !['forbidden', 'optional', 'required'].includes(diagramPolicy))) {
+    errors.push('Diagram policy của slot không hợp lệ.');
+  }
+  if (blueprint.slots.some((slot) => String(slot.type) === QuestionType.GEOMETRY
+    && slot.diagramPolicy !== 'required')) {
+    errors.push('Slot hình học phải bắt buộc có geometryData hoặc SVG.');
   }
   if (blueprint.slots.some((slot) => slot.type === QuestionType.IMAGE_QUESTION
     && slot.imagePolicy !== 'required')) {

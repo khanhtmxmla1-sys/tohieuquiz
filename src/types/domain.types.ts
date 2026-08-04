@@ -17,6 +17,12 @@ export interface QuestionMetadata extends QuestionSkillMetadataFields {
     /** Lời giải/hướng dẫn, chỉ hiển thị theo policy sau khi học sinh nộp bài. */
     explanation?: string;
     imageAlt?: string;
+    /** SVG đã được sanitizer phía server chấp nhận. */
+    svgContent?: string;
+    /** Mô tả thay thế dùng cho accessibility. */
+    svgAlt?: string;
+    /** Phiên bản contract SVG hiện hành. */
+    svgVersion?: 1;
 }
 
 export enum QuestionType {
@@ -273,6 +279,9 @@ export interface QuestionSnapshot {
     skillCode?: string;
     subskillCode?: string;
     tags?: QuestionMetadata['tags'];
+    svgContent?: string;
+    svgAlt?: string;
+    svgVersion?: 1;
 }
 
 /**
@@ -380,6 +389,8 @@ export interface Teacher {
 /**
  * Quiz Generation Options
  */
+export type DiagramGenerationMode = 'off' | 'auto';
+
 export interface QuizGenerationOptions {
     topic: string;
     classLevel: string;
@@ -392,6 +403,7 @@ export interface QuizGenerationOptions {
         hard: number;
     };
     imageLibrary?: string[];
+    diagramMode?: DiagramGenerationMode;
 }
 
 /**

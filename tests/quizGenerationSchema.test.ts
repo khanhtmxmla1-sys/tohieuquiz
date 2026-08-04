@@ -21,6 +21,28 @@ describe('generated quiz schema', () => {
     expect(parsed.questions[0]).not.toHaveProperty('explanation');
   });
 
+  it('accepts a complete SVG field set and rejects partial metadata', () => {
+    const valid = parseGeneratedQuiz({
+      title: 'Đề có hình',
+      questions: [{
+        type: 'MCQ', question: 'Quan sát hình', options: ['A', 'B'], correctAnswer: 'A',
+        difficultyLevel: 1,
+        svgContent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="2" /></svg>',
+        svgAlt: 'Một đường tròn', svgVersion: 1,
+      }],
+    });
+    expect(valid.questions[0]).toMatchObject({ svgAlt: 'Một đường tròn', svgVersion: 1 });
+
+    expect(() => parseGeneratedQuiz({
+      title: 'Đề lỗi',
+      questions: [{
+        type: 'MCQ', question: 'Quan sát hình', options: ['A', 'B'], correctAnswer: 'A',
+        difficultyLevel: 1,
+        svgContent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>',
+      }],
+    })).toThrow('svgContent');
+  });
+
   it('accepts legacy explanations when they are still present', () => {
     const parsed = parseGeneratedQuiz({
       title: 'Đề cũ',

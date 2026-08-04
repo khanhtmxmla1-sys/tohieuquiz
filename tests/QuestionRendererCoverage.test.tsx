@@ -44,6 +44,18 @@ describe('QuestionRenderer coverage', () => {
     expect(rendererProps.onAnswerChange).toHaveBeenCalledWith('error', { wrongWord: 'ngoãn', correctWord: '' });
   });
 
+  it('renders a shared SVG diagram before the answer area without injecting raw SVG', () => {
+    const { container } = render(<QuestionRenderer {...props({
+      id: 'svg-mcq', type: 'MCQ', question: 'Quan sát hình', options: ['A', 'B'],
+      svgContent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="2" /></svg>',
+      svgAlt: 'Một đường tròn', svgVersion: 1,
+    })} />);
+    const image = screen.getByRole('img', { name: 'Một đường tròn' });
+    expect(image).toHaveAttribute('src', expect.stringMatching(/^data:image\/svg\+xml;charset=utf-8,/));
+    expect(container.querySelector('svg')).toBeNull();
+    expect(screen.getAllByRole('button')).toHaveLength(2);
+  });
+
   it('shows an explicit unsupported state instead of falling back to MCQ', () => {
     render(<QuestionRenderer {...props({ id: 'unknown', type: 'ALIEN_TYPE', question: 'Unknown' })} />);
     expect(screen.getByRole('alert')).toHaveTextContent('Dạng câu hỏi này chưa được hỗ trợ');

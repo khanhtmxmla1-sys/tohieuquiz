@@ -12,6 +12,7 @@ dev server on `http://localhost:3001`.
 | Spec | Requires |
 |---|---|
 | `ai-question-blueprint-v3.cy.ts` | `VITE_FEATURE_AI_BLUEPRINT_V3=true` |
+| `ai-svg-diagrams.cy.ts` | `VITE_FEATURE_AI_QUIZ_V2=true`, `VITE_FEATURE_AI_BLUEPRINT_V3=true`, `VITE_FEATURE_AI_SVG_DIAGRAMS=true` |
 | `ai-quiz-generation-v2.cy.ts` | `VITE_FEATURE_AI_QUIZ_V2=true` and **`VITE_FEATURE_AI_BLUEPRINT_V3=false`** |
 | `gift-shop.cy.ts` | `VITE_FEATURE_GIFT_SHOP_V2=true` |
 | `manual-quiz-workspace.cy.ts` | default flags |
@@ -42,8 +43,15 @@ Measured on 2026-07-26:
 | `false` | **5 passing** | (not applicable) |
 
 This is expected behaviour, not a defect: each spec pins one side of the flag. CI
-therefore runs the suite as **two separate jobs** (`e2e-stubbed` and
-`e2e-blueprint-v3`), not two steps in one job.
+therefore runs the suite as isolated jobs (`e2e-stubbed`, `e2e-blueprint-v3`, and
+`e2e-svg-diagrams`), not several steps sharing one Vite process.
+
+`ai-svg-diagrams.cy.ts` verifies the complete opt-in path with HTTP stubs: teacher
+enables the native checkbox, the V3 slot table carries `diagramPolicy`, the SVG is
+shown through an `<img>` data URL, the save payload retains all three SVG fields,
+and a 320px student session reloads, displays and submits the same question without
+horizontal overflow. The spec imports the deterministic V3 audit and rejects its
+own generated fixture if it no longer matches the real contracts.
 
 Two steps in one job does not work: `cypress-io/github-action` leaves its `start`
 server running, so the second step finds port 3001 occupied, Vite silently moves to
@@ -234,6 +242,7 @@ Never commit those credentials, and never point them at a real pupil's account.
 # Everything CI runs (stubbed only) — needs `npm run dev` in another terminal
 npm run cypress:run:stubbed
 npm run cypress:run:blueprint-v3   # with VITE_FEATURE_AI_BLUEPRINT_V3=true
+npm run cypress:run:svg-diagrams   # with V2 + V3 + SVG flags enabled
 
 # Component tests
 npm run cypress:run:component

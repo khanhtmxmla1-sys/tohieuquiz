@@ -9,6 +9,7 @@ const mapQuestion = (question: GeneratedQuestionV3): Question => {
   const {
     slotId,
     difficulty,
+    diagramPolicy: _diagramPolicy,
     subject,
     skillCode,
     subskillCode,

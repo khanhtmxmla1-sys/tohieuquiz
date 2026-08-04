@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { QuestionType } from '../src/types';
 import {
   buildQuestionBlueprintSlots,
+  resolveDiagramPolicy,
   validateQuizBlueprintV3,
   type QuizBlueprintV3,
 } from '../src/features/quiz-generator/domain/quizBlueprint';
@@ -57,6 +58,15 @@ describe('quiz blueprint V3 slots', () => {
     expect(first.every((slot) => slot.subject === 'math' && slot.skillCode === 'phan_so')).toBe(true);
   });
 
+  it('maps diagram mode to slot policy without changing question type', () => {
+    expect(resolveDiagramPolicy(QuestionType.MCQ, 'off')).toBe('forbidden');
+    expect(resolveDiagramPolicy(QuestionType.MCQ, 'auto')).toBe('optional');
+    expect(resolveDiagramPolicy(QuestionType.GEOMETRY, 'auto')).toBe('required');
+
+    const slots = buildQuestionBlueprintSlots({ ...inputForTenQuestions, diagramMode: 'auto' });
+    expect(slots.every((slot) => slot.diagramPolicy === 'optional')).toBe(true);
+  });
+
   it('requires an image for image-question slots', () => {
     const slots = buildQuestionBlueprintSlots({
       totalQuestions: 1,
@@ -66,6 +76,7 @@ describe('quiz blueprint V3 slots', () => {
     });
 
     expect(slots[0].imagePolicy).toBe('required');
+    expect(slots[0].diagramPolicy).toBe('forbidden');
   });
 
   it('rejects manual-only and legacy types', () => {
@@ -74,7 +85,7 @@ describe('quiz blueprint V3 slots', () => {
       typeAllocations: [{ type: QuestionType.ERROR_CORRECTION, count: 1 }],
       difficultyLevels: { level1: 1, level2: 0, level3: 0 },
       objective: 'Sửa lỗi',
-    })).toThrow('không thuộc 13 dạng AI');
+    })).toThrow('không thuộc các dạng AI được hỗ trợ');
   });
 
   it('validates slot identity, totals and immutable fields', () => {
@@ -98,5 +109,11 @@ describe('quiz blueprint V3 slots', () => {
       ...blueprint,
       slots: slots.map((slot, index) => index === 0 ? { ...slot, difficulty: 4 as 1 } : slot),
     })).toContain('Độ khó của slot chỉ được là 1, 2 hoặc 3.');
+    expect(validateQuizBlueprintV3({
+      ...blueprint,
+      slots: slots.map((slot, index) => index === 0
+        ? { ...slot, diagramPolicy: 'invalid' as any }
+        : slot),
+    })).toContain('Diagram policy của slot không hợp lệ.');
   });
 });

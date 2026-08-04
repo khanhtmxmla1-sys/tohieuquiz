@@ -5,6 +5,11 @@ import type {
   GeneratedQuizV3,
 } from '../question-contracts/questionContract.types';
 import { getAiQuestionContract } from '../question-contracts/questionContractRegistry';
+import {
+  CommonSvgQuestionFields,
+  addSvgFieldSetIssue,
+  hasCompleteSvgFieldSet,
+} from './svgQuestionSchema';
 
 const NonEmptyText = z.string().trim().min(1);
 const QuestionText = NonEmptyText.max(4000);
@@ -16,6 +21,7 @@ const CommonMetadataFields = {
   id: z.string().trim().min(1).max(160).optional(),
   explanation: ExplanationText.optional(),
   difficultyLevel: DifficultyLevel,
+  ...CommonSvgQuestionFields,
 };
 
 const McqSchema = z.object({
@@ -193,6 +199,8 @@ export const GeneratedQuestionSchema = z.discriminatedUnion('type', [
   WordScrambleSchema,
   RiddleSchema,
 ]).superRefine((question, ctx) => {
+  addSvgFieldSetIssue(question as unknown as Record<string, unknown>, ctx);
+
   if (question.type === QuestionType.MCQ || question.type === QuestionType.IMAGE_QUESTION) {
     if (answerIndex(question.correctAnswer) >= question.options.length) {
       addIssue(ctx, 'Đáp án đúng phải tham chiếu một phương án hiện có.', ['correctAnswer']);
@@ -315,8 +323,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
 
 export const GeneratedQuestionV3Schema = z.custom<GeneratedQuestionV3>((value) => {
   if (!isRecord(value) || typeof value.type !== 'string') return false;
+  if (!['forbidden', 'optional', 'required'].includes(String(value.diagramPolicy))) return false;
   try {
-    return getAiQuestionContract(value.type as QuestionType).schema.safeParse(value).success;
+    return hasCompleteSvgFieldSet(value)
+      && getAiQuestionContract(value.type as QuestionType).schema.safeParse(value).success;
   } catch {
     return false;
   }

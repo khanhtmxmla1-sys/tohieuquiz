@@ -79,6 +79,7 @@ describe('generated quiz V3 slot audit', () => {
         slotId: 'slot-1',
         type: QuestionType.TRUE_FALSE,
         difficulty: slot.difficulty,
+        diagramPolicy: slot.diagramPolicy,
         items: contract.validFixture.items.map((item: any) => ({ ...item, isCorrect: true })),
       }],
     };
@@ -86,6 +87,20 @@ describe('generated quiz V3 slot audit', () => {
     expect(auditGeneratedQuizV3(quiz, localBlueprint).some(
       (issue) => issue.code === 'QUESTION_SEMANTIC_INVALID',
     )).toBe(true);
+  });
+
+  it('reports diagram policy mismatches independently', () => {
+    const quiz: GeneratedQuizV3 = {
+      ...validQuiz,
+      questions: validQuiz.questions.map((question, index) => index === 0
+        ? { ...question, diagramPolicy: 'required' }
+        : question),
+    };
+    expect(auditGeneratedQuizV3(quiz, blueprint)).toContainEqual(expect.objectContaining({
+      code: 'DIAGRAM_POLICY_VIOLATION',
+      slotIds: [blueprint.slots[0].slotId],
+      path: ['diagramPolicy'],
+    }));
   });
 
   it('reports skill and math mismatches', () => {

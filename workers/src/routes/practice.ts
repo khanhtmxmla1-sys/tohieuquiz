@@ -71,7 +71,7 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
             const searchPattern = `%${topic}%`;
 
             const rows = await db.prepare(
-                'SELECT id, quiz_id, type, question, options, correct_answer, items, text_field, blanks, distractors, sentence, words, correct_word_indexes, image, tags FROM questions WHERE tags LIKE ? ORDER BY RANDOM() LIMIT ?'
+                'SELECT id, quiz_id, type, question, options, correct_answer, items, text_field, blanks, distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, tags FROM questions WHERE tags LIKE ? ORDER BY RANDOM() LIMIT ?'
             ).bind(searchPattern, limit).all<import('../types').Question>();
 
             // Map D1 snake_case and JSON string fields to frontend camelCase objects
@@ -100,6 +100,9 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
                 parsed.sentence = parsed.sentence || parsed.text_field || ""; // Found missing mapping
                 parsed.explanation = parsed.explanation || "";
                 parsed.audio = parsed.audio || "";
+                parsed.svgContent = parsed.svgContent || parsed.svg_content || undefined;
+                parsed.svgAlt = parsed.svgAlt || parsed.svg_alt || undefined;
+                parsed.svgVersion = parsed.svgContent && parsed.svgAlt ? 1 : undefined;
 
                 const qType = parsed.type;
                 if (qType === 'IMAGE_QUESTION') {

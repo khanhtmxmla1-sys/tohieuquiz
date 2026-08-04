@@ -76,6 +76,11 @@ export interface Question {
     points?: number | null;
     explanation?: string;
     image_alt?: string;
+    svg_content?: string;
+    svg_alt?: string;
+    svgContent?: string;
+    svgAlt?: string;
+    svgVersion?: 1;
     answer_schema_version?: number;
 }
 

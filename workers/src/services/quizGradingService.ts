@@ -36,7 +36,7 @@ export interface AuthoritativeQuizGrading {
 
 const QUESTION_COLUMNS = `
   id, type, question, options, correct_answer, items, text_field, blanks,
-  distractors, sentence, words, correct_word_indexes, image, difficulty,
+  distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, difficulty,
   answer_schema_version
 `;
 

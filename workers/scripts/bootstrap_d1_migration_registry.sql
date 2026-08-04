@@ -67,4 +67,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0058_canonical_quiz_scoring_v2.sql'),
   ('0059_quiz_scoring_rollout_flags.sql'),
   ('0060_system_question_bank.sql'),
-  ('0061_assignment_revocation.sql');
+  ('0061_assignment_revocation.sql'),
+  ('0062_add_question_svg_diagrams.sql');

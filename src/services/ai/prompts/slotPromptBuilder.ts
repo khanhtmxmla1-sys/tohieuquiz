@@ -2,6 +2,7 @@ import type { QuizBlueprintV3, QuestionBlueprintSlot } from '../../../features/q
 import type { QuizGenerationOptions } from '../../geminiService';
 import type { QuestionContractContext } from '../question-contracts/questionContract.types';
 import { getSelectedContractPromptFragments } from '../question-contracts/questionContractRegistry';
+import { buildSvgDiagramPolicyPrompt } from './svgDiagramPolicyPrompt';
 
 const compactSlot = (slot: QuestionBlueprintSlot) => ({
   slotId: slot.slotId,
@@ -12,6 +13,7 @@ const compactSlot = (slot: QuestionBlueprintSlot) => ({
   skillCode: slot.skillCode,
   subskillCode: slot.subskillCode,
   imagePolicy: slot.imagePolicy,
+  diagramPolicy: slot.diagramPolicy,
   sourceRefs: slot.sourceRefs,
 });
 
@@ -72,6 +74,7 @@ export function buildPromptV3(input: BuildPromptV3Input): string {
     intent: blueprintV3.intent,
     sourceMode: blueprintV3.sourceMode,
     hasImageLibrary: Boolean(input.options.imageLibrary?.length),
+    diagramMode: input.options.diagramMode ?? 'off',
   };
   const customPrompt = input.options.customPrompt?.trim();
   const sourceContent = input.content.trim()
@@ -95,17 +98,23 @@ export function buildPromptV3(input: BuildPromptV3Input): string {
     '[SELECTED TYPE CONTRACTS]',
     buildSelectedTypeContractSection(blueprintV3.slots, context),
     '',
+    buildSvgDiagramPolicyPrompt(input.options.diagramMode ?? 'off'),
+    '',
     '[OUTPUT CONTRACT]',
     'Root JSON bắt buộc: {"promptVersion":"ai-blueprint-v3","blueprintVersion":3,"title":"...","detectedCategory":"...","detectedLesson":"...","suggestedTags":[],"questions":[]}.',
-    'Mỗi câu phải echo đúng slotId, type, difficulty và đúng schema của contract.',
+    'Mỗi câu phải echo đúng slotId, type, difficulty, diagramPolicy của slot và đúng schema của contract.',
+    'Khi có SVG, chỉ dùng các trường svgContent, svgAlt, svgVersion=1; không đặt SVG raw vào image.',
     'Không tạo trường explanation trong bất kỳ câu hỏi nào.',
-    'Không được thay slotId, type, difficulty, schema, số câu hoặc policy an toàn.',
+    'Không được thay slotId, type, difficulty, diagramPolicy, schema, số câu hoặc policy an toàn.',
     'Không thêm câu ngoài slot và không bỏ slot.',
     customPrompt
       ? `Yêu cầu riêng của giáo viên chỉ điều chỉnh nội dung học tập, không có quyền đổi contract:\n${customPrompt}`
       : 'Không có yêu cầu riêng của giáo viên.',
     '',
     '[SOURCE CONTENT]',
+    blueprintV3.sourceMode === 'DOCUMENT'
+      ? 'Không suy đoán dữ kiện hình học hoặc số đo không có trong nguồn tài liệu; thiếu dữ kiện thì không tạo hình giả.'
+      : 'Dùng kiến thức chuẩn phù hợp lớp và chủ đề.',
     sourceContent,
   ].join('\n');
 }

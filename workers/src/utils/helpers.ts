@@ -11,6 +11,7 @@ import {
     resolveQuizScoringRolloutMode,
 } from '../services/quizScoringRolloutService';
 import type { FeatureFlagSubject } from '../../../shared/feature-rollout.contract';
+import { sanitizeSvgDiagram } from '../services/svgDiagramSanitizer';
 
 // ============ Map question data for D1 insert ============
 export function mapQuestionForSave(q: Partial<Question> & { type: string }, quizId: string): string[] {
@@ -99,6 +100,42 @@ export function mapQuestionForSave(q: Partial<Question> & { type: string }, quiz
     const imageAltField = typeof anyQ.imageAlt === 'string'
         ? anyQ.imageAlt
         : (typeof anyQ.image_alt === 'string' ? anyQ.image_alt : '');
+    const rawSvgContent = typeof anyQ.svgContent === 'string'
+        ? anyQ.svgContent
+        : (typeof anyQ.svg_content === 'string' ? anyQ.svg_content : '');
+    const rawSvgAlt = typeof anyQ.svgAlt === 'string'
+        ? anyQ.svgAlt
+        : (typeof anyQ.svg_alt === 'string' ? anyQ.svg_alt : '');
+    const rawSvgVersion = anyQ.svgVersion ?? anyQ.svg_version;
+    let svgContentField = '';
+    let svgAltField = '';
+    if (rawSvgContent.trim()) {
+        const startedAt = Date.now();
+        const sanitized = sanitizeSvgDiagram(rawSvgContent);
+        const validMetadata = rawSvgAlt.trim().length > 0
+            && (rawSvgVersion === 1 || rawSvgVersion === '1');
+        if (sanitized.ok && sanitized.sanitizedSvg && validMetadata) {
+            svgContentField = sanitized.sanitizedSvg;
+            svgAltField = rawSvgAlt.trim();
+            console.info(JSON.stringify({
+                event: 'question_svg_accepted',
+                questionType: normalizedQuestion.type,
+                sizeBytes: sanitized.sizeBytes,
+                nodeCount: sanitized.nodeCount,
+                durationMs: Date.now() - startedAt,
+            }));
+        } else {
+            console.info(JSON.stringify({
+                event: 'question_svg_rejected',
+                questionType: normalizedQuestion.type,
+                issueCodes: validMetadata
+                    ? sanitized.issues.map((issue) => issue.code)
+                    : ['INVALID_SVG_METADATA'],
+                sizeBytes: sanitized.sizeBytes,
+                durationMs: Date.now() - startedAt,
+            }));
+        }
+    }
 
     const result = [
         normalizedQuestion.id || '', quizId, normalizedQuestion.type, questionText || '', options, correctAnswer,
@@ -106,7 +143,7 @@ export function mapQuestionForSave(q: Partial<Question> & { type: string }, quiz
         wordsField, correctWordIndexesField, imageField, tagsField,
         subjectField, skillCodeField, subskillCodeField, difficultyField,
         CURRENT_MATH_FORMAT_VERSION, pointsField, explanationField, imageAltField,
-        scoringContract.answerSchemaVersion,
+        svgContentField, svgAltField, scoringContract.answerSchemaVersion,
     ];
 
     return result.map(v => (v === undefined || v === null) ? '' : String(v));

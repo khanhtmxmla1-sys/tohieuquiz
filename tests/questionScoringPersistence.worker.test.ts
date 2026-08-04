@@ -9,9 +9,9 @@ describe('canonical scoring persistence', () => {
       id: 'q1', type: 'MCQ', question: '2 + 2?', options: ['3', '4'], correctAnswer: 'B',
     } as any, 'quiz-a');
 
-    expect(values).toHaveLength(24);
+    expect(values).toHaveLength(26);
     expect(values[5]).toBe('option-1');
-    expect(values[23]).toBe('2');
+    expect(values[25]).toBe('2');
   });
 
   it('stores drag-drop blanks with stable IDs and correct answers', () => {
@@ -24,7 +24,25 @@ describe('canonical scoring persistence', () => {
       { id: 'blank-0', correctAnswer: 'xanh' },
       { id: 'blank-1', correctAnswer: 'đỏ' },
     ]);
-    expect(values[23]).toBe('2');
+    expect(values[25]).toBe('2');
+  });
+
+  it('sanitizes and persists valid SVG while dropping malicious SVG', () => {
+    const validSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="25" /></svg>';
+    const valid = mapQuestionForSave({
+      id: 'q-svg', type: 'MCQ', question: 'Quan sát hình', options: ['A', 'B'], correctAnswer: 'A',
+      svgContent: validSvg, svgAlt: 'Đường tròn tâm O', svgVersion: 1,
+    } as any, 'quiz-a');
+    expect(valid[23]).toContain('<svg');
+    expect(valid[24]).toBe('Đường tròn tâm O');
+
+    const malicious = mapQuestionForSave({
+      id: 'q-xss', type: 'MCQ', question: 'Quan sát hình', options: ['A', 'B'], correctAnswer: 'A',
+      svgContent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" onload="alert(1)"></svg>',
+      svgAlt: 'Hình lỗi', svgVersion: 1,
+    } as any, 'quiz-a');
+    expect(malicious[23]).toBe('');
+    expect(malicious[24]).toBe('');
   });
 
   it('rejects ungradable question contracts at the API persistence boundary', () => {
@@ -57,5 +75,18 @@ describe('canonical scoring persistence', () => {
     expect(JSON.parse(safe.blanks)).toEqual([{ id: 'custom-a' }, { id: 'custom-b' }]);
     expect(JSON.parse(safe.distractors).sort()).toEqual(['vàng', 'xanh', 'đỏ'].sort());
     expect(JSON.stringify(safe)).not.toContain('correctAnswer');
+  });
+
+  it('keeps sanitized SVG in student DTO without exposing answers', () => {
+    const safe = sanitizeQuestionForStudent({
+      id: 'svg', type: 'MCQ', correct_answer: 'A',
+      svg_content: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="2" /></svg>',
+      svg_alt: 'Một đường tròn',
+    });
+    expect(safe.svgContent).toContain('<svg');
+    expect(safe.svgAlt).toBe('Một đường tròn');
+    expect(safe.svgVersion).toBe(1);
+    expect(safe).not.toHaveProperty('correct_answer');
+    expect(safe).not.toHaveProperty('svg_content');
   });
 });
