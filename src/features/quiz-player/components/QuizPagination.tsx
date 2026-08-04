@@ -26,7 +26,7 @@ const QuizPagination: React.FC<QuizPaginationProps> = ({
           disabled={currentPage === 1}
           className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
         >
-          Câu trước
+          Trang trước
         </button>
 
         <div
@@ -37,15 +37,6 @@ const QuizPagination: React.FC<QuizPaginationProps> = ({
           Trang {currentPage} / {totalPages}
         </div>
 
-        <button
-          type="button"
-          aria-label="Trang sau"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
-        >
-          Câu tiếp theo
-        </button>
       </div>
 
       {currentPage === totalPages ? (
@@ -63,7 +54,7 @@ const QuizPagination: React.FC<QuizPaginationProps> = ({
           onClick={() => onPageChange(currentPage + 1)}
           className="inline-flex min-h-12 w-full items-center justify-center rounded-[10px] bg-sky-500 px-6 text-base font-semibold text-white transition-colors hover:bg-sky-600 sm:w-auto"
         >
-          Câu tiếp theo
+          Trang tiếp theo
         </button>
       )}
     </div>

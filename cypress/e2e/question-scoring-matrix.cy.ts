@@ -202,7 +202,7 @@ describe('Canonical scoring browser matrix', () => {
       cy.contains('div', /^3$/).parent().within(() => cy.contains('button', 'Lẻ').click());
     });
 
-    cy.contains('button', 'Câu tiếp theo').last().click();
+    cy.contains('button', 'Trang tiếp theo').click();
     cy.contains('Trang 2 / 2').should('be.visible');
 
     withinQuestion('underline', () => {
@@ -272,7 +272,7 @@ describe('Canonical scoring browser matrix', () => {
     for (let index = 1; index <= 10; index += 1) {
       withinQuestion(`answered-${index}`, () => cy.get('button').eq(0).click());
     }
-    cy.contains('button', 'Câu tiếp theo').last().click();
+    cy.contains('button', 'Trang tiếp theo').click();
     for (let index = 11; index <= 13; index += 1) {
       withinQuestion(`answered-${index}`, () => cy.get('button').eq(0).click());
     }

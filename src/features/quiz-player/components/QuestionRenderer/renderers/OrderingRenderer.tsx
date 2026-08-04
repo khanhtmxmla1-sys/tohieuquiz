@@ -93,10 +93,13 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
                     const itemId = orderingItemIdAt(item.idx);
                     const rank = currentRanks[itemId];
                     const hasDuplicateRank = duplicateRanks.has(rank);
+                    const inputId = `ordering-rank-${q.id}-${item.idx}`;
                     return (
                         <div key={item.idx} className="flex items-start gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div className="flex-shrink-0">
+                                <label htmlFor={inputId} className="sr-only">Số thứ tự cho {item.content}</label>
                                 <input
+                                    id={inputId}
                                     type="number"
                                     inputMode="numeric"
                                     pattern="[0-9]*"
@@ -105,7 +108,6 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
                                     value={rank || ''}
                                     onChange={(e) => handleOrderChange(item.idx, e.target.value)}
                                     placeholder="?"
-                                    aria-label={`Số thứ tự cho ${item.content}`}
                                     aria-invalid={hasDuplicateRank || undefined}
                                     aria-describedby={hasDuplicateRank ? `ordering-error-${q.id}` : undefined}
                                     className={`w-12 h-12 rounded-lg border-2 text-center text-[16px] font-bold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 md:text-xl ${
@@ -138,6 +140,7 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
                     Đã điền: {Object.values(currentRanks).filter(v => v !== undefined).length}/{items.length}
                 </p>
                 <button
+                    type="button"
                     onClick={() => onAnswerChange(q.id, { type: 'ORDERING', ranks: {} })}
                     className="text-xs text-red-500 hover:underline flex items-center"
                 >

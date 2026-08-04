@@ -8,17 +8,18 @@ const standardQuiz = {
   timeLimit: 30,
   requireCode: false,
   isPractice: false,
-  questions: [{
-    id: 'q1',
+  questions: Array.from({ length: 12 }, (_, index) => ({
+    id: `q${index + 1}`,
     quizId: 'student-reliability-standard',
     type: 'MCQ',
-    question: 'Đáp án nào là A?',
+    question: `Câu hỏi số ${index + 1}`,
     options: ['A', 'B'],
     correctAnswer: 'A',
-  }],
+  })),
 };
 
 const installQuiz = (win: Window) => {
+  win.Math.random = () => 0.999999;
   win.localStorage.setItem('tohieuquiz-store', JSON.stringify({
     state: {
       view: 'student',
@@ -50,5 +51,36 @@ describe('student quiz reliability', () => {
     cy.get('#question-q1').should('be.visible');
     cy.get('#question-q1 button').first().should('have.attr', 'aria-pressed', 'true');
     cy.contains('button', 'Bắt đầu làm bài!').should('not.exist');
+  });
+
+  it('navigates exact questions from the mobile bottom sheet without horizontal overflow', () => {
+    cy.viewport(390, 844);
+    cy.visit('/', { onBeforeLoad: installQuiz });
+    cy.get('input[placeholder="Ví dụ: Lò Văn A"]').type('Học sinh mobile');
+    cy.get('select').select('4A1');
+    cy.contains('button', 'Bắt đầu làm bài!').click();
+
+    cy.get('button[aria-label="Mở danh sách câu hỏi"]:visible').focus().click();
+    cy.get('[role="dialog"][aria-modal="true"]').should('be.visible').within(() => {
+      cy.get('button[aria-label="Đi đến câu 12"]').click();
+    });
+    cy.contains('Trang 2 / 2').should('be.visible');
+    cy.get('#question-q12').should('be.visible').and('have.focus');
+
+    cy.get('button[aria-label="Mở danh sách câu hỏi"]:visible').focus().click();
+    cy.get('body').type('{esc}');
+    cy.get('[role="dialog"]').should('not.exist');
+    cy.get('button[aria-label="Mở danh sách câu hỏi"]:visible').should('have.focus');
+
+    cy.contains('button', 'Nộp bài').focus().click();
+    cy.get('[role="dialog"][aria-modal="true"]').should('be.visible');
+    cy.focused().should('contain.text', 'Quay lại');
+    cy.get('body').type('{esc}');
+    cy.get('[role="dialog"]').should('not.exist');
+    cy.contains('button', 'Nộp bài').should('have.focus');
+
+    cy.document().then((document) => {
+      expect(document.documentElement.scrollWidth).to.be.at.most(document.documentElement.clientWidth);
+    });
   });
 });

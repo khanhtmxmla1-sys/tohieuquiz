@@ -16,6 +16,7 @@ import QuestionRenderer from '../student/QuestionRenderer';
 import QuizHeader from '../../features/quiz-player/components/QuizHeader';
 import QuizNavigation from '../../features/quiz-player/components/QuizNavigation';
 import QuizPagination from '../../features/quiz-player/components/QuizPagination';
+import MobileQuizNavigator from '../../features/quiz-player/components/MobileQuizNavigator';
 import {
     getActiveQuestionNumber,
     useQuizPageNavigation,
@@ -226,6 +227,14 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
                 isPractice={false}
                 studentName="Thi trực tiếp"
                 avatar={null}
+            />
+
+            <MobileQuizNavigator
+                questions={questions}
+                progressByQuestionId={quizProgress.byQuestionId}
+                activeQuestionId={activeQuestionId}
+                questionsPerPage={QUESTIONS_PER_PAGE}
+                onPageChange={changePage}
             />
 
             <div className="border-b border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-600" role="status" aria-live="polite">

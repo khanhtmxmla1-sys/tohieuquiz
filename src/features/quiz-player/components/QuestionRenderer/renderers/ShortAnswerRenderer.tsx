@@ -8,10 +8,13 @@ const ShortAnswerRenderer: React.FC<BaseRendererProps> = ({
   onAnswerChange,
 }) => {
   const value = String(answers[question.id] ?? '');
+  const inputId = `short-answer-${question.id}`;
 
   return (
     <div className="space-y-3">
+      <label htmlFor={inputId} className="sr-only">Câu trả lời ngắn</label>
       <input
+        id={inputId}
         type="text"
         value={value}
         onChange={(event) => onAnswerChange(question.id, event.target.value)}
