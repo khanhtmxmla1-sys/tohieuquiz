@@ -1,9 +1,10 @@
-/**
+﻿/**
  * Text Formatting Utilities
  *
  * All mathematical content passes through the shared parser in mathText.ts.
  */
 import { normalizeMathText, splitMathSegments } from './mathText';
+import { formatSystemDateTime } from './dateTime';
 
 const toRenderableString = (value: unknown): string => {
     if (value === null || value === undefined) return '';
