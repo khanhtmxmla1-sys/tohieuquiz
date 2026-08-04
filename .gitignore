@@ -95,3 +95,6 @@ workers/fix_*.ps1
 # Local git worktrees 
 .worktrees/
 coverage/
+
+# Local MCP configuration and credentials
+/mcp.json
