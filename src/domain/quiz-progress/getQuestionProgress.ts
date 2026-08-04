@@ -98,10 +98,10 @@ const matchingProgress = (question: unknown, answer: unknown): QuestionProgressR
     leftItems.length || pairs.length || Math.ceil(legacyItems.length / 2),
   );
   const source = nestedRecord(answer, 'pairs');
-  const completed = Object.entries(source)
-    .filter(([key, value]) => key !== 'type' && hasText(value))
-    .length;
-  return result(completed, required);
+  const completedTargets = Object.entries(source)
+    .filter(([key, value]) => key !== 'type' && key !== 'selectedLeft' && hasText(value))
+    .map(([, value]) => String(value).trim());
+  return result(new Set(completedTargets).size, required);
 };
 
 const blanksProgress = (question: unknown, answer: unknown): QuestionProgressResult => {

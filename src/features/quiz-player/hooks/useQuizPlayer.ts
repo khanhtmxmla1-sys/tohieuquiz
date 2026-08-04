@@ -12,6 +12,7 @@ import {
     saveQuizAttemptDraft,
 } from '../quizAttemptDraft';
 import { createQuizDeadline, useQuizDeadline } from './useQuizDeadline';
+import { updateMatchingAnswer } from '../utils/structuredAnswerUpdates';
 
 interface UseQuizPlayerProps {
     quiz: Quiz;
@@ -222,25 +223,10 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     }, []);
 
     const handleMatchingClick = useCallback((questionId: string, item: string, type: 'left' | 'right') => {
-        setAnswers(prev => {
-            const currentAnswers = prev[questionId] || {};
-            const newAnswers = { ...currentAnswers };
-
-            if (type === 'left') {
-                if (newAnswers.selectedLeft === item) {
-                    delete newAnswers.selectedLeft;
-                } else {
-                    newAnswers.selectedLeft = item;
-                }
-            } else {
-                const selectedLeft = newAnswers.selectedLeft;
-                if (selectedLeft) {
-                    newAnswers[selectedLeft] = item;
-                    delete newAnswers.selectedLeft;
-                }
-            }
-            return { ...prev, [questionId]: newAnswers };
-        });
+        setAnswers(prev => ({
+            ...prev,
+            [questionId]: updateMatchingAnswer(prev[questionId], item, type),
+        }));
     }, []);
 
     const handleSubmit = useCallback(async () => {

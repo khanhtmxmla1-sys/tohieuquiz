@@ -83,6 +83,21 @@ describe('useQuizPlayer resume', () => {
     expect(result.current.timeLeft).toBe(300);
   });
 
+  it('reassigns a matching target to the latest selected left item', () => {
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult: vi.fn(),
+    }));
+
+    act(() => result.current.handleMatchingClick('q1', 'l-0', 'left'));
+    act(() => result.current.handleMatchingClick('q1', 'r-0', 'right'));
+    act(() => result.current.handleMatchingClick('q1', 'l-1', 'left'));
+    act(() => result.current.handleMatchingClick('q1', 'r-0', 'right'));
+
+    expect(result.current.answers.q1).toEqual({ 'l-1': 'r-0' });
+  });
+
   it('persists answer updates after the student starts explicitly', () => {
     vi.useRealTimers();
     const { result, unmount } = renderHook(() => useQuizPlayer({

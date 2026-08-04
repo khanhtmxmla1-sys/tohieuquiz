@@ -85,7 +85,11 @@ const MatchingRenderer: React.FC<BaseRendererProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-3 md:gap-x-6">
+    <div className="space-y-3">
+      <p className="rounded-[10px] border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-800" role="note">
+        Mỗi mục ở cột B chỉ dùng một lần. Khi chọn lại, mục đó sẽ được chuyển sang cặp mới.
+      </p>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-3 md:gap-x-6">
       <div className="space-y-3">
         <h3 className="mb-2 text-center text-xs font-semibold text-slate-500">Cột A</h3>
         {itemsLeft.map((item: any, index: number) => {
@@ -149,6 +153,7 @@ const MatchingRenderer: React.FC<BaseRendererProps> = ({
             </button>
           );
         })}
+      </div>
       </div>
     </div>
   );

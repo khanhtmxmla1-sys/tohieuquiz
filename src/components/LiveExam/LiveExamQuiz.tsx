@@ -34,6 +34,7 @@ import {
     type LiveExamAutosaveQueue,
     type LiveExamSyncStatus,
 } from '../../features/live-exam/liveExamAutosaveQueue';
+import { updateMatchingAnswer } from '../../features/quiz-player/utils/structuredAnswerUpdates';
 
 interface LiveExamQuizProps {
     sessionId: string;
@@ -147,23 +148,10 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
 
     const handleMatchingClick = (questionId: string, item: string, type: 'left' | 'right') => {
         submissionAttemptRef.current = null;
-        setAnswers((prev) => {
-            const currentAnswers = prev[questionId] || {};
-            const nextAnswers = { ...currentAnswers };
-
-            if (type === 'left') {
-                if (nextAnswers.selectedLeft === item) {
-                    delete nextAnswers.selectedLeft;
-                } else {
-                    nextAnswers.selectedLeft = item;
-                }
-            } else if (nextAnswers.selectedLeft) {
-                nextAnswers[nextAnswers.selectedLeft] = item;
-                delete nextAnswers.selectedLeft;
-            }
-
-            return { ...prev, [questionId]: nextAnswers };
-        });
+        setAnswers((prev) => ({
+            ...prev,
+            [questionId]: updateMatchingAnswer(prev[questionId], item, type),
+        }));
     };
 
     const quizProgress = useQuizProgressRollout({

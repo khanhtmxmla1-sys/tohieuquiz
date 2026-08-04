@@ -142,6 +142,13 @@ describe('getQuestionProgress structured answers', () => {
     })).toMatchObject({ state: 'complete', completedParts: 2, requiredParts: 2 });
   });
 
+  it('does not mark matching complete when right targets are duplicated', () => {
+    expect(getQuestionProgress(matching, {
+      'l-0': 'r-0',
+      'l-1': 'r-0',
+    })).toMatchObject({ state: 'partial', completedParts: 1, requiredParts: 2 });
+  });
+
   it.each(['DROPDOWN', 'DRAG_DROP'])('tracks %s blanks by declared IDs', (type) => {
     const question = { id: type, type, blanks: [{ id: 'b1' }, { id: 'b2' }] };
     expect(getQuestionProgress(question, {})).toMatchObject({

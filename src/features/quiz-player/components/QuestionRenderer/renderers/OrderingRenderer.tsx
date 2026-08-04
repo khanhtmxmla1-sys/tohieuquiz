@@ -4,6 +4,7 @@ import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
 import { orderingItemIdAt, selectedOrderingRanks } from '../utils/answerState';
 import { answerInputClasses } from '../../answer-state/stateStyles';
+import { updateOrderingRanks } from '../../../utils/structuredAnswerUpdates';
 
 /**
  * Robust helper: extract text from any item format (String, Number, Object).
@@ -43,6 +44,16 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
 }) => {
     const currentRanks = selectedOrderingRanks(q, answers[q.id]);
     const items = (q as any).items || [];
+    const duplicateRanks = new Set(
+        Object.entries(
+            Object.values(currentRanks).reduce<Record<number, number>>((counts, rank) => {
+                counts[rank] = (counts[rank] || 0) + 1;
+                return counts;
+            }, {}),
+        )
+            .filter(([, count]) => count > 1)
+            .map(([rank]) => Number(rank)),
+    );
 
     // Visual Shuffle: Shuffle items for display but keep track of original indices.
     // useMemo and question.id ensure the shuffle stays stable across re-renders.
@@ -64,9 +75,7 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
         const num = parseInt(orderValue, 10);
         if (orderValue === '' || (!isNaN(num) && num >= 1 && num <= items.length)) {
             const itemId = orderingItemIdAt(originalIndex);
-            const ranks = { ...currentRanks };
-            if (orderValue === '') delete ranks[itemId];
-            else ranks[itemId] = num;
+            const ranks = updateOrderingRanks(currentRanks, itemId, orderValue === '' ? null : num);
             onAnswerChange(q.id, { type: 'ORDERING', ranks });
         }
     };
@@ -80,27 +89,49 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
             </div>
 
             <div className="space-y-3">
-                {shuffledItems.map((item) => (
-                    <div key={item.idx} className="flex items-start gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <div className="flex-shrink-0">
-                            <input
-                                type="number"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                min="1"
-                                max={items.length}
-                                value={currentRanks[orderingItemIdAt(item.idx)] || ''}
-                                onChange={(e) => handleOrderChange(item.idx, e.target.value)}
-                                placeholder="?"
-                                className={`w-12 h-12 rounded-lg border-2 text-center text-[16px] font-bold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 md:text-xl ${answerInputClasses(Boolean(currentRanks[orderingItemIdAt(item.idx)]))}`}
-                            />
+                {shuffledItems.map((item) => {
+                    const itemId = orderingItemIdAt(item.idx);
+                    const rank = currentRanks[itemId];
+                    const hasDuplicateRank = duplicateRanks.has(rank);
+                    return (
+                        <div key={item.idx} className="flex items-start gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div className="flex-shrink-0">
+                                <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    min="1"
+                                    max={items.length}
+                                    value={rank || ''}
+                                    onChange={(e) => handleOrderChange(item.idx, e.target.value)}
+                                    placeholder="?"
+                                    aria-label={`Số thứ tự cho ${item.content}`}
+                                    aria-invalid={hasDuplicateRank || undefined}
+                                    aria-describedby={hasDuplicateRank ? `ordering-error-${q.id}` : undefined}
+                                    className={`w-12 h-12 rounded-lg border-2 text-center text-[16px] font-bold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 md:text-xl ${
+                                        hasDuplicateRank
+                                            ? 'border-red-500 bg-red-50 text-red-900'
+                                            : answerInputClasses(Boolean(rank))
+                                    }`}
+                                />
+                            </div>
+                            <div className="flex-1 pt-2">
+                                <MathSpan content={item.content} className="text-gray-800 font-medium text-lg leading-relaxed" />
+                            </div>
                         </div>
-                        <div className="flex-1 pt-2">
-                            <MathSpan content={item.content} className="text-gray-800 font-medium text-lg leading-relaxed" />
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
+
+            {duplicateRanks.size > 0 ? (
+                <p
+                    id={`ordering-error-${q.id}`}
+                    role="alert"
+                    className="rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700"
+                >
+                    Số thứ tự {Array.from(duplicateRanks).sort((left, right) => left - right).join(', ')} đang được dùng cho nhiều mục. Mỗi số chỉ dùng một lần.
+                </p>
+            ) : null}
 
             <div className="flex justify-between items-center mt-4">
                 <p className="text-xs text-gray-500">
