@@ -29,6 +29,11 @@ import {
     saveLiveExamAnswerDraft,
     type LiveExamSubmissionAttempt,
 } from '../../features/live-exam/liveExamAnswerDraft';
+import {
+    createLiveExamAutosaveQueue,
+    type LiveExamAutosaveQueue,
+    type LiveExamSyncStatus,
+} from '../../features/live-exam/liveExamAutosaveQueue';
 
 interface LiveExamQuizProps {
     sessionId: string;
@@ -50,15 +55,16 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
     const [answers, setAnswers] = useState<Record<string, any>>(
         () => loadLiveExamAnswerDraft(sessionId) as Record<string, any>,
     );
-    const [answerSaveStatus, setAnswerSaveStatus] = useState<'saving' | 'saved' | 'offline' | 'error'>('saved');
+    const [answerSaveStatus, setAnswerSaveStatus] = useState<LiveExamSyncStatus>('local-saved');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const submissionAttemptRef = useRef<LiveExamSubmissionAttempt | null>(null);
-    const autosaveVersionRef = useRef(0);
-    const wasOnlineRef = useRef(true);
+    const autosaveQueueRef = useRef<LiveExamAutosaveQueue | null>(null);
     const { isOnline } = useOnlineStatus();
+    const onlineRef = useRef(isOnline);
+    onlineRef.current = isOnline;
 
     const { timeRemaining, isExpired } = useLiveExamTimer({
         endsAt,
@@ -70,49 +76,49 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
     });
 
     useEffect(() => {
-        setAnswers(loadLiveExamAnswerDraft(sessionId) as Record<string, any>);
+        const localAnswers = loadLiveExamAnswerDraft(sessionId) as Record<string, any>;
+        setAnswers(localAnswers);
         submissionAttemptRef.current = null;
-        autosaveVersionRef.current = 0;
+
+        const queue = createLiveExamAutosaveQueue({
+            sessionId,
+            initialAnswers: localAnswers,
+            initialOnline: onlineRef.current,
+            getSnapshot: getAnswerSnapshot,
+            saveSnapshot: (targetSessionId, payload) => saveAnswerSnapshot(targetSessionId, {
+                ...payload,
+                answers: payload.answers as StudentAnswers,
+            }),
+            onStatus: setAnswerSaveStatus,
+            onRemoteAnswers: (remoteAnswers) => {
+                setAnswers(remoteAnswers as Record<string, any>);
+                saveLiveExamAnswerDraft(sessionId, remoteAnswers);
+            },
+        });
+        autosaveQueueRef.current = queue;
+
+        return () => {
+            queue.dispose();
+            if (autosaveQueueRef.current === queue) autosaveQueueRef.current = null;
+        };
     }, [sessionId]);
 
     useEffect(() => {
-        setAnswerSaveStatus(isOnline ? 'saving' : 'offline');
+        autosaveQueueRef.current?.setOnline(isOnline);
+    }, [isOnline]);
+
+    useEffect(() => {
         const timer = window.setTimeout(() => {
             try {
                 saveLiveExamAnswerDraft(sessionId, answers);
-                if (isOnline) {
-                    const attemptVersion = autosaveVersionRef.current + 1;
-                    const idempotencyKey = `autosave:${sessionId}:${attemptVersion}:${crypto.randomUUID()}`;
-                    void saveAnswerSnapshot(sessionId, { attemptVersion, idempotencyKey, answers: answers as StudentAnswers })
-                        .then((snapshot) => {
-                            autosaveVersionRef.current = snapshot.attemptVersion;
-                            setAnswerSaveStatus('saved');
-                        })
-                        .catch(() => setAnswerSaveStatus('error'));
-                } else {
-                    setAnswerSaveStatus('offline');
-                }
+                setAnswerSaveStatus('local-saved');
+                autosaveQueueRef.current?.enqueue(answers);
             } catch {
-                setAnswerSaveStatus('error');
+                setAnswerSaveStatus('local-error');
             }
         }, 250);
         return () => window.clearTimeout(timer);
-    }, [answers, isOnline, sessionId]);
-
-    useEffect(() => {
-        if (isOnline && !wasOnlineRef.current) {
-            setAnswerSaveStatus('saving');
-            void getAnswerSnapshot(sessionId).then((snapshot) => {
-                if (snapshot && snapshot.attemptVersion >= autosaveVersionRef.current) {
-                    autosaveVersionRef.current = snapshot.attemptVersion;
-                    setAnswers(snapshot.answers as Record<string, any>);
-                    saveLiveExamAnswerDraft(sessionId, snapshot.answers);
-                }
-                setAnswerSaveStatus('saved');
-            }).catch(() => setAnswerSaveStatus('error'));
-        }
-        wasOnlineRef.current = isOnline;
-    }, [isOnline, sessionId]);
+    }, [answers, sessionId]);
 
     const QUESTIONS_PER_PAGE = 10;
     const totalQuestions = questions.length;
@@ -235,10 +241,12 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
             />
 
             <div className="border-b border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-slate-600" role="status" aria-live="polite">
-                {answerSaveStatus === 'saving' && 'Đang lưu đáp án trên thiết bị…'}
-                {answerSaveStatus === 'saved' && 'Đáp án đã được lưu trên thiết bị'}
+                {answerSaveStatus === 'local-saved' && 'Đáp án đã được lưu trên thiết bị'}
+                {answerSaveStatus === 'local-error' && 'Không thể lưu đáp án trên thiết bị'}
+                {answerSaveStatus === 'syncing' && 'Đã lưu trên thiết bị — đang đồng bộ với máy chủ…'}
+                {answerSaveStatus === 'synced' && 'Đáp án đã đồng bộ với máy chủ'}
                 {answerSaveStatus === 'offline' && 'Mất kết nối — đáp án vẫn được lưu trên thiết bị'}
-                {answerSaveStatus === 'error' && 'Không thể lưu đáp án trên thiết bị'}
+                {answerSaveStatus === 'sync-error' && 'Đã lưu trên thiết bị — chưa đồng bộ được với máy chủ'}
             </div>
 
             <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-8">

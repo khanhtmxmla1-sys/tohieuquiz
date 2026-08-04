@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let online = true;
 const submitMock = vi.hoisted(() => vi.fn());
@@ -77,6 +77,10 @@ describe('LiveExamQuiz resilience', () => {
     window.sessionStorage.clear();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('persists answers locally and clears the draft only after a successful submit', async () => {
     const onComplete = vi.fn();
     submitMock.mockResolvedValue({
@@ -85,8 +89,10 @@ describe('LiveExamQuiz resilience', () => {
     renderQuiz(onComplete);
 
     fireEvent.click(screen.getByRole('button', { name: 'Chọn đáp án A' }));
-    expect(await screen.findByText('Đáp án đã được lưu trên thiết bị')).toBeVisible();
-    expect(window.sessionStorage.getItem('tohieuquiz_live_exam_answers_v1:session-1')).toContain('q1');
+    await waitFor(() => {
+      expect(window.sessionStorage.getItem('tohieuquiz_live_exam_answers_v1:session-1')).toContain('q1');
+    });
+    expect(await screen.findByText('Đáp án đã đồng bộ với máy chủ')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Nộp bài' }));
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận nộp' }));
@@ -99,6 +105,18 @@ describe('LiveExamQuiz resilience', () => {
     );
     expect(window.sessionStorage.getItem('tohieuquiz_live_exam_answers_v1:session-1')).toBeNull();
     expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a local storage failure separately from a server sync failure', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new Error('Storage unavailable');
+    });
+    renderQuiz();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chọn đáp án A' }));
+
+    expect(await screen.findByText('Không thể lưu đáp án trên thiết bị')).toBeVisible();
+    expect(saveAnswerSnapshotMock).not.toHaveBeenCalled();
   });
 
   it('keeps the local draft and blocks submit while offline', async () => {
