@@ -1,3 +1,4 @@
+import { SYSTEM_CRON } from './scheduling/systemCron';
 import { getPreviousWeekKey, getWeekUtcRange } from './gameLoop/dateKeys';
 // TôHiệuQuiz Workers API - Main Entry Point
 // Cloudflare Workers API entry point
@@ -113,9 +114,7 @@ export default {
 
     // Scheduled maintenance, reminders, and weekly leaderboard rewards.
     async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-        if (event.cron === '0 23 * * *') {
-            // Dọn bộ đếm rate limit đã hết hạn trước, và tách try/catch riêng: đây là việc
-            // vệ sinh, không được phép làm hỏng lượt nhắc hạn bài tập của phụ huynh.
+        if (event.cron === SYSTEM_CRON.DAILY_SECURITY_AND_REMINDERS) {
             // Dọn bộ đếm rate limit đã hết hạn trước, và tách try/catch riêng: đây là việc
             // vệ sinh, không được phép làm hỏng lượt nhắc hạn bài tập của phụ huynh.
             try {
@@ -134,7 +133,7 @@ export default {
             return;
         }
 
-        if (event.cron === '0 * * * *') {
+        if (event.cron === SYSTEM_CRON.PARENT_DIGEST) {
             try {
                 await runWeeklyParentDigests(env.DB, createParentEmailProvider(env), new Date());
             } catch (error) {
@@ -143,9 +142,14 @@ export default {
             return;
         }
 
+        if (
+            event.cron !== SYSTEM_CRON.LIVE_EXAM_SWEEP
+            && event.cron !== SYSTEM_CRON.WEEKLY_LEADERBOARD
+        ) return;
+
         try {
             await checkAndAutoCloseExpiredExams(env.DB);
-            if (event.cron !== '0 0 * * 1') return;
+            if (event.cron !== SYSTEM_CRON.WEEKLY_LEADERBOARD) return;
             const db = env.DB;
             const lastWeekKey = getPreviousWeekKey();
             const { startIso, endIsoExclusive } = getWeekUtcRange(lastWeekKey);

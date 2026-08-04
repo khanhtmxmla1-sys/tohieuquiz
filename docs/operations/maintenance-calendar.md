@@ -5,6 +5,23 @@
 
 This calendar defines the minimum recurring operational checks after the modernization release. Each run must produce a redacted record with date, operator, release SHA, result, follow-up owner and incident link when applicable.
 
+
+## Automated Worker schedule
+
+Cloudflare cron expressions are UTC; operational labels below are Hanoi time
+(`Asia/Ho_Chi_Minh`). The source of truth is
+`workers/src/scheduling/systemCron.ts` and `workers/wrangler.toml`.
+
+| UTC cron | Hanoi schedule | Automated work |
+|---|---|---|
+| `0 0 * * 1` | Thứ Hai 07:00 giờ Hà Nội | Close expired exams and award the previous Hanoi leaderboard week. |
+| `* * * * *` | Mỗi phút theo giờ Hà Nội | Sweep and close expired live exams. |
+| `0 23 * * *` | Hằng ngày 06:00 giờ Hà Nội | Purge expired rate-limit/auth rows and create parent homework reminders. |
+| `0 * * * *` | Mỗi giờ đúng phút 00 giờ Hà Nội | Evaluate weekly parent digest delivery preferences. |
+
+Cron timestamps in logs remain UTC ISO-8601. Incident and operator reports must
+show Hanoi time through the shared formatter rather than altering stored values.
+
 ## Weekly
 
 ### Security and dependency review — Monday 08:00

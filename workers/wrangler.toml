@@ -46,11 +46,13 @@ PARENT_EMAIL_DKIM_READY = "false"
 PARENT_EMAIL_DMARC_READY = "false"
 
 [triggers]
+# Cloudflare evaluates cron expressions in UTC. Hanoi mappings are documented in
+# docs/architecture/system-time.md and docs/operations/maintenance-calendar.md.
 crons = [
-    "0 0 * * 1",
-    "* * * * *",
-    "0 23 * * *",
-    "0 * * * *"
+    "0 0 * * 1",  # Thứ Hai 07:00 giờ Hà Nội: weekly leaderboard rewards
+    "* * * * *",  # Mỗi phút theo giờ Hà Nội: live exam expiry sweep
+    "0 23 * * *", # Hằng ngày 06:00 giờ Hà Nội: cleanup and due reminders
+    "0 * * * *"   # Mỗi giờ đúng phút 00 giờ Hà Nội: parent digest eligibility
 ]
 
 [[queues.producers]]
