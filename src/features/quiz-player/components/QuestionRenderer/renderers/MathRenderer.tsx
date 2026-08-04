@@ -22,11 +22,15 @@ const MathRenderer: React.FC<BaseRendererProps> = ({
       : { numerator: '', denominator: '' };
     const numerator = String(value.numerator ?? '');
     const denominator = String(value.denominator ?? '');
+    const numeratorId = `math-numerator-${question.id}`;
+    const denominatorId = `math-denominator-${question.id}`;
 
     return (
       <div className="flex flex-col items-center justify-center rounded-[10px] border border-slate-200 bg-slate-50 p-6">
         <div className="flex flex-col items-center">
+          <label htmlFor={numeratorId} className="sr-only">Tử số</label>
           <input
+            id={numeratorId}
             type="text"
             value={numerator}
             onChange={(event) => onAnswerChange(question.id, { ...value, numerator: event.target.value })}
@@ -34,7 +38,9 @@ const MathRenderer: React.FC<BaseRendererProps> = ({
             placeholder="?"
           />
           <div className="my-2 h-0.5 w-20 bg-slate-700" />
+          <label htmlFor={denominatorId} className="sr-only">Mẫu số</label>
           <input
+            id={denominatorId}
             type="text"
             value={denominator}
             onChange={(event) => onAnswerChange(question.id, { ...value, denominator: event.target.value })}
@@ -61,9 +67,12 @@ const MathRenderer: React.FC<BaseRendererProps> = ({
   }
 
   const value = String(answers[question.id] ?? '');
+  const resultId = `math-result-${question.id}`;
   return (
     <div className="flex justify-center p-4">
+      <label htmlFor={resultId} className="sr-only">Kết quả toán học</label>
       <input
+        id={resultId}
         type="text"
         value={value}
         onChange={(event) => onAnswerChange(question.id, event.target.value)}

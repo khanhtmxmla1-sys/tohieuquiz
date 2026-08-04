@@ -25,6 +25,7 @@ const routeSamples = [
   ['/api/login', 'POST', 'public'],
   ['/api/student-login', 'POST', 'public'],
   ['/api/questions', 'GET', 'public'],
+  ['/api/quizzes/access-verification/quiz-1', 'POST', 'public'],
   ['/api/quizzes/quiz-1', 'PUT', 'teacher-owned'],
   ['/api/results/42', 'GET', 'teacher-owned'],
   ['/api/student-profile', 'GET', 'student-owned'],

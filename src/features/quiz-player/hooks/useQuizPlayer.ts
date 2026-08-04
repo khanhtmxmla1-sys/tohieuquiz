@@ -4,8 +4,16 @@ import { useClassroomStore } from '../../../stores/useClassroomStore';
 import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
+import { verifyQuizAccessCode } from '../../../services/quizAccessService';
 import { playTingSound, showError } from '../../../utils/toast';
 import { useQuizProgressRollout } from './useQuizProgressRollout';
+import {
+    clearQuizAttemptDraft,
+    loadQuizAttemptDraft,
+    saveQuizAttemptDraft,
+} from '../quizAttemptDraft';
+import { createQuizDeadline, useQuizDeadline } from './useQuizDeadline';
+import { updateMatchingAnswer } from '../utils/structuredAnswerUpdates';
 
 interface UseQuizPlayerProps {
     quiz: Quiz;
@@ -72,25 +80,41 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         ];
     }, [shuffleArray]);
 
+    const restoredDraft = useMemo(() => loadQuizAttemptDraft(quiz.id), [quiz.id]);
+    const restoredQuestions = useMemo(() => {
+        if (!restoredDraft) return [];
+        const byId = new Map(quiz.questions.map((question) => [question.id, question]));
+        const ordered = restoredDraft.questionOrder
+            .map((questionId) => byId.get(questionId))
+            .filter((question): question is Question => Boolean(question));
+        return ordered.length === quiz.questions.length ? ordered : [];
+    }, [quiz.questions, restoredDraft]);
+    const hasRestorableDraft = Boolean(restoredDraft && restoredQuestions.length === quiz.questions.length);
+
     // Initial step logic
     const getInitialStep = useCallback((): 'code' | 'info' | 'quiz' | 'result' => {
+        if (hasRestorableDraft) return 'quiz';
         if (isLoggedIn && !quiz.requireCode) return 'info';
         if (quiz.requireCode) return 'code';
         return 'info';
-    }, [isLoggedIn, quiz.requireCode]);
+    }, [hasRestorableDraft, isLoggedIn, quiz.requireCode]);
 
     // Core state
     const [step, setStep] = useState<'code' | 'info' | 'quiz' | 'result'>(getInitialStep());
-    const [studentName, setStudentName] = useState(session?.fullName || '');
-    const [studentClass, setStudentClass] = useState(session?.className || '');
+    const [studentName, setStudentName] = useState(restoredDraft?.studentName || session?.fullName || '');
+    const [studentClass, setStudentClass] = useState(restoredDraft?.studentClass || session?.className || '');
     const studentAvatar = session?.avatar || null;
     const [enteredCode, setEnteredCode] = useState('');
     const [codeError, setCodeError] = useState('');
-    const [answers, setAnswers] = useState<Record<string, any>>({});
-    const [timeLeft, setTimeLeft] = useState(quiz.timeLimit * 60);
-    const [startTime, setStartTime] = useState<number>(0);
+    const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+    const [answers, setAnswers] = useState<Record<string, any>>(restoredDraft?.answers || {});
+    const [expiresAt, setExpiresAt] = useState<string | null>(restoredDraft?.expiresAt || null);
+    const timeLeft = useQuizDeadline(expiresAt);
+    const [startTime, setStartTime] = useState<number>(() => (
+        restoredDraft ? Date.parse(restoredDraft.startedAt) : 0
+    ));
     const [result, setResult] = useState<StudentResult | null>(null);
-    const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>([]);
+    const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>(restoredQuestions);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
@@ -101,7 +125,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
 
     // Pagination state
     const QUESTIONS_PER_PAGE = 10;
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(restoredDraft?.currentPage || 1);
     const totalPages = Math.max(1, Math.ceil(shuffledQuestions.length / QUESTIONS_PER_PAGE));
     const questionsOnCurrentPage = useMemo(() => {
         const startIndex = (currentPage - 1) * QUESTIONS_PER_PAGE;
@@ -113,25 +137,34 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         answers,
     });
 
-    // Timer logic
+    // Absolute deadline logic. Date.now is authoritative; the hook interval only refreshes the display.
     useEffect(() => {
-        if (quiz.isPractice || !quiz.timeLimit) return;
-        if (step !== 'quiz' || timeLeft <= 0) {
-            if (step === 'quiz' && timeLeft === 0) handleSubmit();
-            return;
-        }
+        if (quiz.isPractice || !quiz.timeLimit || !expiresAt) return;
+        if (step === 'quiz' && timeLeft === 0) handleSubmit();
+    }, [step, timeLeft, quiz.isPractice, quiz.timeLimit, expiresAt]);
 
-        const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-        return () => clearInterval(timer);
-
-    }, [step, timeLeft, quiz.isPractice, quiz.timeLimit]);
+    useEffect(() => {
+        if (step !== 'quiz' || shuffledQuestions.length === 0 || startTime <= 0) return;
+        saveQuizAttemptDraft({
+            version: 1,
+            quizId: quiz.id,
+            studentName,
+            studentClass,
+            answers,
+            questionOrder: shuffledQuestions.map((question) => question.id),
+            currentPage,
+            startedAt: new Date(startTime).toISOString(),
+            expiresAt,
+        });
+    }, [answers, currentPage, expiresAt, quiz.id, shuffledQuestions, startTime, step, studentClass, studentName]);
 
     // Browser navigation protection
     useEffect(() => {
         if (step !== 'quiz') return;
         const handlePopState = (e: PopStateEvent) => {
             e.preventDefault();
-            if (window.confirm('Bạn đang làm bài! Nếu quay lại, bài làm sẽ bị mất. Bạn có chắc muốn thoát?')) {
+            if (window.confirm('Bạn đang làm bài! Tiến độ đang được lưu trên thiết bị. Bạn có chắc muốn thoát?')) {
+                clearQuizAttemptDraft(quiz.id);
                 onExit();
             } else {
                 window.history.pushState(null, '', window.location.href);
@@ -144,15 +177,15 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         return () => {
             window.removeEventListener('popstate', handlePopState);
         };
-    }, [step, onExit]);
+    }, [step, onExit, quiz.id]);
 
-    // Auto-start for logged-in students
+    // Keep automatic entry only for untimed practice; timed assessments require explicit confirmation.
     useEffect(() => {
-        if (isLoggedIn && step === 'info' && studentName && studentClass) {
+        if (isLoggedIn && step === 'info' && studentName && studentClass && (!quiz.timeLimit || quiz.isPractice)) {
             handleStart();
         }
 
-    }, [isLoggedIn, step]);
+    }, [isLoggedIn, step, quiz.timeLimit, quiz.isPractice]);
 
     // Handlers
     const handleStart = useCallback(() => {
@@ -161,19 +194,29 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         const hasLevels = quiz.questions.some((q: any) => q.difficultyLevel);
         const finalQuestions = hasLevels ? shuffleWithinLevel(quiz.questions) : shuffleArray(quiz.questions);
 
+        const startedAt = Date.now();
         setShuffledQuestions(finalQuestions);
-        setStartTime(Date.now());
+        setAnswers({});
+        setCurrentPage(1);
+        setStartTime(startedAt);
+        setExpiresAt(createQuizDeadline(quiz.timeLimit, startedAt));
         setStep('quiz');
-    }, [studentName, studentClass, quiz.questions, shuffleWithinLevel, shuffleArray]);
+    }, [studentName, studentClass, quiz.questions, quiz.timeLimit, shuffleWithinLevel, shuffleArray]);
 
-    const handleCodeVerify = useCallback(() => {
-        if (enteredCode.toUpperCase() === quiz.accessCode?.toUpperCase()) {
-            setCodeError('');
-            setStep('info');
-        } else {
-            setCodeError('Mã không đúng. Vui lòng thử lại!');
+    const handleCodeVerify = useCallback(async () => {
+        if (isVerifyingCode) return;
+        setIsVerifyingCode(true);
+        setCodeError('');
+        try {
+            const valid = await verifyQuizAccessCode(quiz.id, enteredCode);
+            if (valid) setStep('info');
+            else setCodeError('Mã không đúng. Vui lòng thử lại!');
+        } catch {
+            setCodeError('Không thể kiểm tra mã lúc này. Vui lòng thử lại.');
+        } finally {
+            setIsVerifyingCode(false);
         }
-    }, [enteredCode, quiz.accessCode]);
+    }, [enteredCode, isVerifyingCode, quiz.id]);
 
     const handleAnswerChange = useCallback((questionId: string, value: any, subId?: string) => {
         setAnswers(prev => {
@@ -188,25 +231,10 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     }, []);
 
     const handleMatchingClick = useCallback((questionId: string, item: string, type: 'left' | 'right') => {
-        setAnswers(prev => {
-            const currentAnswers = prev[questionId] || {};
-            const newAnswers = { ...currentAnswers };
-
-            if (type === 'left') {
-                if (newAnswers.selectedLeft === item) {
-                    delete newAnswers.selectedLeft;
-                } else {
-                    newAnswers.selectedLeft = item;
-                }
-            } else {
-                const selectedLeft = newAnswers.selectedLeft;
-                if (selectedLeft) {
-                    newAnswers[selectedLeft] = item;
-                    delete newAnswers.selectedLeft;
-                }
-            }
-            return { ...prev, [questionId]: newAnswers };
-        });
+        setAnswers(prev => ({
+            ...prev,
+            [questionId]: updateMatchingAnswer(prev[questionId], item, type),
+        }));
     }, []);
 
     const handleSubmit = useCallback(async () => {
@@ -295,6 +323,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
                 }
             }
             setResult(finalResult);
+            clearQuizAttemptDraft(quiz.id);
 
             const gamStore = useGamificationStore.getState();
             const currentPet = gamStore.pet;
@@ -391,7 +420,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     );
     return {
         step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
-        enteredCode, setEnteredCode, codeError, answers, timeLeft, result,
+        enteredCode, setEnteredCode, codeError, isVerifyingCode, answers, timeLeft, result,
         shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
         showSubmitConfirm, setShowSubmitConfirm,
         rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,

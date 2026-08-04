@@ -157,6 +157,23 @@ describe('Worker root route dispatch', () => {
     expect(verifyTokenMock).not.toHaveBeenCalled();
   });
 
+  it('rate limits public quiz access-code verification before routing', async () => {
+    verifyTokenMock.mockReturnValueOnce(null);
+    routeMocks.handleQuizRoutes.mockResolvedValueOnce(new Response('{"valid":true}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/quizzes/access-verification/quiz-1', 'POST'), env);
+
+    expect(response.status).toBe(200);
+    expect(rateLimitMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      env,
+      expect.objectContaining({ failureMode: 'closed', maxRequests: 10, windowMs: 5 * 60 * 1000 }),
+    );
+    expect(routeMocks.handleQuizRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/quizzes/access-verification/quiz-1', 'POST',
+    );
+  });
+
   it('accepts sampled client telemetry before shared authentication with a fail-closed limiter', async () => {
     routeMocks.handleClientTelemetryRoute.mockResolvedValueOnce(new Response('{}', { status: 202 }));
 

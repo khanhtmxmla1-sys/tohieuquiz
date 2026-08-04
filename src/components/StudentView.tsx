@@ -12,6 +12,7 @@ import { useQuizPlayer } from '../features/quiz-player/hooks/useQuizPlayer';
 import QuizHeader from '../features/quiz-player/components/QuizHeader';
 import QuizNavigation from '../features/quiz-player/components/QuizNavigation';
 import QuizPagination from '../features/quiz-player/components/QuizPagination';
+import MobileQuizNavigator from '../features/quiz-player/components/MobileQuizNavigator';
 import { useQuizPageNavigation } from '../features/quiz-player/hooks/useQuizPageNavigation';
 
 interface Props {
@@ -23,7 +24,7 @@ interface Props {
 const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
   const {
     step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
-    enteredCode, setEnteredCode, codeError, answers, timeLeft, result,
+    enteredCode, setEnteredCode, codeError, isVerifyingCode, answers, timeLeft, result,
     shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
     showSubmitConfirm, setShowSubmitConfirm,
     rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
@@ -47,6 +48,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
         onCodeChange={setEnteredCode}
         onVerify={handleCodeVerify}
         codeError={codeError}
+        isVerifying={isVerifyingCode}
         onExit={onExit}
       />
     );
@@ -78,6 +80,14 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
           isPractice={quiz.isPractice || false}
           studentName={studentName}
           avatar={studentAvatar}
+        />
+
+        <MobileQuizNavigator
+          questions={shuffledQuestions}
+          progressByQuestionId={quizProgress.byQuestionId}
+          activeQuestionId={activeQuestionId}
+          questionsPerPage={QUESTIONS_PER_PAGE}
+          onPageChange={changePage}
         />
 
         <div className="mx-auto w-full max-w-[1180px] flex-1 px-4 py-5 sm:px-5 md:py-7 lg:px-8">

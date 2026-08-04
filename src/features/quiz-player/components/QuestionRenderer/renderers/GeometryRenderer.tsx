@@ -10,6 +10,7 @@ const GeometryRenderer: React.FC<BaseRendererProps> = ({
 }) => {
   const geometryData = (question as any).geometryData;
   const value = String(answers[question.id] ?? '');
+  const inputId = `geometry-result-${question.id}`;
 
   if (!geometryData) {
     return (
@@ -26,7 +27,9 @@ const GeometryRenderer: React.FC<BaseRendererProps> = ({
       </div>
 
       <div className="mt-6 w-full max-w-sm">
+        <label htmlFor={inputId} className="sr-only">Kết quả hình học</label>
         <input
+          id={inputId}
           type="text"
           value={value}
           onChange={(event) => onAnswerChange(question.id, event.target.value)}

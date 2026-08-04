@@ -288,6 +288,17 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
       return addCors(parentResponse, request, env);
     }
 
+    const isQuizAccessVerification = method === 'POST'
+      && /^\/api\/quizzes\/access-verification\/[^/]+$/.test(path);
+    if (isQuizAccessVerification) {
+      const rateLimitResponse = await rateLimit(request, env, {
+        windowMs: 5 * 60 * 1000,
+        maxRequests: 10,
+        failureMode: 'closed',
+      });
+      if (rateLimitResponse) return addCors(rateLimitResponse, request, env);
+    }
+
     const authError = verifyToken(request, env);
     if (authError) return addCors(authError, request, env);
 

@@ -15,6 +15,12 @@ vi.mock('../src/hooks', () => ({
 
 vi.mock('../src/services/liveExamService', () => ({
     submitAnswers: vi.fn(),
+    getAnswerSnapshot: vi.fn(async () => null),
+    saveAnswerSnapshot: vi.fn(async (_sessionId, payload) => ({
+        attemptVersion: payload.attemptVersion,
+        answers: payload.answers,
+        updatedAt: '2026-08-04T05:00:00.000Z',
+    })),
 }));
 
 vi.mock('../src/components/student/QuestionRenderer', () => ({
@@ -82,7 +88,7 @@ describe('LiveExamQuiz pagination activity', () => {
             });
         });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Câu tiếp theo' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Trang tiếp theo' }));
         act(flushAnimationFrames);
 
         await waitFor(() => {

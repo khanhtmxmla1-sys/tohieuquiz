@@ -23,4 +23,5 @@ export function clearUserBrowserData(): void {
     clearPrefix(local, 'tohieuquiz_cache:');
     clearPrefix(session, 'tohieuquiz_cache:');
     clearPrefix(session, 'tohieuquiz_cache_session:');
+    clearPrefix(session, 'tohieuquiz_quiz_attempt_v1:');
 }
