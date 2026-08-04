@@ -6,6 +6,12 @@ export const quizRoutes: RouteRegistry = {
         auth: 'session',
         path: () => '/api/quizzes',
     },
+    verify_quiz_access_code: {
+        method: 'POST',
+        auth: 'public',
+        path: ({ quizId }) => `/api/quizzes/access-verification/${encodeURIComponent(quizId)}`,
+        body: (_action, { accessCode }) => ({ accessCode }),
+    },
     create_quiz: {
         method: 'POST',
         auth: 'session',

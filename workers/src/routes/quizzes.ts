@@ -26,6 +26,7 @@ import {
     type PersistedQuestionRow,
 } from '../services/questionMath';
 import { QuestionScoringContractValidationError } from '../services/questionScoringContract';
+import { z } from 'zod';
 
 const canAccessQuiz = async (db: D1Database, user: JWTPayload, quizId: string): Promise<boolean> => {
     if (requireAdmin(user)) return true;
@@ -49,6 +50,37 @@ const parseJsonArray = (value: unknown): any[] => {
     } catch {
         return [];
     }
+};
+
+const quizAccessCodeSchema = z.object({
+    accessCode: z.string().trim().min(1).max(10).regex(/^[A-Za-z0-9]+$/),
+});
+
+const isEnabledFlag = (value: unknown): boolean => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value === 1;
+    return ['1', 'true', 'yes', 'on', 'enabled'].includes(String(value ?? '').trim().toLowerCase());
+};
+
+const constantTimeTextEqual = (actual: string, expected: string): boolean => {
+    const encoder = new TextEncoder();
+    const actualBytes = encoder.encode(actual);
+    const expectedBytes = encoder.encode(expected);
+    const maxLength = Math.max(actualBytes.length, expectedBytes.length);
+    let difference = actualBytes.length ^ expectedBytes.length;
+    for (let index = 0; index < maxLength; index += 1) {
+        difference |= (actualBytes[index] ?? 0) ^ (expectedBytes[index] ?? 0);
+    }
+    return difference === 0;
+};
+
+export const sanitizeQuizForStudent = (
+    quiz: Record<string, unknown>,
+): Record<string, unknown> => {
+    const safeQuiz = { ...quiz };
+    delete safeQuiz.access_code;
+    delete safeQuiz.accessCode;
+    return safeQuiz;
 };
 
 const shuffle = <T>(values: T[]): T[] => {
@@ -275,13 +307,64 @@ export const sanitizeQuestionForStudent = (question: any): any => {
 export async function handleQuizRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
     const db = env.DB;
 
+    // POST /api/quizzes/access-verification/:quizId
+    const accessVerificationMatch = path.match(/^\/api\/quizzes\/access-verification\/([^/]+)$/);
+    if (accessVerificationMatch && method === 'POST') {
+        let quizId = '';
+        try {
+            quizId = decodeURIComponent(accessVerificationMatch[1]).trim();
+        } catch {
+            return jsonResponse({
+                status: 'error',
+                code: 'INVALID_ACCESS_CODE_FORMAT',
+                message: 'Mã làm bài chưa đúng định dạng.',
+            }, 400);
+        }
+
+        const body = await parseBody(request);
+        const parsed = quizAccessCodeSchema.safeParse(body);
+        if (!quizId || !parsed.success) {
+            return jsonResponse({
+                status: 'error',
+                code: 'INVALID_ACCESS_CODE_FORMAT',
+                message: 'Mã làm bài chưa đúng định dạng.',
+            }, 400);
+        }
+
+        const quiz = await db.prepare(
+            'SELECT access_code, require_code FROM quizzes WHERE id = ?',
+        ).bind(quizId).first<{
+            access_code?: string | null;
+            require_code?: string | number | boolean | null;
+        }>();
+
+        if (!quiz) {
+            return jsonResponse({ valid: false, error: 'INVALID_ACCESS_CODE' }, 403);
+        }
+        if (!isEnabledFlag(quiz.require_code)) {
+            return jsonResponse({ valid: true });
+        }
+
+        const actualCode = parsed.data.accessCode.toUpperCase();
+        const expectedCode = String(quiz.access_code ?? '').trim().toUpperCase();
+        if (!expectedCode || !constantTimeTextEqual(actualCode, expectedCode)) {
+            return jsonResponse({ valid: false, error: 'INVALID_ACCESS_CODE' }, 403);
+        }
+        return jsonResponse({ valid: true });
+    }
+
     // GET /api/quizzes
     if (path === '/api/quizzes' && method === 'GET') {
+        const authResult = await verifyJWTMiddleware(request, env);
+        const user: JWTPayload | null = authResult instanceof Response ? null : authResult.user;
         const rows = await withD1Retry(
             () => db.prepare('SELECT * FROM quizzes').all<import('../types').Quiz>(),
             'GET /api/quizzes'
         );
-        return jsonResponse(rows.results);
+        const quizzes = user && requireTeacher(user)
+            ? rows.results
+            : rows.results.map((quiz) => sanitizeQuizForStudent(quiz as unknown as Record<string, unknown>));
+        return jsonResponse(quizzes);
     }
 
     // GET /api/quizzes/:id/editor - Unified editor payload and editability contract

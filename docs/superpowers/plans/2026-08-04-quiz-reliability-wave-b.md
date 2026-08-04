@@ -187,7 +187,7 @@ export interface LiveExamAutosaveQueue {
 **Contract:**
 
 ```http
-POST /api/quizzes/:quizId/access-verification
+POST /api/quizzes/access-verification/:quizId
 Content-Type: application/json
 
 { "accessCode": "ABC123" }

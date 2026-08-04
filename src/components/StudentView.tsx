@@ -23,7 +23,7 @@ interface Props {
 const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
   const {
     step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
-    enteredCode, setEnteredCode, codeError, answers, timeLeft, result,
+    enteredCode, setEnteredCode, codeError, isVerifyingCode, answers, timeLeft, result,
     shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
     showSubmitConfirm, setShowSubmitConfirm,
     rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
@@ -47,6 +47,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
         onCodeChange={setEnteredCode}
         onVerify={handleCodeVerify}
         codeError={codeError}
+        isVerifying={isVerifyingCode}
         onExit={onExit}
       />
     );

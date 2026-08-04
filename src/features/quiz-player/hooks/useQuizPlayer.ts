@@ -4,6 +4,7 @@ import { useClassroomStore } from '../../../stores/useClassroomStore';
 import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
+import { verifyQuizAccessCode } from '../../../services/quizAccessService';
 import { playTingSound, showError } from '../../../utils/toast';
 import { useQuizProgressRollout } from './useQuizProgressRollout';
 import {
@@ -105,6 +106,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     const studentAvatar = session?.avatar || null;
     const [enteredCode, setEnteredCode] = useState('');
     const [codeError, setCodeError] = useState('');
+    const [isVerifyingCode, setIsVerifyingCode] = useState(false);
     const [answers, setAnswers] = useState<Record<string, any>>(restoredDraft?.answers || {});
     const [expiresAt, setExpiresAt] = useState<string | null>(restoredDraft?.expiresAt || null);
     const timeLeft = useQuizDeadline(expiresAt);
@@ -201,14 +203,20 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         setStep('quiz');
     }, [studentName, studentClass, quiz.questions, quiz.timeLimit, shuffleWithinLevel, shuffleArray]);
 
-    const handleCodeVerify = useCallback(() => {
-        if (enteredCode.toUpperCase() === quiz.accessCode?.toUpperCase()) {
-            setCodeError('');
-            setStep('info');
-        } else {
-            setCodeError('Mã không đúng. Vui lòng thử lại!');
+    const handleCodeVerify = useCallback(async () => {
+        if (isVerifyingCode) return;
+        setIsVerifyingCode(true);
+        setCodeError('');
+        try {
+            const valid = await verifyQuizAccessCode(quiz.id, enteredCode);
+            if (valid) setStep('info');
+            else setCodeError('Mã không đúng. Vui lòng thử lại!');
+        } catch {
+            setCodeError('Không thể kiểm tra mã lúc này. Vui lòng thử lại.');
+        } finally {
+            setIsVerifyingCode(false);
         }
-    }, [enteredCode, quiz.accessCode]);
+    }, [enteredCode, isVerifyingCode, quiz.id]);
 
     const handleAnswerChange = useCallback((questionId: string, value: any, subId?: string) => {
         setAnswers(prev => {
@@ -412,7 +420,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     );
     return {
         step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
-        enteredCode, setEnteredCode, codeError, answers, timeLeft, result,
+        enteredCode, setEnteredCode, codeError, isVerifyingCode, answers, timeLeft, result,
         shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
         showSubmitConfirm, setShowSubmitConfirm,
         rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,

@@ -65,6 +65,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('feature-flag-admin', '/api/system-settings/feature-flags', 'admin-only', ['route-handler'], 'feature flag requireAdmin checks'),
   policy('practice', '/api/practice', 'public', ['none'], 'practice route validation'),
   policy('question-catalog', '/api/questions', 'public', ['quizId'], 'quiz handler strips answers', { methods: ['GET'] }),
+  policy('quiz-access-verification', '/api/quizzes/access-verification', 'public', ['quizId'], 'rate-limited generic access-code verifier', { methods: ['POST'] }),
   policy('quiz-catalog', '/api/quizzes', 'public', ['quizId'], 'quiz catalogue handler', { match: 'exact', methods: ['GET'] }),
   policy('client-error-ingest', '/api/client-errors', 'internal-only', ['none'], 'origin guard, rate limit and sanitizer', { match: 'exact', methods: ['POST'] }),
   policy('client-telemetry-ingest', '/api/client-telemetry', 'internal-only', ['none'], 'origin guard, sampling, rate limit and telemetry sanitizer', { match: 'exact', methods: ['POST'] }),

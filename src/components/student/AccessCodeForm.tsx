@@ -4,6 +4,7 @@ interface AccessCodeFormProps {
     quizTitle: string;
     enteredCode: string;
     codeError: string;
+    isVerifying?: boolean;
     onCodeChange: (code: string) => void;
     onVerify: () => void;
     onExit: () => void;
@@ -17,12 +18,13 @@ const AccessCodeForm: React.FC<AccessCodeFormProps> = ({
     quizTitle,
     enteredCode,
     codeError,
+    isVerifying = false,
     onCodeChange,
     onVerify,
     onExit
 }) => {
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && !isVerifying) {
             onVerify();
         }
     };
@@ -71,12 +73,12 @@ const AccessCodeForm: React.FC<AccessCodeFormProps> = ({
                     {/* Verify Button */}
                     <button
                         onClick={onVerify}
-                        disabled={enteredCode.length < 1}
+                        disabled={enteredCode.length < 1 || isVerifying}
                         className="w-full student-btn student-btn-primary text-lg"
                         style={{ background: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)', boxShadow: '0 4px 0 #6d28d9, 0 6px 20px rgba(139, 92, 246, 0.4)' }}
                     >
-                        <span>✓</span>
-                        <span>Xác nhận mã</span>
+                        <span>{isVerifying ? '⏳' : '✓'}</span>
+                        <span>{isVerifying ? 'Đang kiểm tra...' : 'Xác nhận mã'}</span>
                     </button>
 
                     {/* Back Button */}
