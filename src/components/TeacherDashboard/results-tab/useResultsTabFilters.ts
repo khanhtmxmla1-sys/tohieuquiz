@@ -5,21 +5,18 @@ import { useResults } from '../../../hooks';
 import type { DateRange } from '../../teacher/ResultsView';
 import { calculateResultsStatistics } from '../../../utils/statisticsUtils';
 import { filterResultsForDisplay, getAvailableQuizzes } from './resultsTabSelectors';
+import { systemDateKeyToLabelDate } from '../../../utils/dateTime';
 
 export const PAGE_SIZE = 5;
 
 const parseDateParam = (value: string | null): Date | null => {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const parsed = new Date(`${value}T00:00:00`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  if (!value) return null;
+  try { return systemDateKeyToLabelDate(value); } catch { return null; }
 };
 
 const formatDateParam = (value: Date | null): string | null => {
   if (!value || Number.isNaN(value.getTime())) return null;
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return value.toISOString().slice(0, 10);
 };
 
 const parsePage = (value: string | null): number => {

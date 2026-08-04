@@ -1,11 +1,14 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   formatSystemDate,
   formatSystemDateLong,
   formatSystemDateTime,
   formatSystemTime,
+  addSystemCalendarDays,
   getSystemDateKey,
+  getSystemDateParts,
   getSystemWeekKey,
+  systemDateKeyToLabelDate,
   getVietnamDefaultDeadline,
   systemDateTimeLocalToIso,
   toSystemDateTimeLocal,
@@ -21,6 +24,18 @@ describe('Hanoi system time helpers', () => {
     expect(formatSystemTime(instant)).toBe('01:00');
     expect(formatSystemDateTime(instant)).toBe('05/08/2026 01:00');
     expect(formatSystemDateLong(instant)).toBe('05 tháng 08, 2026');
+  });
+
+  it('exposes Hanoi date parts and stable calendar-day arithmetic', () => {
+    expect(getSystemDateParts('2026-08-04T18:00:00.000Z')).toEqual({
+      year: 2026,
+      month: 8,
+      day: 5,
+      dateKey: '2026-08-05',
+    });
+    expect(addSystemCalendarDays('2026-08-05', 7)).toBe('2026-08-12');
+    expect(addSystemCalendarDays('2026-01-01', -1)).toBe('2025-12-31');
+    expect(systemDateKeyToLabelDate('2026-08-05').toISOString()).toBe('2026-08-05T00:00:00.000Z');
   });
 
   it('uses Hanoi calendar days and ISO weeks at the 17:00 UTC boundary', () => {

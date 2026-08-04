@@ -1,8 +1,9 @@
+import { getSystemDateParts } from '../../../utils/dateTime';
 import type { BatchStudentRow, QuizOption, ResultRecord, StudentOption } from './types';
 
 export const defaultCertificateDateLine = (): string => {
-  const now = new Date();
-  return `Mường La, ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
+  const { day, month, year } = getSystemDateParts();
+  return `Mường La, ngày ${day} tháng ${month} năm ${year}`;
 };
 
 export const mergeStudentsWithResults = (

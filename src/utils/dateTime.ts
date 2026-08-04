@@ -1,4 +1,4 @@
-﻿import {
+import {
   SYSTEM_LOCALE,
   SYSTEM_TIME_ZONE,
   SYSTEM_UTC_OFFSET,
@@ -115,6 +115,47 @@ export const getSystemDateKey = (
   if (!parts) throw new Error('Thời gian không hợp lệ');
   return `${parts.year}-${parts.month}-${parts.day}`;
 };
+
+export interface SystemDateParts {
+  year: number;
+  month: number;
+  day: number;
+  dateKey: string;
+}
+
+export const getSystemDateParts = (
+  value: SystemTimeInput = new Date(),
+): SystemDateParts => {
+  const parts = getSystemParts(value);
+  if (!parts) throw new Error('Thời gian không hợp lệ');
+  const dateKey = `${parts.year}-${parts.month}-${parts.day}`;
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    dateKey,
+  };
+};
+
+const parseSystemDateKey = (dateKey: string): Date => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateKey || '').trim());
+  if (!match) throw new Error('Ngày hệ thống không hợp lệ');
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== dateKey) {
+    throw new Error('Ngày hệ thống không hợp lệ');
+  }
+  return date;
+};
+
+export const addSystemCalendarDays = (dateKey: string, days: number): string => {
+  if (!Number.isInteger(days)) throw new Error('Số ngày không hợp lệ');
+  const date = parseSystemDateKey(dateKey);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+export const systemDateKeyToLabelDate = (dateKey: string): Date =>
+  parseSystemDateKey(dateKey);
 
 const isoWeekFromDateKey = (dateKey: string): string => {
   const [year, month, day] = dateKey.split('-').map(Number);

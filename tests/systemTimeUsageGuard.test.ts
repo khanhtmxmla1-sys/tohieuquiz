@@ -29,7 +29,8 @@ const findViolations = (scope: 'src' | 'workers/src'): string[] => {
       const dateToLocaleString = /new\s+Date\s*\([^)]*\)\.toLocaleString\s*\(/.test(line)
         || /\b(?:date|timestamp|deadlineDate|startDate|endDate)\.toLocaleString\s*\(/i.test(line);
       const bangkokAlias = /Asia\/Bangkok|getBangkokDateKey/.test(line);
-      if (directDateLocale || directDateTimeFormat || dateToLocaleString || bangkokAlias) {
+      const runtimeLocalCalendar = /\.(?:getFullYear|getMonth|getDate|getHours|getDay|setDate|setHours)\s*\(/.test(line);
+      if (directDateLocale || directDateTimeFormat || dateToLocaleString || bangkokAlias || runtimeLocalCalendar) {
         violations.push(`${file}:${index + 1}: ${line.trim()}`);
       }
     });
