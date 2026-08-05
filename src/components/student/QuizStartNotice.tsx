@@ -1,4 +1,3 @@
-import { AlertTriangle, CalendarClock, Clock3, ListChecks, School, UserRound } from 'lucide-react';
 import type { Quiz } from '../../types';
 import { formatSystemDateTime } from '../../utils/dateTime';
 
@@ -14,6 +13,27 @@ interface QuizStartNoticeProps {
 
 const formatDeadline = (value?: string): string => (
   value ? formatSystemDateTime(value, 'Không giới hạn') : 'Không giới hạn'
+);
+
+type ExamStartIconName =
+  | 'exam-notice'
+  | 'check-student-info'
+  | 'question-count'
+  | 'exam-duration'
+  | 'attempt-count'
+  | 'exam-deadline'
+  | 'auto-submit'
+  | 'stay-on-exam';
+
+const ExamStartIcon = ({ name, className }: { name: ExamStartIconName; className: string }) => (
+  <img
+    src={`/icons/exam-start/${name}.svg`}
+    alt=""
+    aria-hidden="true"
+    decoding="async"
+    data-exam-start-icon={name}
+    className={className}
+  />
 );
 
 const QuizStartNotice = ({
@@ -32,15 +52,13 @@ const QuizStartNotice = ({
   const questionCount = Array.isArray(quiz.questions) ? quiz.questions.length : 0;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F7FAFC] px-4 py-8 font-['Be_Vietnam_Pro'] text-[#172033] sm:px-6">
+    <main className="flex min-h-[100dvh] items-center justify-center bg-[#F7FAFC] px-4 py-8 font-['Be_Vietnam_Pro'] text-[#172033] sm:px-6">
       <section
         aria-labelledby="quiz-start-title"
-        className="w-full max-w-xl overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)]"
+        className="w-full max-w-2xl overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)]"
       >
         <div className="border-b border-slate-200 bg-sky-50 px-5 py-5 sm:px-7">
-          <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-sky-100 text-sky-700">
-            <AlertTriangle className="h-5 w-5" aria-hidden="true" />
-          </div>
+          <ExamStartIcon name="exam-notice" className="mb-3 h-14 w-14" />
           <h1 id="quiz-start-title" className="text-2xl font-bold tracking-tight text-slate-900">
             Lưu ý trước khi làm bài
           </h1>
@@ -55,17 +73,22 @@ const QuizStartNotice = ({
             <h2 className="mt-1 text-lg font-semibold leading-7 text-slate-900">{quiz.title}</h2>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="flex items-center gap-3 rounded-[10px] border border-slate-200 bg-slate-50 px-4 py-3">
-              <UserRound className="h-5 w-5 shrink-0 text-sky-600" aria-hidden="true" />
-              <div className="min-w-0">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <ExamStartIcon name="check-student-info" className="h-11 w-11 shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Thông tin của em</p>
+                <p className="text-xs leading-5 text-slate-500">
+                  Hãy kiểm tra đúng họ tên và lớp trước khi bắt đầu.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-500">Học sinh</p>
                 <p className="truncate font-semibold text-slate-800">{studentName}</p>
               </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-[10px] border border-slate-200 bg-slate-50 px-4 py-3">
-              <School className="h-5 w-5 shrink-0 text-sky-600" aria-hidden="true" />
-              <div>
+              <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-500">Lớp</p>
                 <p className="font-semibold text-slate-800">Lớp {studentClass}</p>
               </div>
@@ -74,27 +97,34 @@ const QuizStartNotice = ({
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-[10px] border border-slate-200 px-3 py-3 text-center">
-              <ListChecks className="mx-auto h-5 w-5 text-sky-600" aria-hidden="true" />
+              <ExamStartIcon name="question-count" className="mx-auto h-8 w-8" />
               <p className="mt-2 text-sm font-semibold text-slate-800">{questionCount} câu hỏi</p>
             </div>
             <div className="rounded-[10px] border border-slate-200 px-3 py-3 text-center">
-              <Clock3 className="mx-auto h-5 w-5 text-sky-600" aria-hidden="true" />
+              <ExamStartIcon name="exam-duration" className="mx-auto h-8 w-8" />
               <p className="mt-2 text-sm font-semibold text-slate-800">{quiz.timeLimit || 0} phút</p>
             </div>
             <div className="rounded-[10px] border border-slate-200 px-3 py-3 text-center">
-              <ListChecks className="mx-auto h-5 w-5 text-emerald-600" aria-hidden="true" />
+              <ExamStartIcon name="attempt-count" className="mx-auto h-8 w-8" />
               <p className="mt-2 text-sm font-semibold text-slate-800">Còn {remainingAttempts} lượt làm</p>
             </div>
             <div className="rounded-[10px] border border-slate-200 px-3 py-3 text-center">
-              <CalendarClock className="mx-auto h-5 w-5 text-amber-600" aria-hidden="true" />
+              <ExamStartIcon name="exam-deadline" className="mx-auto h-8 w-8" />
               <p className="mt-2 text-xs font-semibold leading-5 text-slate-800">
                 {formatDeadline(assignment?.deadline)}
               </p>
             </div>
           </div>
 
-          <div className="rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
-            Đồng hồ chỉ bắt đầu sau khi em bấm nút bên dưới. Bài sẽ tự động nộp khi hết thời gian.
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex items-start gap-3 rounded-[10px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+              <ExamStartIcon name="auto-submit" className="mt-0.5 h-10 w-10 shrink-0" />
+              <p>Đồng hồ chỉ bắt đầu sau khi em bấm nút bên dưới. Bài sẽ tự động nộp khi hết thời gian.</p>
+            </div>
+            <div className="flex items-start gap-3 rounded-[10px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-950">
+              <ExamStartIcon name="stay-on-exam" className="mt-0.5 h-10 w-10 shrink-0" />
+              <p>Trong khi làm bài, em hãy giữ nguyên trang và tránh tải lại trình duyệt.</p>
+            </div>
           </div>
 
           {startError ? (
