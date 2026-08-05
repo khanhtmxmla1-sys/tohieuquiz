@@ -158,6 +158,32 @@ describe('assignment-scoped result attempt limits', () => {
     expect(db.executed.some(statement => statement.sql.includes('INSERT INTO results'))).toBe(false);
   });
 
+  it('returns a business conflict instead of a permission error when attempts are exhausted', async () => {
+    const db = new FakeDatabase();
+    const originalFirst = db.first.bind(db);
+    db.first = (sql: string, bindings: unknown[]) => {
+      if (sql.includes('COUNT(*) as cnt')) return { cnt: 3 };
+      return originalFirst(sql, bindings);
+    };
+
+    const response = await handleResultRoutes(
+      makeRequest(),
+      { DB: db } as any,
+      '/api/results',
+      'POST',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(409);
+    expect(payload).toMatchObject({
+      status: 'error',
+      code: 'ASSIGNMENT_ATTEMPTS_EXHAUSTED',
+      message: 'Em đã hết lượt làm bài này (3/3).',
+      attemptCount: 3,
+      maxAttempts: 3,
+    });
+  });
+
   it('rejects an assignment id that does not belong to the submitted quiz', async () => {
     const db = new FakeDatabase();
     db.first = (sql: string, bindings: unknown[]) => {

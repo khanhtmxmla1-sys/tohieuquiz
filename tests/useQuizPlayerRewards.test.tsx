@@ -138,7 +138,10 @@ describe('useQuizPlayer result rewards', () => {
       onSaveResult: mocks.onSaveResult,
     }));
 
-    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    expect(result.current.step).toBe('quiz');
     expect(result.current.quizProgress).toMatchObject({
       emptyCount: 1,
       partialCount: 0,
@@ -164,7 +167,10 @@ describe('useQuizPlayer result rewards', () => {
       onSaveResult: mocks.onSaveResult,
     }));
 
-    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    expect(result.current.step).toBe('quiz');
 
     act(() => result.current.handleAnswerChange(question.id, {
       __shuffledIds: ['r-1', 'r-0'],
@@ -207,7 +213,10 @@ describe('useQuizPlayer result rewards', () => {
       onSaveResult: mocks.onSaveResult,
     }));
 
-    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    expect(result.current.step).toBe('quiz');
     act(() => result.current.handleAnswerChange('q1', { 0: 2, 1: 1 }));
     await act(async () => result.current.handleSubmit());
 
@@ -251,7 +260,10 @@ describe('useQuizPlayer result rewards', () => {
       onSaveResult: mocks.onSaveResult,
     }));
 
-    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    expect(result.current.step).toBe('quiz');
     await act(async () => result.current.handleSubmit());
 
     expect(mocks.onSaveResult).toHaveBeenCalledWith(expect.objectContaining({
@@ -276,7 +288,10 @@ describe('useQuizPlayer result rewards', () => {
       onSaveResult: mocks.onSaveResult,
     }));
 
-    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    expect(result.current.step).toBe('quiz');
     await act(async () => result.current.handleSubmit());
 
     expect(mocks.claimResultReward).toHaveBeenCalledWith('student-1', '42');
@@ -313,7 +328,10 @@ describe('useQuizPlayer result rewards', () => {
       onSaveResult: mocks.onSaveResult,
     }));
 
-    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    expect(result.current.step).toBe('quiz');
     await act(async () => result.current.handleSubmit());
 
     expect(result.current.result?.id).toBe('42');
@@ -332,7 +350,10 @@ describe('useQuizPlayer result rewards', () => {
       onSaveResult: mocks.onSaveResult,
     }));
 
-    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    expect(result.current.step).toBe('quiz');
     await act(async () => result.current.handleSubmit());
 
     expect(mocks.onSaveResult).not.toHaveBeenCalled();

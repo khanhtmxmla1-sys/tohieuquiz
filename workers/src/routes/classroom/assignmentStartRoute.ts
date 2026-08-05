@@ -1,66 +1,128 @@
-import { requireTeacherForAssignment, requireTeacherForClass, requireTeacherForStudent } from '../../classroom/authorization';
 import type { ClassroomRouteContext } from '../../classroom/types';
-import { isStudent, requireTeacher } from '../../middleware/jwtAuth';
-import { getSmartAssignmentPreview } from '../../services/smartAssignment';
-import { extractIdFromPath, parseBody } from '../../utils/helpers';
-import { errorResponse, generateId, jsonResponse } from '../../utils/response';
+import { isStudent } from '../../middleware/jwtAuth';
+import { parseBody } from '../../utils/helpers';
+import { errorResponse, jsonResponse } from '../../utils/response';
+
+const normalizeIdentityText = (value: unknown): string => String(value ?? '').trim().toLowerCase();
 
 export async function handleAssignmentStartRoute(context: ClassroomRouteContext): Promise<Response | null> {
     const { request, path, method, db, nowIso, user } = context;
-    // POST /api/assignments/:id/start
-        if (path.match(/\/api\/assignments\/[^/]+\/start/) && method === 'POST') {
-            const parts = path.split('/');
-            const assignmentId = parts[3];
-            if (!assignmentId) return errorResponse('Missing assignment ID');
+    if (!path.match(/^\/api\/assignments\/[^/]+\/start$/) || method !== 'POST') return null;
 
-            const body = await parseBody(request);
-            if (!body) return errorResponse('Invalid JSON body');
+    const assignmentId = path.split('/')[3];
+    if (!assignmentId) return errorResponse('Missing assignment ID');
 
-            if (!isStudent(user)) return errorResponse('Forbidden: Student access required', 403);
+    const body = await parseBody(request);
+    if (!body) return errorResponse('Invalid JSON body');
+    if (!isStudent(user)) return errorResponse('Forbidden: Student access required', 403);
 
-            const stu = await db.prepare('SELECT * FROM students WHERE username = ?').bind(user.username).first<any>();
-            if (!stu) return jsonResponse({ status: 'error', message: 'Student not found' });
+    const student = await db.prepare(`
+        SELECT s.*, c.name AS class_name
+        FROM students s
+        LEFT JOIN classes c ON c.id = s.class_id
+        WHERE s.username = ?
+    `).bind(user.username).first<any>();
+    if (!student) {
+        return jsonResponse({
+            status: 'error',
+            code: 'STUDENT_NOT_FOUND',
+            message: 'Không tìm thấy tài khoản học sinh.',
+        }, 404);
+    }
 
-            const asn = await db.prepare('SELECT * FROM assignments WHERE id = ?').bind(assignmentId).first<any>();
-            if (!asn) return jsonResponse({ status: 'error', message: 'Assignment not found' });
+    const assignment = await db.prepare('SELECT * FROM assignments WHERE id = ?')
+        .bind(assignmentId)
+        .first<any>();
+    if (!assignment) {
+        return jsonResponse({
+            status: 'error',
+            code: 'ASSIGNMENT_NOT_FOUND',
+            message: 'Không tìm thấy bài được giao.',
+        }, 404);
+    }
 
-            const deadline = String(asn.deadline || '');
-            const status = String(asn.status || 'OPEN').toUpperCase();
-            const isExpired = deadline ? deadline < nowIso : false;
-            const isRevoked = status === 'REVOKED';
-            const isClosed = status === 'CLOSED' || isExpired;
+    if (String(assignment.class_id || '') !== String(student.class_id || '')) {
+        return errorResponse('Forbidden: Assignment is not for your class', 403);
+    }
+    if (String(assignment.student_id || '') && String(assignment.student_id) !== String(student.id || '')) {
+        return errorResponse('Forbidden: Assignment is not assigned to you', 403);
+    }
 
-            if (isExpired && status === 'OPEN') {
-                await db.prepare("UPDATE assignments SET status = 'CLOSED' WHERE id = ?").bind(assignmentId).run();
-            }
+    const status = String(assignment.status || 'OPEN').toUpperCase();
+    const deadline = String(assignment.deadline || '');
+    const deadlineMs = Date.parse(deadline);
+    const nowMs = Date.parse(nowIso);
+    const isExpired = Number.isFinite(deadlineMs) && Number.isFinite(nowMs) && deadlineMs < nowMs;
 
-            if (String(asn.class_id || '') !== String(stu.class_id || '')) {
-                return errorResponse('Forbidden: Assignment is not for your class', 403);
-            }
-            if (String(asn.student_id || '') && String(asn.student_id || '') !== String(stu.id || '')) {
-                return errorResponse('Forbidden: Assignment is not assigned to you', 403);
-            }
-            if (isRevoked) {
-                return jsonResponse({
-                    status: 'error',
-                    message: 'Bài đã được giáo viên thu hồi.',
-                    code: 'ASSIGNMENT_REVOKED',
-                }, 409);
-            }
-            if (isClosed) {
-                return jsonResponse({ status: 'error', message: 'Assignment is closed', code: 'ASSIGNMENT_CLOSED' }, 409);
-            }
+    if (status === 'REVOKED') {
+        return jsonResponse({
+            status: 'error',
+            code: 'ASSIGNMENT_REVOKED',
+            message: 'Bài đã được giáo viên thu hồi.',
+        }, 409);
+    }
 
-            const cnt = await db.prepare(
-                `SELECT COUNT(*) as cnt FROM results WHERE student_name = ? AND quiz_id = ? AND answers != '{"status":"STARTED"}'`
-            ).bind(stu.full_name, asn.quiz_id).first<{ cnt: number }>();
-            const attemptCount = cnt?.cnt || 0;
-            const maxAttempts = Number(asn.max_attempts) || 1;
-
-            if (attemptCount >= maxAttempts) {
-                return jsonResponse({ status: 'error', message: 'Max attempts reached', attemptCount, maxAttempts });
-            }
-            return jsonResponse({ status: 'success', attemptCount, maxAttempts });
+    if (isExpired) {
+        if (status === 'OPEN') {
+            await db.prepare("UPDATE assignments SET status = 'CLOSED' WHERE id = ?")
+                .bind(assignmentId)
+                .run();
         }
-    return null;
+        return jsonResponse({
+            status: 'error',
+            code: 'ASSIGNMENT_EXPIRED',
+            message: 'Bài tập đã hết hạn.',
+        }, 409);
+    }
+
+    if (status !== 'OPEN') {
+        return jsonResponse({
+            status: 'error',
+            code: 'ASSIGNMENT_CLOSED',
+            message: 'Bài tập đã được giáo viên đóng.',
+        }, 409);
+    }
+
+    const countResult = await db.prepare(`
+        SELECT COUNT(*) as cnt FROM results
+        WHERE assignment_id = ?
+          AND COALESCE(answers, '') != '{"status":"STARTED"}'
+          AND (
+            student_id = ?
+            OR (
+              (student_id IS NULL OR student_id = '')
+              AND LOWER(TRIM(student_name)) = ?
+              AND LOWER(TRIM(class_name)) = ?
+            )
+          )
+    `).bind(
+        assignmentId,
+        student.id,
+        normalizeIdentityText(student.full_name),
+        normalizeIdentityText(student.class_name),
+    ).first<{ cnt: number }>();
+
+    const attemptCount = Number(countResult?.cnt || 0);
+    const maxAttempts = Math.max(1, Number(assignment.max_attempts) || 1);
+    if (attemptCount >= maxAttempts) {
+        return jsonResponse({
+            status: 'error',
+            code: 'ASSIGNMENT_ATTEMPTS_EXHAUSTED',
+            message: `Em đã hết lượt làm bài này (${attemptCount}/${maxAttempts}).`,
+            attemptCount,
+            maxAttempts,
+        }, 409);
+    }
+
+    return jsonResponse({
+        status: 'success',
+        data: {
+            assignmentId,
+            attemptCount,
+            maxAttempts,
+            remainingAttempts: maxAttempts - attemptCount,
+            deadline,
+            status: 'OPEN',
+        },
+    });
 }

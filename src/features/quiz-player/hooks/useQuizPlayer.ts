@@ -1,18 +1,19 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Quiz, Question, StudentResult } from '../../../types';
 import { useClassroomStore } from '../../../stores/useClassroomStore';
 import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
 import { verifyQuizAccessCode } from '../../../services/quizAccessService';
-import { playTingSound, showError } from '../../../utils/toast';
+import { startAssignmentAttempt } from '../../../services/classroomService';
+import { playTingSound } from '../../../utils/toast';
 import { useQuizProgressRollout } from './useQuizProgressRollout';
 import {
     clearQuizAttemptDraft,
     loadQuizAttemptDraft,
     saveQuizAttemptDraft,
 } from '../quizAttemptDraft';
-import { createQuizDeadline, useQuizDeadline } from './useQuizDeadline';
+import { createQuizDeadline, remainingSeconds, useQuizDeadline } from './useQuizDeadline';
 import { updateMatchingAnswer } from '../utils/structuredAnswerUpdates';
 
 interface UseQuizPlayerProps {
@@ -20,6 +21,9 @@ interface UseQuizPlayerProps {
     onExit: () => void;
     onSaveResult: (result: StudentResult) => void | StudentResult | Promise<void | StudentResult>;
 }
+
+export type QuizStep = 'code' | 'info' | 'notice' | 'quiz' | 'result';
+type SubmissionReason = 'manual' | 'timeout';
 
 export type CompletionRewardStatus = 'ready' | 'syncing' | 'error';
 
@@ -92,15 +96,15 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     const hasRestorableDraft = Boolean(restoredDraft && restoredQuestions.length === quiz.questions.length);
 
     // Initial step logic
-    const getInitialStep = useCallback((): 'code' | 'info' | 'quiz' | 'result' => {
+    const getInitialStep = useCallback((): QuizStep => {
         if (hasRestorableDraft) return 'quiz';
-        if (isLoggedIn && !quiz.requireCode) return 'info';
         if (quiz.requireCode) return 'code';
+        if (isLoggedIn) return 'notice';
         return 'info';
     }, [hasRestorableDraft, isLoggedIn, quiz.requireCode]);
 
     // Core state
-    const [step, setStep] = useState<'code' | 'info' | 'quiz' | 'result'>(getInitialStep());
+    const [step, setStep] = useState<QuizStep>(getInitialStep());
     const [studentName, setStudentName] = useState(restoredDraft?.studentName || session?.fullName || '');
     const [studentClass, setStudentClass] = useState(restoredDraft?.studentClass || session?.className || '');
     const studentAvatar = session?.avatar || null;
@@ -115,9 +119,13 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     ));
     const [result, setResult] = useState<StudentResult | null>(null);
     const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>(restoredQuestions);
+    const [isStarting, setIsStarting] = useState(false);
+    const [startError, setStartError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+    const startTriggeredRef = useRef(false);
+    const submissionTriggeredRef = useRef(false);
 
     // Gamification state
     const [showReward, setShowReward] = useState(false);
@@ -136,12 +144,6 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         questions: shuffledQuestions,
         answers,
     });
-
-    // Absolute deadline logic. Date.now is authoritative; the hook interval only refreshes the display.
-    useEffect(() => {
-        if (quiz.isPractice || !quiz.timeLimit || !expiresAt) return;
-        if (step === 'quiz' && timeLeft === 0) handleSubmit();
-    }, [step, timeLeft, quiz.isPractice, quiz.timeLimit, expiresAt]);
 
     useEffect(() => {
         if (step !== 'quiz' || shuffledQuestions.length === 0 || startTime <= 0) return;
@@ -179,29 +181,53 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         };
     }, [step, onExit, quiz.id]);
 
-    // Keep automatic entry only for untimed practice; timed assessments require explicit confirmation.
-    useEffect(() => {
-        if (isLoggedIn && step === 'info' && studentName && studentClass && (!quiz.timeLimit || quiz.isPractice)) {
-            handleStart();
-        }
-
-    }, [isLoggedIn, step, quiz.timeLimit, quiz.isPractice]);
-
     // Handlers
-    const handleStart = useCallback(() => {
-        if (!studentName || !studentClass) return;
+    const handleStart = useCallback(async () => {
+        if (!studentName || !studentClass || isStarting || startTriggeredRef.current) return;
+        startTriggeredRef.current = true;
+        setIsStarting(true);
+        setStartError(null);
 
-        const hasLevels = quiz.questions.some((q: any) => q.difficultyLevel);
-        const finalQuestions = hasLevels ? shuffleWithinLevel(quiz.questions) : shuffleArray(quiz.questions);
+        try {
+            const assignmentId = quiz._assignmentData?.id
+                ? String(quiz._assignmentData.id)
+                : '';
+            if (assignmentId) {
+                if (!session?.studentId) {
+                    throw new Error('Phiên học sinh không hợp lệ. Em hãy đăng nhập lại.');
+                }
+                await startAssignmentAttempt(assignmentId, String(session.studentId));
+            }
 
-        const startedAt = Date.now();
-        setShuffledQuestions(finalQuestions);
-        setAnswers({});
-        setCurrentPage(1);
-        setStartTime(startedAt);
-        setExpiresAt(createQuizDeadline(quiz.timeLimit, startedAt));
-        setStep('quiz');
-    }, [studentName, studentClass, quiz.questions, quiz.timeLimit, shuffleWithinLevel, shuffleArray]);
+            const hasLevels = quiz.questions.some((q: any) => q.difficultyLevel);
+            const finalQuestions = hasLevels ? shuffleWithinLevel(quiz.questions) : shuffleArray(quiz.questions);
+            const startedAt = Date.now();
+
+            submissionTriggeredRef.current = false;
+            setShuffledQuestions(finalQuestions);
+            setAnswers({});
+            setCurrentPage(1);
+            setStartTime(startedAt);
+            setExpiresAt(createQuizDeadline(quiz.timeLimit, startedAt));
+            setStep('quiz');
+        } catch (error: unknown) {
+            startTriggeredRef.current = false;
+            const message = error instanceof Error ? error.message : 'Không thể bắt đầu làm bài.';
+            setStartError(message);
+        } finally {
+            setIsStarting(false);
+        }
+    }, [
+        isStarting,
+        quiz._assignmentData?.id,
+        quiz.questions,
+        quiz.timeLimit,
+        session?.studentId,
+        shuffleArray,
+        shuffleWithinLevel,
+        studentClass,
+        studentName,
+    ]);
 
     const handleCodeVerify = useCallback(async () => {
         if (isVerifyingCode) return;
@@ -209,14 +235,14 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         setCodeError('');
         try {
             const valid = await verifyQuizAccessCode(quiz.id, enteredCode);
-            if (valid) setStep('info');
+            if (valid) setStep(isLoggedIn ? 'notice' : 'info');
             else setCodeError('Mã không đúng. Vui lòng thử lại!');
         } catch {
             setCodeError('Không thể kiểm tra mã lúc này. Vui lòng thử lại.');
         } finally {
             setIsVerifyingCode(false);
         }
-    }, [enteredCode, isVerifyingCode, quiz.id]);
+    }, [enteredCode, isLoggedIn, isVerifyingCode, quiz.id]);
 
     const handleAnswerChange = useCallback((questionId: string, value: any, subId?: string) => {
         setAnswers(prev => {
@@ -237,8 +263,13 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         }));
     }, []);
 
-    const handleSubmit = useCallback(async () => {
-        if (isSubmitting) return;
+    const handleSubmit = useCallback(async (_reason: SubmissionReason = 'manual') => {
+        if (submissionTriggeredRef.current || isSubmitting) return;
+        if (startTime <= 0) {
+            setSubmitError('Bài làm chưa được bắt đầu hợp lệ. Em hãy quay lại và thử lại.');
+            return;
+        }
+        submissionTriggeredRef.current = true;
         setIsSubmitting(true);
         setSubmitError(null);
 
@@ -380,12 +411,21 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
             setStep('result');
             playTingSound();
         } catch (error: unknown) {
+            submissionTriggeredRef.current = false;
             const normalizedError = error instanceof Error ? error : new Error(String(error));
             setSubmitError('Lỗi khi nộp bài! ' + (normalizedError.message || ''));
         } finally {
             setIsSubmitting(false);
         }
     }, [isSubmitting, startTime, quiz, answers, studentName, studentClass, generateUUID, shuffledQuestions, onSaveResult, classroomStore.studentSession?.username]);
+
+    // Date.now is authoritative. timeLeft only triggers display refreshes and re-checks.
+    useEffect(() => {
+        if (step !== 'quiz' || quiz.isPractice || !quiz.timeLimit || !expiresAt || startTime <= 0) return;
+        if (remainingSeconds(expiresAt) === 0) {
+            void handleSubmit('timeout');
+        }
+    }, [expiresAt, handleSubmit, quiz.isPractice, quiz.timeLimit, startTime, step, timeLeft]);
 
     const handleRetryReward = useCallback(async () => {
         const rewardUsername = classroomStore.studentSession?.username;
@@ -421,7 +461,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
     return {
         step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
         enteredCode, setEnteredCode, codeError, isVerifyingCode, answers, timeLeft, result,
-        shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
+        shuffledQuestions, isStarting, startError, isSubmitting, submitError, showReward, setShowReward,
         showSubmitConfirm, setShowSubmitConfirm,
         rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
         handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward, isQuestionAnswered

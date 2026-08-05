@@ -138,6 +138,31 @@ describe('quizStore.loadQuizzes', () => {
     expect(mocks.callApi).toHaveBeenCalledTimes(4);
   });
 
+  it('preserves assignment metadata on the selected quiz after a catalog refresh', async () => {
+    installSuccessfulApi();
+    const assignmentData = {
+      id: 'assignment-1',
+      quizId: 'quiz-1',
+      classId: 'class-1',
+      deadline: '2099-01-01T00:00:00.000Z',
+      maxAttempts: 1,
+      attemptCount: 0,
+      status: 'OPEN',
+      createdAt: '2026-08-04T00:00:00.000Z',
+    };
+    useQuizStore.setState({
+      selectedQuiz: {
+        ...quizRows[0],
+        questions: [],
+        _assignmentData: assignmentData,
+      },
+    } as any);
+
+    await useQuizStore.getState().loadQuizzes({ force: true });
+
+    expect(useQuizStore.getState().selectedQuiz?._assignmentData).toEqual(assignmentData);
+  });
+
   it('uses the production-silent logger instead of console.log', async () => {
     installSuccessfulApi();
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);

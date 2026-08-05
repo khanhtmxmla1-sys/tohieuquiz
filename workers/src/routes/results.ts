@@ -434,6 +434,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
                 `SELECT COUNT(*) as cnt
                  FROM results
                  WHERE assignment_id = ?
+                   AND COALESCE(answers, '') != '{"status":"STARTED"}'
                    AND (
                      student_id = ?
                      OR (
@@ -451,7 +452,13 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
 
             const currentAttempts = countResult?.cnt || 0;
             if (currentAttempts >= maxAttempts) {
-                return errorResponse(`Bạn đã hết lượt làm bài tập này (${currentAttempts}/${maxAttempts}).`, 403);
+                return jsonResponse({
+                    status: 'error',
+                    code: 'ASSIGNMENT_ATTEMPTS_EXHAUSTED',
+                    message: `Em đã hết lượt làm bài này (${currentAttempts}/${maxAttempts}).`,
+                    attemptCount: currentAttempts,
+                    maxAttempts,
+                }, 409);
             }
         }
 
