@@ -1,6 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router';
-import { getQuizEditorRoute } from '../../app/navigationRoutes';
 import { Quiz } from '../../types';
 import { Button } from '../common';
 import { FileText, Sparkles, Search, Zap, Edit3, Wand2 } from 'lucide-react';
@@ -30,9 +28,9 @@ interface CreateTabProps {
 
 const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdateQuiz, onSuccess }) => {
     const logic = useCreateQuizLogic({ editingQuiz, onSaveQuiz, onUpdateQuiz, onSuccess });
-    const navigate = useNavigate();
+    const manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled();
 
-    const openManualWorkspace = () => {
+    const startLegacyInlineManualQuiz = () => {
         const manualQuizSeed = buildManualQuizSeed({
             quizTitle: logic.quizTitle,
             classLevel: logic.classLevel,
@@ -43,28 +41,19 @@ const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdate
             accessCode: logic.accessCode,
             showOnHome: logic.showOnHome,
         });
-        if (!isManualQuizWorkspaceEnabled()) {
-            logic.setGeneratedQuiz({
-                id: `manual-legacy-${Date.now()}`,
-                title: manualQuizSeed.title,
-                topic: manualQuizSeed.category,
-                classLevel: manualQuizSeed.classLevel,
-                category: manualQuizSeed.category,
-                tags: [...manualQuizSeed.tags],
-                timeLimit: manualQuizSeed.timeLimit,
-                questions: [],
-                createdAt: new Date().toISOString(),
-                requireCode: manualQuizSeed.requireCode,
-                accessCode: manualQuizSeed.accessCode,
-                showOnHome: manualQuizSeed.showOnHome,
-            });
-            return;
-        }
-        navigate(getQuizEditorRoute(), {
-            state: {
-                manualQuizSeed,
-                workspaceStartedAt: new Date().toISOString(),
-            },
+        logic.setGeneratedQuiz({
+            id: `manual-legacy-${Date.now()}`,
+            title: manualQuizSeed.title,
+            topic: manualQuizSeed.category,
+            classLevel: manualQuizSeed.classLevel,
+            category: manualQuizSeed.category,
+            tags: [...manualQuizSeed.tags],
+            timeLimit: manualQuizSeed.timeLimit,
+            questions: [],
+            createdAt: new Date().toISOString(),
+            requireCode: manualQuizSeed.requireCode,
+            accessCode: manualQuizSeed.accessCode,
+            showOnHome: manualQuizSeed.showOnHome,
         });
     };
 
@@ -99,7 +88,11 @@ const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdate
                         </div>
                         <div>
                             <h2 className="text-lg font-bold">
-                                {editingQuiz ? 'Chỉnh sửa đề thi' : 'Tạo đề kiểm tra mới'}
+                                {editingQuiz
+                                    ? 'Chỉnh sửa đề thi'
+                                    : manualQuizWorkspaceEnabled
+                                        ? 'Tạo đề bằng AI'
+                                        : 'Tạo đề kiểm tra mới'}
                             </h2>
                             <p className="text-sm text-white/80">
                                 {editingQuiz ? `Đang sửa: ${editingQuiz.title}` : 'AI sẽ giúp bạn tạo đề nhanh chóng'}
@@ -325,7 +318,7 @@ const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdate
                             logic.setGeneratedQuiz({ ...logic.generatedQuiz, questions });
                         }
                     }}
-                    onStartManual={openManualWorkspace}
+                    onStartManual={manualQuizWorkspaceEnabled ? undefined : startLegacyInlineManualQuiz}
                     onRegenerateQuestion={logic.handleRegenerateSingle}
                     qualitySummary={logic.questionQualitySummary}
                     acknowledgedWarningIds={logic.acknowledgedQualityWarningIds}

@@ -64,6 +64,9 @@ const renderOverview = (
         summaryLoadState="success"
         summaryError={null}
         onSelectTab={vi.fn()}
+        manualQuizWorkspaceEnabled
+        onCreateQuizWithAi={vi.fn()}
+        onCreateQuizManually={vi.fn()}
         {...overrides}
     />,
 );
@@ -153,20 +156,17 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(screen.queryByText(/Dữ liệu đã sẵn sàng/i)).not.toBeInTheDocument();
     });
 
-    it('gives quick actions subtle depth, icon surfaces and a highlighted primary action', () => {
+    it('keeps creation choices separate from the five dashboard quick actions', () => {
         renderOverview();
 
         const quickActionsHeading = screen.getByRole('heading', { name: 'Bạn muốn làm gì?' });
         const quickActionsSection = quickActionsHeading.closest('section');
-        const createAction = within(quickActionsSection as HTMLElement).getByRole('button', { name: /Tạo đề mới/i });
+        const quickActionButtons = within(quickActionsSection as HTMLElement).getAllByRole('button');
         const quizMetric = screen.getByText('Đề kiểm tra').closest('article');
 
         expect(quickActionsSection?.className).toContain('rounded-[14px]');
-        expect(createAction.className).toContain('rounded-[16px]');
-        expect(createAction.className).toContain('hover:-translate-y-0.5');
-        expect(createAction.className).toContain('shadow-[0_2px_10px_rgba(15,23,42,0.05)]');
-        expect(createAction.className).toContain('bg-gradient-to-br');
-        expect(createAction.className).toContain('from-sky-50');
+        expect(quickActionButtons).toHaveLength(5);
+        expect(within(quickActionsSection as HTMLElement).queryByRole('button', { name: /Tạo đề mới/i })).not.toBeInTheDocument();
         expect(quizMetric?.className).toContain('rounded-[14px]');
         expect(quizMetric?.className).not.toContain('translate-y');
         expect(quizMetric?.className).not.toContain('gradient');
@@ -202,7 +202,6 @@ describe('TeacherDashboard OverviewTab', () => {
     });
 
     it.each([
-        ['Tạo đề mới', 'create'],
         ['Giao bài', 'assignments'],
         ['Thi trực tiếp', 'live-exam'],
         ['Xem kết quả', 'results'],
@@ -218,6 +217,35 @@ describe('TeacherDashboard OverviewTab', () => {
 
         fireEvent.click(within(quickActionsSection as HTMLElement).getByRole('button', { name: new RegExp(label, 'i') }));
         expect(onSelectTab).toHaveBeenCalledWith(expectedTab);
+    });
+
+    it('opens AI and manual creation from the dedicated panel and recent quizzes', () => {
+        const onCreateQuizWithAi = vi.fn();
+        const onCreateQuizManually = vi.fn();
+        renderOverview({ onCreateQuizWithAi, onCreateQuizManually });
+
+        const creationPanel = screen.getByRole('heading', { name: 'Tạo đề kiểm tra' }).closest('section');
+        expect(creationPanel).toBeTruthy();
+        fireEvent.click(within(creationPanel as HTMLElement).getByRole('button', { name: 'Tạo đề bằng AI' }));
+        fireEvent.click(within(creationPanel as HTMLElement).getByRole('button', { name: 'Soạn đề thủ công' }));
+
+        const recentSection = screen.getByRole('heading', { name: 'Đề kiểm tra gần đây' }).closest('section');
+        fireEvent.click(within(recentSection as HTMLElement).getByRole('button', { name: 'Tạo đề bằng AI' }));
+        fireEvent.click(within(recentSection as HTMLElement).getByRole('button', { name: 'Soạn đề thủ công' }));
+
+        expect(onCreateQuizWithAi).toHaveBeenCalledTimes(2);
+        expect(onCreateQuizManually).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps the legacy single create action when the workspace is disabled', () => {
+        const onSelectTab = vi.fn();
+        renderOverview({ manualQuizWorkspaceEnabled: false, onSelectTab });
+
+        expect(screen.queryByRole('heading', { name: 'Tạo đề kiểm tra' })).not.toBeInTheDocument();
+        const quickActionsSection = screen.getByRole('heading', { name: 'Bạn muốn làm gì?' }).closest('section');
+        fireEvent.click(within(quickActionsSection as HTMLElement).getByRole('button', { name: /Tạo đề mới/i }));
+        expect(onSelectTab).toHaveBeenCalledWith('create');
+        expect(screen.queryByRole('button', { name: 'Soạn đề thủ công' })).not.toBeInTheDocument();
     });
 
     it('shows recent quizzes and opens the quiz management tab', () => {

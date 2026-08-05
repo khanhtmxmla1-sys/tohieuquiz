@@ -4,6 +4,7 @@ import { MemoryRouter, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppRoutes } from '../src/app/AppRoutes';
 import {
+  getQuizEditorRoute,
   getStudentRoute,
   getStudentSectionRoute,
   getTeacherRoute,
@@ -75,6 +76,8 @@ describe('URL navigation contracts', () => {
     expect(getTeacherRoute('overview')).toBe('/teacher/overview');
     expect(getTeacherRoute('manage')).toBe('/teacher/quizzes');
     expect(getTeacherRoute('create')).toBe('/teacher/quizzes?mode=create');
+    expect(getQuizEditorRoute()).toBe('/teacher/quizzes/new');
+    expect(getQuizEditorRoute('quiz 123')).toBe('/teacher/quizzes/quiz%20123/edit');
     expect(getTeacherRoute('assignments')).toBe('/teacher/assignments');
     expect(getTeacherRoute('results')).toBe('/teacher/results');
     expect(getTeacherRoute('classes')).toBe('/teacher/classes');

@@ -33,6 +33,10 @@ describe('Teacher Overview accessibility audit', () => {
         resultSummary={null}
         summaryLoadState="success"
         summaryError={null}
+        onSelectTab={() => undefined}
+        manualQuizWorkspaceEnabled
+        onCreateQuizWithAi={() => undefined}
+        onCreateQuizManually={() => undefined}
       />,
     );
 

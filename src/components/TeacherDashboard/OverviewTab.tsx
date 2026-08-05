@@ -19,6 +19,7 @@ import {
     MetricGrid,
     PerformancePanel,
     QuickActionGrid,
+    QuizCreationChoicePanel,
     RecentQuizzesPanel,
     RecentSubmissionsPanel,
     type DashboardMetric,
@@ -35,6 +36,9 @@ interface OverviewTabProps {
     summaryLoadState: ResultsLoadState;
     summaryError?: string | null;
     onSelectTab: (tab: TeacherDashboardTab) => void;
+    manualQuizWorkspaceEnabled: boolean;
+    onCreateQuizWithAi: () => void;
+    onCreateQuizManually: () => void;
 }
 
 const EMPTY_SUMMARY_STATISTICS: ResultSummaryStatistics = {
@@ -90,6 +94,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     summaryLoadState,
     summaryError,
     onSelectTab,
+    manualQuizWorkspaceEnabled,
+    onCreateQuizWithAi,
+    onCreateQuizManually,
 }) => {
     const { isOnline } = useOnlineStatus();
     const authStore = useAuthStore();
@@ -157,13 +164,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     const showAlert = resultsLoadState === 'error' || summaryLoadState === 'error';
 
     const quickActions: DashboardQuickAction[] = [
-        {
-            tab: 'create',
+        ...(!manualQuizWorkspaceEnabled ? [{
+            tab: 'create' as const,
             title: 'Tạo đề mới',
             description: 'Soạn đề từ nội dung có sẵn, PDF hoặc công cụ AI.',
-            icon: 'quiz-create',
+            icon: 'quiz-create' as const,
             surfaceClassName: 'bg-sky-50',
-        },
+        }] : []),
         {
             tab: 'assignments',
             title: 'Giao bài',
@@ -273,6 +280,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             )}
 
             <ActionCenterPanel />
+            {manualQuizWorkspaceEnabled && (
+                <QuizCreationChoicePanel
+                    onCreateWithAi={onCreateQuizWithAi}
+                    onCreateManually={onCreateQuizManually}
+                />
+            )}
             <QuickActionGrid actions={quickActions} onSelect={onSelectTab} />
             <MetricGrid metrics={metrics} isLoadingResults={isSummaryLoading} />
 
@@ -288,7 +301,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
             <RecentQuizzesPanel
                 quizzes={recentQuizzes}
-                onCreateQuiz={() => onSelectTab('create')}
+                manualQuizWorkspaceEnabled={manualQuizWorkspaceEnabled}
+                onCreateQuizWithAi={onCreateQuizWithAi}
+                onCreateQuizManually={onCreateQuizManually}
                 onManageQuizzes={() => onSelectTab('manage')}
             />
         </div>

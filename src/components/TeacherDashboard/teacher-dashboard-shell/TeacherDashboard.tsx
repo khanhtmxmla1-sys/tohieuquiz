@@ -3,11 +3,18 @@ import { useLocation, useNavigate } from 'react-router';
 import type { Quiz } from '../../../types';
 import { useAuthStore } from '../../../../stores/authStore';
 import { useQuizStore } from '../../../../stores/quizStore';
-import { getTeacherRoute, resolveTeacherTabFromLocation } from '../../../app/navigationRoutes';
+import {
+  getQuizEditorRoute,
+  getTeacherRoute,
+  resolveTeacherTabFromLocation,
+} from '../../../app/navigationRoutes';
 import {
   type TeacherDashboardTab,
   useTeacherDashboardUIStore,
 } from '../../../stores/useTeacherDashboardUIStore';
+import { isManualQuizWorkspaceEnabled } from '../../../config/featureFlags';
+import { buildManualQuizSeed } from '../../../features/manual-quiz-workspace/domain/manualQuizSeed';
+import { useManualQuizWorkspaceStore } from '../../../features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 import { TeacherDashboardLayout } from './TeacherDashboardLayout';
 import { isGiftShopFeatureEnabled } from './dashboardConfig';
 import {
@@ -33,16 +40,49 @@ const TeacherDashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const giftShopEnabled = isGiftShopFeatureEnabled();
+  const manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled();
   const accountGate = useTeacherAccountGate();
   const bootstrap = useTeacherDashboardBootstrap();
+
   const navigateToTab = useCallback((tab: TeacherDashboardTab) => {
     navigate(getTeacherRoute(tab));
   }, [navigate]);
+
   const selectTab = useCallback((tab: TeacherDashboardTab) => {
     if (tab === 'create') setEditingQuiz(null);
     navigateToTab(tab);
   }, [navigateToTab]);
-  const dashboardSearch = useDashboardSearch(selectTab);
+
+  const openAiQuizCreator = useCallback(() => {
+    selectTab('create');
+  }, [selectTab]);
+
+  const openManualQuizCreator = useCallback(() => {
+    if (!manualQuizWorkspaceEnabled) return;
+    const manualQuizSeed = buildManualQuizSeed({
+      quizTitle: 'Đề kiểm tra mới',
+      classLevel: authStore.teacherClass?.trim() || '3',
+      category: 'toan',
+      manualTimeLimit: 15,
+      tags: [],
+      requireCode: false,
+      accessCode: '',
+      showOnHome: true,
+    });
+    useManualQuizWorkspaceStore.getState().reset();
+    navigate(getQuizEditorRoute(), {
+      state: {
+        manualQuizSeed,
+        workspaceStartedAt: new Date().toISOString(),
+      },
+    });
+  }, [authStore.teacherClass, manualQuizWorkspaceEnabled, navigate]);
+
+  const dashboardSearch = useDashboardSearch({
+    onSelectTab: selectTab,
+    onCreateQuizManually: openManualQuizCreator,
+    manualQuizWorkspaceEnabled,
+  });
   const accessCode = useAccessCodeEditor();
   const runLegacyLogout = useTeacherLogout(setLegacyActiveTab, clearAssignmentComposerDraft);
   const logout = () => {
@@ -68,6 +108,9 @@ const TeacherDashboard = () => {
       activeTab={activeTab}
       setActiveTab={navigateToTab}
       selectTab={selectTab}
+      manualQuizWorkspaceEnabled={manualQuizWorkspaceEnabled}
+      onCreateQuizWithAi={openAiQuizCreator}
+      onCreateQuizManually={openManualQuizCreator}
       isMobileMenuOpen={isMobileMenuOpen}
       setIsMobileMenuOpen={setIsMobileMenuOpen}
       giftShopEnabled={giftShopEnabled}
@@ -81,6 +124,7 @@ const TeacherDashboard = () => {
       searchQuery={dashboardSearch.searchQuery}
       setSearchQuery={dashboardSearch.setSearchQuery}
       onSearchSubmit={dashboardSearch.submitSearch}
+      searchOptions={dashboardSearch.searchOptions}
       resultsLoadState={bootstrap.resultsLoadState}
       resultsLoadError={bootstrap.resultsLoadError}
       loadTeacherResults={bootstrap.loadTeacherResults}

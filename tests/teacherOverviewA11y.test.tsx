@@ -7,6 +7,8 @@ const overviewFiles = [
   'src/components/TeacherDashboard/overview/DashboardHero.tsx',
   'src/components/TeacherDashboard/overview/MetricGrid.tsx',
   'src/components/TeacherDashboard/overview/QuickActionGrid.tsx',
+  'src/components/TeacherDashboard/overview/QuizCreationChoicePanel.tsx',
+  'src/components/TeacherDashboard/quiz-creation/QuizCreationActions.tsx',
 ];
 
 describe('Teacher Overview design-system pilot', () => {

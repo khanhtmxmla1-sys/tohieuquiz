@@ -17,10 +17,14 @@ import {
 import SchoolLogo from '../common/SchoolLogo';
 import { useAuthStore } from '../../../stores/authStore';
 import type { TeacherDashboardTab } from '../../stores/useTeacherDashboardUIStore';
+import { QuizCreationActions } from './quiz-creation';
 
 export interface SidebarProps {
     activeTab: TeacherDashboardTab;
     setActiveTab: (tab: TeacherDashboardTab) => void;
+    manualQuizWorkspaceEnabled: boolean;
+    onCreateQuizWithAi: () => void;
+    onCreateQuizManually: () => void;
     isGiftShopEnabled?: boolean;
     onLogout: () => void;
     isMobileOpen?: boolean;
@@ -79,6 +83,9 @@ const getInitialOpenGroups = (activeTab: TeacherDashboardTab): Set<GroupKey> => 
 const Sidebar: React.FC<SidebarProps> = ({
     activeTab,
     setActiveTab,
+    manualQuizWorkspaceEnabled,
+    onCreateQuizWithAi,
+    onCreateQuizManually,
     isGiftShopEnabled = false,
     onLogout,
     isMobileOpen = false,
@@ -166,6 +173,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     const navigateTo = (tab: TeacherDashboardTab) => {
         setActiveTab(tab);
         setIsMobileOpen(false);
+    };
+
+    const runCreationAction = (action: () => void) => {
+        setIsMobileOpen(false);
+        action();
     };
 
     const toggleGroup = (groupKey: GroupKey) => {
@@ -261,14 +273,22 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 <div className="shrink-0 border-b border-[#E5E7EB] bg-white p-3">
-                    <button
-                        type="button"
-                        onClick={() => navigateTo('create')}
-                        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0EA5E9] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0284C7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] focus-visible:ring-offset-2"
-                    >
-                        <PlusCircle aria-hidden="true" className="size-5" />
-                        Tạo đề mới
-                    </button>
+                    {manualQuizWorkspaceEnabled ? (
+                        <QuizCreationActions
+                            layout="sidebar"
+                            onCreateWithAi={() => runCreationAction(onCreateQuizWithAi)}
+                            onCreateManually={() => runCreationAction(onCreateQuizManually)}
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => navigateTo('create')}
+                            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-[#0EA5E9] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0284C7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] focus-visible:ring-offset-2"
+                        >
+                            <PlusCircle aria-hidden="true" className="size-5" />
+                            Tạo đề mới
+                        </button>
+                    )}
 
                     <button
                         type="button"

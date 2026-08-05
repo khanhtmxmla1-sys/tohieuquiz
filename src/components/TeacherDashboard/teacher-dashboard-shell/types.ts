@@ -2,6 +2,7 @@ import type { Dispatch, FormEvent, SetStateAction } from 'react';
 import type { ResultDashboardSummary } from '../../../../shared/result-summary.contract';
 import type { Quiz, StudentResult } from '../../../types';
 import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIStore';
+import type { DashboardSearchDestination } from './dashboardConfig';
 
 export type ResultsLoadState = 'loading' | 'success' | 'error';
 
@@ -13,6 +14,9 @@ export interface TeacherDashboardLayoutProps {
   activeTab: TeacherDashboardTab;
   setActiveTab: (tab: TeacherDashboardTab) => void;
   selectTab: (tab: TeacherDashboardTab) => void;
+  manualQuizWorkspaceEnabled: boolean;
+  onCreateQuizWithAi: () => void;
+  onCreateQuizManually: () => void;
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: Dispatch<SetStateAction<boolean>>;
   giftShopEnabled: boolean;
@@ -26,6 +30,7 @@ export interface TeacherDashboardLayoutProps {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  searchOptions: DashboardSearchDestination[];
   resultsLoadState: ResultsLoadState;
   resultsLoadError: string | null;
   loadTeacherResults: () => Promise<void>;
