@@ -115,4 +115,31 @@ describe('question renderer answer contract', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'x' } });
     expect(onAnswerChange).toHaveBeenCalledWith('drop', 'x', 'stored-blank-id');
   });
+
+  it('renders object-based drag-drop answers in the choice pool without duplicating distractors', () => {
+    const onAnswerChange = vi.fn();
+    render(
+      <FillInTheBlankRenderer
+        question={{
+          id: 'drag-object-blanks',
+          type: 'DRAG_DROP',
+          question: 'Kéo từ',
+          text: 'It is [1]. This is [2] bag.',
+          blanks: [
+            { id: 'blank-0', correctAnswer: 'hers' },
+            { id: 'blank-1', correctAnswer: 'her' },
+          ],
+          distractors: ['mine', 'hers'],
+        } as any}
+        index={0}
+        answers={{}}
+        onAnswerChange={onAnswerChange}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'hers' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'her' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'mine' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'hers' })).toHaveLength(1);
+  });
 });
