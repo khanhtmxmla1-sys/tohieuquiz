@@ -1,7 +1,8 @@
 import { getSystemDateParts } from '../../utils/dateTime';
 import React from 'react';
 import { ArrowUpRight, Globe, Mail, ShieldCheck } from 'lucide-react';
-import { SCHOOL_NAME } from '../../config/constants';
+import { PRODUCT_NAME } from '../../config/constants';
+import SchoolLogo from './SchoolLogo';
 
 export type FooterRoutePath = '/' | '/about' | '/contact' | '/privacy' | '/tos';
 
@@ -34,7 +35,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                         className="inline-flex min-h-11 items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                         aria-label="Về trang chủ TôHiệuQuiz"
                     >
-                        <img src="/favicon.svg" alt="" className="h-9 w-9 object-contain" />
+                        <SchoolLogo size={36} decorative />
                         <span className="text-lg font-extrabold tracking-tight">
                             <span className="text-[#1E3A8A]">TôHiệu</span>
                             <span className="text-[#EAB308]">Quiz</span>
@@ -72,7 +73,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                             className="inline-flex min-h-11 items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                             aria-label="Về trang chủ TôHiệuQuiz"
                         >
-                            <img src="/favicon.svg" alt="" className="h-11 w-11 object-contain" />
+                            <SchoolLogo size={44} decorative />
                             <span className="text-2xl font-extrabold tracking-tight">
                                 <span className="text-[#1E3A8A]">TôHiệu</span>
                                 <span className="text-[#EAB308]">Quiz</span>
@@ -152,7 +153,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                                     <ShieldCheck className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-extrabold text-[#172554]">{SCHOOL_NAME}</p>
+                                    <p className="text-sm font-extrabold text-[#172554]">{PRODUCT_NAME}</p>
                                     <p className="mt-2 text-xs font-medium leading-6 text-slate-600">
                                         Thông tin pháp nhân và địa chỉ hỗ trợ sẽ được cập nhật trước khi mở dịch vụ chính thức.
                                     </p>

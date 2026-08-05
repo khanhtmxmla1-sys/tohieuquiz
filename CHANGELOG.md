@@ -4,7 +4,9 @@ Tất cả thay đổi đáng chú ý của sản phẩm được ghi lại tạ
 
 ## [Unreleased]
 
-Chưa có thay đổi chưa phát hành.
+### Changed
+
+- Đồng bộ logo chính thức của Trường Tiểu học Tô Hiệu trên trang đăng nhập, dashboard giáo viên và học sinh, các trang công khai, footer và Cổng phụ huynh; favicon sản phẩm vẫn được giữ làm ảnh dự phòng.
 
 ## [1.0.0] — 2026-07-30
 

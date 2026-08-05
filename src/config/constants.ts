@@ -1,4 +1,4 @@
-export const SCHOOL_NAME = "TôHiệuQuiz";
+export { PRODUCT_NAME } from './branding';
 
 // --- BACKEND ENDPOINTS ---
 // All data now goes through Cloudflare Workers + D1

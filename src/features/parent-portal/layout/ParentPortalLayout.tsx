@@ -1,6 +1,7 @@
 import React from 'react';
 import { Award, Bell, BookOpen, CircleHelp, GraduationCap, Home, LogOut, UserRound } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router';
+import SchoolLogo from '../../../components/common/SchoolLogo';
 import { useParentPortalStore } from '../useParentPortalStore';
 
 const navItems = [
@@ -58,7 +59,7 @@ export const ParentPortalLayout: React.FC<React.PropsWithChildren> = ({ children
         <div className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-[#dbe4f0] bg-white shadow-[0_10px_28px_-22px_rgba(30,58,138,0.8)]">
-              <img src="/favicon.svg" alt="" className="h-8 w-8 object-contain" />
+              <SchoolLogo size={32} decorative />
             </span>
             <div className="min-w-0">
               <p className="truncate text-[1.05rem] font-bold tracking-[-0.025em] text-[#1e3a8a]">
@@ -142,7 +143,7 @@ export const ParentPortalFallback = () => (
   <div className="flex min-h-screen items-center justify-center bg-[#f8fafc] px-4 font-vietnam" role="status">
     <div className="w-full max-w-sm rounded-[24px] border border-[#e2e8f0] bg-white px-8 py-7 text-center shadow-[0_24px_60px_-44px_rgba(30,58,138,0.75)]">
       <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-[15px] border border-[#dbe4f0] bg-white">
-        <img src="/favicon.svg" alt="" className="h-9 w-9" />
+        <SchoolLogo size={36} decorative />
       </span>
       <p className="mt-4 font-bold text-[#1e3a8a]">TôHiệuQuiz · Cổng phụ huynh</p>
       <p className="mt-2 text-sm text-[#64748b]">Đang tải thông tin học tập…</p>

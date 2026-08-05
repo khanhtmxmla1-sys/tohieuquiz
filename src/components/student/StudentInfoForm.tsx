@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
 import { Quiz } from '../../types';
-import { SCHOOL_NAME } from '../../config/constants';
+import { PRODUCT_NAME } from '../../config/constants';
 
 interface StudentInfoFormProps {
     quiz: Quiz;
@@ -39,7 +39,7 @@ const StudentInfoForm: React.FC<StudentInfoFormProps> = ({
                 {/* Hero Header */}
                 <div className="student-hero rounded-t-[1.5rem]">
                     <div className="student-hero-icon student-animate-float">🌍</div>
-                    <h2 className="student-hero-title">{SCHOOL_NAME}</h2>
+                    <h2 className="student-hero-title">{PRODUCT_NAME}</h2>
                     <p className="student-hero-subtitle">{quiz.title}</p>
                 </div>
 

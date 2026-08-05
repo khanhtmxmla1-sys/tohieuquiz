@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, HeartHandshake, KeyRound, LockKeyhole, QrCode, ShieldCheck } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router';
+import SchoolLogo from '../../../components/common/SchoolLogo';
 import { useParentPortalStore } from '../useParentPortalStore';
 
 export default function ParentLoginPage() {
@@ -32,7 +33,7 @@ export default function ParentLoginPage() {
 
       <header className="relative z-10 mx-auto flex w-full max-w-[1180px] items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
         <a href="https://thtohieu.com/" className="inline-flex min-h-11 items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2" aria-label="Về trang chính TôHiệuQuiz">
-          <span className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-[#dbe4f0] bg-white shadow-[0_10px_28px_-22px_rgba(30,58,138,0.8)]"><img src="/favicon.svg" alt="" className="h-8 w-8" /></span>
+          <span className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-[#dbe4f0] bg-white shadow-[0_10px_28px_-22px_rgba(30,58,138,0.8)]"><SchoolLogo size={32} decorative /></span>
           <span className="text-lg font-bold tracking-[-0.03em] text-[#1e3a8a]">TôHiệu<span className="text-[#d6a900]">Quiz</span></span>
         </a>
         <a href="https://thtohieu.com/" aria-label="Đăng nhập học sinh hoặc giáo viên" className="inline-flex min-h-11 items-center gap-2 rounded-[13px] px-3 text-sm font-semibold text-[#64748b] transition-colors hover:bg-white hover:text-[#1e3a8a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2">

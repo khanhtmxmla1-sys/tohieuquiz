@@ -1,4 +1,5 @@
 import React from 'react';
+import SchoolLogo from '../../common/SchoolLogo';
 import { FLUENT_CDN } from '../constants/dashboard.constants';
 
 interface DashboardNavbarProps {
@@ -21,10 +22,10 @@ export const DashboardNavbar: React.FC<DashboardNavbarProps> = ({
             <div className="sticker-nav__inner">
                 {/* Logo */}
                 <div className="sticker-nav__logo" onClick={onResetHome}>
-                    <img
-                        src="/favicon.svg"
-                        alt="TôHiệuQuiz"
-                        className="sticker-nav__logo-img w-10 h-10 object-contain"
+                    <SchoolLogo
+                        size={40}
+                        decorative
+                        className="sticker-nav__logo-img"
                     />
                     <span className="sticker-nav__logo-text">
                         TôHiệu<span className="sticker-nav__logo-accent">Quiz</span>
