@@ -28,7 +28,10 @@ describe('QuizStartNotice', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Lưu ý trước khi làm bài' })).toBeInTheDocument();
+    const noticeHeading = screen.getByRole('heading', { name: 'Lưu ý trước khi làm bài' });
+    const noticeIcon = container.querySelector('[data-exam-start-icon="exam-notice"]');
+    expect(noticeHeading).toBeInTheDocument();
+    expect(noticeIcon?.parentElement).toContainElement(noticeHeading);
     expect(screen.getByText('Minh Khang')).toBeInTheDocument();
     expect(screen.getByText('Lớp 4A5')).toBeInTheDocument();
     expect(screen.getByText('20 câu hỏi')).toBeInTheDocument();
