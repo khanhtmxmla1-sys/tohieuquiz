@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   assertActiveAuthSession,
   createAuthSession,
@@ -48,6 +48,7 @@ const migration = readFileSync(
 
 let sqlite: DatabaseSync | null = null;
 afterEach(() => {
+  vi.useRealTimers();
   sqlite?.close();
   sqlite = null;
 });
@@ -79,11 +80,13 @@ const request = (ua = 'Mozilla/5.0 Chrome/150.0.0.0') => new Request(
 
 describe('auth session lifecycle', () => {
   it('revokes one session and rejects its next authenticated request', async () => {
+    const now = new Date('2026-07-29T08:00:00.000Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+
     const db = setup();
     const user = { username: 'teacher-a', role: 'teacher' as const, tokenVersion: 1 };
-    const session = await createAuthSession(db, request(), user, {
-      now: new Date('2026-07-29T08:00:00.000Z'),
-    });
+    const session = await createAuthSession(db, request(), user, { now });
     const token = await signJWT({ ...user, sessionId: session.id }, 'a-test-secret-that-is-long-enough');
     const env = {
       DB: db,
