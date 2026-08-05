@@ -14,7 +14,7 @@ import {
     PlusCircle,
     Radio,
 } from 'lucide-react';
-import { SCHOOL_NAME } from '../../config/constants';
+import SchoolLogo from '../common/SchoolLogo';
 import { useAuthStore } from '../../../stores/authStore';
 import type { TeacherDashboardTab } from '../../stores/useTeacherDashboardUIStore';
 
@@ -251,12 +251,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             >
                 <div className="flex h-16 shrink-0 items-center border-b border-[#E5E7EB] bg-white px-4">
                     <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-[10px] border border-[#E5E7EB] bg-white p-1.5">
-                            <img
-                                src="/favicon.svg"
-                                alt={`Logo ${SCHOOL_NAME}`}
-                                className="size-full object-contain"
-                            />
+                        <div className="flex size-10 items-center justify-center rounded-[10px] border border-[#E5E7EB] bg-white p-0.5">
+                            <SchoolLogo size={32} />
                         </div>
                         <span className="text-2xl font-bold tracking-tight text-[#172033]">
                             TôHiệu<span className="text-[#0EA5E9]">Quiz</span>

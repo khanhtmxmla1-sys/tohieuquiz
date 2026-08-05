@@ -1,7 +1,7 @@
 import { getSystemDateParts } from '../../utils/dateTime';
 import React from 'react';
 import { ArrowUpRight, Globe, Mail, ShieldCheck } from 'lucide-react';
-import { SCHOOL_NAME } from '../../config/constants';
+import { PRODUCT_NAME } from '../../config/constants';
 
 export type FooterRoutePath = '/' | '/about' | '/contact' | '/privacy' | '/tos';
 
@@ -152,7 +152,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                                     <ShieldCheck className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-extrabold text-[#172554]">{SCHOOL_NAME}</p>
+                                    <p className="text-sm font-extrabold text-[#172554]">{PRODUCT_NAME}</p>
                                     <p className="mt-2 text-xs font-medium leading-6 text-slate-600">
                                         Thông tin pháp nhân và địa chỉ hỗ trợ sẽ được cập nhật trước khi mở dịch vụ chính thức.
                                     </p>

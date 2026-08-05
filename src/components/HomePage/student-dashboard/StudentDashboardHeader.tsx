@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { NotificationTarget } from '../../../../shared/notifications.contract';
 import { NotificationCenter } from '../../../features/notifications/components';
 import NotificationBell from '../../common/NotificationBell';
+import SchoolLogo from '../../common/SchoolLogo';
 import type { StudentDashboardHeaderProps } from './dashboard.types';
 
 const baseActionClass =
@@ -66,11 +67,7 @@ export function StudentDashboardHeader({
     <header className="sticky top-0 z-40 w-full border-b border-[#E5E7EB] bg-[#FFFDF7]">
       <div className="mx-auto flex min-h-16 max-w-[1180px] items-center gap-3 px-4 sm:px-5 md:min-h-[68px] lg:px-8">
         <div className="flex shrink-0 items-center gap-2">
-          <img
-            src="/favicon.svg"
-            alt="School logo TôHiệuQuiz"
-            className="h-9 w-9 object-contain"
-          />
+          <SchoolLogo size={36} />
           <span className="hidden text-xl font-bold tracking-tight text-slate-900 sm:inline">
             TôHiệu<span className="text-sky-600">Quiz</span>
           </span>

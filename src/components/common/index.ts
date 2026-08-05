@@ -36,6 +36,8 @@ export { default as MathSpan } from './MathSpan';
 export { default as NewlineMathText } from './NewlineMathText';
 export { default as ExplanationContent } from './ExplanationContent';
 export { default as Footer } from './Footer';
+export { default as SchoolLogo } from './SchoolLogo';
+export type { SchoolLogoProps, SchoolLogoSize } from './SchoolLogo';
 export { default as ResponsiveDataView } from './ResponsiveDataView';
 export { ModuleIcon, MODULE_ICON_CATALOG, MODULE_ICON_SIZES } from './module-icon';
 export type { ModuleIconProps, ModuleIconName, ModuleIconSize } from './module-icon';

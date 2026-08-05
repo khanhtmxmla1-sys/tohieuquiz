@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import SchoolLogo from '../../common/SchoolLogo';
 
 const PARENT_PORTAL_URL = 'https://phuhuynh.thtohieu.com/login';
 
@@ -24,7 +25,7 @@ const LandingHeader: React.FC = () => {
                 aria-label="Về trang chủ TôHiệuQuiz"
             >
                 <span className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-[#dbe4f0] bg-white shadow-[0_8px_24px_-18px_rgba(30,58,138,0.8)]">
-                    <img src="/favicon.svg" alt="" className="h-8 w-8 object-contain" />
+                    <SchoolLogo size={32} decorative />
                 </span>
                 <span className="text-[1.3rem] font-bold tracking-[-0.03em] sm:text-[1.4rem]">
                     <span className="text-[#1e3a8a]">TôHiệu</span>
