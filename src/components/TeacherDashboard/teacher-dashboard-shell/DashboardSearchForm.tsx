@@ -29,7 +29,7 @@ export const DashboardSearchForm = ({
     <button
       type="submit"
       aria-label="Tìm chức năng"
-      className="absolute right-1 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#7A8796] hover:bg-white hover:text-[#0284C7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9]"
+      className="absolute right-0 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-[10px] text-[#7A8796] hover:bg-white hover:text-[#0284C7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9]"
     >
       <Search aria-hidden="true" className="size-4" />
     </button>

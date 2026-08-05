@@ -308,7 +308,7 @@ describe('TeacherDashboard shell contracts', () => {
   it('navigates AI creation actions through the canonical URL', async () => {
     render(<TeacherDashboard />);
 
-    await click(await screen.findByRole('button', { name: 'Tạo đề bằng AI' }));
+    await click(await screen.findByRole('button', { name: 'Tổng quan tạo đề bằng AI' }));
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes?mode=create');
     expect(mocks.navigate).not.toHaveBeenCalledWith('/teacher/quizzes/ai/new');
   });
@@ -326,7 +326,7 @@ describe('TeacherDashboard shell contracts', () => {
     }, 'teacher-a');
 
     render(<TeacherDashboard />);
-    await click(await screen.findByRole('button', { name: 'Soạn đề thủ công' }));
+    await click(await screen.findByRole('button', { name: 'Tổng quan soạn đề thủ công' }));
 
     expect(useManualQuizWorkspaceStore.getState().envelope).toBeNull();
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes/new', {
@@ -346,7 +346,7 @@ describe('TeacherDashboard shell contracts', () => {
     useAuthStore.setState({ isAdmin: true, teacherClass: null } as any);
     render(<TeacherDashboard />);
 
-    await click(await screen.findByRole('button', { name: 'Soạn đề thủ công' }));
+    await click(await screen.findByRole('button', { name: 'Tổng quan soạn đề thủ công' }));
 
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes/new', {
       state: expect.objectContaining({
@@ -375,13 +375,18 @@ describe('TeacherDashboard shell contracts', () => {
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes');
   });
 
-  it('opens the mobile drawer from the header and removes the fixed bottom navigation', async () => {
+  it('opens the mobile drawer from the header and keeps the fixed bottom navigation', async () => {
     render(<TeacherDashboard />);
 
     expect(screen.getByTestId('sidebar-mobile-state')).toHaveTextContent('closed');
+    expect(screen.getByRole('navigation', { name: 'Điều hướng nhanh' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tổng quan' })).toHaveAttribute('aria-current', 'page');
+
     await click(screen.getByRole('button', { name: 'Mở menu điều hướng' }));
     expect(screen.getByTestId('sidebar-mobile-state')).toHaveTextContent('open');
-    expect(screen.queryByRole('button', { name: 'Bottom tạo đề' })).toBeNull();
+
+    await click(screen.getByRole('button', { name: 'Đề thi' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes');
   });
 
   it('gives every teacher an inbox while reserving notification management for admins', async () => {

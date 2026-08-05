@@ -7,17 +7,11 @@ import { useAuthStore } from '../stores/authStore';
 const renderSidebar = (options: {
     isMobileOpen?: boolean;
     setIsMobileOpen?: (open: boolean) => void;
-    manualQuizWorkspaceEnabled?: boolean;
     setActiveTab?: (tab: any) => void;
-    onCreateQuizWithAi?: () => void;
-    onCreateQuizManually?: () => void;
 } = {}) => render(
     <Sidebar
         activeTab="overview"
         setActiveTab={options.setActiveTab ?? vi.fn()}
-        manualQuizWorkspaceEnabled={options.manualQuizWorkspaceEnabled ?? true}
-        onCreateQuizWithAi={options.onCreateQuizWithAi ?? vi.fn()}
-        onCreateQuizManually={options.onCreateQuizManually ?? vi.fn()}
         onLogout={vi.fn()}
         isMobileOpen={options.isMobileOpen}
         setIsMobileOpen={options.setIsMobileOpen}
@@ -53,44 +47,19 @@ describe('Teacher dashboard sidebar accessibility', () => {
         });
     });
 
-    it('shows separate AI and manual creation actions and closes the mobile drawer before each action', () => {
-        const onCreateQuizWithAi = vi.fn();
-        const onCreateQuizManually = vi.fn();
-        const setIsMobileOpen = vi.fn();
-        renderSidebar({
-            isMobileOpen: true,
-            setIsMobileOpen,
-            onCreateQuizWithAi,
-            onCreateQuizManually,
-        });
+    it('keeps creation choices out of navigation and places Overview directly below the logo', () => {
+        const { container } = renderSidebar();
+        const drawer = container.querySelector('aside');
 
-        const aiButton = screen.getByRole('button', { name: 'Tạo đề bằng AI' });
-        const manualButton = screen.getByRole('button', { name: 'Soạn đề thủ công' });
-        expect(aiButton).toHaveAttribute('type', 'button');
-        expect(manualButton).toHaveAttribute('type', 'button');
-        expect(screen.queryByRole('button', { name: 'Tạo đề mới' })).not.toBeInTheDocument();
-
-        fireEvent.click(aiButton);
-        expect(setIsMobileOpen).toHaveBeenCalledWith(false);
-        expect(onCreateQuizWithAi).toHaveBeenCalledTimes(1);
-
-        fireEvent.click(manualButton);
-        expect(onCreateQuizManually).toHaveBeenCalledTimes(1);
-    });
-
-    it('keeps the single legacy create action when the manual workspace is disabled', () => {
-        const setActiveTab = vi.fn();
-        renderSidebar({ manualQuizWorkspaceEnabled: false, setActiveTab });
-
-        fireEvent.click(screen.getByRole('button', { name: 'Tạo đề mới' }));
-
-        expect(setActiveTab).toHaveBeenCalledWith('create');
+        expect(screen.queryByRole('button', { name: 'Tạo đề bằng AI' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Soạn đề thủ công' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Tạo đề mới' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Tổng quan' })).toHaveAttribute('aria-current', 'page');
+        expect(drawer?.className).toContain('w-[240px]');
     });
 
     it('does not expose navigation for removed legacy features', () => {
         renderSidebar();
-
         expect(screen.queryByText(/IOE/i)).not.toBeInTheDocument();
     });
 
@@ -132,7 +101,6 @@ describe('Teacher dashboard sidebar accessibility', () => {
         renderSidebar({ isMobileOpen: true, setIsMobileOpen });
 
         fireEvent.keyDown(window, { key: 'Escape' });
-
         expect(setIsMobileOpen).toHaveBeenCalledWith(false);
     });
 });

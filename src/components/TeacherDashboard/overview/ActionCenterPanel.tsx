@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import {
   AlertTriangle,
   ArrowRight,
+  BellRing,
   CheckCircle2,
   ClipboardList,
   FilePenLine,
@@ -33,9 +34,21 @@ const iconByKind = {
 } as const;
 
 const toneBySeverity = {
-  critical: 'border-rose-200 bg-rose-50 text-rose-900',
-  warning: 'border-amber-200 bg-amber-50 text-amber-900',
-  info: 'border-sky-200 bg-sky-50 text-sky-900',
+  critical: {
+    icon: 'bg-rose-50 text-rose-700',
+    count: 'bg-rose-100 text-rose-700',
+    link: 'text-rose-700 hover:bg-rose-50',
+  },
+  warning: {
+    icon: 'bg-amber-50 text-amber-700',
+    count: 'bg-amber-100 text-amber-700',
+    link: 'text-amber-800 hover:bg-amber-50',
+  },
+  info: {
+    icon: 'bg-blue-50 text-blue-700',
+    count: 'bg-blue-100 text-blue-700',
+    link: 'text-blue-700 hover:bg-blue-50',
+  },
 } as const;
 
 interface ActionItemProps {
@@ -46,50 +59,56 @@ interface ActionItemProps {
 
 const ActionItem = ({ item, deletingDraftId, onSecondaryAction }: ActionItemProps) => {
   const Icon = iconByKind[item.kind];
+  const tone = toneBySeverity[item.severity];
   const secondaryAction = item.secondaryAction;
   const isDeletingThisDraft = secondaryAction?.resourceId === deletingDraftId;
 
   return (
-    <article className={`rounded-2xl border p-4 ${toneBySeverity[item.severity]}`}>
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80">
-          <Icon className="h-5 w-5" aria-hidden="true" />
-        </div>
+    <li className="bg-white px-4 py-4 sm:px-5">
+      <article className="flex items-start gap-3 sm:items-center">
+        <span className={`grid size-11 shrink-0 place-items-center rounded-xl ${tone.icon}`}>
+          <Icon aria-hidden="true" className="size-5" />
+        </span>
+
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="font-bold">{item.title}</h3>
-            <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-bold" aria-label={`${item.count} mục`}>
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold text-slate-900 sm:text-base">{item.title}</h3>
+              <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">{item.explanation}</p>
+            </div>
+            <span
+              className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-xs font-bold tabular-nums ${tone.count}`}
+              aria-label={`${item.count} mục`}
+            >
               {item.count}
             </span>
           </div>
-          <p className="mt-1 text-sm leading-6 opacity-80">{item.explanation}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
               to={item.cta.url}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:text-sm ${tone.link}`}
             >
               {item.cta.label}
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
-            {secondaryAction ? (
+            {secondaryAction && (
               <button
                 type="button"
                 onClick={() => onSecondaryAction(secondaryAction)}
                 disabled={Boolean(deletingDraftId)}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-white/80 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
               >
-                {isDeletingThisDraft ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                )}
+                {isDeletingThisDraft
+                  ? <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+                  : <Trash2 aria-hidden="true" className="size-4" />}
                 {secondaryAction.label}
               </button>
-            ) : null}
+            )}
           </div>
         </div>
-      </div>
-    </article>
+      </article>
+    </li>
   );
 };
 
@@ -144,52 +163,71 @@ const ActionCenterPanel: React.FC = () => {
   }, [deletingDraftId, load, pendingDeleteAction]);
 
   return (
-    <section aria-labelledby="teacher-action-center-title" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-sky-700">Ưu tiên trong ngày</p>
-          <h2 id="teacher-action-center-title" className="mt-1 text-xl font-bold text-slate-900">Việc cần chú ý hôm nay</h2>
-          <p className="mt-1 text-sm text-slate-500">Tối đa 8 việc có thể hành động trong phạm vi tài khoản hiện tại.</p>
+    <section
+      aria-labelledby="teacher-action-center-title"
+      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[var(--dashboard-card-shadow)] sm:p-5"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-700">
+            <BellRing aria-hidden="true" className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-blue-700">Ưu tiên trong ngày</p>
+            <h2 id="teacher-action-center-title" className="mt-0.5 text-xl font-bold tracking-tight text-slate-900">
+              Việc cần chú ý hôm nay
+            </h2>
+            <p className="mt-1 hidden text-sm text-slate-500 sm:block">
+              Các việc có thể xử lý ngay trong phạm vi tài khoản hiện tại.
+            </p>
+          </div>
         </div>
         <button
           type="button"
           onClick={() => void load()}
           disabled={isLoading || !isOnline}
-          title={!isOnline ? 'Cần kết nối mạng để làm mới.' : undefined}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          title={!isOnline ? 'Cần kết nối mạng để làm mới.' : 'Làm mới danh sách'}
+          aria-label="Làm mới"
+          className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-4 w-4" aria-hidden="true" />}
-          Làm mới
+          {isLoading
+            ? <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            : <RefreshCw aria-hidden="true" className="size-4" />}
         </button>
       </div>
 
       {isLoading && !data && (
-        <div role="status" className="mt-5 flex min-h-28 items-center justify-center rounded-2xl bg-slate-50 text-sm font-medium text-slate-500">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+        <div role="status" className="mt-4 flex min-h-24 items-center justify-center rounded-xl bg-slate-50 text-sm font-medium text-slate-500">
+          <Loader2 aria-hidden="true" className="mr-2 size-5 animate-spin" />
           Đang tổng hợp việc cần chú ý…
         </div>
       )}
 
       {error && (
-        <div role="alert" className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+        <div role="alert" className="mt-4 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-800">
+          <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
           <div>
-            <p className="font-bold">Không thể tải Action Center</p>
+            <p className="font-semibold">Không thể tải việc cần chú ý</p>
             <p className="mt-1 text-sm">{error}</p>
           </div>
         </div>
       )}
 
       {!isLoading && !error && data?.items.length === 0 && (
-        <div role="status" className="mt-5 flex min-h-28 flex-col items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center text-emerald-800">
-          <CheckCircle2 className="h-8 w-8" aria-hidden="true" />
-          <p className="mt-2 font-bold">Không có việc gấp trong phạm vi hiện tại</p>
-          <p className="mt-1 text-sm">Hệ thống sẽ hiển thị khi có bài sắp hạn, đơn quà, bản nháp hoặc phiên thi cần xử lý.</p>
+        <div role="status" className="mt-4 flex min-h-24 items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-emerald-800">
+          <CheckCircle2 aria-hidden="true" className="size-7 shrink-0" />
+          <div>
+            <p className="font-semibold">Không có việc gấp trong phạm vi hiện tại</p>
+            <p className="mt-0.5 text-sm text-emerald-700">Các việc mới cần xử lý sẽ xuất hiện tại đây.</p>
+          </div>
         </div>
       )}
 
       {data && data.items.length > 0 && (
-        <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        <ol
+          aria-label="Danh sách việc cần chú ý"
+          className="mt-4 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200"
+        >
           {data.items.map((item) => (
             <ActionItem
               key={item.id}
@@ -198,7 +236,7 @@ const ActionCenterPanel: React.FC = () => {
               onSecondaryAction={setPendingDeleteAction}
             />
           ))}
-        </div>
+        </ol>
       )}
 
       <DraftDeleteDialog

@@ -26,7 +26,6 @@ const makeResult = (
     answers: {},
 });
 
-
 const summaryFixture: ResultDashboardSummary = {
     totalSubmissions: 285,
     uniqueCompletedWorks: 188,
@@ -74,8 +73,6 @@ const renderOverview = (
 describe('TeacherDashboard OverviewTab', () => {
     beforeEach(() => {
         vi.useFakeTimers();
-        // 10:00 on 17/07/2026 in Hanoi (UTC+7). Keep the fixture
-        // absolute so it behaves identically on UTC and GMT+7 runners.
         vi.setSystemTime(new Date('2026-07-17T03:00:00.000Z'));
         useAuthStore.setState({
             isLoggedIn: true,
@@ -116,60 +113,52 @@ describe('TeacherDashboard OverviewTab', () => {
         vi.useRealTimers();
     });
 
-    it('uses exact normalized class matching and only shows submissions from today', () => {
+    it('uses exact normalized class matching and real summary data in five KPI cards', () => {
         renderOverview();
 
-        const quizCard = screen.getByText('Đề kiểm tra').closest('article');
-        const resultCard = screen.getByText('Tổng lượt nộp').closest('article');
-        const studentCard = screen.getByText('Học sinh tham gia').closest('article');
-        const averageCard = screen.getAllByText('Điểm trung bình')[0].closest('article');
-
-        expect(quizCard && within(quizCard).getByText('1')).toBeTruthy();
-        expect(resultCard && within(resultCard).getByText('285')).toBeTruthy();
-        expect(resultCard?.textContent).toContain('188 bài hoàn thành · 0 lượt hôm nay');
-        expect(studentCard && within(studentCard).getByText('18')).toBeTruthy();
-        expect(averageCard && within(averageCard).getByText('5.8')).toBeTruthy();
-        expect(averageCard?.textContent).toContain('67% bài đạt từ 5 điểm trở lên');
-        expect(screen.queryByText('Số bài đã nộp')).toBeNull();
-        expect(screen.getByRole('heading', { name: 'Tình hình điểm số' })).toBeTruthy();
-        expect(screen.getByText('Tổng hợp từ 188 bài hoàn thành; mỗi bài lấy lần nộp cuối cùng.')).toBeTruthy();
+        const kpiRegion = screen.getByRole('region', { name: 'Chỉ số tổng quan' });
+        const cards = within(kpiRegion).getAllByRole('article');
+        expect(cards).toHaveLength(5);
+        expect(within(cards[0]).getByText('1')).toBeInTheDocument();
+        expect(within(kpiRegion).getByText('285')).toBeInTheDocument();
+        expect(within(kpiRegion).getByText('18')).toBeInTheDocument();
+        expect(within(kpiRegion).getByText('5.8')).toBeInTheDocument();
+        expect(within(kpiRegion).getByText('67%')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Tình hình điểm số' })).toBeInTheDocument();
+        expect(screen.getByText('Tổng hợp từ 188 bài hoàn thành; mỗi bài lấy lần nộp cuối cùng.')).toBeInTheDocument();
         const recentSubmission = screen.getByText('vừa nộp').parentElement?.textContent || '';
         expect(recentSubmission).toContain('Bài kiểm tra');
         expect(document.body.textContent).not.toContain('Bình');
         expect(document.body.textContent).not.toContain('Chi');
     });
 
-    it('uses the warm flat teacher dashboard palette for the hero', () => {
+    it('uses the blue educational hero and the custom teacher illustration', () => {
         renderOverview();
 
         const heroHeading = screen.getByRole('heading', { name: 'Chào buổi sáng, Cô An!' });
         const heroSection = heroHeading.closest('section');
-        expect(heroSection).toBeTruthy();
-        expect(heroSection?.className).toContain('bg-white');
-        expect(heroSection?.className).toContain('border-slate-200');
-        expect(heroSection?.className).toContain('rounded-[14px]');
-        expect(heroSection?.className).not.toContain('gradient');
-        expect(heroSection?.className).not.toContain('shadow');
-        expect(screen.getByText('Theo dõi tiến độ học tập của lớp, tạo và giao bài, đồng thời xem nhanh kết quả của học sinh ngay tại đây.')).toBeTruthy();
-        expect(within(heroSection as HTMLElement).queryByRole('button', { name: 'T?o ?? m?i' })).not.toBeInTheDocument();
-        expect(within(heroSection as HTMLElement).queryByRole('button', { name: 'Xem k?t qu?' })).not.toBeInTheDocument();
-        expect(screen.queryByText(/Dữ liệu đã sẵn sàng/i)).not.toBeInTheDocument();
+        expect(heroSection?.className).toContain('from-blue-700');
+        expect(heroSection?.className).toContain('rounded-2xl');
+        const illustrations = within(heroSection as HTMLElement).getAllByRole('presentation', { hidden: true });
+        expect(illustrations).toHaveLength(2);
+        for (const illustration of illustrations) {
+            expect(illustration).toHaveAttribute('src', '/illustrations/tohieuquiz/teacher-dashboard-v2/teacher-welcome.webp');
+        }
+        expect(screen.getByText('Mỗi bài giảng hôm nay là một bước tiến cho tương lai của các em.')).toBeInTheDocument();
     });
 
-    it('keeps creation choices separate from the five dashboard quick actions', () => {
+    it('places creation before Action Center and keeps six separate quick actions', () => {
         renderOverview();
 
-        const quickActionsHeading = screen.getByRole('heading', { name: 'Bạn muốn làm gì?' });
-        const quickActionsSection = quickActionsHeading.closest('section');
-        const quickActionButtons = within(quickActionsSection as HTMLElement).getAllByRole('button');
-        const quizMetric = screen.getByText('Đề kiểm tra').closest('article');
+        const creationHeading = screen.getByRole('heading', { name: 'Tạo đề kiểm tra' });
+        const attentionHeading = screen.getByRole('heading', { name: 'Việc cần chú ý hôm nay' });
+        const quickHeading = screen.getByRole('heading', { name: 'Thao tác nhanh' });
+        expect(creationHeading.compareDocumentPosition(attentionHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(attentionHeading.compareDocumentPosition(quickHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-        expect(quickActionsSection?.className).toContain('rounded-[14px]');
-        expect(quickActionButtons).toHaveLength(5);
-        expect(within(quickActionsSection as HTMLElement).queryByRole('button', { name: /Tạo đề mới/i })).not.toBeInTheDocument();
-        expect(quizMetric?.className).toContain('rounded-[14px]');
-        expect(quizMetric?.className).not.toContain('translate-y');
-        expect(quizMetric?.className).not.toContain('gradient');
+        const quickSection = quickHeading.closest('section');
+        expect(within(quickSection as HTMLElement).getAllByRole('button')).toHaveLength(6);
+        expect(within(quickSection as HTMLElement).queryByRole('button', { name: /Tạo đề/i })).not.toBeInTheDocument();
     });
 
     it('uses administrator-specific overview copy for school-wide accounts', () => {
@@ -183,22 +172,8 @@ describe('TeacherDashboard OverviewTab', () => {
 
         renderOverview();
 
-        expect(screen.getByText('Theo dõi hoạt động toàn trường, nắm nhanh số liệu quan trọng và xử lý các công việc cần thiết ngay tại đây.')).toBeTruthy();
-        expect(screen.queryByText('Theo dõi tiến độ học tập của lớp, tạo và giao bài, đồng thời xem nhanh kết quả của học sinh ngay tại đây.')).toBeNull();
-    });
-
-    it('uses flat bordered analysis and activity panels', () => {
-        renderOverview();
-
-        const performancePanel = screen.getByRole('heading', { name: 'Tình hình điểm số' }).closest('section');
-        const submissionsPanel = screen.getByRole('heading', { name: 'Bài vừa nộp' }).closest('section');
-        const quizzesPanel = screen.getByRole('heading', { name: 'Đề kiểm tra gần đây' }).closest('section');
-
-        for (const panel of [performancePanel, submissionsPanel, quizzesPanel]) {
-            expect(panel?.className).toContain('rounded-[14px]');
-            expect(panel?.className).toContain('border-slate-200');
-            expect(panel?.className).not.toContain('shadow');
-        }
+        expect(screen.getByText('Theo dõi hoạt động toàn trường và xử lý các việc quan trọng trong ngày.')).toBeInTheDocument();
+        expect(screen.getByText('Toàn trường')).toBeInTheDocument();
     });
 
     it.each([
@@ -207,59 +182,50 @@ describe('TeacherDashboard OverviewTab', () => {
         ['Xem kết quả', 'results'],
         ['Quản lý lớp', 'classes'],
         ['Cấp chứng nhận', 'certificates'],
+        ['Quản lý đề', 'manage'],
     ] as const)('opens %s from the quick action area', (label, expectedTab) => {
         const onSelectTab = vi.fn();
         renderOverview({ onSelectTab });
 
-        const quickActionsHeading = screen.getByRole('heading', { name: 'Bạn muốn làm gì?' });
-        const quickActionsSection = quickActionsHeading.closest('section');
-        expect(quickActionsSection).toBeTruthy();
-
-        fireEvent.click(within(quickActionsSection as HTMLElement).getByRole('button', { name: new RegExp(label, 'i') }));
+        const quickSection = screen.getByRole('heading', { name: 'Thao tác nhanh' }).closest('section');
+        fireEvent.click(within(quickSection as HTMLElement).getByRole('button', { name: new RegExp(label, 'i') }));
         expect(onSelectTab).toHaveBeenCalledWith(expectedTab);
     });
 
-    it('opens AI and manual creation from the dedicated panel and recent quizzes', () => {
+    it('opens AI and manual creation only from the dedicated panel', () => {
         const onCreateQuizWithAi = vi.fn();
         const onCreateQuizManually = vi.fn();
         renderOverview({ onCreateQuizWithAi, onCreateQuizManually });
 
         const creationPanel = screen.getByRole('heading', { name: 'Tạo đề kiểm tra' }).closest('section');
-        expect(creationPanel).toBeTruthy();
         fireEvent.click(within(creationPanel as HTMLElement).getByRole('button', { name: 'Tạo đề bằng AI' }));
         fireEvent.click(within(creationPanel as HTMLElement).getByRole('button', { name: 'Soạn đề thủ công' }));
 
         const recentSection = screen.getByRole('heading', { name: 'Đề kiểm tra gần đây' }).closest('section');
-        fireEvent.click(within(recentSection as HTMLElement).getByRole('button', { name: 'Tạo đề bằng AI' }));
-        fireEvent.click(within(recentSection as HTMLElement).getByRole('button', { name: 'Soạn đề thủ công' }));
-
-        expect(onCreateQuizWithAi).toHaveBeenCalledTimes(2);
-        expect(onCreateQuizManually).toHaveBeenCalledTimes(2);
+        expect(within(recentSection as HTMLElement).queryByRole('button', { name: 'Tạo đề bằng AI' })).not.toBeInTheDocument();
+        expect(within(recentSection as HTMLElement).queryByRole('button', { name: 'Soạn đề thủ công' })).not.toBeInTheDocument();
+        expect(onCreateQuizWithAi).toHaveBeenCalledTimes(1);
+        expect(onCreateQuizManually).toHaveBeenCalledTimes(1);
     });
 
-    it('keeps the legacy single create action when the workspace is disabled', () => {
-        const onSelectTab = vi.fn();
-        renderOverview({ manualQuizWorkspaceEnabled: false, onSelectTab });
+    it('keeps the legacy single create action inside the dedicated panel', () => {
+        const onCreateQuizWithAi = vi.fn();
+        renderOverview({ manualQuizWorkspaceEnabled: false, onCreateQuizWithAi });
 
-        expect(screen.queryByRole('heading', { name: 'Tạo đề kiểm tra' })).not.toBeInTheDocument();
-        const quickActionsSection = screen.getByRole('heading', { name: 'Bạn muốn làm gì?' }).closest('section');
-        fireEvent.click(within(quickActionsSection as HTMLElement).getByRole('button', { name: /Tạo đề mới/i }));
-        expect(onSelectTab).toHaveBeenCalledWith('create');
-        expect(screen.queryByRole('button', { name: 'Soạn đề thủ công' })).not.toBeInTheDocument();
+        const creationPanel = screen.getByRole('heading', { name: 'Tạo đề kiểm tra' }).closest('section');
+        expect(creationPanel).toBeTruthy();
+        expect(within(creationPanel as HTMLElement).queryByRole('button', { name: 'Soạn đề thủ công' })).not.toBeInTheDocument();
+        fireEvent.click(within(creationPanel as HTMLElement).getByRole('button', { name: 'Tạo đề mới' }));
+        expect(onCreateQuizWithAi).toHaveBeenCalledTimes(1);
     });
 
     it('shows recent quizzes and opens the quiz management tab', () => {
         const onSelectTab = vi.fn();
         renderOverview({ onSelectTab });
 
-        expect(screen.getByRole('heading', { name: 'Đề kiểm tra gần đây' })).toBeTruthy();
         expect(screen.getAllByText('Đề lớp 3A').length).toBeGreaterThan(0);
-
-        const recentQuizzesHeading = screen.getByRole('heading', { name: 'Đề kiểm tra gần đây' });
-        const recentQuizzesSection = recentQuizzesHeading.closest('section');
-        expect(recentQuizzesSection).toBeTruthy();
-
-        fireEvent.click(within(recentQuizzesSection as HTMLElement).getAllByRole('button', { name: /^Quản lý/i })[0]);
+        const recentSection = screen.getByRole('heading', { name: 'Đề kiểm tra gần đây' }).closest('section');
+        fireEvent.click(within(recentSection as HTMLElement).getAllByRole('button', { name: /^Quản lý/i })[0]);
         expect(onSelectTab).toHaveBeenCalledWith('manage');
     });
 
@@ -270,10 +236,10 @@ describe('TeacherDashboard OverviewTab', () => {
             summaryError: 'Không thể tải số liệu tổng quan.',
         });
 
-        const resultCard = screen.getByText('Tổng lượt nộp').parentElement;
-        expect(resultCard && within(resultCard).getByText('—')).toBeTruthy();
-        expect(screen.getByRole('alert').textContent).toContain('Không thể tải số liệu tổng quan.');
-        expect(screen.getByRole('heading', { name: 'Không thể tải tình hình điểm số' })).toBeTruthy();
+        const kpiRegion = screen.getByRole('region', { name: 'Chỉ số tổng quan' });
+        expect(within(kpiRegion).getAllByText('—').length).toBeGreaterThan(0);
+        expect(screen.getByRole('alert')).toHaveTextContent('Không thể tải số liệu tổng quan.');
+        expect(screen.getByRole('heading', { name: 'Không thể tải tình hình điểm số' })).toBeInTheDocument();
     });
 
     it('shows a retry action when loading results fails', () => {
@@ -284,7 +250,7 @@ describe('TeacherDashboard OverviewTab', () => {
             onRetryResults,
         });
 
-        expect(screen.getByRole('alert').textContent).toContain('Phiên đăng nhập đã hết hạn');
+        expect(screen.getByRole('alert')).toHaveTextContent('Phiên đăng nhập đã hết hạn');
         fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
         expect(onRetryResults).toHaveBeenCalledTimes(1);
     });
