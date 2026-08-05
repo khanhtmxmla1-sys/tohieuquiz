@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useQuizStore } from '../stores/quizStore';
 import { useClassroomStore } from '../src/stores/useClassroomStore';
 import { useTeacherDashboardUIStore } from '../src/stores/useTeacherDashboardUIStore';
+import { useManualQuizWorkspaceStore } from '../src/features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -57,11 +58,27 @@ vi.mock('../src/components/common/PasswordChangeDialog', () => ({
 }));
 
 vi.mock('../src/components/TeacherDashboard/Sidebar', () => ({
-  default: ({ activeTab, setActiveTab, onLogout, isMobileOpen }: any) => (
+  default: ({
+    activeTab,
+    setActiveTab,
+    onLogout,
+    isMobileOpen,
+    manualQuizWorkspaceEnabled,
+    onCreateQuizWithAi,
+    onCreateQuizManually,
+  }: any) => (
     <aside>
       <span data-testid="sidebar-active">{activeTab}</span>
       <span data-testid="sidebar-mobile-state">{isMobileOpen ? 'open' : 'closed'}</span>
       <button onClick={() => setActiveTab('results')}>Sidebar kết quả</button>
+      {manualQuizWorkspaceEnabled ? (
+        <>
+          <button onClick={onCreateQuizWithAi}>Tạo đề bằng AI</button>
+          <button onClick={onCreateQuizManually}>Soạn đề thủ công</button>
+        </>
+      ) : (
+        <button onClick={() => setActiveTab('create')}>Tạo đề mới</button>
+      )}
       <button onClick={onLogout}>Sidebar đăng xuất</button>
     </aside>
   ),
@@ -84,6 +101,8 @@ vi.mock('../src/components/TeacherDashboard/OverviewTab', () => ({
     summaryError,
     onRetryResults,
     onSelectTab,
+    onCreateQuizWithAi,
+    onCreateQuizManually,
   }: any) => (
     <div data-testid="overview-tab">
       <span data-testid="overview-results-state">{resultsLoadState}:{resultsError || ''}</span>
@@ -91,7 +110,8 @@ vi.mock('../src/components/TeacherDashboard/OverviewTab', () => ({
         {summaryLoadState}:{summaryError || ''}:{resultSummary?.totalSubmissions ?? ''}
       </span>
       <button onClick={onRetryResults}>Thử lại kết quả</button>
-      <button onClick={() => onSelectTab('create')}>Tổng quan tạo đề</button>
+      <button onClick={onCreateQuizWithAi}>Tổng quan tạo đề bằng AI</button>
+      <button onClick={onCreateQuizManually}>Tổng quan soạn đề thủ công</button>
     </div>
   ),
 }));
@@ -216,6 +236,8 @@ describe('TeacherDashboard shell contracts', () => {
   });
 
   beforeEach(() => {
+    vi.unstubAllEnvs();
+    useManualQuizWorkspaceStore.getState().reset();
     resetStores();
     mocks.navigate.mockReset();
     mocks.callApi.mockReset().mockImplementation(async (action: string) => {
@@ -230,6 +252,8 @@ describe('TeacherDashboard shell contracts', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
+    useManualQuizWorkspaceStore.getState().reset();
     vi.restoreAllMocks();
   });
 
@@ -281,11 +305,54 @@ describe('TeacherDashboard shell contracts', () => {
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/results');
   });
 
-  it('navigates overview create actions through the canonical URL', async () => {
+  it('navigates AI creation actions through the canonical URL', async () => {
     render(<TeacherDashboard />);
 
-    await click(await screen.findByRole('button', { name: 'Tổng quan tạo đề' }));
+    await click(await screen.findByRole('button', { name: 'Tạo đề bằng AI' }));
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes?mode=create');
+    expect(mocks.navigate).not.toHaveBeenCalledWith('/teacher/quizzes/ai/new');
+  });
+
+  it('resets stale workspace state and carries the teacher class into a new manual quiz', async () => {
+    useAuthStore.setState({ teacherClass: '4A' } as any);
+    useManualQuizWorkspaceStore.getState().initializeFromSeed({
+      title: 'Đề cũ',
+      classLevel: '3A',
+      category: 'toan',
+      timeLimit: 15,
+      tags: [],
+      requireCode: false,
+      showOnHome: true,
+    }, 'teacher-a');
+
+    render(<TeacherDashboard />);
+    await click(await screen.findByRole('button', { name: 'Soạn đề thủ công' }));
+
+    expect(useManualQuizWorkspaceStore.getState().envelope).toBeNull();
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes/new', {
+      state: expect.objectContaining({
+        workspaceStartedAt: expect.any(String),
+        manualQuizSeed: expect.objectContaining({
+          title: 'Đề kiểm tra mới',
+          classLevel: '4A',
+          category: 'toan',
+          timeLimit: 15,
+        }),
+      }),
+    });
+  });
+
+  it('uses the safe class fallback for accounts without an assigned class', async () => {
+    useAuthStore.setState({ isAdmin: true, teacherClass: null } as any);
+    render(<TeacherDashboard />);
+
+    await click(await screen.findByRole('button', { name: 'Soạn đề thủ công' }));
+
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes/new', {
+      state: expect.objectContaining({
+        manualQuizSeed: expect.objectContaining({ classLevel: '3' }),
+      }),
+    });
   });
 
   it('opens the selected quiz in the canonical unified editor route', async () => {

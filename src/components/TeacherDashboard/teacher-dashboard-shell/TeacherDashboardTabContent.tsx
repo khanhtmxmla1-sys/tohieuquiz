@@ -12,6 +12,9 @@ interface TeacherDashboardTabContentProps {
   activeTab: TeacherDashboardTab;
   setActiveTab: (tab: TeacherDashboardTab) => void;
   selectTab: (tab: TeacherDashboardTab) => void;
+  manualQuizWorkspaceEnabled: boolean;
+  onCreateQuizWithAi: () => void;
+  onCreateQuizManually: () => void;
   resultsLoadState: ResultsLoadState;
   resultsLoadError: string | null;
   loadTeacherResults: () => Promise<void>;

@@ -38,6 +38,9 @@ describe('school logo integration', () => {
             <Sidebar
                 activeTab="overview"
                 setActiveTab={vi.fn()}
+                manualQuizWorkspaceEnabled
+                onCreateQuizWithAi={vi.fn()}
+                onCreateQuizManually={vi.fn()}
                 onLogout={vi.fn()}
             />,
         );

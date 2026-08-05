@@ -1,8 +1,7 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useQuizStore } from '../stores/quizStore';
 
 const logic = vi.hoisted(() => ({
     topic: '', setTopic: vi.fn(), quizTitle: 'Đề Toán lớp 4', setQuizTitle: vi.fn(),
@@ -32,11 +31,14 @@ const logic = vi.hoisted(() => ({
 vi.mock('../src/features/quiz-generator/hooks/useCreateQuizLogic', () => ({
     useCreateQuizLogic: () => logic,
 }));
-vi.mock('../src/components/TeacherDashboard/QuizPreview', () => ({
-    default: ({ onStartManual }: { onStartManual?: () => void }) => onStartManual ? (
-        <button type="button" onClick={onStartManual}>Mở phòng soạn thủ công</button>
-    ) : <div>Chỉ tạo đề bằng AI</div>,
-}));
+vi.mock('../src/components/TeacherDashboard/QuizPreview', async () => {
+    const { default: EmptyQuizPreview } = await import('../src/components/TeacherDashboard/quiz-preview/EmptyQuizPreview');
+    return {
+        default: ({ onStartManual }: { onStartManual?: () => void }) => (
+            <EmptyQuizPreview onStartManual={onStartManual} />
+        ),
+    };
+});
 vi.mock('../src/components/common', () => ({
     Button: ({ children }: any) => <button type="button">{children}</button>,
 }));
@@ -44,33 +46,22 @@ vi.mock('../src/features/quiz-generator/components/GeneralInfoSection', () => ({
 vi.mock('../src/features/quiz-generator/components/QuestionSettingsSection', () => ({ default: () => null }));
 vi.mock('../src/features/quiz-generator/components/PedagogicalProfileSection', () => ({ default: () => null }));
 vi.mock('../src/features/quiz-generator/components/ContentSourceSection', () => ({ default: () => null }));
+vi.mock('../src/features/quiz-generator/components/OcrPreviewSection', () => ({ default: () => null }));
 vi.mock('../src/features/quiz-generator/components/AdvancedSettingsSection', () => ({ default: () => null }));
 vi.mock('../src/features/quiz-generator/components/AssignmentSection', () => ({ default: () => null }));
+vi.mock('../src/features/quiz-generator/components/GenerationProgressPanel', () => ({ default: () => null }));
 vi.mock('../src/features/quiz-generator/components/SuccessModal', () => ({ default: () => null }));
+vi.mock('../src/features/quiz-generator/components/GenerationReadinessSummary', () => ({ default: () => null }));
 
 import CreateTab from '../src/components/TeacherDashboard/CreateTab';
 
-const originalQuizState = useQuizStore.getState();
-
-const RouteStateProbe = () => {
-    const location = useLocation();
-    return (
-        <div>
-            <span data-testid="pathname">{location.pathname}</span>
-            <span data-testid="route-state">{JSON.stringify(location.state)}</span>
-        </div>
-    );
-};
-
-describe('CreateTab manual workspace navigation', () => {
+describe('CreateTab AI-only entry', () => {
     beforeEach(() => {
         vi.unstubAllEnvs();
         vi.clearAllMocks();
-        useQuizStore.setState({ ...originalQuizState, view: 'teacher_dash' }, true);
     });
 
-    it('falls back to the legacy inline manual editor when the rollout flag is disabled', () => {
-        vi.stubEnv('VITE_FEATURE_MANUAL_QUIZ_WORKSPACE_V1', 'false');
+    it('labels the page as AI creation and removes the manual workspace entry', () => {
         render(
             <MemoryRouter>
                 <CreateTab
@@ -79,19 +70,11 @@ describe('CreateTab manual workspace navigation', () => {
                     onUpdateQuiz={vi.fn(async () => undefined)}
                     onSuccess={vi.fn()}
                 />
-                <RouteStateProbe />
             </MemoryRouter>,
         );
 
-        expect(screen.getByRole('heading', { name: 'Tạo đề kiểm tra mới' })).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Mở phòng soạn thủ công' }));
-
-        expect(screen.getByTestId('pathname')).toHaveTextContent('/');
-        expect(logic.setGeneratedQuiz).toHaveBeenCalledWith(expect.objectContaining({
-            title: 'Đề Toán lớp 4',
-            classLevel: '4A',
-            questions: [],
-            timeLimit: 20,
-        }));
+        expect(screen.getByRole('heading', { name: 'Tạo đề bằng AI' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Mở phòng soạn/i })).not.toBeInTheDocument();
+        expect(screen.getByText(/Hoàn thành cấu hình bên trái/i)).toBeInTheDocument();
     });
 });

@@ -203,7 +203,8 @@ describe('QuizPreview contracts', () => {
         const onStartManual = vi.fn();
         render(<QuizPreview quiz={null} onSave={vi.fn()} onStartManual={onStartManual} />);
 
-        expect(screen.getByText('Chưa có dữ liệu đề thi')).toBeInTheDocument();
+        expect(screen.getByText('Chưa có đề xem trước')).toBeInTheDocument();
+        expect(screen.getByText('Bạn có thể tạo bằng AI hoặc mở trình soạn thủ công dạng cũ.')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Mở phòng soạn đề thủ công' }));
         expect(onStartManual).toHaveBeenCalledTimes(1);
         expect(screen.queryByText('Tải file Word')).not.toBeInTheDocument();

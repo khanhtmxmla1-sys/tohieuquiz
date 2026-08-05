@@ -217,7 +217,7 @@ describe('AI SVG diagrams end-to-end', () => {
     cy.fixture('ai-blueprint-v3-13-types.json').then((fixture) => {
       const aiTrace = installTeacherApi(fixture.questions as Array<Record<string, unknown>>);
       cy.visit('/teacher/quizzes?mode=create', { onBeforeLoad: installTeacherSession });
-      cy.contains('Tạo đề kiểm tra mới', { timeout: 15_000 }).should('be.visible');
+      cy.contains('Tạo đề bằng AI', { timeout: 15_000 }).should('be.visible');
 
       cy.get('input[aria-label="Tự động thêm hình vẽ minh họa"]')
         .should('not.be.checked');

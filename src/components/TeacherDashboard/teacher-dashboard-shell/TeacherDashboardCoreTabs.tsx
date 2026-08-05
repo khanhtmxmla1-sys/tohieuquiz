@@ -21,6 +21,9 @@ interface TeacherDashboardCoreTabsProps {
   setEditingQuiz: (quiz: Quiz | null) => void;
   setActiveTab: (tab: TeacherDashboardTab) => void;
   selectTab: (tab: TeacherDashboardTab) => void;
+  manualQuizWorkspaceEnabled: boolean;
+  onCreateQuizWithAi: () => void;
+  onCreateQuizManually: () => void;
   openAccessCodeEditor: (quizId: string, currentCode: string) => void;
   removeQuiz: any;
   createQuiz: any;
@@ -31,47 +34,50 @@ export const TeacherDashboardCoreTabs = (props: TeacherDashboardCoreTabsProps) =
   const navigate = useNavigate();
 
   return (
-  <>
-    {props.activeTab === 'overview' && (
-      <OverviewTab
-        resultsLoadState={props.resultsLoadState}
-        resultsError={props.resultsLoadError}
-        onRetryResults={props.loadTeacherResults}
-        resultSummary={props.resultSummary}
-        summaryLoadState={props.summaryLoadState}
-        summaryError={props.summaryLoadError}
-        onSelectTab={props.selectTab}
-      />
-    )}
-    {props.activeTab === 'results' && (
-      <ResultsTab
-        results={props.filteredResults}
-        quizzes={props.quizzes}
-        onRefresh={async () => {
-          await props.loadTeacherResults();
-          return useQuizStore.getState().results;
-        }}
-      />
-    )}
-    {props.activeTab === 'manage' && (
-      <ManageTab
-        quizzes={props.quizzes}
-        onDelete={props.removeQuiz}
-        onEdit={quiz => navigate(getQuizEditorRoute(quiz.id))}
-        onManageCode={props.openAccessCodeEditor}
-      />
-    )}
-    {props.activeTab === 'create' && (
-      <CreateTab
-        editingQuiz={props.editingQuiz}
-        onSaveQuiz={props.createQuiz}
-        onUpdateQuiz={props.modifyQuiz}
-        onSuccess={() => {
-          props.setEditingQuiz(null);
-          props.setActiveTab('manage');
-        }}
-      />
-    )}
-  </>
+    <>
+      {props.activeTab === 'overview' && (
+        <OverviewTab
+          resultsLoadState={props.resultsLoadState}
+          resultsError={props.resultsLoadError}
+          onRetryResults={props.loadTeacherResults}
+          resultSummary={props.resultSummary}
+          summaryLoadState={props.summaryLoadState}
+          summaryError={props.summaryLoadError}
+          onSelectTab={props.selectTab}
+          manualQuizWorkspaceEnabled={props.manualQuizWorkspaceEnabled}
+          onCreateQuizWithAi={props.onCreateQuizWithAi}
+          onCreateQuizManually={props.onCreateQuizManually}
+        />
+      )}
+      {props.activeTab === 'results' && (
+        <ResultsTab
+          results={props.filteredResults}
+          quizzes={props.quizzes}
+          onRefresh={async () => {
+            await props.loadTeacherResults();
+            return useQuizStore.getState().results;
+          }}
+        />
+      )}
+      {props.activeTab === 'manage' && (
+        <ManageTab
+          quizzes={props.quizzes}
+          onDelete={props.removeQuiz}
+          onEdit={quiz => navigate(getQuizEditorRoute(quiz.id))}
+          onManageCode={props.openAccessCodeEditor}
+        />
+      )}
+      {props.activeTab === 'create' && (
+        <CreateTab
+          editingQuiz={props.editingQuiz}
+          onSaveQuiz={props.createQuiz}
+          onUpdateQuiz={props.modifyQuiz}
+          onSuccess={() => {
+            props.setEditingQuiz(null);
+            props.setActiveTab('manage');
+          }}
+        />
+      )}
+    </>
   );
 };

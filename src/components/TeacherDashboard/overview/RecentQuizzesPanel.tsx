@@ -2,16 +2,25 @@ import { formatSystemDate } from '../../../utils/dateTime';
 import React from 'react';
 import { ArrowRight, Clock3, FilePlus2, Files, ListChecks } from 'lucide-react';
 import type { Quiz } from '../../../types';
+import { QuizCreationActions } from '../quiz-creation';
 
 interface RecentQuizzesPanelProps {
     quizzes: Quiz[];
-    onCreateQuiz: () => void;
+    manualQuizWorkspaceEnabled: boolean;
+    onCreateQuizWithAi: () => void;
+    onCreateQuizManually: () => void;
     onManageQuizzes: () => void;
 }
 
 const formatQuizDate = (value: string): string => formatSystemDate(value, 'Chưa cập nhật');
 
-const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({ quizzes, onCreateQuiz, onManageQuizzes }) => (
+const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({
+    quizzes,
+    manualQuizWorkspaceEnabled,
+    onCreateQuizWithAi,
+    onCreateQuizManually,
+    onManageQuizzes,
+}) => (
     <section aria-labelledby="recent-quizzes-heading" className="min-w-0 max-w-full overflow-hidden rounded-[14px] border border-slate-200 bg-white">
         <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div>
@@ -22,14 +31,22 @@ const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({ quizzes, onCrea
                 <p className="mt-1 text-sm text-slate-600">Mở danh sách quản lý hoặc bắt đầu tạo một đề mới.</p>
             </div>
             <div className="flex flex-wrap gap-2">
-                <button
-                    type="button"
-                    onClick={onCreateQuiz}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-[10px] bg-sky-700 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
-                >
-                    <FilePlus2 aria-hidden="true" className="size-4" />
-                    Tạo đề
-                </button>
+                {manualQuizWorkspaceEnabled ? (
+                    <QuizCreationActions
+                        layout="compact"
+                        onCreateWithAi={onCreateQuizWithAi}
+                        onCreateManually={onCreateQuizManually}
+                    />
+                ) : (
+                    <button
+                        type="button"
+                        onClick={onCreateQuizWithAi}
+                        className="inline-flex min-h-10 items-center gap-2 rounded-[10px] bg-sky-700 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
+                    >
+                        <FilePlus2 aria-hidden="true" className="size-4" />
+                        Tạo đề
+                    </button>
+                )}
                 <button
                     type="button"
                     onClick={onManageQuizzes}
@@ -119,14 +136,24 @@ const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({ quizzes, onCrea
                 <Files aria-hidden="true" className="mx-auto size-8 text-slate-400" />
                 <h3 className="mt-4 text-lg font-semibold text-slate-900">Chưa có đề kiểm tra</h3>
                 <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-600">Tạo đề đầu tiên để bắt đầu giao bài và theo dõi kết quả học tập.</p>
-                <button
-                    type="button"
-                    onClick={onCreateQuiz}
-                    className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-[10px] bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
-                >
-                    <FilePlus2 aria-hidden="true" className="size-4" />
-                    Tạo đề mới
-                </button>
+                <div className="mt-4 flex justify-center">
+                    {manualQuizWorkspaceEnabled ? (
+                        <QuizCreationActions
+                            layout="compact"
+                            onCreateWithAi={onCreateQuizWithAi}
+                            onCreateManually={onCreateQuizManually}
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={onCreateQuizWithAi}
+                            className="inline-flex min-h-10 items-center gap-2 rounded-[10px] bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
+                        >
+                            <FilePlus2 aria-hidden="true" className="size-4" />
+                            Tạo đề mới
+                        </button>
+                    )}
+                </div>
             </div>
         )}
     </section>

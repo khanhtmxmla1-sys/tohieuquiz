@@ -26,6 +26,10 @@ const mountOverview = () => {
       resultSummary={null}
       summaryLoadState="success"
       summaryError={null}
+      onSelectTab={() => undefined}
+      manualQuizWorkspaceEnabled
+      onCreateQuizWithAi={() => undefined}
+      onCreateQuizManually={() => undefined}
     />,
   );
 };
@@ -67,7 +71,8 @@ describe('Teacher Overview design-system pilot', () => {
     cy.viewport(390, 844);
     mountOverview();
     cy.contains('h1', 'Cô An').should('be.visible');
-    cy.contains('button', 'Tạo đề mới').should('be.visible');
+    cy.contains('button', 'Tạo đề bằng AI').should('be.visible');
+    cy.contains('button', 'Soạn đề thủ công').should('be.visible');
     assertNoHorizontalOverflow();
     cy.screenshot('teacher-overview-pilot-mobile', { capture: 'fullPage' });
   });

@@ -4,16 +4,19 @@ import type { NotificationTarget } from '../../../../shared/notifications.contra
 import { NotificationCenter } from '../../../features/notifications/components';
 import NotificationBell from '../../common/NotificationBell';
 import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIStore';
+import type { DashboardSearchDestination } from './dashboardConfig';
 import { DashboardSearchForm } from './DashboardSearchForm';
 import { TeacherAccountMenu } from './TeacherAccountMenu';
 
 interface TeacherDashboardHeaderProps {
   activeTab: TeacherDashboardTab;
   setActiveTab: (tab: TeacherDashboardTab) => void;
+  manualQuizWorkspaceEnabled: boolean;
   onOpenMenu: () => void;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   onSearchSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  searchOptions: DashboardSearchDestination[];
   teacherDisplayName: string;
   teacherInitial: string;
   isAdmin: boolean;
@@ -44,65 +47,72 @@ const TAB_LABELS: Partial<Record<TeacherDashboardTab, string>> = {
   'system-question-bank': 'Ngân hàng câu hỏi hệ thống',
 };
 
-export const TeacherDashboardHeader = (props: TeacherDashboardHeaderProps) => (
-  <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#E5E7EB] bg-white px-4 sm:px-5 lg:px-8">
-    <div className="flex min-w-0 items-center gap-3">
-      <button
-        type="button"
-        aria-label="Mở menu điều hướng"
-        onClick={props.onOpenMenu}
-        className="inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-[#E5E7EB] bg-white text-[#526174] transition-colors hover:bg-[#F8FAFC] hover:text-[#0284C7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] lg:hidden"
-      >
-        <Menu aria-hidden="true" className="size-5" />
-      </button>
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-[#7A8796]">Dashboard giáo viên</p>
-        <p className="truncate text-sm font-semibold text-[#172033] sm:text-base">
-          {TAB_LABELS[props.activeTab] || 'Tổng quan'}
-        </p>
-      </div>
-    </div>
+export const TeacherDashboardHeader = (props: TeacherDashboardHeaderProps) => {
+  const activeLabel = props.activeTab === 'create' && props.manualQuizWorkspaceEnabled
+    ? 'Tạo đề bằng AI'
+    : TAB_LABELS[props.activeTab] || 'Tổng quan';
 
-    <div className="flex items-center gap-2 sm:gap-3">
-      <DashboardSearchForm
-        searchQuery={props.searchQuery}
-        setSearchQuery={props.setSearchQuery}
-        onSubmit={props.onSearchSubmit}
-      />
-      {props.unifiedNotificationsReady && (
-        props.unifiedNotificationsEnabled
-          ? <NotificationCenter onNavigate={props.onNotificationNavigate} />
-          : (
-            <NotificationBell
-              userId={props.notificationUserId}
-              onOpenCertificate={() => props.setActiveTab('certificates')}
-              onOpenResultReport={() => props.setActiveTab('results')}
-            />
-          )
-      )}
-      {props.isAdmin && (
+  return (
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#E5E7EB] bg-white px-4 sm:px-5 lg:px-8">
+      <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
-          aria-label="Quản lý thông báo"
-          title="Quản lý thông báo"
-          onClick={() => props.setActiveTab('announcements')}
-          className={`hidden size-10 items-center justify-center rounded-[10px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] sm:inline-flex ${props.activeTab === 'announcements'
-            ? 'border-[#BAE6FD] bg-[#F0F9FF] text-[#0284C7]'
-            : 'border-[#E5E7EB] bg-white text-[#526174] hover:bg-[#F8FAFC] hover:text-[#0284C7]'
-          }`}
+          aria-label="Mở menu điều hướng"
+          onClick={props.onOpenMenu}
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-[#E5E7EB] bg-white text-[#526174] transition-colors hover:bg-[#F8FAFC] hover:text-[#0284C7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] lg:hidden"
         >
-          <Megaphone aria-hidden="true" className="size-5" />
+          <Menu aria-hidden="true" className="size-5" />
         </button>
-      )}
-      <TeacherAccountMenu
-        activeTab={props.activeTab}
-        displayName={props.teacherDisplayName}
-        initial={props.teacherInitial}
-        accountLabel={props.notificationUserId}
-        isAdmin={props.isAdmin}
-        onNavigate={props.setActiveTab}
-        onLogout={props.onLogout}
-      />
-    </div>
-  </header>
-);
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-[#7A8796]">Dashboard giáo viên</p>
+          <p className="truncate text-sm font-semibold text-[#172033] sm:text-base">
+            {activeLabel}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-3">
+        <DashboardSearchForm
+          searchQuery={props.searchQuery}
+          setSearchQuery={props.setSearchQuery}
+          onSubmit={props.onSearchSubmit}
+          options={props.searchOptions}
+        />
+        {props.unifiedNotificationsReady && (
+          props.unifiedNotificationsEnabled
+            ? <NotificationCenter onNavigate={props.onNotificationNavigate} />
+            : (
+              <NotificationBell
+                userId={props.notificationUserId}
+                onOpenCertificate={() => props.setActiveTab('certificates')}
+                onOpenResultReport={() => props.setActiveTab('results')}
+              />
+            )
+        )}
+        {props.isAdmin && (
+          <button
+            type="button"
+            aria-label="Quản lý thông báo"
+            title="Quản lý thông báo"
+            onClick={() => props.setActiveTab('announcements')}
+            className={`hidden size-10 items-center justify-center rounded-[10px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] sm:inline-flex ${props.activeTab === 'announcements'
+              ? 'border-[#BAE6FD] bg-[#F0F9FF] text-[#0284C7]'
+              : 'border-[#E5E7EB] bg-white text-[#526174] hover:bg-[#F8FAFC] hover:text-[#0284C7]'
+            }`}
+          >
+            <Megaphone aria-hidden="true" className="size-5" />
+          </button>
+        )}
+        <TeacherAccountMenu
+          activeTab={props.activeTab}
+          displayName={props.teacherDisplayName}
+          initial={props.teacherInitial}
+          accountLabel={props.notificationUserId}
+          isAdmin={props.isAdmin}
+          onNavigate={props.setActiveTab}
+          onLogout={props.onLogout}
+        />
+      </div>
+    </header>
+  );
+};

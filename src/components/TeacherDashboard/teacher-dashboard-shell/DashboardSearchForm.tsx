@@ -1,17 +1,19 @@
 import { Search } from 'lucide-react';
 import type React from 'react';
-import { DASHBOARD_SEARCH_ITEMS } from './dashboardConfig';
+import type { DashboardSearchDestination } from './dashboardConfig';
 
 interface DashboardSearchFormProps {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  options: DashboardSearchDestination[];
 }
 
 export const DashboardSearchForm = ({
   searchQuery,
   setSearchQuery,
   onSubmit,
+  options,
 }: DashboardSearchFormProps) => (
   <form onSubmit={onSubmit} className="relative hidden md:block">
     <label htmlFor="teacher-dashboard-search" className="sr-only">Tìm chức năng</label>
@@ -32,7 +34,7 @@ export const DashboardSearchForm = ({
       <Search aria-hidden="true" className="size-4" />
     </button>
     <datalist id="teacher-dashboard-search-options">
-      {DASHBOARD_SEARCH_ITEMS.map(item => <option key={item.tab} value={item.label} />)}
+      {options.map(item => <option key={item.id} value={item.label} />)}
     </datalist>
   </form>
 );
