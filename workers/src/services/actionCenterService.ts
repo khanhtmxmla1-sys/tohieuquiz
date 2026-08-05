@@ -16,6 +16,8 @@ interface CountRow {
   affected_count?: number | string | null;
   next_at?: string | null;
   next_id?: string | null;
+  next_label?: string | null;
+  next_owner?: string | null;
 }
 
 const severityWeight: Record<TeacherActionSeverity, number> = {
@@ -117,7 +119,12 @@ const loadDrafts = async (
         ${ownerScope}
     ),
     actionable_drafts AS (
-      SELECT id, owner_username, updated_at, expires_at
+      SELECT
+        id,
+        owner_username,
+        updated_at,
+        expires_at,
+        TRIM(COALESCE(json_extract(draft_payload, '$.quiz.title'), '')) AS draft_title
       FROM normalized_drafts
       WHERE (
         TRIM(COALESCE(json_extract(draft_payload, '$.quizId'), '')) <> ''
@@ -148,9 +155,21 @@ const loadDrafts = async (
       (
         SELECT id
         FROM actionable_drafts
-        ORDER BY datetime(updated_at) DESC
+        ORDER BY datetime(updated_at) DESC, id DESC
         LIMIT 1
-      ) AS next_id
+      ) AS next_id,
+      (
+        SELECT draft_title
+        FROM actionable_drafts
+        ORDER BY datetime(updated_at) DESC, id DESC
+        LIMIT 1
+      ) AS next_label,
+      (
+        SELECT owner_username
+        FROM actionable_drafts
+        ORDER BY datetime(updated_at) DESC, id DESC
+        LIMIT 1
+      ) AS next_owner
     FROM actionable_drafts
   `).bind(...bindings).first<CountRow>() || {};
 };
@@ -318,6 +337,13 @@ export async function loadTeacherActionCenter(
           ? `/teacher/quizzes/new?draftId=${encodeURIComponent(drafts.next_id)}`
           : '/teacher/quizzes?mode=create',
       },
+      secondaryAction: drafts.next_id && drafts.next_owner ? {
+        kind: 'delete_draft',
+        label: 'Xóa bản nháp',
+        resourceId: String(drafts.next_id),
+        resourceLabel: String(drafts.next_label || DEFAULT_MANUAL_QUIZ_DRAFT_TITLE),
+        ownerUsername: String(drafts.next_owner),
+      } : undefined,
     });
   }
 

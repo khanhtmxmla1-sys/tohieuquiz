@@ -70,6 +70,8 @@ const populatedRows: FakeRows = {
   drafts: {
     action_count: 3,
     next_id: 'draft-latest',
+    next_label: 'Đề Toán đang soạn',
+    next_owner: 'teacher-a',
     next_at: '2026-07-27T07:00:00.000Z',
   },
   giftOrders: {
@@ -112,6 +114,13 @@ describe('loadTeacherActionCenter', () => {
       '/teacher/quizzes/new?draftId=draft-latest',
       '/teacher/live-exams?status=scheduled&window=24',
     ]);
+    expect(center.items.find((item) => item.kind === 'draft_unpublished')?.secondaryAction).toEqual({
+      kind: 'delete_draft',
+      label: 'Xóa bản nháp',
+      resourceId: 'draft-latest',
+      resourceLabel: 'Đề Toán đang soạn',
+      ownerUsername: 'teacher-a',
+    });
     expect(center.items).toHaveLength(5);
   });
 
@@ -217,8 +226,15 @@ describe('loadTeacherActionCenter', () => {
     ]);
     expect(center.items.find((item) => item.kind === 'assignment_at_risk')?.explanation)
       .toContain('1 học sinh chưa nộp');
-    expect(center.items.find((item) => item.kind === 'draft_unpublished')?.cta.url)
-      .toBe('/teacher/quizzes/new?draftId=draft-a');
+    const draftItem = center.items.find((item) => item.kind === 'draft_unpublished');
+    expect(draftItem?.cta.url).toBe('/teacher/quizzes/new?draftId=draft-a');
+    expect(draftItem?.secondaryAction).toEqual({
+      kind: 'delete_draft',
+      label: 'Xóa bản nháp',
+      resourceId: 'draft-a',
+      resourceLabel: 'Đề Toán',
+      ownerUsername: 'teacher-a',
+    });
 
     sqlite.close();
   });
