@@ -58,13 +58,20 @@ const QuizStartNotice = ({
         className="w-full max-w-2xl overflow-hidden rounded-[16px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.10)]"
       >
         <div className="border-b border-slate-200 bg-sky-50 px-5 py-5 sm:px-7">
-          <ExamStartIcon name="exam-notice" className="mb-3 h-14 w-14" />
-          <h1 id="quiz-start-title" className="text-2xl font-bold tracking-tight text-slate-900">
-            Lưu ý trước khi làm bài
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Em hãy kiểm tra thông tin và đọc kỹ các lưu ý trước khi bắt đầu.
-          </p>
+          <div className="flex items-start gap-3 sm:gap-4">
+            <ExamStartIcon
+              name="exam-notice"
+              className="mt-0.5 h-12 w-12 shrink-0 sm:h-14 sm:w-14"
+            />
+            <div className="min-w-0">
+              <h1 id="quiz-start-title" className="text-2xl font-bold tracking-tight text-slate-900">
+                Lưu ý trước khi làm bài
+              </h1>
+              <p className="mt-1.5 text-sm leading-6 text-slate-600">
+                Em hãy kiểm tra thông tin và đọc kỹ các lưu ý trước khi bắt đầu.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-5 px-5 py-6 sm:px-7">
