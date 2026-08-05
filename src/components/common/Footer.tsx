@@ -2,6 +2,7 @@ import { getSystemDateParts } from '../../utils/dateTime';
 import React from 'react';
 import { ArrowUpRight, Globe, Mail, ShieldCheck } from 'lucide-react';
 import { PRODUCT_NAME } from '../../config/constants';
+import SchoolLogo from './SchoolLogo';
 
 export type FooterRoutePath = '/' | '/about' | '/contact' | '/privacy' | '/tos';
 
@@ -34,7 +35,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                         className="inline-flex min-h-11 items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                         aria-label="Về trang chủ TôHiệuQuiz"
                     >
-                        <img src="/favicon.svg" alt="" className="h-9 w-9 object-contain" />
+                        <SchoolLogo size={36} decorative />
                         <span className="text-lg font-extrabold tracking-tight">
                             <span className="text-[#1E3A8A]">TôHiệu</span>
                             <span className="text-[#EAB308]">Quiz</span>
@@ -72,7 +73,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                             className="inline-flex min-h-11 items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                             aria-label="Về trang chủ TôHiệuQuiz"
                         >
-                            <img src="/favicon.svg" alt="" className="h-11 w-11 object-contain" />
+                            <SchoolLogo size={44} decorative />
                             <span className="text-2xl font-extrabold tracking-tight">
                                 <span className="text-[#1E3A8A]">TôHiệu</span>
                                 <span className="text-[#EAB308]">Quiz</span>

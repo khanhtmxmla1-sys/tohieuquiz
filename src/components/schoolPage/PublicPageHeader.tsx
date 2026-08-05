@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ArrowRight, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import SchoolLogo from '../common/SchoolLogo';
 
 type PublicPage = 'about' | 'contact' | 'privacy' | 'tos';
 
@@ -56,7 +57,7 @@ const PublicPageHeader: React.FC<PublicPageHeaderProps> = ({ activePage, onBack 
                     className="inline-flex min-h-11 items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                     aria-label="Về trang chủ TôHiệuQuiz"
                 >
-                    <img src="/favicon.svg" alt="" className="h-10 w-10 object-contain" />
+                    <SchoolLogo size={40} decorative />
                     <span className="text-xl font-extrabold tracking-tight sm:text-2xl">
                         <span className="text-[#1E3A8A]">TôHiệu</span>
                         <span className="text-[#EAB308]">Quiz</span>
