@@ -106,6 +106,15 @@ export interface Assignment {
     submissionCountAtRevoke?: number;
 }
 
+export interface AssignmentStartData {
+    assignmentId: string;
+    attemptCount: number;
+    maxAttempts: number;
+    remainingAttempts: number;
+    deadline: string;
+    status: AssignmentStatus;
+}
+
 export interface AssignmentRevocationResult {
     assignmentId: string;
     status: 'REVOKED';

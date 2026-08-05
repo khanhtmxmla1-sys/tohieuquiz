@@ -3,6 +3,7 @@ import { Quiz, StudentResult } from '../types';
 import {
   AccessCodeForm,
   StudentInfoForm,
+  QuizStartNotice,
   SubmitConfirmModal,
   ResultScreen,
   QuestionRenderer,
@@ -25,7 +26,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
   const {
     step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
     enteredCode, setEnteredCode, codeError, isVerifyingCode, answers, timeLeft, result,
-    shuffledQuestions, isSubmitting, submitError, showReward, setShowReward,
+    shuffledQuestions, isStarting, startError, isSubmitting, submitError, showReward, setShowReward,
     showSubmitConfirm, setShowSubmitConfirm,
     rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
     handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward,
@@ -62,6 +63,20 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
         onNameChange={setStudentName}
         studentClass={studentClass}
         onClassChange={setStudentClass}
+        onStart={handleStart}
+        onExit={onExit}
+      />
+    );
+  }
+
+  if (step === 'notice') {
+    return (
+      <QuizStartNotice
+        quiz={quiz}
+        studentName={studentName}
+        studentClass={studentClass}
+        isStarting={isStarting}
+        startError={startError}
         onStart={handleStart}
         onExit={onExit}
       />
@@ -148,7 +163,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
           onCancel={() => setShowSubmitConfirm(false)}
           onConfirm={() => {
             setShowSubmitConfirm(false);
-            handleSubmit();
+            void handleSubmit();
           }}
         />
       </div>
