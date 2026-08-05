@@ -7,46 +7,46 @@ import QuickActionGrid, {
 
 const actions: DashboardQuickAction[] = [
     {
-        tab: 'create',
-        title: 'Tạo đề mới',
-        description: 'Bắt đầu xây dựng một đề kiểm tra.',
-        icon: 'quiz-create',
-        surfaceClassName: 'bg-sky-50',
-    },
-    {
         tab: 'assignments',
         title: 'Giao bài',
         description: 'Giao bài cho lớp học.',
-        icon: 'assignment',
-        surfaceClassName: 'bg-blue-50',
+        visual: 'assignment',
+        tone: 'blue',
     },
     {
         tab: 'live-exam',
         title: 'Thi trực tiếp',
         description: 'Tổ chức phòng thi trực tiếp.',
-        icon: 'live-exam',
-        surfaceClassName: 'bg-amber-50',
+        visual: 'live-exam',
+        tone: 'green',
     },
     {
         tab: 'results',
         title: 'Kết quả học tập',
         description: 'Theo dõi kết quả của học sinh.',
-        icon: 'learning-results',
-        surfaceClassName: 'bg-emerald-50',
+        visual: 'results',
+        tone: 'rose',
     },
     {
         tab: 'classes',
         title: 'Lớp học',
         description: 'Quản lý danh sách lớp.',
-        icon: 'classroom',
-        surfaceClassName: 'bg-cyan-50',
+        visual: 'classroom',
+        tone: 'cyan',
     },
     {
         tab: 'certificates',
         title: 'Chứng nhận',
         description: 'Cấp chứng nhận cho học sinh.',
-        icon: 'certificate',
-        surfaceClassName: 'bg-amber-50',
+        visual: 'certificate',
+        tone: 'orange',
+    },
+    {
+        tab: 'manage',
+        title: 'Quản lý đề',
+        description: 'Mở danh sách đề kiểm tra.',
+        visual: 'quiz-management',
+        tone: 'violet',
     },
 ];
 
@@ -60,12 +60,12 @@ describe('QuickActionGrid brand icons', () => {
         for (const action of actions) {
             expect(
                 container.querySelector(
-                    `img[src="/icons/tohieuquiz/${action.icon}.webp"]`,
+                    `img[src="/icons/tohieuquiz/dashboard-v2/${action.visual}.webp"]`,
                 ),
             ).toBeInTheDocument();
         }
 
-        fireEvent.click(screen.getByRole('button', { name: /Tạo đề mới/i }));
-        expect(onSelect).toHaveBeenCalledWith('create');
+        fireEvent.click(screen.getByRole('button', { name: /Giao bài/i }));
+        expect(onSelect).toHaveBeenCalledWith('assignments');
     });
 });
