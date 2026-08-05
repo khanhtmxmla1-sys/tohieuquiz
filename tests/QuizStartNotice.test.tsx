@@ -14,9 +14,9 @@ const quiz = {
 } as any;
 
 describe('QuizStartNotice', () => {
-  it('shows read-only student details and the exact start button label', () => {
+  it('shows read-only student details, eight exam icons and the exact start button label', () => {
     const onStart = vi.fn();
-    render(
+    const { container } = render(
       <QuizStartNotice
         quiz={quiz}
         studentName="Minh Khang"
@@ -34,8 +34,16 @@ describe('QuizStartNotice', () => {
     expect(screen.getByText('20 câu hỏi')).toBeInTheDocument();
     expect(screen.getByText('25 phút')).toBeInTheDocument();
     expect(screen.getByText('Còn 1 lượt làm')).toBeInTheDocument();
+    expect(screen.getByText('Trong khi làm bài, em hãy giữ nguyên trang và tránh tải lại trình duyệt.')).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+
+    const iconSources = Array.from(container.querySelectorAll<HTMLImageElement>('[data-exam-start-icon]'))
+      .map((icon) => icon.getAttribute('src'));
+    expect(iconSources).toHaveLength(8);
+    expect(new Set(iconSources).size).toBe(8);
+    expect(iconSources).toContain('/icons/exam-start/exam-notice.svg');
+    expect(iconSources).toContain('/icons/exam-start/stay-on-exam.svg');
 
     fireEvent.click(screen.getByRole('button', { name: 'Bắt đầu làm bài' }));
     expect(onStart).toHaveBeenCalledOnce();
