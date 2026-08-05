@@ -45,12 +45,23 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
 
     const pool = useMemo(() => {
         if (!isDragDrop) return [];
-        const blanks = Array.isArray(blanksData)
-            ? blanksData.filter((blank: unknown) => typeof blank === 'string')
+        const blankAnswers = Array.isArray(blanksData)
+            ? blanksData.map((blank: unknown) => {
+                if (typeof blank === 'string') return blank;
+                if (blank && typeof blank === 'object') {
+                    const record = blank as Record<string, unknown>;
+                    return String(record.correctAnswer ?? record.answer ?? record.value ?? '');
+                }
+                return '';
+            }).filter(Boolean)
             : [];
+        const values = [...blankAnswers];
+        distractors.map((value: unknown) => String(value)).filter(Boolean).forEach((value: string) => {
+            if (!values.includes(value)) values.push(value);
+        });
         return seededShuffle(
-            [...blanks, ...distractors].map((value) => String(value)),
-            `${q.id}:${JSON.stringify(blanks)}:${JSON.stringify(distractors)}`,
+            values,
+            `${q.id}:${JSON.stringify(blankAnswers)}:${JSON.stringify(distractors)}`,
         );
     }, [q.id, isDragDrop, blanksData, distractors]);
 

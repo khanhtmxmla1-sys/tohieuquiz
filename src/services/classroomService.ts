@@ -11,7 +11,7 @@ import { ApiError } from './api/errors';
 import {
     Classroom, CreateClassPayload,
     Student, CreateStudentPayload, StudentLoginPayload, StudentSession,
-    Assignment, AssignmentRevocationResult, CreateAssignmentPayload,
+    Assignment, AssignmentRevocationResult, AssignmentStartData, CreateAssignmentPayload,
     SmartAssignmentPreviewApiResponse,
     SmartAssignmentPreviewData, SmartAssignmentPreviewErrorData, SmartAssignmentPreviewRequest,
     ClassroomApiResponse,
@@ -326,11 +326,17 @@ export const getAllAssignments = async (): Promise<Assignment[]> => {
 };
 
 /**
- * Start an assignment attempt (tracks attempt count & creates initial result)
+ * Validate that the current student may start the selected assignment.
  */
-export const startAssignmentAttempt = async (assignmentId: string, studentId: string): Promise<boolean> => {
-    const res = await callWorkerApi('start_assignment_attempt', { assignmentId, studentId });
-    return res.status === 'success';
+export const startAssignmentAttempt = async (
+    assignmentId: string,
+    studentId: string,
+): Promise<AssignmentStartData> => {
+    const res = await callWorkerApi<AssignmentStartData>('start_assignment_attempt', { assignmentId, studentId });
+    if (res.status === 'success' && res.data) return res.data;
+    const error = new Error(res.message || 'Không thể bắt đầu làm bài.') as Error & { code?: string };
+    error.code = res.code;
+    throw error;
 };
 
 /**

@@ -141,6 +141,65 @@ describe('Classroom route contracts', () => {
         });
     });
 
+    it('returns assignment-scoped attempt data before a student starts', async () => {
+        asStudent('class-a');
+        const db = new ClassroomDatabase({
+            student: {
+                id: 'student-a', username: 'student-a', full_name: 'Lan',
+                class_id: 'class-a', class_name: '4A5',
+            },
+            assignment: {
+                id: 'assignment-a', quiz_id: 'quiz-a', class_id: 'class-a', student_id: '',
+                status: 'OPEN', deadline: '2099-01-01T00:00:00.000Z', max_attempts: 2,
+            },
+            attemptCount: 1,
+        });
+
+        const response = await callRoute('/api/assignments/assignment-a/start', 'POST', db, '{}');
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toMatchObject({
+            status: 'success',
+            data: {
+                assignmentId: 'assignment-a',
+                attemptCount: 1,
+                maxAttempts: 2,
+                remainingAttempts: 1,
+                deadline: '2099-01-01T00:00:00.000Z',
+                status: 'OPEN',
+            },
+        });
+        const countQuery = db.executed.find(statement => statement.sql.includes('COUNT(*) as cnt'));
+        expect(countQuery?.sql).toContain('assignment_id = ?');
+        expect(countQuery?.sql).toContain('student_id = ?');
+        expect(countQuery?.bindings).toContain('assignment-a');
+        expect(countQuery?.bindings).toContain('student-a');
+    });
+
+    it('returns a conflict with a stable code when all attempts are used', async () => {
+        asStudent('class-a');
+        const db = new ClassroomDatabase({
+            student: {
+                id: 'student-a', username: 'student-a', full_name: 'Lan',
+                class_id: 'class-a', class_name: '4A5',
+            },
+            assignment: {
+                id: 'assignment-a', quiz_id: 'quiz-a', class_id: 'class-a', student_id: '',
+                status: 'OPEN', deadline: '2099-01-01T00:00:00.000Z', max_attempts: 1,
+            },
+            attemptCount: 1,
+        });
+
+        const response = await callRoute('/api/assignments/assignment-a/start', 'POST', db, '{}');
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toMatchObject({
+            status: 'error',
+            code: 'ASSIGNMENT_ATTEMPTS_EXHAUSTED',
+            message: 'Em đã hết lượt làm bài này (1/1).',
+            attemptCount: 1,
+            maxAttempts: 1,
+        });
+    });
+
     it('rejects starting an assignment from another class', async () => {
         asStudent('class-a');
         const db = new ClassroomDatabase({

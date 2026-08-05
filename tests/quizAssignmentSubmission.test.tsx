@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QuestionType, type Quiz, type StudentResult } from '../src/types';
 
@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   calculateStudentScore: vi.fn(),
   onSaveResult: vi.fn(),
   trackQuizActivity: vi.fn(),
+  startAssignmentAttempt: vi.fn(),
 }));
 
 vi.mock('../src/stores/useClassroomStore', () => ({
@@ -25,6 +26,9 @@ vi.mock('../src/stores/useGameLoopStore', () => ({
 }));
 vi.mock('../src/services/quizValidationService', () => ({
   validateAnswersOnServer: mocks.validateAnswersOnServer,
+}));
+vi.mock('../src/services/classroomService', () => ({
+  startAssignmentAttempt: mocks.startAssignmentAttempt,
 }));
 vi.mock('../src/features/quiz-player/utils/quizScoring', () => ({
   calculateStudentScore: mocks.calculateStudentScore,
@@ -63,6 +67,14 @@ describe('assigned quiz result payload', () => {
       details: [{ questionId: 'q1', isCorrect: true }],
     });
     mocks.onSaveResult.mockImplementation(async (result: StudentResult) => result);
+    mocks.startAssignmentAttempt.mockResolvedValue({
+      assignmentId: 'assignment-current-3-attempts',
+      attemptCount: 1,
+      maxAttempts: 3,
+      remainingAttempts: 2,
+      deadline: '2099-01-01T00:00:00.000Z',
+      status: 'OPEN',
+    });
   });
 
   it('includes the active assignment id when submitting the result', async () => {
@@ -72,7 +84,10 @@ describe('assigned quiz result payload', () => {
       onSaveResult: mocks.onSaveResult,
     }));
 
-    await waitFor(() => expect(result.current.step).toBe('quiz'));
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    expect(result.current.step).toBe('quiz');
     act(() => result.current.handleAnswerChange('q1', 'B'));
     await act(async () => result.current.handleSubmit());
 

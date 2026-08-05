@@ -359,8 +359,16 @@ export const useQuizStore = create<QuizState>()(
                         }));
 
                         const currentSelectedQuiz = get().selectedQuiz;
-                        const updatedSelectedQuiz = currentSelectedQuiz
+                        const refreshedSelectedQuiz = currentSelectedQuiz
                             ? quizzes.find((quiz) => quiz.id === currentSelectedQuiz.id) || null
+                            : null;
+                        const updatedSelectedQuiz = currentSelectedQuiz
+                            ? refreshedSelectedQuiz
+                                ? {
+                                    ...refreshedSelectedQuiz,
+                                    _assignmentData: currentSelectedQuiz._assignmentData,
+                                }
+                                : currentSelectedQuiz
                             : null;
 
                         logger.debug(`Loaded ${quizzes.length} quizzes from D1`, {
