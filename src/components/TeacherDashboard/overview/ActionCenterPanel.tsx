@@ -10,13 +10,19 @@ import {
   Loader2,
   Radio,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import type {
   TeacherActionCenter,
   TeacherActionItem,
+  TeacherActionMutation,
 } from '../../../../shared/teacher-action-center.contract';
 import { fetchTeacherActionCenter } from '../../../services/teacherActionCenterService';
+import { deleteRemoteManualQuizDraftIfExists } from '../../../services/manualQuizDraftService';
+import { removeLocalDraft } from '../../../features/manual-quiz-workspace/draft/manualQuizDraftRepository';
 import { useOnlineStatus } from '../../../hooks/useOnlineStatus';
+import { showError, showSuccess } from '../../../utils/toast';
+import DraftDeleteDialog from './DraftDeleteDialog';
 
 const iconByKind = {
   assignment_at_risk: ClipboardList,
@@ -32,8 +38,17 @@ const toneBySeverity = {
   info: 'border-sky-200 bg-sky-50 text-sky-900',
 } as const;
 
-const ActionItem = ({ item }: { item: TeacherActionItem }) => {
+interface ActionItemProps {
+  item: TeacherActionItem;
+  deletingDraftId: string | null;
+  onSecondaryAction: (action: TeacherActionMutation) => void;
+}
+
+const ActionItem = ({ item, deletingDraftId, onSecondaryAction }: ActionItemProps) => {
   const Icon = iconByKind[item.kind];
+  const secondaryAction = item.secondaryAction;
+  const isDeletingThisDraft = secondaryAction?.resourceId === deletingDraftId;
+
   return (
     <article className={`rounded-2xl border p-4 ${toneBySeverity[item.severity]}`}>
       <div className="flex items-start gap-3">
@@ -48,13 +63,30 @@ const ActionItem = ({ item }: { item: TeacherActionItem }) => {
             </span>
           </div>
           <p className="mt-1 text-sm leading-6 opacity-80">{item.explanation}</p>
-          <Link
-            to={item.cta.url}
-            className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-          >
-            {item.cta.label}
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              to={item.cta.url}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+            >
+              {item.cta.label}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            {secondaryAction ? (
+              <button
+                type="button"
+                onClick={() => onSecondaryAction(secondaryAction)}
+                disabled={Boolean(deletingDraftId)}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-rose-200 bg-white/80 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDeletingThisDraft ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                )}
+                {secondaryAction.label}
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </article>
@@ -66,6 +98,8 @@ const ActionCenterPanel: React.FC = () => {
   const [data, setData] = useState<TeacherActionCenter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pendingDeleteAction, setPendingDeleteAction] = useState<TeacherActionMutation | null>(null);
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -82,6 +116,32 @@ const ActionCenterPanel: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const handleDeleteDraft = useCallback(async () => {
+    const action = pendingDeleteAction;
+    if (!action || deletingDraftId) return;
+
+    setDeletingDraftId(action.resourceId);
+    try {
+      await deleteRemoteManualQuizDraftIfExists(action.resourceId);
+      try {
+        removeLocalDraft(action.ownerUsername, action.resourceId);
+      } catch (localCleanupError) {
+        console.warn('[ActionCenter] Could not remove the local draft copy:', localCleanupError);
+      }
+      setPendingDeleteAction(null);
+      setData((current) => current ? {
+        ...current,
+        items: current.items.filter((item) => item.secondaryAction?.resourceId !== action.resourceId),
+      } : current);
+      await load();
+      showSuccess('Đã xóa bản nháp.');
+    } catch (deleteError) {
+      showError(deleteError instanceof Error ? deleteError.message : 'Không thể xóa bản nháp.');
+    } finally {
+      setDeletingDraftId(null);
+    }
+  }, [deletingDraftId, load, pendingDeleteAction]);
 
   return (
     <section aria-labelledby="teacher-action-center-title" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -130,9 +190,25 @@ const ActionCenterPanel: React.FC = () => {
 
       {data && data.items.length > 0 && (
         <div className="mt-5 grid gap-3 lg:grid-cols-2">
-          {data.items.map((item) => <ActionItem key={item.id} item={item} />)}
+          {data.items.map((item) => (
+            <ActionItem
+              key={item.id}
+              item={item}
+              deletingDraftId={deletingDraftId}
+              onSecondaryAction={setPendingDeleteAction}
+            />
+          ))}
         </div>
       )}
+
+      <DraftDeleteDialog
+        action={pendingDeleteAction}
+        isDeleting={Boolean(deletingDraftId)}
+        onClose={() => {
+          if (!deletingDraftId) setPendingDeleteAction(null);
+        }}
+        onConfirm={() => void handleDeleteDraft()}
+      />
     </section>
   );
 };

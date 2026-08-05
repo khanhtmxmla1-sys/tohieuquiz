@@ -14,6 +14,16 @@ export interface TeacherActionCta {
   url: string;
 }
 
+export type TeacherActionMutationKind = 'delete_draft';
+
+export interface TeacherActionMutation {
+  kind: TeacherActionMutationKind;
+  label: string;
+  resourceId: string;
+  resourceLabel: string;
+  ownerUsername: string;
+}
+
 export interface TeacherActionItem {
   id: string;
   kind: TeacherActionKind;
@@ -23,6 +33,7 @@ export interface TeacherActionItem {
   count: number;
   generatedAt: string;
   cta: TeacherActionCta;
+  secondaryAction?: TeacherActionMutation;
 }
 
 export interface TeacherActionCenter {
