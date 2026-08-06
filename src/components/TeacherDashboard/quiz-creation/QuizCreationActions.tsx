@@ -110,7 +110,7 @@ export const QuizCreationActions = ({
       layout={layout}
       title={manualQuizWorkspaceEnabled ? 'Tạo đề bằng AI' : 'Tạo đề mới'}
       description={manualQuizWorkspaceEnabled
-        ? 'Tạo nhanh đề kiểm tra, câu hỏi và gợi ý đáp án theo từng khối lớp.'
+        ? 'Tạo nhanh từ chủ đề, nội dung hoặc PDF.'
         : 'Mở công cụ tạo đề hiện tại và bắt đầu soạn bài kiểm tra.'}
       actionLabel={manualQuizWorkspaceEnabled ? 'Tạo ngay' : 'Bắt đầu'}
       visual="ai-quiz-robot"
@@ -122,7 +122,7 @@ export const QuizCreationActions = ({
       <CreationActionButton
         layout={layout}
         title="Soạn đề thủ công"
-        description="Tự xây dựng đề kiểm tra với trình soạn thảo quen thuộc và kiểm soát từng câu hỏi."
+        description="Tự nhập, sắp xếp và kiểm soát từng câu hỏi."
         actionLabel="Soạn ngay"
         visual="manual-quiz"
         tone="green"
