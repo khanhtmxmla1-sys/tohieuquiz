@@ -54,6 +54,15 @@ describe('manual quiz local draft repository', () => {
         expect(deserializeManualQuizDraft(first.payload)).toEqual(envelope);
     });
 
+    it('preserves the configured duration through local draft persistence', () => {
+        const envelope = makeEnvelope();
+        envelope.quiz.timeLimit = 45;
+
+        saveLocalDraft(envelope);
+
+        expect(loadLocalDraft('teacher-a', 'draft-1')?.quiz.timeLimit).toBe(45);
+    });
+
     it('rejects non-persistable files, blob URLs and oversized base64 images', () => {
         const withFile = makeEnvelope();
         (withFile.quiz.questions[0] as any).attachment = new File(['data'], 'question.png');

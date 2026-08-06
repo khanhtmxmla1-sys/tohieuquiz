@@ -16,6 +16,7 @@ import PointDistributionDialog from './components/PointDistributionDialog';
 import QuestionBankDrawer from './components/QuestionBankDrawer';
 import WorkspaceMobileTabs, { type WorkspaceMobilePane } from './components/WorkspaceMobileTabs';
 import QuizEditorAccessBanner from './components/QuizEditorAccessBanner';
+import QuizSettingsDrawer from './components/QuizSettingsDrawer';
 import {
     findLatestLocalDraft,
     removeLocalDraft,
@@ -72,6 +73,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const [pendingRecovery, setPendingRecovery] = useState<ManualQuizDraftEnvelope | null>(null);
     const [recoveryChecked, setRecoveryChecked] = useState(false);
     const [isValidationOpen, setValidationOpen] = useState(false);
+    const [isSettingsOpen, setSettingsOpen] = useState(false);
     const [isPointDialogOpen, setPointDialogOpen] = useState(false);
     const [previousPoints, setPreviousPoints] = useState<Record<string, number> | null>(null);
     const [isQuestionBankOpen, setQuestionBankOpen] = useState(false);
@@ -166,7 +168,8 @@ const ManualQuizWorkspacePage: React.FC = () => {
     }, [envelope, isReadOnly, validationIssues]);
 
     const closeActiveSurface = useCallback(() => {
-        if (isValidationOpen) setValidationOpen(false);
+        if (isSettingsOpen) setSettingsOpen(false);
+        else if (isValidationOpen) setValidationOpen(false);
         else if (isPointDialogOpen) setPointDialogOpen(false);
         else if (isQuestionImportOpen) setQuestionImportOpen(false);
         else if (isQuestionBankOpen) setQuestionBankOpen(false);
@@ -176,6 +179,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
         isPreviewCollapsed,
         isQuestionBankOpen,
         isQuestionImportOpen,
+        isSettingsOpen,
         isValidationOpen,
         setPreviewCollapsed,
     ]);
@@ -378,7 +382,11 @@ const ManualQuizWorkspacePage: React.FC = () => {
                         Không thể mở Trình soạn đề: {editorAccessError}
                     </div>
                 )}
-                <WorkspaceHeader onOpenValidation={openValidation} readOnly={isReadOnly} />
+                <WorkspaceHeader
+                    onOpenValidation={openValidation}
+                    onOpenSettings={() => setSettingsOpen(true)}
+                    readOnly={isReadOnly}
+                />
                 {editability && (
                     <QuizEditorAccessBanner
                         editability={editability}
@@ -398,7 +406,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
                             id="workspace-pane-list"
                             data-testid="workspace-pane-list"
                             data-mobile-visible={mobilePane === 'list'}
-                            className={`min-h-0 min-w-0 overflow-hidden ${mobilePane === 'list' ? 'block' : 'hidden'} md:block`}
+                            className={`h-full min-h-0 min-w-0 overflow-hidden ${mobilePane === 'list' ? 'block' : 'hidden'} md:block`}
                         >
                             <QuestionNavigator
                                 onOpenQuestionBank={() => setQuestionBankOpen(true)}
@@ -437,13 +445,29 @@ const ManualQuizWorkspacePage: React.FC = () => {
                         onClose={() => setValidationOpen(false)}
                         onGoToQuestion={goToQuestionIssue}
                         onFixPoints={() => setPointDialogOpen(true)}
-                        onFixTime={() => updateQuiz({ timeLimit: 30 })}
+                        onFixTime={() => {
+                            setValidationOpen(false);
+                            setSettingsOpen(true);
+                        }}
                         onPublish={requestPublish}
                         isPublishing={publishController.isPublishing}
                         publishError={publishController.error}
                         cleanupWarning={publishController.cleanupWarning}
                         canUndoPoints={previousPoints !== null}
                         onUndoPoints={undoPointDistribution}
+                    />
+                )}
+                {envelope && (
+                    <QuizSettingsDrawer
+                        open={isSettingsOpen}
+                        timeLimit={envelope.quiz.timeLimit}
+                        readOnly={isReadOnly}
+                        onClose={() => setSettingsOpen(false)}
+                        onApply={(timeLimit) => {
+                            if (isReadOnly) return;
+                            updateQuiz({ timeLimit });
+                            setSettingsOpen(false);
+                        }}
                     />
                 )}
                 {username && (

@@ -16,6 +16,7 @@ const WorkspaceStatusBar: React.FC<WorkspaceStatusBarProps> = ({ onOpenValidatio
     const totalPoints = useManualQuizWorkspaceStore(selectManualQuizTotalPoints);
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const targetPoints = envelope?.targetPoints ?? 10;
+    const timeLimit = envelope?.quiz.timeLimit ?? 0;
     const summary = envelope
         ? summarizeManualQuizIssues(validateManualQuiz(envelope.quiz, { targetPoints }))
         : { errorCount: 0, warningCount: 0, successCount: 0 };
@@ -30,6 +31,7 @@ const WorkspaceStatusBar: React.FC<WorkspaceStatusBarProps> = ({ onOpenValidatio
             <p className="min-w-0 truncate text-slate-600">
                 <strong className="text-slate-800">{questionCount} câu</strong>
                 {' • '}Tổng {totalPoints}/{targetPoints} điểm
+                {' • '}{timeLimit} phút
                 {' • '}{summary.errorCount + summary.warningCount} mục cần kiểm tra
             </p>
             <button

@@ -24,10 +24,15 @@ const SOURCE_TYPE_COPY: Record<string, string> = {
 
 interface WorkspaceHeaderProps {
     onOpenValidation(): void;
+    onOpenSettings(): void;
     readOnly?: boolean;
 }
 
-const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation, readOnly = false }) => {
+const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
+    onOpenValidation,
+    onOpenSettings,
+    readOnly = false,
+}) => {
     const navigate = useNavigate();
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const saveStatus = useManualQuizWorkspaceStore((state) => state.saveStatus);
@@ -97,9 +102,12 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ onOpenValidation, rea
                 )}
                 <button
                     type="button"
-                    className="hidden h-11 items-center gap-2 rounded-[10px] border border-slate-200 px-3 text-sm font-medium xl:inline-flex"
+                    onClick={onOpenSettings}
+                    aria-label="Mở thiết lập đề"
+                    className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-slate-200 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
-                    <Settings2 className="h-4 w-4" /> Thiết lập đề
+                    <Settings2 className="h-4 w-4" />
+                    <span className="hidden xl:inline">Thiết lập đề</span>
                 </button>
                 <button
                     type="button"

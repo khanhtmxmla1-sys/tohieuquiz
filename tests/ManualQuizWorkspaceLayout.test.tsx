@@ -52,6 +52,7 @@ describe('ManualQuizWorkspace desktop shell', () => {
         expect(screen.getByRole('status', { name: 'Trạng thái đề kiểm tra' })).toHaveClass('sticky');
         expect(screen.getByDisplayValue('Kiểm tra giữa kỳ – Toán lớp 3')).toBeInTheDocument();
         expect(screen.getByTestId('workspace-grid')).toHaveClass('min-h-0');
+        expect(screen.getByTestId('workspace-pane-list')).toHaveClass('h-full', 'min-h-0', 'overflow-hidden');
     });
 
     it('opens publish validation from the header and status bar', async () => {
@@ -64,6 +65,21 @@ describe('ManualQuizWorkspace desktop shell', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Xem lỗi' }));
         expect(screen.getByRole('dialog', { name: 'Kiểm tra trước khi xuất bản' })).toBeInTheDocument();
+    });
+
+    it('opens quiz settings, applies the whole-quiz duration and updates the status bar', async () => {
+        renderWorkspace();
+        const settingsButton = await screen.findByRole('button', { name: 'Mở thiết lập đề' });
+
+        fireEvent.click(settingsButton);
+        const dialog = screen.getByRole('dialog', { name: 'Thiết lập đề' });
+        const input = screen.getByRole('spinbutton', { name: 'Thời gian làm bài (phút)' });
+        fireEvent.change(input, { target: { value: '45' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Áp dụng thiết lập' }));
+
+        expect(dialog).not.toBeInTheDocument();
+        expect(useManualQuizWorkspaceStore.getState().envelope?.quiz.timeLimit).toBe(45);
+        expect(screen.getByRole('status', { name: 'Trạng thái đề kiểm tra' })).toHaveTextContent('45 phút');
     });
 
     it('collapses navigator and preview without removing the editor', async () => {
