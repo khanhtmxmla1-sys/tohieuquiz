@@ -5,6 +5,7 @@ import { NotificationCenter } from '../../../features/notifications/components';
 import NotificationBell from '../../common/NotificationBell';
 import SchoolLogo from '../../common/SchoolLogo';
 import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIStore';
+import { formatSystemDateWithOptions } from '../../../utils/dateTime';
 import type { DashboardSearchDestination } from './dashboardConfig';
 import { DashboardSearchForm } from './DashboardSearchForm';
 import { TeacherAccountMenu } from './TeacherAccountMenu';
@@ -41,9 +42,10 @@ export const TeacherDashboardHeader = (props: TeacherDashboardHeaderProps) => {
   const activeLabel = props.activeTab === 'create' && props.manualQuizWorkspaceEnabled
     ? 'Tạo đề bằng AI'
     : TAB_LABELS[props.activeTab] || 'Tổng quan';
-  const dateLabel = new Intl.DateTimeFormat('vi-VN', {
+  const formattedDateLabel = formatSystemDateWithOptions(new Date(), {
     weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric',
-  }).format(new Date());
+  });
+  const dateLabel = formattedDateLabel.charAt(0).toUpperCase() + formattedDateLabel.slice(1);
 
   const notificationControl = props.unifiedNotificationsReady && (
     props.unifiedNotificationsEnabled

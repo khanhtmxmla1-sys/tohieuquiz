@@ -171,7 +171,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         inert={isMobileDrawerInactive || undefined}
         className={`fixed left-0 top-0 z-50 flex h-full w-[256px] flex-col overflow-hidden border-r border-slate-200 bg-white transition-transform duration-300 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        <div className="flex h-[76px] shrink-0 items-center border-b border-slate-100 px-5">
+        <div className="flex h-16 shrink-0 items-center border-b border-slate-100 px-5">
           <div className="flex items-center gap-3">
             <div className="grid size-11 place-items-center rounded-2xl bg-blue-50 p-1"><SchoolLogo size={32} /></div>
             <span className="text-xl font-bold tracking-tight text-slate-900">TôHiệu<span className="text-blue-600">Quiz</span></span>
