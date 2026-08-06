@@ -70,6 +70,10 @@ describe('teacher dashboard visual assets', () => {
     const image = screen.getByRole('presentation', { hidden: true });
     expect(image).toHaveAttribute('width', String(TEACHER_DASHBOARD_VISUALS['ai-quiz-robot'].width));
     expect(image).toHaveAttribute('height', String(TEACHER_DASHBOARD_VISUALS['ai-quiz-robot'].height));
+    expect(image).toHaveAttribute(
+      'src',
+      '/illustrations/tohieuquiz/teacher-dashboard-v2/ai-quiz-robot.webp?v=051cea737ccc',
+    );
     expect(image).toHaveAttribute('alt', '');
     expect(image).toHaveAttribute('decoding', 'async');
 
