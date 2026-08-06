@@ -28,6 +28,7 @@ export type TeacherDashboardVisualName =
 
 interface TeacherDashboardVisualDefinition {
   src: string;
+  revision?: string;
   width: number;
   height: number;
   maxBytes: number;
@@ -39,7 +40,7 @@ const iconBase = '/icons/tohieuquiz/dashboard-v2';
 
 export const TEACHER_DASHBOARD_VISUALS: Record<TeacherDashboardVisualName, TeacherDashboardVisualDefinition> = {
   'teacher-welcome': { src: `${illustrationBase}/teacher-welcome.webp`, width: 960, height: 540, maxBytes: 160000, label: 'Giáo viên hướng dẫn học sinh học tập' },
-  'ai-quiz-robot': { src: `${illustrationBase}/ai-quiz-robot.webp`, width: 480, height: 360, maxBytes: 90000, label: 'Trợ lý AI tạo đề kiểm tra' },
+  'ai-quiz-robot': { src: `${illustrationBase}/ai-quiz-robot.webp`, revision: '051cea737ccc', width: 480, height: 360, maxBytes: 90000, label: 'Trợ lý AI tạo đề kiểm tra' },
   'manual-quiz': { src: `${illustrationBase}/manual-quiz.webp`, width: 480, height: 360, maxBytes: 90000, label: 'Sổ tay soạn đề thủ công' },
   classroom: { src: `${iconBase}/classroom.webp`, width: 160, height: 160, maxBytes: 32000, label: 'Lớp học' },
   test: { src: `${iconBase}/quiz-create.webp`, width: 160, height: 160, maxBytes: 32000, label: 'Bài kiểm tra' },
@@ -86,6 +87,9 @@ const TeacherDashboardVisual: React.FC<TeacherDashboardVisualProps> = ({
 }) => {
   const [failed, setFailed] = useState(false);
   const definition = TEACHER_DASHBOARD_VISUALS[name];
+  const resolvedSrc = definition.revision
+    ? `${definition.src}?v=${definition.revision}`
+    : definition.src;
   const FallbackIcon = fallbackIcons[name];
   const accessibleLabel = alt || definition.label;
 
@@ -106,7 +110,7 @@ const TeacherDashboardVisual: React.FC<TeacherDashboardVisualProps> = ({
 
   return (
     <img
-      src={definition.src}
+      src={resolvedSrc}
       width={definition.width}
       height={definition.height}
       alt={decorative ? '' : accessibleLabel}
