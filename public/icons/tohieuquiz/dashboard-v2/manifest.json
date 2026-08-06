@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-06T00:52:56.709Z",
+  "generatedAt": "2026-08-06T13:01:15.557Z",
   "generator": "scripts/build-teacher-dashboard-assets.mjs",
   "assets": [
     {
@@ -16,24 +16,24 @@
     {
       "name": "ai-quiz-robot",
       "category": "illustration",
-      "source": "artifacts/teacher-dashboard-source/ai-quiz-robot.svg",
+      "source": "artifacts/teacher-dashboard-source/ai-quiz-robot.webp",
       "src": "/illustrations/tohieuquiz/teacher-dashboard-v2/ai-quiz-robot.webp",
       "width": 480,
       "height": 360,
-      "bytes": 28848,
+      "bytes": 34932,
       "maxBytes": 90000,
-      "sha256": "131bfe122f82f5fe814aef9fffbd8ba7e060aa75c8d39e9ffd5fe2ea44f8e1d9"
+      "sha256": "5ea04310af6af388e20ec77c856b2c1f7e4c2239783f6b81b27de735c925d072"
     },
     {
       "name": "manual-quiz",
       "category": "illustration",
-      "source": "artifacts/teacher-dashboard-source/manual-quiz.svg",
+      "source": "artifacts/teacher-dashboard-source/manual-quiz.webp",
       "src": "/illustrations/tohieuquiz/teacher-dashboard-v2/manual-quiz.webp",
       "width": 480,
       "height": 360,
-      "bytes": 15624,
+      "bytes": 26382,
       "maxBytes": 90000,
-      "sha256": "357977bef22360f064ce130c376a4463a715784088f6ab05b2afeb01092ddb25"
+      "sha256": "0d474e12723e2e5da450cae0880013212d4d5a442dc525e70575af5146e17d2f"
     },
     {
       "name": "assignment",

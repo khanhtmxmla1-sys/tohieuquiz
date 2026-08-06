@@ -17,8 +17,24 @@ const assets = [
     height: 540,
     maxBytes: 160000,
   },
-  { name: 'ai-quiz-robot', category: 'illustration', width: 480, height: 360, maxBytes: 90000 },
-  { name: 'manual-quiz', category: 'illustration', width: 480, height: 360, maxBytes: 90000 },
+  {
+    name: 'ai-quiz-robot',
+    sourceFilename: 'ai-quiz-robot.webp',
+    passthrough: true,
+    category: 'illustration',
+    width: 480,
+    height: 360,
+    maxBytes: 90000,
+  },
+  {
+    name: 'manual-quiz',
+    sourceFilename: 'manual-quiz.webp',
+    passthrough: true,
+    category: 'illustration',
+    width: 480,
+    height: 360,
+    maxBytes: 90000,
+  },
   { name: 'assignment', category: 'icon', width: 160, height: 160, maxBytes: 32000 },
   { name: 'live-exam', category: 'icon', width: 160, height: 160, maxBytes: 32000 },
   { name: 'results', category: 'icon', width: 160, height: 160, maxBytes: 32000 },
@@ -56,18 +72,26 @@ for (const asset of assets) {
   if (!sourceMetadata.hasAlpha) {
     throw new Error(`${asset.name}: source artwork must contain an alpha channel`);
   }
+  if (asset.passthrough
+    && (sourceMetadata.width !== asset.width || sourceMetadata.height !== asset.height)) {
+    throw new Error(
+      `${asset.name}: approved source must be exactly ${asset.width}x${asset.height}`,
+    );
+  }
 
   const outputDirectory = asset.category === 'illustration' ? illustrationDirectory : iconDirectory;
   const outputPath = path.join(outputDirectory, `${asset.name}.webp`);
-  const output = await sharp(source, { density: 180 })
-    .resize(asset.width, asset.height, {
-      fit: 'contain',
-      position: 'center',
-      background: transparent,
-      withoutEnlargement: false,
-    })
-    .webp({ quality: asset.category === 'illustration' ? 84 : 86, alphaQuality: 100, smartSubsample: true })
-    .toBuffer();
+  const output = asset.passthrough
+    ? source
+    : await sharp(source, { density: 180 })
+      .resize(asset.width, asset.height, {
+        fit: 'contain',
+        position: 'center',
+        background: transparent,
+        withoutEnlargement: false,
+      })
+      .webp({ quality: asset.category === 'illustration' ? 84 : 86, alphaQuality: 100, smartSubsample: true })
+      .toBuffer();
 
   if (output.byteLength > asset.maxBytes) {
     throw new Error(`${asset.name}: ${output.byteLength} bytes exceeds ${asset.maxBytes}`);

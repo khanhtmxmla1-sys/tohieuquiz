@@ -48,6 +48,10 @@ describe('teacher dashboard visual assets', () => {
     expect(manifest.assets).toHaveLength(11);
     expect(manifest.assets.find((asset) => asset.name === 'teacher-welcome')?.source)
       .toBe('artifacts/teacher-dashboard-source/teacher-welcome.webp');
+    expect(manifest.assets.find((asset) => asset.name === 'ai-quiz-robot')?.source)
+      .toBe('artifacts/teacher-dashboard-source/ai-quiz-robot.webp');
+    expect(manifest.assets.find((asset) => asset.name === 'manual-quiz')?.source)
+      .toBe('artifacts/teacher-dashboard-source/manual-quiz.webp');
     for (const asset of manifest.assets) {
       expect(asset.bytes).toBeGreaterThan(0);
       expect(asset.sha256).toMatch(/^[a-f0-9]{64}$/);
