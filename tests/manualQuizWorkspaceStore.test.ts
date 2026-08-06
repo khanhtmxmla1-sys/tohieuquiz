@@ -89,6 +89,18 @@ describe('manual quiz workspace store', () => {
         expect(state.envelope!.selectedQuestionId).toBe(duplicateId);
     });
 
+    it('updates the whole-quiz duration and marks the draft as changed', () => {
+        const store = useManualQuizWorkspaceStore.getState();
+        store.initializeFromSeed(seed, 'teacher-a');
+        useManualQuizWorkspaceStore.getState().setSaveStatus('saved');
+
+        useManualQuizWorkspaceStore.getState().updateQuiz({ timeLimit: 45 });
+
+        const state = useManualQuizWorkspaceStore.getState();
+        expect(state.envelope?.quiz.timeLimit).toBe(45);
+        expect(state.saveStatus).toBe('idle');
+    });
+
     it('derives point totals and actionable quality counts', () => {
         const store = useManualQuizWorkspaceStore.getState();
         store.initializeFromSeed(seed, 'teacher-a');

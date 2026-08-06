@@ -96,7 +96,7 @@ const IssueAction: React.FC<{
                 onClick={onFixTime}
                 className="inline-flex min-h-10 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-sky-700 hover:bg-white"
             >
-                <Clock3 className="h-3.5 w-3.5" /> Đặt thời gian 30 phút
+                <Clock3 className="h-3.5 w-3.5" /> Chỉnh thời gian
             </button>
         );
     }

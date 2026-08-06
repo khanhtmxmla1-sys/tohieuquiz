@@ -77,6 +77,10 @@ describe('ManualQuizWorkspace editor access integration', () => {
     expect(screen.getByText('Được tạo bằng AI')).toBeInTheDocument();
     expect(screen.getByText('Chỉ đọc – dữ liệu gốc được bảo vệ')).toBeInTheDocument();
     expect(screen.getByTestId('workspace-grid')).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Mở thiết lập đề' }));
+    expect(screen.getByRole('dialog', { name: 'Thiết lập đề' })).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Thời gian làm bài (phút)' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Áp dụng thiết lập' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tạo phiên bản mới để chỉnh sửa' })).toBeEnabled();
   });
 

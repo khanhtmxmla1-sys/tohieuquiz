@@ -49,6 +49,15 @@ describe('QuestionNavigator operations', () => {
         expect(reorder).toHaveBeenCalledTimes(1);
     });
 
+    it('declares a bounded independent scroll region for long question lists', () => {
+        render(<QuestionNavigator />);
+
+        const navigator = screen.getByRole('navigation', { name: 'Danh sách câu hỏi' });
+        const scrollRegion = screen.getByTestId('question-navigator-scroll');
+        expect(navigator).toHaveClass('h-full', 'min-h-0', 'overflow-hidden');
+        expect(scrollRegion).toHaveClass('min-h-0', 'flex-1', 'overflow-y-auto');
+    });
+
     it('renders stable drag handles and moves questions with keyboard-friendly buttons', () => {
         render(<QuestionNavigator />);
 

@@ -100,6 +100,17 @@ describe('remote manual quiz autosave', () => {
         expect(screen.getByTestId('remote-status')).toHaveTextContent('saved');
     });
 
+    it('syncs the configured duration in the remote draft envelope', async () => {
+        putRemoteMock.mockImplementation(async () => serverRecord(1, 'Đề trên máy'));
+        render(<AutosaveHarness />);
+
+        act(() => useManualQuizWorkspaceStore.getState().updateQuiz({ timeLimit: 60 }));
+        await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+
+        expect(putRemoteMock).toHaveBeenCalledTimes(1);
+        expect(putRemoteMock.mock.calls[0][0].quiz.timeLimit).toBe(60);
+    });
+
     it('keeps a new placeholder draft local until the teacher adds meaningful content', async () => {
         useManualQuizWorkspaceStore.getState().reset();
         useManualQuizWorkspaceStore.getState().initializeFromSeed({

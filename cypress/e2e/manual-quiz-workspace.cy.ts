@@ -46,6 +46,24 @@ const validDraft = () => {
     };
 };
 
+const longDraft = () => {
+    const draft = validDraft();
+    draft.draftId = 'manual-e2e-long-draft';
+    draft.selectedQuestionId = 'manual-e2e-question-1';
+    draft.quiz.title = 'Đề 30 câu E2E';
+    draft.quiz.questions = Array.from({ length: 30 }, (_, index) => ({
+        id: `manual-e2e-question-${index + 1}`,
+        type: 'MCQ',
+        question: `Câu hỏi số ${index + 1}`,
+        options: ['1', '2', '3', '4'],
+        correctAnswer: 'A',
+        difficulty: 1,
+        points: index === 29 ? 0.43 : 0.33,
+        explanation: `Giải thích câu ${index + 1}.`,
+    }));
+    return draft;
+};
+
 const installAuth = (win: Window) => {
     win.localStorage.setItem('auth-storage', authStorageValue);
 };
@@ -92,6 +110,7 @@ const interceptManualQuizBackend = () => {
     }).as('accountProfile');
     cy.intercept('PUT', '**/api/quiz-drafts/*', (request) => {
         const draft = request.body.draft;
+        if (draft?.quiz?.timeLimit === 45) request.alias = 'saveTimeDraft';
         const revision = Number(request.body.expectedRevision || 0) + 1;
         request.reply({
             statusCode: 200,
@@ -192,6 +211,52 @@ describe('Manual quiz workspace end-to-end', () => {
         });
         cy.wait('@saveDraft', { timeout: 15_000 });
         cy.contains('Đã tự động lưu').should('be.visible');
+    });
+
+    it('scrolls the question navigator independently to the final question', () => {
+        cy.viewport(1440, 900);
+        visitManualWorkspace(longDraft());
+        continueRecoveredDraft('Đề 30 câu E2E');
+
+        let pageScrollBeforeNavigator = 0;
+        cy.window().then((win) => {
+            pageScrollBeforeNavigator = win.scrollY;
+        });
+
+        cy.get('[data-testid="question-navigator-scroll"]').should(($region) => {
+            const element = $region[0];
+            expect(element.scrollHeight, 'navigator scroll height').to.be.greaterThan(element.clientHeight);
+        }).scrollTo('bottom');
+
+        cy.window().then((win) => {
+            expect(win.scrollY, 'page scroll position after navigator scroll').to.eq(pageScrollBeforeNavigator);
+        });
+        cy.get('button[aria-label^="Chọn câu 30:"]').should('be.visible').click();
+        cy.get('textarea[placeholder="Nhập nội dung câu hỏi..."]').should('have.value', 'Câu hỏi số 30');
+    });
+
+    it('persists the configured duration and publishes the same value', () => {
+        visitManualWorkspace(validDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.get('button[aria-label="Mở thiết lập đề"]').click();
+        cy.get('#manual-quiz-time-limit').clear().type('45');
+        cy.get('button[aria-label="Áp dụng thiết lập"]').click();
+        cy.wait('@saveTimeDraft', { timeout: 15_000 })
+            .its('request.body.draft.quiz.timeLimit')
+            .should('eq', 45);
+
+        cy.reload();
+        cy.wait('@accountProfile', { timeout: 15_000 });
+        continueRecoveredDraft('Đề kiểm tra E2E');
+        cy.get('button[aria-label="Mở thiết lập đề"]').click();
+        cy.get('#manual-quiz-time-limit').should('have.value', '45');
+        cy.get('button[aria-label="Đóng thiết lập đề"]').click();
+
+        cy.contains('button', 'Kiểm tra và xuất bản').click();
+        cy.contains('button', 'Xuất bản đề').click();
+        cy.wait('@publishQuiz').its('request.body.timeLimit').should('eq', 45);
+        cy.wait('@deleteDraft');
     });
 
     it('validates a recovered draft and publishes exactly once', () => {

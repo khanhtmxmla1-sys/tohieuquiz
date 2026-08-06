@@ -91,6 +91,24 @@ describe('ManualQuizWorkspace focus and screen-reader access', () => {
         await waitFor(() => expect(trigger).toHaveFocus());
     });
 
+    it('traps focus in quiz settings, closes with Escape and returns focus to the trigger', async () => {
+        renderWorkspace();
+        const trigger = await screen.findByRole('button', { name: 'Mở thiết lập đề' });
+        trigger.focus();
+        fireEvent.click(trigger);
+
+        const dialog = screen.getByRole('dialog', { name: 'Thiết lập đề' });
+        const input = screen.getByRole('spinbutton', { name: 'Thời gian làm bài (phút)' });
+        expect(input).toHaveFocus();
+
+        fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+        expect(dialog).toContainElement(document.activeElement as HTMLElement);
+
+        fireEvent.keyDown(window, { key: 'Escape' });
+        expect(screen.queryByRole('dialog', { name: 'Thiết lập đề' })).not.toBeInTheDocument();
+        await waitFor(() => expect(trigger).toHaveFocus());
+    });
+
     it('saves the current question, advances and restores editor focus with Ctrl+Enter', async () => {
         renderWorkspace();
         await screen.findByRole('main', { name: 'Trình soạn câu hỏi' });

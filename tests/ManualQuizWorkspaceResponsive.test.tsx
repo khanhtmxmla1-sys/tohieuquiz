@@ -55,6 +55,7 @@ describe('ManualQuizWorkspace responsive layout', () => {
             'xl:w-[380px]',
         );
         expect(screen.getByRole('navigation', { name: 'Chuyển vùng soạn đề trên di động' })).toHaveClass('md:hidden');
+        expect(screen.getByRole('button', { name: 'Mở thiết lập đề' })).toHaveClass('inline-flex');
     });
 
     it('switches the three mobile panes while tablet panes remain breakpoint-controlled', async () => {

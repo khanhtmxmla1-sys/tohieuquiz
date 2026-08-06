@@ -24,10 +24,16 @@ const addQuestion = (id: string, prompt: string, points: number, answer = 'B') =
     });
 };
 
-const DrawerHarness = ({ onPublish = vi.fn() }: { onPublish?: () => void }) => {
+const DrawerHarness = ({
+    onPublish = vi.fn(),
+    onFixTime = vi.fn(),
+}: {
+    onPublish?: () => void;
+    onFixTime?: () => void;
+}) => {
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const selectQuestion = useManualQuizWorkspaceStore((state) => state.selectQuestion);
-    const updateQuiz = useManualQuizWorkspaceStore((state) => state.updateQuiz);
+
     const setQuestionPoints = useManualQuizWorkspaceStore((state) => state.setQuestionPoints);
     const [showPoints, setShowPoints] = useState(false);
     const [lastPoints, setLastPoints] = useState<Record<string, number> | null>(null);
@@ -46,7 +52,7 @@ const DrawerHarness = ({ onPublish = vi.fn() }: { onPublish?: () => void }) => {
                 onClose={vi.fn()}
                 onGoToQuestion={(questionId) => selectQuestion(questionId)}
                 onFixPoints={() => setShowPoints(true)}
-                onFixTime={() => updateQuiz({ timeLimit: 30 })}
+                onFixTime={onFixTime}
                 onPublish={onPublish}
                 canUndoPoints={lastPoints !== null}
                 onUndoPoints={() => {
@@ -117,17 +123,18 @@ describe('PublishValidationDrawer', () => {
         expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions.map((question) => question.points)).toEqual([1, 1, 1]);
     });
 
-    it('updates time from the quick action and enables publish when only warnings remain', () => {
+    it('opens the time settings flow instead of silently replacing the duration', () => {
         addQuestion('q-1', 'Câu 1', 10);
         useManualQuizWorkspaceStore.getState().updateQuiz({ timeLimit: 0 });
-        const onPublish = vi.fn();
-        render(<DrawerHarness onPublish={onPublish} />);
+        const onFixTime = vi.fn();
+        render(<DrawerHarness onFixTime={onFixTime} />);
 
         expect(screen.getByRole('button', { name: 'Xuất bản đề' })).toBeDisabled();
-        fireEvent.click(screen.getByRole('button', { name: 'Đặt thời gian 30 phút' }));
-        expect(useManualQuizWorkspaceStore.getState().envelope?.quiz.timeLimit).toBe(30);
-        expect(screen.getByRole('button', { name: 'Xuất bản đề' })).toBeEnabled();
-        fireEvent.click(screen.getByRole('button', { name: 'Xuất bản đề' }));
-        expect(onPublish).toHaveBeenCalledTimes(1);
+        fireEvent.click(screen.getByRole('button', { name: 'Chỉnh thời gian' }));
+        expect(onFixTime).toHaveBeenCalledTimes(1);
+        expect(useManualQuizWorkspaceStore.getState().envelope?.quiz.timeLimit).toBe(0);
+
+
+
     });
 });
