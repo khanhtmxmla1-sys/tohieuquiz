@@ -15,7 +15,7 @@ export const DashboardSearchForm = ({
   onSubmit,
   options,
 }: DashboardSearchFormProps) => (
-  <form onSubmit={onSubmit} className="relative hidden md:block">
+  <form onSubmit={onSubmit} className="relative hidden w-full max-w-[520px] md:block">
     <label htmlFor="teacher-dashboard-search" className="sr-only">Tìm chức năng</label>
     <input
       id="teacher-dashboard-search"
@@ -23,8 +23,8 @@ export const DashboardSearchForm = ({
       list="teacher-dashboard-search-options"
       value={searchQuery}
       onChange={event => setSearchQuery(event.target.value)}
-      placeholder="Tìm chức năng..."
-      className="h-10 w-52 rounded-[10px] border border-[#E5E7EB] bg-[#F8FAFC] py-2 pl-3 pr-10 text-sm text-[#172033] outline-none transition-colors placeholder:text-[#9AA5B1] focus:border-[#0EA5E9] focus:bg-white focus:ring-2 focus:ring-[#BAE6FD] lg:w-64"
+      placeholder="Tìm kiếm lớp học, đề kiểm tra, học sinh..."
+      className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-4 pr-11 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
     />
     <button
       type="submit"

@@ -47,15 +47,15 @@ describe('Teacher dashboard sidebar accessibility', () => {
         });
     });
 
-    it('keeps creation choices out of navigation and places Overview directly below the logo', () => {
+    it('uses the approved AI entry and places Overview directly below the logo', () => {
         const { container } = renderSidebar();
         const drawer = container.querySelector('aside');
 
-        expect(screen.queryByRole('button', { name: 'Tạo đề bằng AI' })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Tạo đề bằng AI' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Soạn đề thủ công' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Tạo đề mới' })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Tổng quan' })).toHaveAttribute('aria-current', 'page');
-        expect(drawer?.className).toContain('w-[240px]');
+        expect(drawer?.className).toContain('w-[256px]');
     });
 
     it('does not expose navigation for removed legacy features', () => {
@@ -68,8 +68,8 @@ describe('Teacher dashboard sidebar accessibility', () => {
 
         expect(screen.queryByRole('button', { name: 'Tài khoản' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Quản trị hệ thống' })).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Đề thi' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Dạy và giao bài' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Giảng dạy' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Quản lý lớp' })).toBeInTheDocument();
     });
 
     it('keeps account and system destinations out of the admin sidebar', () => {
@@ -78,22 +78,22 @@ describe('Teacher dashboard sidebar accessibility', () => {
 
         expect(screen.queryByRole('button', { name: 'Tài khoản' })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Quản trị hệ thống' })).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Chứng nhận' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Quản trị' })).toBeInTheDocument();
     });
 
     it('keeps multiple navigation groups open and exposes accordion state', () => {
         renderSidebar();
 
-        const examGroup = screen.getByRole('button', { name: 'Đề thi' });
-        const teachingGroup = screen.getByRole('button', { name: 'Dạy và giao bài' });
+        const teachingGroup = screen.getByRole('button', { name: 'Giảng dạy' });
+        const personalGroup = screen.getByRole('button', { name: 'Cá nhân' });
 
-        expect(examGroup.getAttribute('aria-expanded')).toBe('true');
-        expect(teachingGroup.getAttribute('aria-expanded')).toBe('false');
+        expect(teachingGroup.getAttribute('aria-expanded')).toBe('true');
+        expect(personalGroup.getAttribute('aria-expanded')).toBe('false');
 
-        fireEvent.click(teachingGroup);
+        fireEvent.click(personalGroup);
 
-        expect(screen.getByRole('button', { name: 'Đề thi' }).getAttribute('aria-expanded')).toBe('true');
-        expect(screen.getByRole('button', { name: 'Dạy và giao bài' }).getAttribute('aria-expanded')).toBe('true');
+        expect(screen.getByRole('button', { name: 'Giảng dạy' }).getAttribute('aria-expanded')).toBe('true');
+        expect(screen.getByRole('button', { name: 'Cá nhân' }).getAttribute('aria-expanded')).toBe('true');
     });
 
     it('closes an open mobile drawer when Escape is pressed', () => {

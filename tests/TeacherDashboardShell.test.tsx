@@ -432,7 +432,7 @@ describe('TeacherDashboard shell contracts', () => {
   });
   it('searches dashboard destinations and reports an unknown function', async () => {
     render(<TeacherDashboard />);
-    const search = screen.getByPlaceholderText('Tìm chức năng...');
+    const search = screen.getByPlaceholderText('Tìm kiếm lớp học, đề kiểm tra, học sinh...');
 
     fireEvent.change(search, { target: { value: 'điểm' } });
     fireEvent.submit(search.closest('form') as HTMLFormElement);

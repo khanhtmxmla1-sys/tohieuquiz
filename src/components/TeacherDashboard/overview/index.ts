@@ -2,6 +2,8 @@ export { default as ActionCenterPanel } from './ActionCenterPanel';
 export { default as DashboardHero } from './DashboardHero';
 export { default as DashboardKpiGrid } from './DashboardKpiGrid';
 export { default as MetricGrid } from './MetricGrid';
+export { default as MyClassesPanel } from './MyClassesPanel';
+export { default as OutstandingStudentsPanel } from './OutstandingStudentsPanel';
 export { default as PerformancePanel } from './PerformancePanel';
 export { default as QuickActionGrid } from './QuickActionGrid';
 export { default as QuizCreationChoicePanel } from './QuizCreationChoicePanel';

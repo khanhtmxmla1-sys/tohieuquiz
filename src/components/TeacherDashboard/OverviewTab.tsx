@@ -1,4 +1,4 @@
-﻿import { formatSystemDateWithOptions, formatSystemTime, getSystemDateKey } from '../../utils/dateTime';
+import { formatSystemDateWithOptions, formatSystemTime, getSystemDateKey } from '../../utils/dateTime';
 import React, { useMemo } from 'react';
 import type { ResultDashboardSummary, ResultSummaryStatistics } from '../../../shared/result-summary.contract';
 import { useQuizStore } from '../../../stores/quizStore';
@@ -11,6 +11,8 @@ import {
   ActionCenterPanel,
   DashboardHero,
   DashboardKpiGrid,
+  MyClassesPanel,
+  OutstandingStudentsPanel,
   PerformancePanel,
   QuickActionGrid,
   QuizCreationChoicePanel,
@@ -54,8 +56,7 @@ const EMPTY_SUMMARY_STATISTICS: ResultSummaryStatistics = {
   ],
 };
 
-const isSameLocalDay = (first: Date, second: Date): boolean =>
-  getSystemDateKey(first) === getSystemDateKey(second);
+const isSameLocalDay = (first: Date, second: Date): boolean => getSystemDateKey(first) === getSystemDateKey(second);
 
 const getGreeting = (date: Date): string => {
   const hour = Number(formatSystemTime(date).slice(0, 2));
@@ -65,12 +66,7 @@ const getGreeting = (date: Date): string => {
 };
 
 const formatDateLabel = (date: Date): string => {
-  const value = formatSystemDateWithOptions(date, {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  const value = formatSystemDateWithOptions(date, { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
   return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
@@ -117,21 +113,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   }, [filteredResults]);
 
   const recentActivities = useMemo(() => (
-    todayResults
-      .slice()
-      .sort((first, second) => new Date(second.submittedAt).getTime() - new Date(first.submittedAt).getTime())
-      .slice(0, 5)
+    todayResults.slice().sort((first, second) => new Date(second.submittedAt).getTime() - new Date(first.submittedAt).getTime()).slice(0, 5)
   ), [todayResults]);
 
   const recentQuizzes = useMemo(() => (
-    visibleQuizzes
-      .slice()
-      .sort((first, second) => {
-        const firstTime = new Date(first.createdAt).getTime();
-        const secondTime = new Date(second.createdAt).getTime();
-        return (Number.isNaN(secondTime) ? 0 : secondTime) - (Number.isNaN(firstTime) ? 0 : firstTime);
-      })
-      .slice(0, 5)
+    visibleQuizzes.slice().sort((first, second) => {
+      const firstTime = new Date(first.createdAt).getTime();
+      const secondTime = new Date(second.createdAt).getTime();
+      return (Number.isNaN(secondTime) ? 0 : secondTime) - (Number.isNaN(firstTime) ? 0 : firstTime);
+    }).slice(0, 5)
   ), [visibleQuizzes]);
 
   const scopeLabel = authStore.isAdmin ? 'Toàn trường' : formatScopeLabel(authStore.teacherClass);
@@ -140,59 +130,19 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   const isInitialResultsLoading = resultsLoadState === 'loading' && filteredResults.length === 0;
   const isSummaryLoading = summaryLoadState === 'loading' && !resultSummary;
   const isSummaryUnavailable = summaryLoadState === 'error' && !resultSummary;
-  const summaryFallbackText = summaryLoadState === 'loading'
-    ? 'Đang tải số liệu tổng quan'
-    : 'Không thể tải số liệu tổng quan';
-  const alertTitle = resultsLoadState === 'error'
-    ? 'Không thể tải kết quả học tập'
-    : 'Không thể tải số liệu tổng quan';
+  const summaryFallbackText = summaryLoadState === 'loading' ? 'Đang tải số liệu tổng quan' : 'Không thể tải số liệu tổng quan';
+  const alertTitle = resultsLoadState === 'error' ? 'Không thể tải kết quả học tập' : 'Không thể tải số liệu tổng quan';
   const alertMessage = resultsLoadState === 'error'
     ? (resultsError || 'Vui lòng kiểm tra kết nối rồi thử lại.')
     : (summaryError || 'Vui lòng kiểm tra kết nối rồi thử lại.');
   const showAlert = resultsLoadState === 'error' || summaryLoadState === 'error';
 
   const metrics: DashboardKpi[] = [
-    {
-      label: 'Đề kiểm tra',
-      value: visibleQuizzes.length,
-      helper: `${scopeLabel} · ${recentQuizzes.length} đề gần đây`,
-      visual: 'test',
-      tone: 'blue',
-    },
-    {
-      label: 'Điểm trung bình',
-      value: resultSummary ? statistics.mean.toFixed(1) : '—',
-      helper: resultSummary ? `${statistics.passRate}% bài đạt từ 5 điểm` : summaryFallbackText,
-      visual: 'results',
-      tone: 'green',
-      resultDependent: true,
-    },
-    {
-      label: 'Tổng lượt nộp',
-      value: resultSummary?.totalSubmissions ?? '—',
-      helper: resultSummary
-        ? `${resultSummary.uniqueCompletedWorks} bài hoàn thành · ${resultSummary.todaySubmissions} lượt hôm nay`
-        : summaryFallbackText,
-      visual: 'assignment',
-      tone: 'violet',
-      resultDependent: true,
-    },
-    {
-      label: 'Học sinh tham gia',
-      value: resultSummary?.uniqueStudents ?? '—',
-      helper: resultSummary ? 'Tính theo dữ liệu học sinh đã tham gia' : summaryFallbackText,
-      visual: 'students',
-      tone: 'orange',
-      resultDependent: true,
-    },
-    {
-      label: 'Tỷ lệ đạt',
-      value: resultSummary ? `${statistics.passRate}%` : '—',
-      helper: resultSummary ? `${statistics.passCount} bài đạt từ 5 điểm` : summaryFallbackText,
-      visual: 'results',
-      tone: 'rose',
-      resultDependent: true,
-    },
+    { label: 'Lớp học', value: authStore.isAdmin ? '—' : (authStore.teacherClass || '—'), helper: scopeLabel, visual: 'classroom', tone: 'cyan' },
+    { label: 'Bài kiểm tra', value: visibleQuizzes.length, helper: `${recentQuizzes.length} đề gần đây`, visual: 'test', tone: 'blue' },
+    { label: 'Bài đã giao', value: resultSummary?.uniqueCompletedWorks ?? '—', helper: resultSummary ? `${resultSummary.todaySubmissions} lượt nộp hôm nay` : summaryFallbackText, visual: 'assignment', tone: 'violet', resultDependent: true },
+    { label: 'Học sinh', value: resultSummary?.uniqueStudents ?? '—', helper: resultSummary ? 'Đã tham gia hoạt động học tập' : summaryFallbackText, visual: 'students', tone: 'orange', resultDependent: true },
+    { label: 'Tỷ lệ đạt', value: resultSummary ? `${statistics.passRate}%` : '—', helper: resultSummary ? `${statistics.passCount} bài đạt từ 5 điểm` : summaryFallbackText, visual: 'results', tone: 'rose', resultDependent: true },
   ];
 
   const quickActions: DashboardQuickAction[] = [
@@ -205,57 +155,42 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-4 sm:space-y-5 lg:space-y-6">
-      <DashboardHero
-        greeting={getGreeting(now)}
-        teacherName={authStore.teacherName || authStore.username || 'Cô/Thầy'}
-        dateLabel={formatDateLabel(now)}
-        scopeLabel={scopeLabel}
-        isAdmin={Boolean(authStore.isAdmin)}
-      />
+    <div className="mx-auto w-full max-w-[1500px] space-y-5 lg:space-y-6">
+      <div data-testid="dashboard-top-grid" className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.75fr)_minmax(330px,0.75fr)]">
+        <DashboardHero
+          greeting={getGreeting(now)}
+          teacherName={authStore.teacherName || authStore.username || 'Cô/Thầy'}
+          dateLabel={formatDateLabel(now)}
+          scopeLabel={scopeLabel}
+          isAdmin={Boolean(authStore.isAdmin)}
+        />
+        <ActionCenterPanel compact />
+      </div>
 
       {showAlert && (
         <Alert tone="danger" title={alertTitle} className="flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-orange-700">{alertMessage}</p>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void onRetryResults()}
-              disabled={!isOnline}
-              title={!isOnline ? 'Cần kết nối mạng để thử lại.' : undefined}
-            >
-              Thử lại
-            </Button>
+            <Button variant="secondary" size="sm" onClick={() => void onRetryResults()} disabled={!isOnline} title={!isOnline ? 'Cần kết nối mạng để thử lại.' : undefined}>Thử lại</Button>
           </div>
         </Alert>
       )}
 
       <DashboardKpiGrid metrics={metrics} isLoadingResults={isSummaryLoading} />
-
-      <QuizCreationChoicePanel
-        manualQuizWorkspaceEnabled={manualQuizWorkspaceEnabled}
-        onCreateWithAi={onCreateQuizWithAi}
-        onCreateManually={onCreateQuizManually}
-      />
-
-      <ActionCenterPanel />
+      <QuizCreationChoicePanel manualQuizWorkspaceEnabled={manualQuizWorkspaceEnabled} onCreateWithAi={onCreateQuizWithAi} onCreateManually={onCreateQuizManually} />
       <QuickActionGrid actions={quickActions} onSelect={onSelectTab} />
 
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] xl:gap-5">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,0.8fr)]">
         <PerformancePanel statistics={statistics} isLoading={isSummaryLoading} hasError={isSummaryUnavailable} />
-        <RecentSubmissionsPanel
-          submissions={recentActivities}
-          isLoading={isInitialResultsLoading}
-          hasError={resultsLoadState === 'error'}
-          onViewAll={() => onSelectTab('results')}
-        />
+        <RecentSubmissionsPanel submissions={recentActivities} isLoading={isInitialResultsLoading} hasError={resultsLoadState === 'error'} onViewAll={() => onSelectTab('results')} />
       </div>
 
-      <RecentQuizzesPanel
-        quizzes={recentQuizzes}
-        onManageQuizzes={() => onSelectTab('manage')}
-      />
+      <div data-testid="dashboard-lower-grid" className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)]">
+        <RecentQuizzesPanel quizzes={recentQuizzes} onManageQuizzes={() => onSelectTab('manage')} />
+        <MyClassesPanel teacherClass={authStore.teacherClass} isAdmin={Boolean(authStore.isAdmin)} studentCount={resultSummary?.uniqueStudents ?? 0} onOpenClasses={() => onSelectTab('classes')} />
+      </div>
+
+      <OutstandingStudentsPanel results={filteredResults} onViewResults={() => onSelectTab('results')} />
     </div>
   );
 };

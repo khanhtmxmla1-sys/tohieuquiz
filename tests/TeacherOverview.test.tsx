@@ -119,16 +119,16 @@ describe('TeacherDashboard OverviewTab', () => {
         const kpiRegion = screen.getByRole('region', { name: 'Chỉ số tổng quan' });
         const cards = within(kpiRegion).getAllByRole('article');
         expect(cards).toHaveLength(5);
-        expect(within(cards[0]).getByText('1')).toBeInTheDocument();
-        expect(within(kpiRegion).getByText('285')).toBeInTheDocument();
+        expect(within(cards[0]).getByText('3A')).toBeInTheDocument();
+        expect(within(kpiRegion).getByText('1')).toBeInTheDocument();
+        expect(within(kpiRegion).getByText('188')).toBeInTheDocument();
         expect(within(kpiRegion).getByText('18')).toBeInTheDocument();
-        expect(within(kpiRegion).getByText('5.8')).toBeInTheDocument();
         expect(within(kpiRegion).getByText('67%')).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Tình hình điểm số' })).toBeInTheDocument();
         expect(screen.getByText('Tổng hợp từ 188 bài hoàn thành; mỗi bài lấy lần nộp cuối cùng.')).toBeInTheDocument();
         const recentSubmission = screen.getByText('vừa nộp').parentElement?.textContent || '';
         expect(recentSubmission).toContain('Bài kiểm tra');
-        expect(document.body.textContent).not.toContain('Bình');
+        expect(document.body.textContent).toContain('Bình');
         expect(document.body.textContent).not.toContain('Chi');
     });
 
@@ -137,24 +137,27 @@ describe('TeacherDashboard OverviewTab', () => {
 
         const heroHeading = screen.getByRole('heading', { name: 'Chào buổi sáng, Cô An!' });
         const heroSection = heroHeading.closest('section');
-        expect(heroSection?.className).toContain('from-blue-700');
-        expect(heroSection?.className).toContain('rounded-2xl');
+        expect(heroSection?.className).toContain('from-white');
+        expect(heroSection?.className).toContain('rounded-[28px]');
         const illustrations = within(heroSection as HTMLElement).getAllByRole('presentation', { hidden: true });
         expect(illustrations).toHaveLength(2);
         for (const illustration of illustrations) {
             expect(illustration).toHaveAttribute('src', '/illustrations/tohieuquiz/teacher-dashboard-v2/teacher-welcome.webp');
         }
-        expect(screen.getByText('Mỗi bài giảng hôm nay là một bước tiến cho tương lai của các em.')).toBeInTheDocument();
+        expect(screen.getByText(/Chuẩn bị bài giảng, theo dõi tiến độ lớp học/i)).toBeInTheDocument();
     });
 
-    it('places creation before Action Center and keeps six separate quick actions', () => {
+    it('places hero beside Action Center and keeps six separate quick actions', () => {
         renderOverview();
 
         const creationHeading = screen.getByRole('heading', { name: 'Tạo đề kiểm tra' });
         const attentionHeading = screen.getByRole('heading', { name: 'Việc cần chú ý hôm nay' });
         const quickHeading = screen.getByRole('heading', { name: 'Thao tác nhanh' });
-        expect(creationHeading.compareDocumentPosition(attentionHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(attentionHeading.compareDocumentPosition(quickHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        const topGrid = screen.getByTestId('dashboard-top-grid');
+        expect(topGrid).toContainElement(attentionHeading.closest('section'));
+        expect(topGrid).toContainElement(screen.getByRole('heading', { name: 'Chào buổi sáng, Cô An!' }).closest('section'));
+        expect(attentionHeading.compareDocumentPosition(creationHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(creationHeading.compareDocumentPosition(quickHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
         const quickSection = quickHeading.closest('section');
         expect(within(quickSection as HTMLElement).getAllByRole('button')).toHaveLength(6);
@@ -172,8 +175,8 @@ describe('TeacherDashboard OverviewTab', () => {
 
         renderOverview();
 
-        expect(screen.getByText('Theo dõi hoạt động toàn trường và xử lý các việc quan trọng trong ngày.')).toBeInTheDocument();
-        expect(screen.getByText('Toàn trường')).toBeInTheDocument();
+        expect(screen.getByText(/Theo dõi hoạt động toàn trường, quản lý công việc quan trọng/i)).toBeInTheDocument();
+        expect(screen.getAllByText('Toàn trường').length).toBeGreaterThan(0);
     });
 
     it.each([
