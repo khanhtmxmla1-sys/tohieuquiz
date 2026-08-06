@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "assets:module-icons": "node scripts/build-module-icons.mjs",
+    "assets:teacher-dashboard": "node scripts/build-teacher-dashboard-assets.mjs --write",
     "sitemap:generate": "node scripts/generate_sitemap.cjs",
     "build": "node scripts/cloudflare-build-router.mjs",
     "build:frontend": "vite build && node scripts/generate_sitemap.cjs dist/sitemap.xml",

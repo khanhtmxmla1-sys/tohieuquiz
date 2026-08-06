@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-08-05T17:54:01.893Z",
+  "generator": "scripts/build-teacher-dashboard-assets.mjs",
+  "assets": [
+    {
+      "name": "teacher-welcome",
+      "category": "illustration",
+      "source": "artifacts/teacher-dashboard-source/teacher-welcome.svg",
+      "src": "/illustrations/tohieuquiz/teacher-dashboard-v2/teacher-welcome.webp",
+      "width": 960,
+      "height": 540,
+      "bytes": 81700,
+      "maxBytes": 160000,
+      "sha256": "416737725296da42852c2832da6a4f123d1e74429ab24d686b8d765d30e591f6"
+    },
+    {
+      "name": "ai-quiz-robot",
+      "category": "illustration",
+      "source": "artifacts/teacher-dashboard-source/ai-quiz-robot.svg",
+      "src": "/illustrations/tohieuquiz/teacher-dashboard-v2/ai-quiz-robot.webp",
+      "width": 480,
+      "height": 360,
+      "bytes": 28848,
+      "maxBytes": 90000,
+      "sha256": "131bfe122f82f5fe814aef9fffbd8ba7e060aa75c8d39e9ffd5fe2ea44f8e1d9"
+    },
+    {
+      "name": "manual-quiz",
+      "category": "illustration",
+      "source": "artifacts/teacher-dashboard-source/manual-quiz.svg",
+      "src": "/illustrations/tohieuquiz/teacher-dashboard-v2/manual-quiz.webp",
+      "width": 480,
+      "height": 360,
+      "bytes": 15624,
+      "maxBytes": 90000,
+      "sha256": "357977bef22360f064ce130c376a4463a715784088f6ab05b2afeb01092ddb25"
+    },
+    {
+      "name": "assignment",
+      "category": "icon",
+      "source": "artifacts/teacher-dashboard-source/assignment.svg",
+      "src": "/icons/tohieuquiz/dashboard-v2/assignment.webp",
+      "width": 160,
+      "height": 160,
+      "bytes": 6442,
+      "maxBytes": 32000,
+      "sha256": "2e8fdd60faeed7c0bcee4e81ef97a11cd44065665a2d119c704d6cfb1c30bbda"
+    },
+    {
+      "name": "live-exam",
+      "category": "icon",
+      "source": "artifacts/teacher-dashboard-source/live-exam.svg",
+      "src": "/icons/tohieuquiz/dashboard-v2/live-exam.webp",
+      "width": 160,
+      "height": 160,
+      "bytes": 6498,
+      "maxBytes": 32000,
+      "sha256": "6948498a7c7e2eef3c4364036f6d924fe07ea0c0f53ddc0e3cf66744dcd3288b"
+    },
+    {
+      "name": "results",
+      "category": "icon",
+      "source": "artifacts/teacher-dashboard-source/results.svg",
+      "src": "/icons/tohieuquiz/dashboard-v2/results.webp",
+      "width": 160,
+      "height": 160,
+      "bytes": 6114,
+      "maxBytes": 32000,
+      "sha256": "a3ca40f879b26f494f8c82ef05a02bc8fb8e664af116d41e3f6346088346a6be"
+    },
+    {
+      "name": "students",
+      "category": "icon",
+      "source": "artifacts/teacher-dashboard-source/students.svg",
+      "src": "/icons/tohieuquiz/dashboard-v2/students.webp",
+      "width": 160,
+      "height": 160,
+      "bytes": 6552,
+      "maxBytes": 32000,
+      "sha256": "1b36a023df9cb7763d51000e773e33383ae9bd56fd09770fe867f31f148da7ae"
+    },
+    {
+      "name": "classroom",
+      "category": "icon",
+      "source": "artifacts/teacher-dashboard-source/classroom.svg",
+      "src": "/icons/tohieuquiz/dashboard-v2/classroom.webp",
+      "width": 160,
+      "height": 160,
+      "bytes": 5770,
+      "maxBytes": 32000,
+      "sha256": "15974be9d9794353c59c55be346f560b57d64292ea101ecc425aeae368b08c30"
+    },
+    {
+      "name": "certificate",
+      "category": "icon",
+      "source": "artifacts/teacher-dashboard-source/certificate.svg",
+      "src": "/icons/tohieuquiz/dashboard-v2/certificate.webp",
+      "width": 160,
+      "height": 160,
+      "bytes": 6690,
+      "maxBytes": 32000,
+      "sha256": "b7e1bbdbfa3a33f693b5c9f2e9e224b0f87533676b2914205a4b300ee6d7bc23"
+    },
+    {
+      "name": "quiz-management",
+      "category": "icon",
+      "source": "artifacts/teacher-dashboard-source/quiz-management.svg",
+      "src": "/icons/tohieuquiz/dashboard-v2/quiz-management.webp",
+      "width": 160,
+      "height": 160,
+      "bytes": 5834,
+      "maxBytes": 32000,
+      "sha256": "1309121bcf554cd94b3a30f04e39af16bd0a5e7153081b570050411d063e0f3d"
+    },
+    {
+      "name": "quiz-create",
+      "category": "icon",
+      "source": "artifacts/teacher-dashboard-source/quiz-create.svg",
+      "src": "/icons/tohieuquiz/dashboard-v2/quiz-create.webp",
+      "width": 160,
+      "height": 160,
+      "bytes": 5800,
+      "maxBytes": 32000,
+      "sha256": "88e7bbb731a2c367b738cc22a8f222783b7dbf71dec8207db9a56d13ebb46e90"
+    }
+  ]
+}

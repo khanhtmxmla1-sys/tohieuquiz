@@ -2953,6 +2953,18 @@ canvas {
     word-break: break-word;
 }
 
+:root {
+  --color-dashboard-blue: #2563eb;
+  --color-dashboard-blue-soft: #eff6ff;
+  --color-dashboard-cyan-soft: #ecfeff;
+  --color-dashboard-green-soft: #ecfdf5;
+  --color-dashboard-violet-soft: #f5f3ff;
+  --color-dashboard-orange-soft: #fff7ed;
+  --color-dashboard-rose-soft: #fff1f2;
+  --color-dashboard-shell: #f8fafc;
+  --dashboard-card-shadow: 0 10px 30px rgb(30 64 175 / 0.06);
+}
+
 /* Warm Human Education: scoped student and teacher surfaces. */
 .student-dashboard,
 .student-quiz-shell,

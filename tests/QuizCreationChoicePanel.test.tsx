@@ -10,29 +10,30 @@ describe('QuizCreationChoicePanel', () => {
 
     render(
       <QuizCreationChoicePanel
+        manualQuizWorkspaceEnabled
         onCreateWithAi={onCreateWithAi}
         onCreateManually={onCreateManually}
       />,
     );
 
     expect(screen.getByRole('heading', { name: 'Tạo đề kiểm tra' })).toBeInTheDocument();
-
     fireEvent.click(screen.getByRole('button', { name: 'Tạo đề bằng AI' }));
-    expect(onCreateWithAi).toHaveBeenCalledTimes(1);
-    expect(onCreateManually).not.toHaveBeenCalled();
-
     fireEvent.click(screen.getByRole('button', { name: 'Soạn đề thủ công' }));
+    expect(onCreateWithAi).toHaveBeenCalledTimes(1);
     expect(onCreateManually).toHaveBeenCalledTimes(1);
   });
 
-  it('uses the responsive cards layout', () => {
+  it('uses the responsive cards layout and preserves the legacy single action', () => {
     render(
       <QuizCreationChoicePanel
+        manualQuizWorkspaceEnabled={false}
         onCreateWithAi={vi.fn()}
         onCreateManually={vi.fn()}
       />,
     );
 
     expect(screen.getByTestId('quiz-creation-actions')).toHaveAttribute('data-layout', 'cards');
+    expect(screen.getByRole('button', { name: 'Tạo đề mới' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Soạn đề thủ công' })).not.toBeInTheDocument();
   });
 });

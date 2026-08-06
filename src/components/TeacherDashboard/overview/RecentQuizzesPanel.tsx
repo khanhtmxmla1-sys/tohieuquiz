@@ -1,162 +1,80 @@
 import { formatSystemDate } from '../../../utils/dateTime';
 import React from 'react';
-import { ArrowRight, Clock3, FilePlus2, Files, ListChecks } from 'lucide-react';
+import { ArrowRight, Clock3, Files, ListChecks } from 'lucide-react';
 import type { Quiz } from '../../../types';
-import { QuizCreationActions } from '../quiz-creation';
 
 interface RecentQuizzesPanelProps {
-    quizzes: Quiz[];
-    manualQuizWorkspaceEnabled: boolean;
-    onCreateQuizWithAi: () => void;
-    onCreateQuizManually: () => void;
-    onManageQuizzes: () => void;
+  quizzes: Quiz[];
+  onManageQuizzes: () => void;
 }
 
 const formatQuizDate = (value: string): string => formatSystemDate(value, 'Chưa cập nhật');
 
-const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({
-    quizzes,
-    manualQuizWorkspaceEnabled,
-    onCreateQuizWithAi,
-    onCreateQuizManually,
-    onManageQuizzes,
-}) => (
-    <section aria-labelledby="recent-quizzes-heading" className="min-w-0 max-w-full overflow-hidden rounded-[14px] border border-slate-200 bg-white">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-            <div>
-                <p className="text-sm font-medium text-sky-700">Nội dung giảng dạy</p>
-                <h2 id="recent-quizzes-heading" className="mt-1 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-                    Đề kiểm tra gần đây
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">Mở danh sách quản lý hoặc bắt đầu tạo một đề mới.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-                {manualQuizWorkspaceEnabled ? (
-                    <QuizCreationActions
-                        layout="compact"
-                        onCreateWithAi={onCreateQuizWithAi}
-                        onCreateManually={onCreateQuizManually}
-                    />
-                ) : (
-                    <button
-                        type="button"
-                        onClick={onCreateQuizWithAi}
-                        className="inline-flex min-h-10 items-center gap-2 rounded-[10px] bg-sky-700 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
-                    >
-                        <FilePlus2 aria-hidden="true" className="size-4" />
-                        Tạo đề
-                    </button>
-                )}
-                <button
-                    type="button"
-                    onClick={onManageQuizzes}
-                    className="inline-flex min-h-10 items-center gap-2 rounded-[10px] border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
-                >
-                    Xem tất cả
-                    <ArrowRight aria-hidden="true" className="size-4" />
-                </button>
-            </div>
-        </div>
+const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({ quizzes, onManageQuizzes }) => (
+  <section
+    aria-labelledby="recent-quizzes-heading"
+    className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[var(--dashboard-card-shadow)]"
+  >
+    <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-blue-700">Nội dung giảng dạy</p>
+        <h2 id="recent-quizzes-heading" className="mt-1 text-xl font-bold tracking-tight text-slate-900">
+          Đề kiểm tra gần đây
+        </h2>
+      </div>
+      <button
+        type="button"
+        onClick={onManageQuizzes}
+        className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+      >
+        Xem tất cả
+        <ArrowRight aria-hidden="true" className="size-4" />
+      </button>
+    </div>
 
-        {quizzes.length > 0 ? (
-            <>
-                <div className="hidden overflow-x-auto lg:block">
-                    <table className="w-full min-w-[760px] border-collapse text-left">
-                        <thead>
-                            <tr className="border-b border-slate-200 bg-slate-50 text-xs font-medium text-slate-500">
-                                <th className="px-5 py-3">Tên đề</th>
-                                <th className="px-4 py-3">Lớp</th>
-                                <th className="px-4 py-3">Số câu</th>
-                                <th className="px-4 py-3">Thời gian</th>
-                                <th className="px-4 py-3">Ngày tạo</th>
-                                <th className="px-5 py-3 text-right"><span className="sr-only">Thao tác</span></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                            {quizzes.map((quiz) => (
-                                <tr key={quiz.id} className="transition-colors hover:bg-slate-50">
-                                    <td className="px-5 py-4">
-                                        <div className="min-w-0">
-                                            <p className="max-w-md truncate text-sm font-semibold text-slate-900">{quiz.title}</p>
-                                            <p className="mt-0.5 text-xs text-slate-500">{quiz.topic || quiz.detectedCategory || 'Chưa phân loại'}</p>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4 text-sm font-medium text-slate-600">{quiz.classLevel || '—'}</td>
-                                    <td className="px-4 py-4 text-sm font-medium text-slate-600">{quiz.questions?.length || 0}</td>
-                                    <td className="px-4 py-4 text-sm text-slate-600">{quiz.timeLimit || 0} phút</td>
-                                    <td className="px-4 py-4 text-sm text-slate-500">{formatQuizDate(quiz.createdAt)}</td>
-                                    <td className="px-5 py-4 text-right">
-                                        <button
-                                            type="button"
-                                            onClick={onManageQuizzes}
-                                            className="inline-flex min-h-9 items-center gap-1.5 rounded-[8px] px-2.5 text-xs font-medium text-sky-700 transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
-                                        >
-                                            Quản lý
-                                            <ArrowRight aria-hidden="true" className="size-3.5" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="divide-y divide-slate-200 lg:hidden">
-                    {quizzes.map((quiz) => (
-                        <article key={quiz.id} className="p-4">
-                            <div className="flex items-start gap-3">
-                                <Files aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-sky-700" />
-                                <div className="min-w-0 flex-1">
-                                    <h3 className="line-clamp-2 text-sm font-semibold text-slate-900">{quiz.title}</h3>
-                                    <p className="mt-1 text-xs text-slate-500">{quiz.topic || quiz.detectedCategory || 'Chưa phân loại'}</p>
-                                </div>
-                            </div>
-                            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-600">
-                                <span>Lớp {quiz.classLevel || '—'}</span>
-                                <span className="inline-flex items-center gap-1"><ListChecks aria-hidden="true" className="size-3.5" />{quiz.questions?.length || 0} câu</span>
-                                <span className="inline-flex items-center gap-1"><Clock3 aria-hidden="true" className="size-3.5" />{quiz.timeLimit || 0} phút</span>
-                            </div>
-                            <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
-                                <span className="text-xs text-slate-500">{formatQuizDate(quiz.createdAt)}</span>
-                                <button
-                                    type="button"
-                                    onClick={onManageQuizzes}
-                                    className="inline-flex min-h-9 items-center gap-1 rounded-[8px] px-2.5 text-xs font-medium text-sky-700 hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700"
-                                >
-                                    Quản lý
-                                    <ArrowRight aria-hidden="true" className="size-3.5" />
-                                </button>
-                            </div>
-                        </article>
-                    ))}
-                </div>
-            </>
-        ) : (
-            <div className="px-5 py-12 text-center">
-                <Files aria-hidden="true" className="mx-auto size-8 text-slate-400" />
-                <h3 className="mt-4 text-lg font-semibold text-slate-900">Chưa có đề kiểm tra</h3>
-                <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-600">Tạo đề đầu tiên để bắt đầu giao bài và theo dõi kết quả học tập.</p>
-                <div className="mt-4 flex justify-center">
-                    {manualQuizWorkspaceEnabled ? (
-                        <QuizCreationActions
-                            layout="compact"
-                            onCreateWithAi={onCreateQuizWithAi}
-                            onCreateManually={onCreateQuizManually}
-                        />
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={onCreateQuizWithAi}
-                            className="inline-flex min-h-10 items-center gap-2 rounded-[10px] bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2"
-                        >
-                            <FilePlus2 aria-hidden="true" className="size-4" />
-                            Tạo đề mới
-                        </button>
-                    )}
-                </div>
+    {quizzes.length > 0 ? (
+      <div className="divide-y divide-slate-200">
+        {quizzes.map((quiz) => (
+          <article key={quiz.id} className="flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-slate-50 sm:flex-row sm:items-center sm:px-5">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-violet-50 text-violet-700">
+              <Files aria-hidden="true" className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-sm font-semibold text-slate-900 sm:text-base">{quiz.title}</h3>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                <span>{quiz.classLevel ? `Lớp ${quiz.classLevel}` : 'Chưa chọn lớp'}</span>
+                <span className="inline-flex items-center gap-1">
+                  <ListChecks aria-hidden="true" className="size-3.5" />
+                  {quiz.questions?.length || 0} câu
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock3 aria-hidden="true" className="size-3.5" />
+                  {quiz.timeLimit || 0} phút
+                </span>
+                <span>{formatQuizDate(quiz.createdAt)}</span>
+              </div>
             </div>
-        )}
-    </section>
+            <button
+              type="button"
+              onClick={onManageQuizzes}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 self-end rounded-lg px-2.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:self-auto"
+            >
+              Quản lý
+              <ArrowRight aria-hidden="true" className="size-3.5" />
+            </button>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <div className="px-5 py-12 text-center">
+        <Files aria-hidden="true" className="mx-auto size-9 text-slate-400" />
+        <h3 className="mt-4 text-lg font-semibold text-slate-900">Chưa có đề kiểm tra</h3>
+        <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-600">
+          Khu vực tạo đề phía trên giúp bạn bắt đầu bài kiểm tra đầu tiên.
+        </p>
+      </div>
+    )}
+  </section>
 );
 
 export default RecentQuizzesPanel;

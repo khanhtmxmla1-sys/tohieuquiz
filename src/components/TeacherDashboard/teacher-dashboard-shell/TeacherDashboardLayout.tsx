@@ -1,4 +1,4 @@
-import { Footer } from '../../common';
+﻿import { Footer } from '../../common';
 import PasswordChangeDialog from '../../common/PasswordChangeDialog';
 import CurrentAnnouncementBanner from '../../common/CurrentAnnouncementBanner';
 import { NotificationSurfaceStack } from '../../../features/notifications/components';
@@ -7,12 +7,13 @@ import Sidebar from '../Sidebar';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { TeacherDashboardHeader } from './TeacherDashboardHeader';
 import { TeacherDashboardTabContent } from './TeacherDashboardTabContent';
+import TeacherMobileBottomNav from './TeacherMobileBottomNav';
 import type { TeacherDashboardLayoutProps } from './types';
 
 export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
   const notificationFlag = useUnifiedNotificationsFeatureFlag();
   return (
-    <div className="teacher-dashboard-shell flex min-h-screen flex-col bg-[#FFFDF7] text-[#172033] lg:flex-row">
+    <div className="teacher-dashboard-shell flex min-h-[100dvh] flex-col bg-[var(--color-dashboard-shell)] text-slate-900 lg:flex-row">
       {props.passwordGate && (
         <PasswordChangeDialog
           forced
@@ -23,15 +24,12 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
       <Sidebar
         activeTab={props.activeTab}
         setActiveTab={props.selectTab}
-        manualQuizWorkspaceEnabled={props.manualQuizWorkspaceEnabled}
-        onCreateQuizWithAi={props.onCreateQuizWithAi}
-        onCreateQuizManually={props.onCreateQuizManually}
         isGiftShopEnabled={props.giftShopEnabled}
         onLogout={props.onLogout}
         isMobileOpen={props.isMobileMenuOpen}
         setIsMobileOpen={props.setIsMobileMenuOpen}
       />
-      <div className="flex min-h-screen min-w-0 w-full flex-1 flex-col lg:ml-[248px] lg:w-[calc(100%-248px)] lg:flex-none">
+      <div className="flex min-h-[100dvh] min-w-0 w-full flex-1 flex-col lg:ml-[240px] lg:w-[calc(100%-240px)] lg:flex-none">
         <TeacherDashboardHeader
           activeTab={props.activeTab}
           setActiveTab={props.setActiveTab}
@@ -66,7 +64,7 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
             )
             : <CurrentAnnouncementBanner role="teacher" />
         )}
-        <main className="flex-1 overflow-x-hidden px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+        <main className="flex-1 overflow-x-hidden px-3 py-4 pb-24 sm:px-5 sm:py-6 sm:pb-24 lg:px-6 lg:py-7 lg:pb-8 xl:px-8">
           <TeacherDashboardTabContent
             activeTab={props.activeTab}
             setActiveTab={props.setActiveTab}
@@ -97,6 +95,11 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
           <Footer onNavigate={props.onNavigate} showPublicLinks={false} />
         </div>
       </div>
+      <TeacherMobileBottomNav
+        activeTab={props.activeTab}
+        onSelectTab={props.selectTab}
+        onOpenMore={() => props.setIsMobileMenuOpen(true)}
+      />
       <AccessCodeDialog
         editingAccessCode={props.editingAccessCode}
         newAccessCode={props.newAccessCode}

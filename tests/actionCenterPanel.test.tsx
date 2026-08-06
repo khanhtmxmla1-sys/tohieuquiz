@@ -88,6 +88,9 @@ describe('ActionCenterPanel', () => {
 
     expect(await screen.findByText('Bài giao sắp đến hạn')).toBeInTheDocument();
     expect(screen.getByText(/7 học sinh chưa nộp/)).toBeInTheDocument();
+    const actionList = screen.getByRole('list', { name: 'Danh sách việc cần chú ý' });
+    expect(within(actionList).getAllByRole('listitem')).toHaveLength(1);
+    expect(actionList.className).toContain('divide-y');
     fireEvent.click(screen.getByRole('link', { name: /Xem bài cần xử lý/i }));
     expect(screen.getByTestId('location')).toHaveTextContent('/teacher/assignments?status=OPEN&due=48');
     expect(screen.queryByRole('button', { name: 'Xóa bản nháp' })).not.toBeInTheDocument();

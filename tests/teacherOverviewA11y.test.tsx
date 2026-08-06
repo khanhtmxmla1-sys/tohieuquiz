@@ -5,9 +5,12 @@ import { describe, expect, it } from 'vitest';
 const overviewFiles = [
   'src/components/TeacherDashboard/OverviewTab.tsx',
   'src/components/TeacherDashboard/overview/DashboardHero.tsx',
+  'src/components/TeacherDashboard/overview/DashboardKpiGrid.tsx',
   'src/components/TeacherDashboard/overview/MetricGrid.tsx',
   'src/components/TeacherDashboard/overview/QuickActionGrid.tsx',
   'src/components/TeacherDashboard/overview/QuizCreationChoicePanel.tsx',
+  'src/components/TeacherDashboard/overview/TeacherDashboardVisual.tsx',
+  'src/components/TeacherDashboard/overview/dashboardVisualConfig.ts',
   'src/components/TeacherDashboard/quiz-creation/QuizCreationActions.tsx',
 ];
 

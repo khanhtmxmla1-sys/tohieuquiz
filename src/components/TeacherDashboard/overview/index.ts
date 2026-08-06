@@ -1,10 +1,15 @@
 export { default as ActionCenterPanel } from './ActionCenterPanel';
 export { default as DashboardHero } from './DashboardHero';
+export { default as DashboardKpiGrid } from './DashboardKpiGrid';
 export { default as MetricGrid } from './MetricGrid';
 export { default as PerformancePanel } from './PerformancePanel';
 export { default as QuickActionGrid } from './QuickActionGrid';
 export { default as QuizCreationChoicePanel } from './QuizCreationChoicePanel';
 export { default as RecentQuizzesPanel } from './RecentQuizzesPanel';
 export { default as RecentSubmissionsPanel } from './RecentSubmissionsPanel';
+export { default as TeacherDashboardVisual } from './TeacherDashboardVisual';
+export type { DashboardKpi } from './DashboardKpiGrid';
 export type { DashboardMetric } from './MetricGrid';
 export type { DashboardQuickAction } from './QuickActionGrid';
+export type { TeacherDashboardVisualName } from './TeacherDashboardVisual';
+export type { DashboardTone } from './dashboardVisualConfig';
