@@ -1,4 +1,4 @@
-﻿import { Footer } from '../../common';
+import { Footer } from '../../common';
 import PasswordChangeDialog from '../../common/PasswordChangeDialog';
 import CurrentAnnouncementBanner from '../../common/CurrentAnnouncementBanner';
 import { NotificationSurfaceStack } from '../../../features/notifications/components';
@@ -64,7 +64,7 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
             )
             : <CurrentAnnouncementBanner role="teacher" />
         )}
-        <main className="flex-1 overflow-x-hidden px-3 py-4 pb-24 sm:px-5 sm:py-6 sm:pb-24 lg:px-6 lg:py-7 lg:pb-8 xl:px-8">
+        <main className="flex-1 overflow-x-hidden px-4 py-5 pb-24 sm:px-6 sm:py-6 sm:pb-24 lg:px-8 lg:py-8 lg:pb-8">
           <TeacherDashboardTabContent
             activeTab={props.activeTab}
             setActiveTab={props.setActiveTab}

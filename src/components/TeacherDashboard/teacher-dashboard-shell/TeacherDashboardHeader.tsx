@@ -66,7 +66,7 @@ export const TeacherDashboardHeader = (props: TeacherDashboardHeaderProps) => {
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 shadow-[0_1px_8px_rgb(15_23_42_/_0.04)] backdrop-blur-xl">
       <div className="flex h-14 items-center justify-between gap-3 px-3 sm:px-5 lg:h-16 lg:px-8">
         <div className="flex min-w-0 items-center gap-2.5">
           <button
