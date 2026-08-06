@@ -132,12 +132,13 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(document.body.textContent).not.toContain('Chi');
     });
 
-    it('uses the blue educational hero and the custom teacher illustration', () => {
+    it('uses the light Stitch hero and the custom teacher illustration', () => {
         renderOverview();
 
         const heroHeading = screen.getByRole('heading', { name: 'Chào buổi sáng, Cô An!' });
         const heroSection = heroHeading.closest('section');
-        expect(heroSection?.className).toContain('from-blue-700');
+        expect(heroSection?.className).toContain('bg-slate-100');
+        expect(heroSection?.className).not.toContain('from-blue-700');
         expect(heroSection?.className).toContain('rounded-2xl');
         const illustrations = within(heroSection as HTMLElement).getAllByRole('presentation', { hidden: true });
         expect(illustrations).toHaveLength(2);
@@ -147,18 +148,32 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(screen.getByText('Mỗi bài giảng hôm nay là một bước tiến cho tương lai của các em.')).toBeInTheDocument();
     });
 
-    it('places creation before Action Center and keeps six separate quick actions', () => {
+    it('renders the Stitch breadcrumb and top composition without replacing real widgets', () => {
+        renderOverview();
+
+        const breadcrumb = screen.getByRole('navigation', { name: 'Đường dẫn trang' });
+        expect(within(breadcrumb).getByText('Trang chủ')).toBeInTheDocument();
+        expect(within(breadcrumb).getByText('Dashboard giáo viên')).toBeInTheDocument();
+
+        const topComposition = screen.getByTestId('teacher-dashboard-top-composition');
+        expect(topComposition.className).toContain('xl:grid-cols-[minmax(0,1fr)_minmax(320px,360px)]');
+        expect(within(topComposition).getByRole('heading', { name: 'Chào buổi sáng, Cô An!' })).toBeInTheDocument();
+        expect(within(topComposition).getByRole('heading', { name: 'Việc cần chú ý hôm nay' })).toBeInTheDocument();
+    });
+
+    it('places Action Center in the top composition and keeps six separate quick actions', () => {
         renderOverview();
 
         const creationHeading = screen.getByRole('heading', { name: 'Tạo đề kiểm tra' });
         const attentionHeading = screen.getByRole('heading', { name: 'Việc cần chú ý hôm nay' });
         const quickHeading = screen.getByRole('heading', { name: 'Thao tác nhanh' });
-        expect(creationHeading.compareDocumentPosition(attentionHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(attentionHeading.compareDocumentPosition(creationHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(attentionHeading.compareDocumentPosition(quickHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
         const quickSection = quickHeading.closest('section');
         expect(within(quickSection as HTMLElement).getAllByRole('button')).toHaveLength(6);
         expect(within(quickSection as HTMLElement).queryByRole('button', { name: /Tạo đề/i })).not.toBeInTheDocument();
+        expect(within(quickSection as HTMLElement).getByTestId('quick-actions-grid').className).toContain('lg:grid-cols-6');
     });
 
     it('uses administrator-specific overview copy for school-wide accounts', () => {

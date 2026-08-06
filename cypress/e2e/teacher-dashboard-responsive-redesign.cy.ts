@@ -173,6 +173,9 @@ const waitForDashboard = () => {
   cy.contains('h2', 'Tạo đề kiểm tra').should('be.visible');
   cy.contains('h2', 'Việc cần chú ý hôm nay').should('be.visible');
   cy.contains('h2', 'Thao tác nhanh').should('be.visible');
+  cy.get('nav[aria-label="Đường dẫn trang"]').should('be.visible');
+  cy.get('[data-testid="teacher-dashboard-top-composition"]').should('be.visible');
+  cy.get('[data-testid="quick-actions-grid"]').should('be.visible');
   cy.get('[data-testid="teacher-dashboard-visual-fallback"]').should('not.exist');
   cy.get('img[src*="teacher-dashboard-v2"]').each(($image) => {
     cy.wrap($image)
@@ -220,6 +223,11 @@ describe('Teacher dashboard responsive redesign', () => {
       if (desktopShell) {
         cy.get('aside[aria-label="Điều hướng quản trị"]').should('be.visible');
         cy.get('nav[aria-label="Điều hướng nhanh"]').should('not.be.visible');
+        if (width === 1440) {
+          cy.get('[data-testid="teacher-dashboard-top-composition"]')
+            .invoke('outerHeight')
+            .should('be.lte', 480);
+        }
       } else {
         cy.get('aside[aria-label="Điều hướng quản trị"]')
           .should('not.be.visible')

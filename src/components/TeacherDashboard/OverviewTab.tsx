@@ -1,5 +1,6 @@
-﻿import { formatSystemDateWithOptions, formatSystemTime, getSystemDateKey } from '../../utils/dateTime';
+import { formatSystemDateWithOptions, formatSystemTime, getSystemDateKey } from '../../utils/dateTime';
 import React, { useMemo } from 'react';
+import { ChevronRight } from 'lucide-react';
 import type { ResultDashboardSummary, ResultSummaryStatistics } from '../../../shared/result-summary.contract';
 import { useQuizStore } from '../../../stores/quizStore';
 import { Alert, Button } from '../common';
@@ -206,13 +207,25 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-4 sm:space-y-5 lg:space-y-6">
-      <DashboardHero
-        greeting={getGreeting(now)}
-        teacherName={authStore.teacherName || authStore.username || 'Cô/Thầy'}
-        dateLabel={formatDateLabel(now)}
-        scopeLabel={scopeLabel}
-        isAdmin={Boolean(authStore.isAdmin)}
-      />
+      <nav aria-label="Đường dẫn trang" className="flex min-h-8 items-center gap-1.5 text-xs font-medium text-slate-500 sm:text-sm">
+        <span className="transition-colors hover:text-blue-700">Trang chủ</span>
+        <ChevronRight aria-hidden="true" className="size-4 text-slate-400" />
+        <span aria-current="page" className="text-slate-800">Dashboard giáo viên</span>
+      </nav>
+
+      <div
+        data-testid="teacher-dashboard-top-composition"
+        className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,360px)] xl:gap-5"
+      >
+        <DashboardHero
+          greeting={getGreeting(now)}
+          teacherName={authStore.teacherName || authStore.username || 'Cô/Thầy'}
+          dateLabel={formatDateLabel(now)}
+          scopeLabel={scopeLabel}
+          isAdmin={Boolean(authStore.isAdmin)}
+        />
+        <ActionCenterPanel />
+      </div>
 
       {showAlert && (
         <Alert tone="danger" title={alertTitle} className="flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -239,7 +252,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         onCreateManually={onCreateQuizManually}
       />
 
-      <ActionCenterPanel />
       <QuickActionGrid actions={quickActions} onSelect={onSelectTab} />
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] xl:gap-5">

@@ -224,7 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         aria-label="Điều hướng quản trị"
         aria-hidden={isMobileDrawerInactive || undefined}
         inert={isMobileDrawerInactive || undefined}
-        className={`fixed left-0 top-0 z-50 flex h-full w-[240px] flex-col overflow-hidden border-r border-slate-200 bg-slate-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 z-50 flex h-full w-[240px] flex-col overflow-hidden border-r border-slate-200 bg-white shadow-[1px_0_0_0_rgb(15_23_42_/_0.04)] transition-transform duration-300 ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -245,7 +245,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         <nav
           aria-label="Các khu vực chức năng"
-          className="custom-scrollbar flex-1 overflow-y-auto px-2 py-3"
+          className="custom-scrollbar flex-1 overflow-y-auto bg-slate-50/70 px-3 py-3"
         >
           <NavGroup title="Đề thi" items={examItems} groupKey="exams" />
           <NavGroup title="Dạy và giao bài" items={teachingItems} groupKey="teaching" />

@@ -64,17 +64,17 @@ const ActionItem = ({ item, deletingDraftId, onSecondaryAction }: ActionItemProp
   const isDeletingThisDraft = secondaryAction?.resourceId === deletingDraftId;
 
   return (
-    <li className="bg-white px-4 py-4 sm:px-5">
-      <article className="flex items-start gap-3 sm:items-center">
-        <span className={`grid size-11 shrink-0 place-items-center rounded-xl ${tone.icon}`}>
+    <li className="bg-white px-3 py-3 sm:px-4 xl:py-2">
+      <article className="flex items-start gap-2.5">
+        <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${tone.icon}`}>
           <Icon aria-hidden="true" className="size-5" />
         </span>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-slate-900 sm:text-base">{item.title}</h3>
-              <p className="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">{item.explanation}</p>
+              <h3 className="text-sm font-semibold text-slate-900 sm:text-base xl:text-sm">{item.title}</h3>
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500 xl:line-clamp-1">{item.explanation}</p>
             </div>
             <span
               className={`inline-flex min-w-7 shrink-0 items-center justify-center rounded-full px-2 py-1 text-xs font-bold tabular-nums ${tone.count}`}
@@ -84,10 +84,10 @@ const ActionItem = ({ item, deletingDraftId, onSecondaryAction }: ActionItemProp
             </span>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 xl:mt-1">
             <Link
               to={item.cta.url}
-              className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:text-sm ${tone.link}`}
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${tone.link}`}
             >
               {item.cta.label}
               <ArrowRight aria-hidden="true" className="size-4" />
@@ -97,7 +97,7 @@ const ActionItem = ({ item, deletingDraftId, onSecondaryAction }: ActionItemProp
                 type="button"
                 onClick={() => onSecondaryAction(secondaryAction)}
                 disabled={Boolean(deletingDraftId)}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-rose-700 transition-colors hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isDeletingThisDraft
                   ? <Loader2 aria-hidden="true" className="size-4 animate-spin" />
@@ -165,7 +165,7 @@ const ActionCenterPanel: React.FC = () => {
   return (
     <section
       aria-labelledby="teacher-action-center-title"
-      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[var(--dashboard-card-shadow)] sm:p-5"
+      className="h-full rounded-2xl border border-slate-200 bg-white p-4 shadow-[var(--dashboard-card-shadow)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -177,7 +177,7 @@ const ActionCenterPanel: React.FC = () => {
             <h2 id="teacher-action-center-title" className="mt-0.5 text-xl font-bold tracking-tight text-slate-900">
               Việc cần chú ý hôm nay
             </h2>
-            <p className="mt-1 hidden text-sm text-slate-500 sm:block">
+            <p className="mt-1 hidden text-xs leading-5 text-slate-500 2xl:block">
               Các việc có thể xử lý ngay trong phạm vi tài khoản hiện tại.
             </p>
           </div>
@@ -226,7 +226,7 @@ const ActionCenterPanel: React.FC = () => {
       {data && data.items.length > 0 && (
         <ol
           aria-label="Danh sách việc cần chú ý"
-          className="mt-4 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200"
+          className="mt-3 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200"
         >
           {data.items.map((item) => (
             <ActionItem
