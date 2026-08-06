@@ -118,6 +118,18 @@ export const normalizeQuestionRow = (q: any): any => {
         parsed.pairs = parsed.items || [];
         parsed.leftItems = Array.isArray(parsed.leftItems) ? parsed.leftItems : [];
         parsed.rightItems = Array.isArray(parsed.rightItems) ? parsed.rightItems : [];
+    } else if (qType === 'ORDERING') {
+        const sourceCorrectOrder = parsed.correctOrder ?? parsed.correctAnswer;
+        if (typeof sourceCorrectOrder === 'string') {
+            try {
+                const decoded = JSON.parse(sourceCorrectOrder);
+                parsed.correctOrder = Array.isArray(decoded) ? decoded.map(Number) : [];
+            } catch {
+                parsed.correctOrder = [];
+            }
+        } else if (Array.isArray(sourceCorrectOrder)) {
+            parsed.correctOrder = sourceCorrectOrder.map(Number);
+        }
     } else if (qType === 'MULTIPLE_SELECT') {
         const sourceCorrect = parsed.correctAnswers ?? parsed.correctAnswer;
         parsed.correctAnswers = parseMultipleSelectAnswersForQuestion(sourceCorrect, optionCount);

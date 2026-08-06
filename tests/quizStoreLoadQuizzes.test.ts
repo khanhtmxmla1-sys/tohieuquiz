@@ -51,6 +51,18 @@ describe('normalizeQuestionRow for authoring', () => {
     expect(mcq.correctAnswer).toBe('A');
     expect(multiple.correctAnswers).toEqual(['A', 'C']);
   });
+
+  it('hydrates ordering correctOrder from the persisted correct_answer field', () => {
+    const ordering = normalizeQuestionRow({
+      id: 'ordering',
+      type: 'ORDERING',
+      items: JSON.stringify(['35 010', '34 999', '35 001', '35 000']),
+      correct_answer: JSON.stringify([1, 3, 2, 0]),
+    });
+
+    expect(ordering.items).toEqual(['35 010', '34 999', '35 001', '35 000']);
+    expect(ordering.correctOrder).toEqual([1, 3, 2, 0]);
+  });
 });
 
 describe('quizStore.loadQuizzes', () => {
