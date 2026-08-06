@@ -42,10 +42,12 @@ describe('teacher dashboard visual assets', () => {
       'public/icons/tohieuquiz/dashboard-v2/manifest.json',
     );
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
-      assets: Array<{ name: string; bytes: number; sha256: string }>;
+      assets: Array<{ name: string; source: string; bytes: number; sha256: string }>;
     };
 
     expect(manifest.assets).toHaveLength(11);
+    expect(manifest.assets.find((asset) => asset.name === 'teacher-welcome')?.source)
+      .toBe('artifacts/teacher-dashboard-source/teacher-welcome.webp');
     for (const asset of manifest.assets) {
       expect(asset.bytes).toBeGreaterThan(0);
       expect(asset.sha256).toMatch(/^[a-f0-9]{64}$/);

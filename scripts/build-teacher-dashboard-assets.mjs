@@ -9,7 +9,14 @@ const illustrationDirectory = path.resolve(root, 'public/illustrations/tohieuqui
 const iconDirectory = path.resolve(root, 'public/icons/tohieuquiz/dashboard-v2');
 
 const assets = [
-  { name: 'teacher-welcome', category: 'illustration', width: 960, height: 540, maxBytes: 160000 },
+  {
+    name: 'teacher-welcome',
+    sourceFilename: 'teacher-welcome.webp',
+    category: 'illustration',
+    width: 960,
+    height: 540,
+    maxBytes: 160000,
+  },
   { name: 'ai-quiz-robot', category: 'illustration', width: 480, height: 360, maxBytes: 90000 },
   { name: 'manual-quiz', category: 'illustration', width: 480, height: 360, maxBytes: 90000 },
   { name: 'assignment', category: 'icon', width: 160, height: 160, maxBytes: 32000 },
@@ -42,7 +49,8 @@ await mkdir(iconDirectory, { recursive: true });
 
 const manifestAssets = [];
 for (const asset of assets) {
-  const sourcePath = path.join(sourceDirectory, `${asset.name}.svg`);
+  const sourceFilename = asset.sourceFilename ?? `${asset.name}.svg`;
+  const sourcePath = path.join(sourceDirectory, sourceFilename);
   const source = await readFile(sourcePath);
   const sourceMetadata = await sharp(source).metadata();
   if (!sourceMetadata.hasAlpha) {
@@ -73,7 +81,7 @@ for (const asset of assets) {
   manifestAssets.push({
     name: asset.name,
     category: asset.category,
-    source: `artifacts/teacher-dashboard-source/${asset.name}.svg`,
+    source: `artifacts/teacher-dashboard-source/${sourceFilename}`,
     src: publicPath,
     width: asset.width,
     height: asset.height,

@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-08-05T17:54:01.893Z",
+  "generatedAt": "2026-08-06T00:52:56.709Z",
   "generator": "scripts/build-teacher-dashboard-assets.mjs",
   "assets": [
     {
       "name": "teacher-welcome",
       "category": "illustration",
-      "source": "artifacts/teacher-dashboard-source/teacher-welcome.svg",
+      "source": "artifacts/teacher-dashboard-source/teacher-welcome.webp",
       "src": "/illustrations/tohieuquiz/teacher-dashboard-v2/teacher-welcome.webp",
       "width": 960,
       "height": 540,
-      "bytes": 81700,
+      "bytes": 92244,
       "maxBytes": 160000,
-      "sha256": "416737725296da42852c2832da6a4f123d1e74429ab24d686b8d765d30e591f6"
+      "sha256": "63b9b5f503b9685c26385504a66a75d6f55dc487f19bdda785f69777286dd0dc"
     },
     {
       "name": "ai-quiz-robot",
