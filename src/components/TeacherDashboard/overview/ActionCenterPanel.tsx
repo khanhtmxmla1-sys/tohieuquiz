@@ -112,7 +112,11 @@ const ActionItem = ({ item, deletingDraftId, onSecondaryAction }: ActionItemProp
   );
 };
 
-const ActionCenterPanel: React.FC = () => {
+interface ActionCenterPanelProps {
+  compact?: boolean;
+}
+
+const ActionCenterPanel: React.FC<ActionCenterPanelProps> = ({ compact = false }) => {
   const { isOnline } = useOnlineStatus();
   const [data, setData] = useState<TeacherActionCenter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -165,7 +169,7 @@ const ActionCenterPanel: React.FC = () => {
   return (
     <section
       aria-labelledby="teacher-action-center-title"
-      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[var(--dashboard-card-shadow)] sm:p-5"
+      className={`rounded-[24px] border border-slate-200 bg-white shadow-[var(--dashboard-card-shadow)] ${compact ? 'flex min-h-[300px] flex-col p-5' : 'p-4 sm:p-5'}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -226,7 +230,7 @@ const ActionCenterPanel: React.FC = () => {
       {data && data.items.length > 0 && (
         <ol
           aria-label="Danh sách việc cần chú ý"
-          className="mt-4 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200"
+          className={`mt-4 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 ${compact ? 'max-h-[190px] overflow-y-auto' : ''}`}
         >
           {data.items.map((item) => (
             <ActionItem

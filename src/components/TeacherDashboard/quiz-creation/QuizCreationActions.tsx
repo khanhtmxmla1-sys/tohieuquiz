@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import TeacherDashboardVisual from '../overview/TeacherDashboardVisual';
 
@@ -70,6 +70,7 @@ const CreationActionButton = ({
           <TeacherDashboardVisual
             name={visual}
             decorative
+            loading="eager"
             className="pointer-events-none absolute -bottom-3 -right-3 h-36 w-44 object-contain object-bottom-right sm:h-40 sm:w-52"
           />
         </>

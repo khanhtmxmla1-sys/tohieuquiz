@@ -29,7 +29,7 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
         isMobileOpen={props.isMobileMenuOpen}
         setIsMobileOpen={props.setIsMobileMenuOpen}
       />
-      <div className="flex min-h-[100dvh] min-w-0 w-full flex-1 flex-col lg:ml-[240px] lg:w-[calc(100%-240px)] lg:flex-none">
+      <div className="flex min-h-[100dvh] min-w-0 w-full flex-1 flex-col lg:ml-[256px] lg:w-[calc(100%-256px)] lg:flex-none">
         <TeacherDashboardHeader
           activeTab={props.activeTab}
           setActiveTab={props.setActiveTab}
@@ -64,7 +64,7 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
             )
             : <CurrentAnnouncementBanner role="teacher" />
         )}
-        <main className="flex-1 overflow-x-hidden px-3 py-4 pb-24 sm:px-5 sm:py-6 sm:pb-24 lg:px-6 lg:py-7 lg:pb-8 xl:px-8">
+        <main className="flex-1 overflow-x-hidden px-3 py-4 pb-24 sm:px-5 sm:py-6 sm:pb-24 lg:px-7 lg:py-7 lg:pb-8 xl:px-9 2xl:px-10">
           <TeacherDashboardTabContent
             activeTab={props.activeTab}
             setActiveTab={props.setActiveTab}
