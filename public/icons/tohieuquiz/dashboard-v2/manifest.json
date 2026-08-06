@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-06T13:01:15.557Z",
+  "generatedAt": "2026-08-06T13:56:41.174Z",
   "generator": "scripts/build-teacher-dashboard-assets.mjs",
   "assets": [
     {
@@ -20,9 +20,9 @@
       "src": "/illustrations/tohieuquiz/teacher-dashboard-v2/ai-quiz-robot.webp",
       "width": 480,
       "height": 360,
-      "bytes": 34932,
+      "bytes": 67780,
       "maxBytes": 90000,
-      "sha256": "5ea04310af6af388e20ec77c856b2c1f7e4c2239783f6b81b27de735c925d072"
+      "sha256": "051cea737cccc28b34914f3be95a0c6ca02cf9ded59c888009655e50a12f2585"
     },
     {
       "name": "manual-quiz",
