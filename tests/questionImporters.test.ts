@@ -11,6 +11,10 @@ import {
     importQuestionDocx,
     parseDocxQuestionText,
 } from '../src/features/manual-quiz-workspace/import/docxQuestionImporter';
+import {
+    QUESTION_JSON_EXAMPLE,
+    parseQuestionJsonText,
+} from '../src/features/manual-quiz-workspace/import/jsonQuestionImporter';
 
 const officialRows = [
     {
@@ -90,6 +94,95 @@ describe('spreadsheet question importer', () => {
             question: '3 × 4 = ?',
             correctAnswer: 'B',
         }));
+    });
+});
+
+describe('JSON question importer', () => {
+    it('accepts an array and normalizes an MCQ answer from option text to its letter', () => {
+        const result = parseQuestionJsonText(JSON.stringify([
+            {
+                type: 'multiple_choice',
+                question: '2 + 3 bằng bao nhiêu?',
+                options: ['4', '5', '6', '7'],
+                answer: '5',
+                difficulty: 2,
+                points: 1.5,
+            },
+        ]));
+
+        expect(result.accepted).toHaveLength(1);
+        expect(result.accepted[0]).toEqual(expect.objectContaining({
+            sourceRow: 1,
+            sourceLabel: 'Câu JSON 1',
+        }));
+        expect(result.accepted[0].question).toEqual(expect.objectContaining({
+            type: QuestionType.MCQ,
+            question: '2 + 3 bằng bao nhiêu?',
+            options: ['4', '5', '6', '7'],
+            correctAnswer: 'B',
+            difficulty: 2,
+            points: 1.5,
+        }));
+        expect(QUESTION_JSON_EXAMPLE).toContain('"questions"');
+    });
+
+    it('accepts a questions wrapper and normalizes short answer, true-false, matching and multiple-select shapes', () => {
+        const result = parseQuestionJsonText(JSON.stringify({
+            questions: [
+                {
+                    type: 'short_answer',
+                    questionText: 'Thủ đô Việt Nam là gì?',
+                    answer: 'Hà Nội',
+                },
+                {
+                    type: 'true_false',
+                    question: 'Đánh dấu đúng hoặc sai',
+                    items: [
+                        { statement: '2 + 2 = 4', answer: true },
+                        { statement: '2 + 2 = 5', isCorrect: false },
+                    ],
+                },
+                {
+                    type: 'matching',
+                    question: 'Nối phép tính với kết quả',
+                    pairs: [{ left: '1 + 1', right: '2' }],
+                },
+                {
+                    type: 'multiple_select',
+                    question: 'Chọn các số chẵn',
+                    options: ['1', '2', '3', '4'],
+                    answer: ['2', '4'],
+                },
+            ],
+        }));
+
+        expect(result.accepted).toHaveLength(4);
+        expect(result.accepted[0].question).toEqual(expect.objectContaining({
+            type: QuestionType.SHORT_ANSWER,
+            question: 'Thủ đô Việt Nam là gì?',
+            correctAnswer: 'Hà Nội',
+        }));
+        expect(result.accepted[1].question).toEqual(expect.objectContaining({
+            type: QuestionType.TRUE_FALSE,
+            mainQuestion: 'Đánh dấu đúng hoặc sai',
+            items: [
+                expect.objectContaining({ statement: '2 + 2 = 4', isCorrect: true }),
+                expect.objectContaining({ statement: '2 + 2 = 5', isCorrect: false }),
+            ],
+        }));
+        expect(result.accepted[2].question).toEqual(expect.objectContaining({
+            type: QuestionType.MATCHING,
+            pairs: [{ left: '1 + 1', right: '2' }],
+        }));
+        expect(result.accepted[3].question).toEqual(expect.objectContaining({
+            type: QuestionType.MULTIPLE_SELECT,
+            correctAnswers: ['B', 'D'],
+        }));
+    });
+
+    it('rejects invalid syntax and invalid top-level JSON with readable errors', () => {
+        expect(() => parseQuestionJsonText('{bad json')).toThrow(/JSON không hợp lệ/i);
+        expect(() => parseQuestionJsonText(JSON.stringify({ foo: [] }))).toThrow(/questions/i);
     });
 });
 
