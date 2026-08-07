@@ -6,7 +6,11 @@ import App from './App';
 import MathRenderTelemetryObserver from './src/components/common/MathRenderTelemetryObserver';
 import { installChunkRecovery } from './src/utils/chunkRecovery';
 import { cleanupLegacyAuthStorage } from './src/services/api/auth';
-import { mathJaxConfig } from './src/config/mathJaxConfig';
+import {
+  MATHJAX_LOCAL_SRC,
+  MATHJAX_VERSION,
+  mathJaxConfig,
+} from './src/config/mathJaxConfig';
 import { installWebVitalsTelemetry } from './src/observability/webVitals';
 
 cleanupLegacyAuthStorage();
@@ -22,7 +26,11 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-      <MathJaxContext config={mathJaxConfig}>
+      <MathJaxContext
+        version={MATHJAX_VERSION}
+        src={MATHJAX_LOCAL_SRC}
+        config={mathJaxConfig}
+      >
         <MathRenderTelemetryObserver />
         <App />
       </MathJaxContext>

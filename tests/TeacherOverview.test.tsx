@@ -169,6 +169,17 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(within(topComposition).getByRole('heading', { name: 'Việc cần chú ý hôm nay' })).toBeInTheDocument();
     });
 
+    it('places quiz creation before learning results and moves KPI cards below the results section', () => {
+        renderOverview();
+
+        const creationHeading = screen.getByRole('heading', { name: 'Tạo đề kiểm tra' });
+        const performanceHeading = screen.getByRole('heading', { name: 'Tình hình điểm số' });
+        const kpiRegion = screen.getByRole('region', { name: 'Chỉ số tổng quan' });
+
+        expect(creationHeading.compareDocumentPosition(performanceHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(performanceHeading.compareDocumentPosition(kpiRegion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it('places Action Center in the top composition and keeps six separate quick actions', () => {
         renderOverview();
 

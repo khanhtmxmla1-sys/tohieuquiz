@@ -3,5 +3,20 @@
   "cssGzipBytes": 51200,
   "lazyChunkGzipBytes": 135000,
   "singleChunkMinifiedBytes": 500000,
-  "allowlist": []
+  "allowlist": [
+    {
+      "metric": "lazyChunkGzipBytes",
+      "reason": "Self-hosted MathJax replaces the previous CDN runtime and is tracked as a scoped external runtime asset.",
+      "expires": "2027-02-07",
+      "assetPattern": "^vendor/mathjax/es5/tex-mml-chtml\\.js$",
+      "maxBytes": 300000
+    },
+    {
+      "metric": "singleChunkMinifiedBytes",
+      "reason": "Self-hosted MathJax replaces the previous CDN runtime and is tracked as a scoped external runtime asset.",
+      "expires": "2027-02-07",
+      "assetPattern": "^vendor/mathjax/es5/tex-mml-chtml\\.js$",
+      "maxBytes": 1250000
+    }
+  ]
 }

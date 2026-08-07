@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { mathJaxConfig } from '../src/config/mathJaxConfig';
+import {
+  MATHJAX_LOCAL_SRC,
+  MATHJAX_VERSION,
+  mathJaxConfig,
+} from '../src/config/mathJaxConfig';
 
 describe('mathJaxConfig', () => {
+  it('pins MathJax 3 to a same-origin self-hosted runtime', () => {
+    expect(MATHJAX_VERSION).toBe(3);
+    expect(MATHJAX_LOCAL_SRC).toBe('/vendor/mathjax/es5/tex-mml-chtml.js');
+    expect(MATHJAX_LOCAL_SRC).not.toMatch(/^https?:\/\//);
+  });
+
   it('does not reload extensions already bundled by input/tex', () => {
     expect(mathJaxConfig.loader.load).toEqual([
       'input/tex',

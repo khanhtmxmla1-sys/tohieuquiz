@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { useAuthStore } from '../stores/authStore';
 import ManualQuizWorkspacePage from '../src/features/manual-quiz-workspace/ManualQuizWorkspacePage';
 import { useManualQuizWorkspaceStore } from '../src/features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
+import { useClassStore } from '../src/stores/useClassStore';
 
 const seed = {
     title: 'Kiểm tra giữa kỳ – Toán lớp 3',
@@ -30,6 +31,15 @@ const renderWorkspace = () => render(
 describe('ManualQuizWorkspace desktop shell', () => {
     beforeEach(() => {
         useManualQuizWorkspaceStore.getState().reset();
+        useClassStore.setState({
+            classes: [
+                { id: 'class-3a', name: 'Lớp 3A', teacherUsername: 'teacher-a', createdAt: '2026-08-01T00:00:00.000Z' },
+                { id: 'class-4b', name: 'Lớp 4B', teacherUsername: 'teacher-a', createdAt: '2026-08-01T00:00:00.000Z' },
+            ],
+            isLoading: false,
+            error: null,
+            fetchClasses: async () => undefined,
+        });
         useAuthStore.setState({
             isLoggedIn: true,
             username: 'teacher-a',
@@ -67,17 +77,21 @@ describe('ManualQuizWorkspace desktop shell', () => {
         expect(screen.getByRole('dialog', { name: 'Kiểm tra trước khi xuất bản' })).toBeInTheDocument();
     });
 
-    it('opens quiz settings, applies the whole-quiz duration and updates the status bar', async () => {
+    it('opens quiz settings, applies a real class and duration, then updates the workspace', async () => {
         renderWorkspace();
         const settingsButton = await screen.findByRole('button', { name: 'Mở thiết lập đề' });
 
         fireEvent.click(settingsButton);
         const dialog = screen.getByRole('dialog', { name: 'Thiết lập đề' });
+        const classSelect = screen.getByRole('combobox', { name: 'Lớp áp dụng' });
         const input = screen.getByRole('spinbutton', { name: 'Thời gian làm bài (phút)' });
+        expect(classSelect).toHaveValue('class-3a');
+        fireEvent.change(classSelect, { target: { value: 'class-4b' } });
         fireEvent.change(input, { target: { value: '45' } });
         fireEvent.click(screen.getByRole('button', { name: 'Áp dụng thiết lập' }));
 
         expect(dialog).not.toBeInTheDocument();
+        expect(useManualQuizWorkspaceStore.getState().envelope?.quiz.classLevel).toBe('Lớp 4B');
         expect(useManualQuizWorkspaceStore.getState().envelope?.quiz.timeLimit).toBe(45);
         expect(screen.getByRole('status', { name: 'Trạng thái đề kiểm tra' })).toHaveTextContent('45 phút');
     });

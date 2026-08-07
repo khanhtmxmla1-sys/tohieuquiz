@@ -1,20 +1,49 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Clock3, X } from 'lucide-react';
+import { AlertTriangle, Clock3, Settings2, Users, X } from 'lucide-react';
 import { useDialogFocusTrap } from '../hooks/useDialogFocusTrap';
 import { parseManualQuizTimeLimit } from '../domain/manualQuizTimeLimit';
+import { areClassNamesEqual } from '../../../utils/classMatching';
+
+export interface QuizSettingsClassOption {
+    id: string;
+    name: string;
+}
+
+export interface QuizSettingsValue {
+    classLevel: string;
+    timeLimit: number;
+}
 
 interface QuizSettingsDrawerProps {
     open: boolean;
+    classLevel: string;
+    classOptions: QuizSettingsClassOption[];
+    classesLoading?: boolean;
+    classesError?: string | null;
     timeLimit: number;
     readOnly?: boolean;
     onClose(): void;
-    onApply(timeLimit: number): void;
+    onApply(value: QuizSettingsValue): void;
 }
 
 const TIME_PRESETS = [15, 30, 45, 60, 90] as const;
+const CURRENT_CLASS_OPTION = '__current_class__';
+
+const resolveClassOptionId = (
+    classLevel: string,
+    classOptions: QuizSettingsClassOption[],
+): string => {
+    const matchedClass = classOptions.find((classroom) => areClassNamesEqual(classroom.name, classLevel));
+    if (matchedClass) return matchedClass.id;
+    return classLevel.trim() ? CURRENT_CLASS_OPTION : '';
+};
 
 const QuizSettingsDrawer: React.FC<QuizSettingsDrawerProps> = ({
     open,
+    classLevel,
+    classOptions,
+    classesLoading = false,
+    classesError = null,
     timeLimit,
     readOnly = false,
     onClose,
@@ -24,15 +53,35 @@ const QuizSettingsDrawer: React.FC<QuizSettingsDrawerProps> = ({
     const inputRef = useRef<HTMLInputElement>(null);
     const closeButtonRef = useRef<HTMLButtonElement>(null);
     const [draftValue, setDraftValue] = useState(String(timeLimit));
+    const [draftClassId, setDraftClassId] = useState(() => resolveClassOptionId(classLevel, classOptions));
     const [submitted, setSubmitted] = useState(false);
     const parsed = useMemo(() => parseManualQuizTimeLimit(draftValue), [draftValue]);
     const validationMessage = 'message' in parsed ? parsed.message : null;
+    const currentClassMissing = Boolean(
+        classLevel.trim()
+        && !classOptions.some((classroom) => areClassNamesEqual(classroom.name, classLevel)),
+    );
+    const selectedClassLevel = useMemo(() => {
+        if (draftClassId === CURRENT_CLASS_OPTION) return classLevel.trim();
+        const selectedClass = classOptions.find((classroom) => classroom.id === draftClassId);
+        if (!selectedClass) return '';
+        return areClassNamesEqual(selectedClass.name, classLevel)
+            ? classLevel.trim()
+            : selectedClass.name;
+    }, [classLevel, classOptions, draftClassId]);
 
     useEffect(() => {
         if (!open) return;
         setDraftValue(String(timeLimit));
+        setDraftClassId(resolveClassOptionId(classLevel, classOptions));
         setSubmitted(false);
-    }, [open, timeLimit]);
+    }, [open, timeLimit, classLevel]);
+
+    useEffect(() => {
+        if (!open || draftClassId !== CURRENT_CLASS_OPTION) return;
+        const matchedClass = classOptions.find((classroom) => areClassNamesEqual(classroom.name, classLevel));
+        if (matchedClass) setDraftClassId(matchedClass.id);
+    }, [classLevel, classOptions, draftClassId, open]);
 
     useDialogFocusTrap({
         open,
@@ -45,8 +94,8 @@ const QuizSettingsDrawer: React.FC<QuizSettingsDrawerProps> = ({
 
     const applySettings = () => {
         setSubmitted(true);
-        if (!parsed.valid) return;
-        onApply(parsed.value);
+        if (!parsed.valid || !selectedClassLevel) return;
+        onApply({ classLevel: selectedClassLevel, timeLimit: parsed.value });
     };
 
     return (
@@ -67,10 +116,10 @@ const QuizSettingsDrawer: React.FC<QuizSettingsDrawerProps> = ({
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-6">
                     <div>
                         <h2 id="quiz-settings-title" className="flex items-center gap-2 text-xl font-semibold text-slate-900">
-                            <Clock3 className="h-5 w-5 text-sky-600" /> Thiết lập đề
+                            <Settings2 className="h-5 w-5 text-sky-600" /> Thiết lập đề
                         </h2>
                         <p className="mt-1 text-sm leading-6 text-slate-600">
-                            Cài đặt thời gian làm toàn bộ bài kiểm tra.
+                            Chọn lớp áp dụng và cài đặt thời gian làm bài.
                         </p>
                     </div>
                     <button
@@ -85,7 +134,53 @@ const QuizSettingsDrawer: React.FC<QuizSettingsDrawerProps> = ({
                 </header>
 
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-                    <section aria-labelledby="quiz-time-heading">
+                    <section aria-labelledby="quiz-class-heading" className="border-b border-slate-200 pb-6">
+                        <h3 id="quiz-class-heading" className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                            <Users className="h-4 w-4 text-sky-600" /> Lớp áp dụng
+                        </h3>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                            Chọn lớp thực tế trong hệ thống cho đề kiểm tra này.
+                        </p>
+
+                        <label htmlFor="manual-quiz-class" className="mt-4 block text-sm font-semibold text-slate-800">
+                            Lớp áp dụng
+                        </label>
+                        <select
+                            id="manual-quiz-class"
+                            value={draftClassId}
+                            disabled={readOnly}
+                            aria-busy={classesLoading || undefined}
+                            onChange={(event) => {
+                                setDraftClassId(event.target.value);
+                                setSubmitted(false);
+                            }}
+                            className="mt-2 h-12 w-full rounded-[10px] border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                        >
+                            {!draftClassId && <option value="">-- Chọn lớp --</option>}
+                            {currentClassMissing && (
+                                <option value={CURRENT_CLASS_OPTION}>Lớp hiện tại: {classLevel}</option>
+                            )}
+                            {classOptions.map((classroom) => (
+                                <option key={classroom.id} value={classroom.id}>{classroom.name}</option>
+                            ))}
+                        </select>
+
+                        {classesLoading && (
+                            <p role="status" className="mt-2 text-xs leading-5 text-slate-500">Đang tải danh sách lớp…</p>
+                        )}
+                        {!classesLoading && classesError && (
+                            <p role="status" className="mt-2 text-xs leading-5 text-amber-700">
+                                Không thể làm mới danh sách lớp. Bạn vẫn có thể giữ lớp hiện tại.
+                            </p>
+                        )}
+                        {submitted && !selectedClassLevel && (
+                            <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                                Vui lòng chọn lớp áp dụng.
+                            </p>
+                        )}
+                    </section>
+
+                    <section aria-labelledby="quiz-time-heading" className="pt-6">
                         <h3 id="quiz-time-heading" className="text-sm font-semibold text-slate-900">
                             Thời gian làm bài
                         </h3>

@@ -17,6 +17,7 @@ tmp
 *.tsbuildinfo
 
 # Generated/debug artifacts
+public/vendor/mathjax/
 audit.json
 q.json
 quiz_check.json
