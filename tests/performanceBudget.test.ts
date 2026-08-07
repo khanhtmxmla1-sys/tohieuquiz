@@ -8,9 +8,16 @@ const roots: string[] = [];
 afterEach(() => { roots.splice(0).forEach(root => rmSync(root, { recursive: true, force: true })); });
 
 describe('performance budget', () => {
-  it('ships without a legacy allowlist after Task 28', () => {
+  it('ships only scoped exceptions for the self-hosted MathJax runtime', () => {
     const budget = JSON.parse(readFileSync('config/performance-budget.json', 'utf8'));
-    expect(budget.allowlist).toEqual([]);
+    expect(budget.allowlist).toHaveLength(2);
+    expect(budget.allowlist.map((entry: { metric: string }) => entry.metric).sort()).toEqual([
+      'lazyChunkGzipBytes',
+      'singleChunkMinifiedBytes',
+    ]);
+    expect(budget.allowlist.every((entry: { assetPattern?: string }) => (
+      entry.assetPattern === '^vendor/mathjax/es5/tex-mml-chtml\\.js$'
+    ))).toBe(true);
   });
 
   it('discovers initial scripts and styles from index.html', () => {
@@ -61,6 +68,36 @@ describe('performance budget', () => {
       allowlist: [{ metric: 'initialJsGzipBytes', reason: 'legacy', expires: '2020-01-01' }],
     };
     expect(evaluateBudget(report, expired)).toContain('Expired performance allowlist entry for initialJsGzipBytes');
+  });
+
+  it('does not let a scoped lazy-chunk exception hide a different oversized asset', () => {
+    const report = {
+      files: [
+        { name: 'vendor/mathjax/es5/tex-mml-chtml.js', type: 'js', bytes: 1173007, gzipBytes: 266497, initial: false },
+        { name: 'assets/unrelated-new-chunk.js', type: 'js', bytes: 300000, gzipBytes: 150000, initial: false },
+      ],
+      metrics: {
+        initialJsGzipBytes: 1,
+        cssGzipBytes: 1,
+        lazyChunkGzipBytes: 266497,
+        singleChunkMinifiedBytes: 1173007,
+      },
+    };
+    const budget = {
+      initialJsGzipBytes: 2,
+      cssGzipBytes: 2,
+      lazyChunkGzipBytes: 135000,
+      singleChunkMinifiedBytes: 2000000,
+      allowlist: [{
+        metric: 'lazyChunkGzipBytes',
+        reason: 'self-hosted math runtime',
+        expires: '2099-01-01',
+        assetPattern: '^vendor/mathjax/es5/tex-mml-chtml\\.js$',
+        maxBytes: 300000,
+      }],
+    };
+    expect(evaluateBudget(report, budget))
+      .toContain('lazyChunkGzipBytes: 266497 bytes exceeds 135000');
   });
 
   it('does not let a legacy chunk exception hide a different oversized asset', () => {

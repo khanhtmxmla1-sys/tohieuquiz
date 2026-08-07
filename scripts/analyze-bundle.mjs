@@ -63,11 +63,11 @@ const isActiveAllowlistEntry = (entry, metric, now = new Date()) => {
   return new Date(entry.expires) > now;
 };
 
-const isAllowedOversizedChunk = (file, entries, now) => entries.some(entry => {
-  if (!isActiveAllowlistEntry(entry, 'singleChunkMinifiedBytes', now)) return false;
+const isAllowedOversizedChunk = (file, entries, metric, sizeKey, now) => entries.some(entry => {
+  if (!isActiveAllowlistEntry(entry, metric, now)) return false;
   if (!entry.assetPattern || !Number.isFinite(Number(entry.maxBytes))) return false;
   try {
-    return new RegExp(entry.assetPattern).test(file.name) && file.bytes <= Number(entry.maxBytes);
+    return new RegExp(entry.assetPattern).test(file.name) && Number(file[sizeKey] || 0) <= Number(entry.maxBytes);
   } catch {
     return false;
   }
@@ -83,10 +83,15 @@ export function evaluateBudget(report, budget, now = new Date()) {
       continue;
     }
     if (actual > limit) {
-      if (metric === 'singleChunkMinifiedBytes') {
-        const oversized = (report.files || []).filter(file => file.type === 'js' && file.bytes > limit);
+      if (metric === 'singleChunkMinifiedBytes' || metric === 'lazyChunkGzipBytes') {
+        const sizeKey = metric === 'singleChunkMinifiedBytes' ? 'bytes' : 'gzipBytes';
+        const oversized = (report.files || []).filter(file => (
+          file.type === 'js'
+          && (metric !== 'lazyChunkGzipBytes' || !file.initial)
+          && Number(file[sizeKey] || 0) > limit
+        ));
         const blocked = oversized.length === 0
-          || oversized.some(file => !isAllowedOversizedChunk(file, budget.allowlist || [], now));
+          || oversized.some(file => !isAllowedOversizedChunk(file, budget.allowlist || [], metric, sizeKey, now));
         if (blocked) errors.push(`${metric}: ${actual} bytes exceeds ${limit}`);
       } else if (!(budget.allowlist || []).some(entry => isActiveAllowlistEntry(entry, metric, now))) {
         errors.push(`${metric}: ${actual} bytes exceeds ${limit}`);
@@ -98,8 +103,11 @@ export function evaluateBudget(report, budget, now = new Date()) {
       errors.push('Invalid performance allowlist entry: reason, expires and metric are required');
     } else if (new Date(entry.expires) <= now) {
       errors.push(`Expired performance allowlist entry for ${entry.metric}`);
-    } else if (entry.metric === 'singleChunkMinifiedBytes' && (!entry.assetPattern || !Number.isFinite(Number(entry.maxBytes)))) {
-      errors.push('Invalid single-chunk allowlist entry: assetPattern and maxBytes are required');
+    } else if (
+      (entry.metric === 'singleChunkMinifiedBytes' || entry.metric === 'lazyChunkGzipBytes')
+      && (!entry.assetPattern || !Number.isFinite(Number(entry.maxBytes)))
+    ) {
+      errors.push('Invalid chunk allowlist entry: assetPattern and maxBytes are required');
     }
   }
   return errors;
