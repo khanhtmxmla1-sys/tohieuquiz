@@ -28,12 +28,12 @@ const HeroSection: React.FC = () => {
                     id="login-hero-title"
                     className="max-w-[660px] text-[clamp(2rem,8vw,3.55rem)] font-bold leading-[1.08] tracking-[-0.045em] text-[#1e3a8a] sm:text-[clamp(2.25rem,6vw,3.55rem)] lg:text-[3.55rem]"
                 >
-                    Học tập thông minh,
-                    <span className="block text-[#2563eb]">quản lý thật nhẹ nhàng</span>
+                    Mỗi ngày một tiến bộ,
+                    <span className="block text-[#2563eb]">mỗi bài học thêm tự tin.</span>
                 </h1>
 
                 <p className="mt-4 max-w-[620px] text-sm leading-6 text-[#475569] sm:mt-5 sm:text-[1.02rem] sm:leading-8">
-                    Một không gian học tập rõ ràng cho học sinh, công cụ quản lý hiệu quả cho giáo viên và kết quả minh bạch cho gia đình.
+                    Từ luyện tập đến kiểm tra, TôHiệuQuiz giúp học sinh nhìn thấy sự tiến bộ của mình và giúp giáo viên đồng hành hiệu quả hơn.
                 </p>
             </div>
 

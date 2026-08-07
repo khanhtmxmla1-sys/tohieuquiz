@@ -22,7 +22,8 @@ const renderLoginForm = () => render(
 describe('Login landing presentation', () => {
   it('uses the calm-learning copy for the hero and login panel', () => {
     render(<HeroSection />);
-    expect(screen.getByRole('heading', { level: 1, name: /Học tập thông minh,\s*quản lý thật nhẹ nhàng/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Mỗi ngày một tiến bộ,\s*mỗi bài học thêm tự tin\./i })).toBeInTheDocument();
+    expect(screen.getByText('Từ luyện tập đến kiểm tra, TôHiệuQuiz giúp học sinh nhìn thấy sự tiến bộ của mình và giúp giáo viên đồng hành hiệu quả hơn.')).toBeInTheDocument();
 
     renderLoginForm();
     expect(screen.getByRole('heading', { level: 2, name: 'Chào mừng bạn trở lại' })).toBeInTheDocument();
