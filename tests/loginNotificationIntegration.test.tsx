@@ -114,7 +114,7 @@ describe('login notification integration', () => {
     });
   });
 
-  it('opens the requested login role from the guarded deep-link query', () => {
+  it('opens the requested login role from the guarded deep-link query', async () => {
     localStorage.setItem('tohieuquiz_saved_login_v1', JSON.stringify({
       username: 'student.one',
       role: 'student',
@@ -127,6 +127,6 @@ describe('login notification integration', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByTestId('login-role')).toHaveTextContent('teacher');
+    await waitFor(() => expect(screen.getByTestId('login-role')).toHaveTextContent('teacher'));
   });
 });

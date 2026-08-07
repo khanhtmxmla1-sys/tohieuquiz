@@ -274,8 +274,8 @@ const visitCreateTab = (mode: AiMode) => {
   interceptAi(mode);
   cy.visit('/teacher/quizzes?mode=create', { onBeforeLoad: installSession });
   cy.contains('Tạo đề bằng AI', { timeout: 15_000 }).should('be.visible');
-  cy.contains(/^Dạng câu hỏi(?: & ma trận)?$/).should('be.visible');
-  cy.contains('5/5 lượt còn lại').should('be.visible');
+  cy.contains(/^Dạng câu hỏi(?: & ma trận)?$/, { timeout: 15_000 }).should('be.visible');
+  cy.contains('5/5 lượt còn lại', { timeout: 15_000 }).should('be.visible');
 };
 
 const enterTopicAndUploadPdf = () => {

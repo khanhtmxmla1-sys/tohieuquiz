@@ -229,12 +229,11 @@ npx cypress run --e2e \
 
 Never commit those credentials, and never point them at a real pupil's account.
 
-## 3. Quarantined specs
+## 3. Public home/login coverage
 
-- `quiz.cy.ts` — inherited from the source system. It asserts the old school
-  branding and a "Dành cho Giáo viên" link that no longer exist, and it logs in with
-  `admin`/`admin` against a live backend. Both `describe` blocks are `.skip`ped with
-  the reasoning in the file header. Rewrite or delete it; do not un-skip as-is.
+- `login-home.cy.ts` replaces the quarantined legacy `quiz.cy.ts`. It exercises the
+  current TôHiệuQuiz login UI, role switching, saved-account restoration and the
+  teacher login request contract using `cy.intercept`, so CI never needs live credentials.
 
 ## Commands
 

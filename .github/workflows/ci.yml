@@ -178,7 +178,7 @@ jobs:
   #
   # student-dashboard-responsive.cy.ts and student-practice-library.cy.ts are excluded
   # from both: they log in for real and need --env studentUsername=...,studentPassword=...
-  # against a deployed environment. quiz.cy.ts is quarantined (see its file header).
+  # against a deployed environment. Public home/login coverage is stubbed in login-home.cy.ts.
   e2e-stubbed:
     name: Cypress — stubbed specs (Blueprint V3 off)
     runs-on: ubuntu-latest

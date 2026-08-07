@@ -434,12 +434,16 @@ describe('TeacherDashboard shell contracts', () => {
     render(<TeacherDashboard />);
     const search = screen.getByPlaceholderText('Tìm chức năng...');
 
-    fireEvent.change(search, { target: { value: 'điểm' } });
-    fireEvent.submit(search.closest('form') as HTMLFormElement);
+    await act(async () => {
+      fireEvent.change(search, { target: { value: 'điểm' } });
+      fireEvent.submit(search.closest('form') as HTMLFormElement);
+    });
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/results');
 
-    fireEvent.change(search, { target: { value: 'không tồn tại' } });
-    fireEvent.submit(search.closest('form') as HTMLFormElement);
+    await act(async () => {
+      fireEvent.change(search, { target: { value: 'không tồn tại' } });
+      fireEvent.submit(search.closest('form') as HTMLFormElement);
+    });
     expect(mocks.showError).toHaveBeenCalledWith('Không tìm thấy chức năng phù hợp.');
   });
 
