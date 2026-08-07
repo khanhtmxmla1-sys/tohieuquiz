@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useQuizStore } from '../stores/quizStore';
 import { useManualQuizWorkspaceStore } from '../src/features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 import { saveLocalDraft } from '../src/features/manual-quiz-workspace/draft/manualQuizDraftRepository';
+import { useClassStore } from '../src/stores/useClassStore';
 
 const editorService = vi.hoisted(() => ({
   getQuizEditorPayload: vi.fn(),
@@ -31,6 +32,12 @@ describe('ManualQuizWorkspace editor access integration', () => {
     vi.clearAllMocks();
     localStorage.clear();
     useManualQuizWorkspaceStore.getState().reset();
+    useClassStore.setState({
+      classes: [{ id: 'class-4', name: 'Lớp 4', teacherUsername: 'teacher-a', createdAt: '2026-08-01T00:00:00.000Z' }],
+      isLoading: false,
+      error: null,
+      fetchClasses: async () => undefined,
+    });
     useAuthStore.setState({
       isLoggedIn: true, username: 'teacher-a', teacherName: 'Cô A', isAdmin: false,
     });
@@ -79,6 +86,7 @@ describe('ManualQuizWorkspace editor access integration', () => {
     expect(screen.getByTestId('workspace-grid')).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'Mở thiết lập đề' }));
     expect(screen.getByRole('dialog', { name: 'Thiết lập đề' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Lớp áp dụng' })).toBeDisabled();
     expect(screen.getByRole('spinbutton', { name: 'Thời gian làm bài (phút)' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Áp dụng thiết lập' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tạo phiên bản mới để chỉnh sửa' })).toBeEnabled();

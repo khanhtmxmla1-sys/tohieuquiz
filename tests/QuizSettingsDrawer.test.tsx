@@ -6,6 +6,13 @@ import QuizSettingsDrawer from '../src/features/manual-quiz-workspace/components
 const renderDrawer = (overrides: Partial<React.ComponentProps<typeof QuizSettingsDrawer>> = {}) => {
     const props: React.ComponentProps<typeof QuizSettingsDrawer> = {
         open: true,
+        classLevel: '3A',
+        classOptions: [
+            { id: 'class-3a', name: 'Lớp 3A' },
+            { id: 'class-4b', name: 'Lớp 4B' },
+        ],
+        classesLoading: false,
+        classesError: null,
         timeLimit: 20,
         onClose: vi.fn(),
         onApply: vi.fn(),
@@ -16,9 +23,10 @@ const renderDrawer = (overrides: Partial<React.ComponentProps<typeof QuizSetting
 };
 
 describe('QuizSettingsDrawer', () => {
-    it('loads the current duration and focuses the minutes input', async () => {
+    it('loads the current real class and duration while keeping the existing focus contract', async () => {
         renderDrawer();
 
+        expect(screen.getByRole('combobox', { name: 'Lớp áp dụng' })).toHaveValue('class-3a');
         const input = screen.getByRole('spinbutton', { name: 'Thời gian làm bài (phút)' });
         expect(input).toHaveValue(20);
         await waitFor(() => expect(input).toHaveFocus());
@@ -32,7 +40,7 @@ describe('QuizSettingsDrawer', () => {
         expect(props.onApply).not.toHaveBeenCalled();
 
         fireEvent.click(screen.getByRole('button', { name: 'Áp dụng thiết lập' }));
-        expect(props.onApply).toHaveBeenCalledWith(45);
+        expect(props.onApply).toHaveBeenCalledWith({ classLevel: '3A', timeLimit: 45 });
     });
 
     it('blocks invalid values with a readable error', () => {
@@ -54,7 +62,31 @@ describe('QuizSettingsDrawer', () => {
         expect(screen.getByText(/dài hơn mức thường dùng/i)).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Áp dụng thiết lập' }));
 
-        expect(props.onApply).toHaveBeenCalledWith(181);
+        expect(props.onApply).toHaveBeenCalledWith({ classLevel: '3A', timeLimit: 181 });
+    });
+
+    it('applies a newly selected real class together with the duration', () => {
+        const props = renderDrawer();
+
+        fireEvent.change(screen.getByRole('combobox', { name: 'Lớp áp dụng' }), {
+            target: { value: 'class-4b' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Áp dụng thiết lập' }));
+
+        expect(props.onApply).toHaveBeenCalledWith({ classLevel: 'Lớp 4B', timeLimit: 20 });
+    });
+
+    it('keeps a legacy class value available when it is missing from the current class list', () => {
+        const props = renderDrawer({
+            classLevel: '5C',
+            classOptions: [{ id: 'class-3a', name: 'Lớp 3A' }],
+        });
+
+        const select = screen.getByRole('combobox', { name: 'Lớp áp dụng' });
+        expect(select).toHaveValue('__current_class__');
+        expect(screen.getByRole('option', { name: 'Lớp hiện tại: 5C' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Áp dụng thiết lập' }));
+        expect(props.onApply).toHaveBeenCalledWith({ classLevel: '5C', timeLimit: 20 });
     });
 
     it('supports cancellation and Escape without applying changes', () => {
@@ -71,6 +103,7 @@ describe('QuizSettingsDrawer', () => {
     it('shows the current duration without edit controls in read-only mode', async () => {
         renderDrawer({ readOnly: true, timeLimit: 60 });
 
+        expect(screen.getByRole('combobox', { name: 'Lớp áp dụng' })).toBeDisabled();
         expect(screen.getByRole('spinbutton', { name: 'Thời gian làm bài (phút)' })).toBeDisabled();
         expect(screen.queryByRole('button', { name: 'Áp dụng thiết lập' })).not.toBeInTheDocument();
         expect(screen.getByText('Đề đang ở chế độ chỉ đọc.')).toBeInTheDocument();

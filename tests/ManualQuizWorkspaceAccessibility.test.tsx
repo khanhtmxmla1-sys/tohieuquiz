@@ -7,6 +7,7 @@ import { QuestionType } from '../src/types';
 import ManualQuizWorkspacePage from '../src/features/manual-quiz-workspace/ManualQuizWorkspacePage';
 import { useWorkspaceKeyboardShortcuts } from '../src/features/manual-quiz-workspace/hooks/useWorkspaceKeyboardShortcuts';
 import { useManualQuizWorkspaceStore } from '../src/features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
+import { useClassStore } from '../src/stores/useClassStore';
 
 const seed = {
     title: 'Đề accessibility', classLevel: '3', category: 'toan', timeLimit: 20,
@@ -65,6 +66,12 @@ describe('ManualQuizWorkspace focus and screen-reader access', () => {
     beforeEach(() => {
         localStorage.clear();
         useManualQuizWorkspaceStore.getState().reset();
+        useClassStore.setState({
+            classes: [{ id: 'class-3a', name: 'Lớp 3A', teacherUsername: 'teacher-accessible', createdAt: '2026-08-01T00:00:00.000Z' }],
+            isLoading: false,
+            error: null,
+            fetchClasses: async () => undefined,
+        });
         useAuthStore.setState({
             isLoggedIn: true,
             username: 'teacher-accessible',

@@ -244,8 +244,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         </Alert>
       )}
 
-      <DashboardKpiGrid metrics={metrics} isLoadingResults={isSummaryLoading} />
-
       <QuizCreationChoicePanel
         manualQuizWorkspaceEnabled={manualQuizWorkspaceEnabled}
         onCreateWithAi={onCreateQuizWithAi}
@@ -263,6 +261,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           onViewAll={() => onSelectTab('results')}
         />
       </div>
+
+      <DashboardKpiGrid metrics={metrics} isLoadingResults={isSummaryLoading} />
 
       <RecentQuizzesPanel
         quizzes={recentQuizzes}

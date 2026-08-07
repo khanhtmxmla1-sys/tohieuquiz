@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useAuthStore } from '../../../stores/authStore';
 import { normalizeQuestionRow, useQuizStore } from '../../../stores/quizStore';
+import { useClassStore } from '../../stores/useClassStore';
 import { getQuizEditorRoute, getTeacherRoute } from '../../app/navigationRoutes';
 import ManualQuizWorkspaceGuard from './components/ManualQuizWorkspaceGuard';
 import DraftRecoveryDialog from './components/DraftRecoveryDialog';
@@ -55,6 +56,11 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const navigate = useNavigate();
     const navigationState = location.state as ManualQuizNavigationState | null;
     const username = useAuthStore((state) => state.username);
+    const isAdmin = useAuthStore((state) => state.isAdmin);
+    const classes = useClassStore((state) => state.classes);
+    const classesLoading = useClassStore((state) => state.isLoading);
+    const classesError = useClassStore((state) => state.error);
+    const fetchClasses = useClassStore((state) => state.fetchClasses);
     const availableQuiz = useQuizStore((state) =>
         quizId ? state.quizzes.find((quiz) => quiz.id === quizId) ?? null : null,
     );
@@ -107,6 +113,11 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const validationIssues = useMemo(() => envelope
         ? validateManualQuiz(envelope.quiz, { targetPoints: envelope.targetPoints })
         : [], [envelope]);
+
+    useEffect(() => {
+        if (!isSettingsOpen || !username) return;
+        void fetchClasses(isAdmin ? undefined : username);
+    }, [fetchClasses, isAdmin, isSettingsOpen, username]);
 
     useEffect(() => {
         if (!quizId || !username) return;
@@ -460,12 +471,16 @@ const ManualQuizWorkspacePage: React.FC = () => {
                 {envelope && (
                     <QuizSettingsDrawer
                         open={isSettingsOpen}
+                        classLevel={envelope.quiz.classLevel}
+                        classOptions={classes}
+                        classesLoading={classesLoading}
+                        classesError={classesError}
                         timeLimit={envelope.quiz.timeLimit}
                         readOnly={isReadOnly}
                         onClose={() => setSettingsOpen(false)}
-                        onApply={(timeLimit) => {
+                        onApply={({ classLevel, timeLimit }) => {
                             if (isReadOnly) return;
-                            updateQuiz({ timeLimit });
+                            updateQuiz({ classLevel, timeLimit });
                             setSettingsOpen(false);
                         }}
                     />
