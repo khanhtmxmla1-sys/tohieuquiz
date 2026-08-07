@@ -16,7 +16,7 @@ describe('public legal pages', () => {
         expect(screen.getByText('Không bán dữ liệu')).toBeVisible();
         expect(screen.getByRole('heading', { name: 'Bảo vệ dữ liệu trẻ em' })).toBeVisible();
         expect(screen.getByText(/không yêu cầu người dùng gửi mật khẩu/i)).toBeVisible();
-        expect(screen.getAllByRole('link', { name: 'support@thtohieu.com' })[0]).toHaveAttribute('href', 'mailto:support@thtohieu.com');
+        expect(screen.getAllByRole('link', { name: 'tongminhkhanh@gmail.com' })[0]).toHaveAttribute('href', 'mailto:tongminhkhanh@gmail.com');
         expect(container.textContent).not.toMatch(/iTongQuiz|ÍtOngQuiz|ItOngQuiz/i);
     });
 

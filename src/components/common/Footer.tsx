@@ -93,7 +93,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                                 <Globe className="h-5 w-5" />
                             </a>
                             <a
-                                href="mailto:support@thtohieu.com"
+                                href="mailto:tongminhkhanh@gmail.com"
                                 className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-blue-200 bg-white text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                                 aria-label="Gửi email cho TôHiệuQuiz"
                             >
@@ -135,7 +135,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                             ))}
                             <li>
                                 <a
-                                    href="mailto:support@thtohieu.com"
+                                    href="mailto:tongminhkhanh@gmail.com"
                                     className="inline-flex min-h-10 items-center gap-1 rounded-lg text-sm font-semibold text-slate-600 transition hover:translate-x-1 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
                                 >
                                     Email hỗ trợ

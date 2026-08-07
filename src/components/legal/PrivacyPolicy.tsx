@@ -172,7 +172,7 @@ const PrivacyPolicy: React.FC<Props> = ({ onBack }) => (
         </LegalSection>
 
         <LegalSection id="privacy-contact" number="09" title="Liên hệ về quyền riêng tư" icon={Mail}>
-            <p>Gửi yêu cầu đến <a href="mailto:support@thtohieu.com" className="font-extrabold text-blue-700 underline decoration-blue-200 underline-offset-4">support@thtohieu.com</a> hoặc sử dụng trang Liên hệ. Nội dung nên gồm vai trò của người yêu cầu, lớp/tài khoản liên quan, yêu cầu cụ thể và kênh để xác minh.</p>
+            <p>Gửi yêu cầu đến <a href="mailto:tongminhkhanh@gmail.com" className="font-extrabold text-blue-700 underline decoration-blue-200 underline-offset-4">tongminhkhanh@gmail.com</a> hoặc sử dụng trang Liên hệ. Nội dung nên gồm vai trò của người yêu cầu, lớp/tài khoản liên quan, yêu cầu cụ thể và kênh để xác minh.</p>
             <p>TôHiệuQuiz có thể cần phối hợp với nhà trường trước khi truy cập, sửa hoặc xóa dữ liệu học sinh. Không gửi bản sao giấy tờ tùy thân qua email nếu chưa được hướng dẫn bằng kênh an toàn.</p>
         </LegalSection>
     </LegalPageScaffold>

@@ -234,11 +234,11 @@ const LegalPageScaffold: React.FC<LegalPageScaffoldProps> = ({
                             <ArrowRight className="h-5 w-5" />
                         </button>
                         <a
-                            href="mailto:support@thtohieu.com"
+                            href="mailto:tongminhkhanh@gmail.com"
                             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/30 px-5 font-bold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                         >
                             <Mail className="h-5 w-5" />
-                            support@thtohieu.com
+                            tongminhkhanh@gmail.com
                         </a>
                     </div>
                 </section>
