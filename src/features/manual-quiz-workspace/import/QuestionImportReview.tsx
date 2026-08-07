@@ -15,10 +15,88 @@ const questionText = (question: ManualQuizQuestion): string => {
     return loose.mainQuestion || loose.question || '[Chưa có nội dung]';
 };
 
+const asLooseRecord = (question: ManualQuizQuestion): Record<string, unknown> => (
+    question as unknown as Record<string, unknown>
+);
+
 const getAnswer = (question: ManualQuizQuestion): string => {
-    const loose = question as ManualQuizQuestion & { correctAnswer?: string; correctAnswers?: string[] };
-    return Array.isArray(loose.correctAnswers) ? loose.correctAnswers.join(', ') : String(loose.correctAnswer || '');
+    const loose = asLooseRecord(question);
+
+    switch (question.type) {
+        case QuestionType.MULTIPLE_SELECT:
+            return Array.isArray(loose.correctAnswers) ? loose.correctAnswers.map(String).join(', ') : '';
+        case QuestionType.TRUE_FALSE: {
+            const items = Array.isArray(loose.items) ? loose.items : [];
+            return items.map((item, index) => {
+                const raw = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+                return `${index + 1}: ${raw.isCorrect === true ? 'Đúng' : 'Sai'}`;
+            }).join('; ');
+        }
+        case QuestionType.MATCHING: {
+            const pairs = Array.isArray(loose.pairs) ? loose.pairs : [];
+            return pairs.map((pair) => {
+                const raw = pair && typeof pair === 'object' ? pair as Record<string, unknown> : {};
+                return `${String(raw.left ?? '')} → ${String(raw.right ?? '')}`;
+            }).filter((value) => value !== ' → ').join('; ');
+        }
+        case QuestionType.DRAG_DROP: {
+            const blanks = Array.isArray(loose.blanks) ? loose.blanks : [];
+            return blanks.map((blank, index) => {
+                if (blank && typeof blank === 'object') {
+                    const raw = blank as Record<string, unknown>;
+                    return `${String(raw.id ?? `blank${index + 1}`)}: ${String(raw.correctAnswer ?? raw.correct_answer ?? '')}`;
+                }
+                return `blank${index + 1}: ${String(blank ?? '')}`;
+            }).join('; ');
+        }
+        case QuestionType.ORDERING: {
+            const items = Array.isArray(loose.items) ? loose.items.map(String) : [];
+            const order = Array.isArray(loose.correctOrder) ? loose.correctOrder : [];
+            return order.map((entry) => items[Number(entry)] ?? '').filter(Boolean).join(' → ');
+        }
+        case QuestionType.DROPDOWN: {
+            const blanks = Array.isArray(loose.blanks) ? loose.blanks : [];
+            return blanks.map((blank, index) => {
+                const raw = blank && typeof blank === 'object' ? blank as Record<string, unknown> : {};
+                return `${String(raw.id ?? `select${index + 1}`)}: ${String(raw.correctAnswer ?? '')}`;
+            }).join('; ');
+        }
+        case QuestionType.UNDERLINE: {
+            const words = Array.isArray(loose.words) ? loose.words.map(String) : [];
+            const indexes = Array.isArray(loose.correctWordIndexes) ? loose.correctWordIndexes : [];
+            return indexes.map((entry) => words[Number(entry)] ?? '').filter(Boolean).join('; ');
+        }
+        case QuestionType.CATEGORIZATION: {
+            const categories = Array.isArray(loose.categories) ? loose.categories : [];
+            const items = Array.isArray(loose.items) ? loose.items : [];
+            const categoryNames = new Map(categories.flatMap((category) => {
+                if (!category || typeof category !== 'object') return [];
+                const raw = category as Record<string, unknown>;
+                const id = String(raw.id ?? '');
+                return id ? [[id, String(raw.name ?? '')] as const] : [];
+            }));
+            return items.map((item) => {
+                const raw = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+                const content = String(raw.content ?? raw.text ?? '');
+                const categoryName = categoryNames.get(String(raw.categoryId ?? '')) ?? '';
+                return content && categoryName ? `${content} → ${categoryName}` : '';
+            }).filter(Boolean).join('; ');
+        }
+        case QuestionType.WORD_SCRAMBLE:
+            return String(loose.correctWord ?? '');
+        default:
+            return String(loose.correctAnswer ?? '');
+    }
 };
+
+const isFlatAnswerEditable = (type: QuestionType): boolean => [
+    QuestionType.MCQ,
+    QuestionType.IMAGE_QUESTION,
+    QuestionType.SHORT_ANSWER,
+    QuestionType.MULTIPLE_SELECT,
+    QuestionType.WORD_SCRAMBLE,
+    QuestionType.RIDDLE,
+].includes(type);
 
 const setAnswer = (question: ManualQuizQuestion, value: string): ManualQuizQuestion => {
     if (question.type === QuestionType.MULTIPLE_SELECT) {
@@ -27,9 +105,11 @@ const setAnswer = (question: ManualQuizQuestion, value: string): ManualQuizQuest
             correctAnswers: value.split(/[;,]/).map((item) => item.trim()).filter(Boolean),
         } as ManualQuizQuestion;
     }
+    if (question.type === QuestionType.WORD_SCRAMBLE) {
+        return { ...question, correctWord: value } as ManualQuizQuestion;
+    }
     return { ...question, correctAnswer: value } as ManualQuizQuestion;
 };
-
 const convertQuestionType = (question: ManualQuizQuestion, type: QuestionType): ManualQuizQuestion => {
     if (question.type === type) return question;
     const starter = createManualQuestionDraft(type) as ManualQuizQuestion;
@@ -97,8 +177,10 @@ const ReviewCard: React.FC<{
                             <input
                                 aria-label={`Đáp án đúng ${candidate.sourceLabel}`}
                                 value={getAnswer(candidate.question)}
+                                readOnly={!isFlatAnswerEditable(candidate.question.type)}
                                 onChange={(event) => onChange(setAnswer(candidate.question, event.target.value))}
-                                className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                                title={!isFlatAnswerEditable(candidate.question.type) ? 'Đáp án cấu trúc được hiển thị để kiểm tra; chỉnh sửa trong trình soạn câu hỏi sau khi nhập.' : undefined}
+                                className={`mt-1 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm ${isFlatAnswerEditable(candidate.question.type) ? 'bg-white' : 'bg-slate-50 text-slate-600'}`}
                             />
                         </label>
                     </div>

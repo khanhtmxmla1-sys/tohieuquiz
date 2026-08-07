@@ -88,6 +88,43 @@ describe('QuestionImportDrawer', () => {
         expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions).toHaveLength(0);
     });
 
+    it('shows canonical short-answer and matching answers in JSON preview', async () => {
+        render(<QuestionImportDrawer open onClose={vi.fn()} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Dán JSON' }));
+        fireEvent.change(screen.getByLabelText('Dữ liệu JSON'), {
+            target: {
+                value: JSON.stringify([
+                    {
+                        question_type: 'SHORT_ANSWER',
+                        question: 'This is your book. It is _____.',
+                        accepted_answers: ['yours'],
+                    },
+                    {
+                        question_type: 'MATCHING',
+                        question: 'Nối hai cột.',
+                        left_items: [
+                            { id: 'L1', text: 'my book' },
+                            { id: 'L2', text: 'her doll' },
+                        ],
+                        right_items: [
+                            { id: 'R1', text: 'hers' },
+                            { id: 'R2', text: 'mine' },
+                        ],
+                        matches: [
+                            { left: 'L1', right: 'R2' },
+                            { left: 'L2', right: 'R1' },
+                        ],
+                    },
+                ]),
+            },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra JSON' }));
+
+        expect(await screen.findByText('2 sẵn sàng')).toBeInTheDocument();
+        expect(screen.getByLabelText('Đáp án đúng Câu JSON 1')).toHaveValue('yours');
+        expect(screen.getByLabelText('Đáp án đúng Câu JSON 2')).toHaveValue('my book → mine; her doll → hers');
+        expect(screen.queryByText(/Thiếu đáp án đúng/)).not.toBeInTheDocument();
+    });
     it('shows a readable alert for invalid pasted JSON and does not change the quiz', () => {
         render(<QuestionImportDrawer open onClose={vi.fn()} />);
 
