@@ -6,6 +6,14 @@ import OverviewTab from '../src/components/TeacherDashboard/OverviewTab';
 import { useAuthStore } from '../stores/authStore';
 import { useQuizStore } from '../stores/quizStore';
 
+vi.mock('../src/components/TeacherDashboard/overview/ActionCenterPanel', () => ({
+    default: () => (
+        <section aria-labelledby="teacher-action-center-title">
+            <h2 id="teacher-action-center-title">Việc cần chú ý hôm nay</h2>
+        </section>
+    ),
+}));
+
 const makeResult = (
     id: string,
     studentName: string,

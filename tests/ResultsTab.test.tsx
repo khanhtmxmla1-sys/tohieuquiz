@@ -187,8 +187,10 @@ describe('TeacherDashboard ResultsTab contracts', () => {
   beforeEach(() => {
     Object.defineProperty(window.navigator, 'onLine', { configurable: true, value: true });
     mocks.navigate.mockReset();
-    mocks.fetchResultAnswers.mockReset().mockResolvedValue({});
-    mocks.fetchResultAnswersBulk.mockReset().mockResolvedValue({});
+    // Keep background hydration pending by default so unrelated tests cannot finish
+    // an async state update after their assertion boundary and emit act(...) warnings.
+    mocks.fetchResultAnswers.mockReset().mockImplementation(() => new Promise(() => undefined));
+    mocks.fetchResultAnswersBulk.mockReset().mockImplementation(() => new Promise(() => undefined));
     mocks.getByResult.mockReset().mockResolvedValue(null);
     mocks.removeResult.mockReset().mockResolvedValue(undefined);
     mocks.showError.mockReset();

@@ -1,12 +1,19 @@
 // @vitest-environment jsdom
 import React from 'react';
 import axe from 'axe-core';
-import { cleanup, render } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OverviewTab from '../src/components/TeacherDashboard/OverviewTab';
 import { useAuthStore } from '../stores/authStore';
 import { useQuizStore } from '../stores/quizStore';
 import { useTeacherDashboardUIStore } from '../src/stores/useTeacherDashboardUIStore';
+
+vi.mock('../src/services/teacherActionCenterService', () => ({
+  fetchTeacherActionCenter: vi.fn(async () => ({
+    generatedAt: '2026-08-07T00:00:00.000Z',
+    items: [],
+  })),
+}));
 
 beforeEach(() => {
   useAuthStore.setState({
@@ -39,6 +46,9 @@ describe('Teacher Overview accessibility audit', () => {
         onCreateQuizManually={() => undefined}
       />,
     );
+
+    // Let ActionCenterPanel finish its initial async load before axe inspects the DOM.
+    await screen.findByText('Không có việc gấp trong phạm vi hiện tại');
 
     const report = await axe.run(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },

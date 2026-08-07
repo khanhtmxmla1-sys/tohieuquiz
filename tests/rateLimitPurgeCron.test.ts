@@ -34,7 +34,9 @@ function createRecordingDb() {
       };
       return statement;
     },
-    batch: async () => [],
+    batch: async (statements: Array<{ run?: () => Promise<unknown> }>) => Promise.all(
+      statements.map((statement) => statement.run?.() ?? Promise.resolve({ success: true, meta: { changes: 0 } })),
+    ),
   };
   return { DB, executed };
 }
