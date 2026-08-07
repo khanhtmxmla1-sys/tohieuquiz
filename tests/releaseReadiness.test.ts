@@ -109,6 +109,25 @@ describe('release readiness checks', () => {
       .toEqual(['oversized.js is 700000 bytes (limit 550000)']);
   });
 
+  it('reuses only active asset-specific performance exceptions for release bundle checks', () => {
+    const budget = JSON.parse(readFileSync('config/performance-budget.json', 'utf8'));
+    const now = new Date('2026-08-08T00:00:00.000Z');
+    expect(validateBundleEntries([{
+      name: 'vendor/mathjax/es5/tex-mml-chtml.js',
+      size: 1_173_007,
+    }], 563_200, budget.allowlist, now)).toEqual([]);
+    expect(validateBundleEntries([{
+      name: 'assets/unrelated-large.js',
+      size: 700_000,
+    }], 563_200, budget.allowlist, now))
+      .toEqual(['assets/unrelated-large.js is 700000 bytes (limit 563200)']);
+    expect(validateBundleEntries([{
+      name: 'vendor/mathjax/es5/tex-mml-chtml.js',
+      size: 1_173_007,
+    }], 563_200, budget.allowlist, new Date('2027-02-08T00:00:00.000Z')))
+      .toEqual(['vendor/mathjax/es5/tex-mml-chtml.js is 1173007 bytes (limit 563200)']);
+  });
+
   it('runs on main and manual dispatch without containing a deployment command', () => {
     const workflow = readFileSync('.github/workflows/release-readiness.yml', 'utf8');
     expect(workflow).not.toContain('pull_request:');

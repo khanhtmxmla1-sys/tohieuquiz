@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const KNOWN_FLAGS = new Set([
@@ -60,15 +60,32 @@ export function validateReleaseFlags(values) {
   return errors;
 }
 
-export function validateBundleEntries(entries, maxBytes) {
+const isAllowedBundleEntry = (entry, allowlist, now = new Date()) => allowlist.some(exception => {
+  if (exception.metric !== 'singleChunkMinifiedBytes' || !exception.reason || !exception.expires) return false;
+  if (new Date(exception.expires) <= now) return false;
+  if (!exception.assetPattern || !Number.isFinite(Number(exception.maxBytes))) return false;
+  try {
+    return new RegExp(exception.assetPattern).test(entry.name) && entry.size <= Number(exception.maxBytes);
+  } catch {
+    return false;
+  }
+});
+
+export function validateBundleEntries(entries, maxBytes, allowlist = [], now = new Date()) {
   return entries
-    .filter(entry => entry.name.endsWith('.js') && entry.size > maxBytes)
+    .filter(entry => (
+      entry.name.endsWith('.js')
+      && entry.size > maxBytes
+      && !isAllowedBundleEntry(entry, allowlist, now)
+    ))
     .map(entry => `${entry.name} is ${entry.size} bytes (limit ${maxBytes})`);
 }
 
-const listFiles = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+const listFiles = (directory, root = directory) => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
   const path = resolve(directory, entry.name);
-  return entry.isDirectory() ? listFiles(path) : [{ name: path, size: statSync(path).size }];
+  return entry.isDirectory()
+    ? listFiles(path, root)
+    : [{ name: relative(root, path).replaceAll('\\', '/'), size: statSync(path).size }];
 });
 
 const readArg = (args, names, fallback) => {
@@ -114,7 +131,14 @@ export function runReleaseReadiness(args = process.argv.slice(2), env = process.
   const errors = [];
 
   if (!existsSync(resolve(dist, 'index.html'))) errors.push(`Missing build artifact: ${resolve(dist, 'index.html')}`);
-  if (existsSync(dist)) errors.push(...validateBundleEntries(listFiles(dist), maxJsBytes));
+  let bundleAllowlist = [];
+  try {
+    const performanceBudget = JSON.parse(readFileSync(resolve('config/performance-budget.json'), 'utf8'));
+    bundleAllowlist = Array.isArray(performanceBudget.allowlist) ? performanceBudget.allowlist : [];
+  } catch (error) {
+    errors.push(`Unable to read performance budget allowlist: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (existsSync(dist)) errors.push(...validateBundleEntries(listFiles(dist), maxJsBytes, bundleAllowlist));
 
   const flagValues = Object.fromEntries(
     Object.entries(env).filter(([name]) => name.startsWith('VITE_FEATURE_') || name === 'VITE_GIFT_SHOP_MODE'),
