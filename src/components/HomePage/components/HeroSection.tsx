@@ -10,14 +10,14 @@ import LearningAnalyticsIcon from '../icons/LearningAnalyticsIcon';
 import DailyPracticeIcon from '../icons/DailyPracticeIcon';
 
 const features = [
-    { icon: ExamManagementIcon, iconName: 'exam-management', text: 'Tạo và quản lý bài kiểm tra' },
-    { icon: LearningAnalyticsIcon, iconName: 'learning-analytics', text: 'Theo dõi kết quả học tập' },
-    { icon: DailyPracticeIcon, iconName: 'daily-practice', text: 'Ôn luyện thuận tiện mỗi ngày' },
+    { icon: ExamManagementIcon, iconName: 'exam-management', title: 'Tạo bài kiểm tra', description: 'Nhanh chóng, linh hoạt' },
+    { icon: LearningAnalyticsIcon, iconName: 'learning-analytics', title: 'Theo dõi tiến bộ', description: 'Dữ liệu rõ ràng' },
+    { icon: DailyPracticeIcon, iconName: 'daily-practice', title: 'Ôn luyện mỗi ngày', description: 'Theo năng lực học sinh' },
 ];
 
 const HeroSection: React.FC = () => {
     return (
-        <section className="w-full max-w-[700px] lg:pr-2" aria-labelledby="login-hero-title">
+        <section className="order-2 w-full max-w-[700px] lg:order-1 lg:pr-2" aria-labelledby="login-hero-title">
             <div className="login-page-reveal">
                 <div className="mb-3 inline-flex min-h-8 items-center gap-2 rounded-[10px] border border-[#bfdbfe] bg-[#eff6ff] px-3 text-[0.68rem] font-bold uppercase tracking-[0.17em] text-[#1d4ed8] sm:mb-4 sm:text-xs">
                     <span className="h-2 w-2 rounded-[3px] bg-[#facc15]" aria-hidden="true" />
@@ -26,10 +26,10 @@ const HeroSection: React.FC = () => {
 
                 <h1
                     id="login-hero-title"
-                    className="max-w-[680px] text-[clamp(2rem,8vw,3.8rem)] font-bold leading-[1.08] tracking-[-0.045em] text-[#1e3a8a] sm:text-[clamp(2.35rem,6vw,3.8rem)] lg:text-[clamp(2.5rem,4.3vw,3.8rem)]"
+                    className="max-w-[660px] text-[clamp(2rem,8vw,3.55rem)] font-bold leading-[1.08] tracking-[-0.045em] text-[#1e3a8a] sm:text-[clamp(2.25rem,6vw,3.55rem)] lg:text-[3.55rem]"
                 >
                     Học tập thông minh,
-                    <span className="block text-[#2563eb]">quản lý dễ dàng</span>
+                    <span className="block text-[#2563eb]">quản lý thật nhẹ nhàng</span>
                 </h1>
 
                 <p className="mt-4 max-w-[620px] text-sm leading-6 text-[#475569] sm:mt-5 sm:text-[1.02rem] sm:leading-8">
@@ -38,25 +38,28 @@ const HeroSection: React.FC = () => {
             </div>
 
             <div className="login-page-reveal login-page-reveal-delay-1 mt-6 hidden grid-cols-1 gap-3 sm:grid sm:grid-cols-3 lg:max-w-[650px]">
-                {features.map(({ icon: FeatureIcon, iconName, text }) => (
-                    <div key={text} className="flex min-h-[76px] items-center gap-3 rounded-[16px] border border-[#dbe4f0] bg-white/85 px-3 py-3 shadow-[0_12px_32px_-28px_rgba(30,58,138,0.65)]">
-                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[13px] border border-[#dbeafe] bg-[#f5f9ff] shadow-[0_10px_24px_-18px_rgba(37,99,235,0.75)]">
+                {features.map(({ icon: FeatureIcon, iconName, title, description }) => (
+                    <div key={title} className="flex min-h-[76px] items-center gap-2.5 rounded-[16px] border border-[#dce5f1] bg-white/80 px-3 py-2.5">
+                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border border-[#dbeafe] bg-[#f5f9ff] shadow-[0_8px_20px_-18px_rgba(37,99,235,0.7)]">
                             <FeatureIcon
-                                className="h-[44px] w-[44px]"
+                                className="h-10 w-10"
                                 data-login-feature-icon={iconName}
                                 aria-hidden="true"
                                 focusable="false"
                             />
                         </span>
-                        <span className="text-sm font-semibold leading-5 text-[#334155]">{text}</span>
+                        <span>
+                            <span className="block text-sm font-bold leading-5 text-[#1e293b]">{title}</span>
+                            <span className="mt-0.5 block text-xs leading-5 text-[#64748b]">{description}</span>
+                        </span>
                     </div>
                 ))}
             </div>
 
-            <div className="login-page-reveal login-page-reveal-delay-2 relative mt-7 hidden max-w-[650px] lg:block" aria-hidden="true">
-                <div className="rounded-[26px] border border-[#dbe4f0] bg-white/55 p-1.5 shadow-[0_26px_70px_-44px_rgba(30,58,138,0.55)]">
-                    <div className="overflow-hidden rounded-[21px] bg-white">
-                        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-5 py-3.5">
+            <div data-purpose="learning-preview" className="login-page-reveal login-page-reveal-delay-2 relative mt-6 hidden max-w-[630px] lg:block" aria-hidden="true">
+                <div className="rounded-[24px] border border-[#dce5f1] bg-white/55 p-1 shadow-[0_22px_54px_-44px_rgba(30,58,138,0.42)]">
+                    <div className="overflow-hidden rounded-[20px] bg-white">
+                        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-4 py-3">
                             <div className="flex items-center gap-2">
                                 <span className="h-2.5 w-2.5 rounded-full bg-[#facc15]" />
                                 <span className="text-xs font-bold uppercase tracking-[0.13em] text-[#64748b]">Tổng quan học tập</span>
@@ -66,9 +69,9 @@ const HeroSection: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-[1.25fr_0.75fr] gap-4 p-5">
-                            <div className="rounded-[17px] bg-[#f8fafc] p-4">
-                                <div className="mb-5 flex items-start justify-between">
+                        <div className="grid grid-cols-[1.25fr_0.75fr] gap-3 p-4">
+                            <div className="rounded-[16px] bg-[#f8fafc] p-3.5">
+                                <div className="mb-4 flex items-start justify-between">
                                     <div>
                                         <p className="text-xs font-semibold text-[#64748b]">Tiến độ lớp học</p>
                                         <p className="mt-1 text-xl font-bold tracking-[-0.03em] text-[#0f172a]">Ổn định và tích cực</p>
@@ -77,7 +80,7 @@ const HeroSection: React.FC = () => {
                                         <TrendingUp size={18} />
                                     </span>
                                 </div>
-                                <div className="flex h-24 items-end gap-3 border-b border-[#dbe4f0] pb-1">
+                                <div className="flex h-20 items-end gap-2.5 border-b border-[#dbe4f0] pb-1">
                                     {['h-[38%]', 'h-[55%]', 'h-[47%]', 'h-[72%]', 'h-[62%]', 'h-[84%]'].map((height, index) => (
                                         <span
                                             key={`${height}-${index}`}
@@ -87,8 +90,8 @@ const HeroSection: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="grid gap-3">
-                                <div className="rounded-[17px] border border-[#dbe4f0] bg-white p-3.5">
+                            <div className="grid gap-2.5">
+                                <div className="rounded-[16px] border border-[#dbe4f0] bg-white p-3">
                                     <div className="flex items-center justify-between">
                                         <span className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-[#fef3c7] text-[#a16207]">
                                             <FileQuestion size={18} />
@@ -99,14 +102,14 @@ const HeroSection: React.FC = () => {
                                     <p className="mt-1 text-xs text-[#64748b]">Sẵn sàng cho lớp học</p>
                                 </div>
 
-                                <div className="rounded-[17px] bg-[#1e3a8a] p-3.5 text-white">
+                                <div className="rounded-[16px] bg-[#1e3a8a] p-3 text-white">
                                     <div className="flex items-center gap-2 text-sm font-bold">
                                         <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-white/10">
                                             <Check size={17} />
                                         </span>
-                                        Báo cáo tự động
+                                        Kết quả đã tổng hợp
                                     </div>
-                                    <p className="mt-2 text-xs leading-5 text-blue-100">Kết quả được tổng hợp rõ ràng sau mỗi bài làm.</p>
+                                    <p className="mt-2 text-xs leading-5 text-blue-100">Sẵn sàng xem ngay sau mỗi bài làm.</p>
                                 </div>
                             </div>
                         </div>

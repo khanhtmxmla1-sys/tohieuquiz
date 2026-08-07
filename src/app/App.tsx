@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import { useLocation } from 'react-router';
+import { useAuthStore } from '../../stores/authStore';
 import { useQuizStore } from '../../stores/quizStore';
 import { useSeo } from '../hooks/useSeo';
 import { AppGlobals } from './AppGlobals';
@@ -15,11 +16,14 @@ import { isDedicatedParentHost, resolveHostContext } from './hostContext';
 import { isParentPortalEnabled } from '../config/featureFlags';
 import { ParentPortalApp } from './lazyViews';
 import { ParentPortalFallback } from '../features/parent-portal/layout/ParentPortalLayout';
+import { useClassroomStore } from '../stores/useClassroomStore';
 import { OfflineBanner, ReducedExperienceBanner } from '../components/common';
 
 const MainApp: React.FC = () => {
     const quizStore = useQuizStore();
     const location = useLocation();
+    const isTeacherLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    const studentSession = useClassroomStore((state) => state.studentSession);
     const sessionsReady = useSessionBootstrap();
     const giftShopEnabled = String(import.meta.env.VITE_FEATURE_GIFT_SHOP_V2 || 'false').toLowerCase() === 'true';
 
@@ -31,8 +35,13 @@ const MainApp: React.FC = () => {
     useQuizUrlSelection();
     useScrollReset(quizStore.view);
 
+    const isUnauthenticatedRootLogin = location.pathname === '/'
+        && !isTeacherLoggedIn
+        && !studentSession;
+
     return (
         <>
+            {!isUnauthenticatedRootLogin && <ReducedExperienceBanner />}
             <AppRoutes giftShopEnabled={giftShopEnabled} sessionsReady={sessionsReady} />
             <AppGlobals showChatbot={aiAssistantEnabled && quizStore.view !== 'student'} />
         </>
@@ -56,17 +65,21 @@ const App: React.FC = () => {
     // for localhost and preview environments that opt into parent mode.
     const parentPortalEnabled = isDedicatedParentHost(hostname) || isParentPortalEnabled();
     const content = hostContext === 'parent'
-        ? (parentPortalEnabled ? (
-            <Suspense fallback={<ParentPortalFallback />}>
-                <ParentPortalApp />
-            </Suspense>
-        ) : <ParentPortalUnavailable />)
+        ? (
+            <>
+                <ReducedExperienceBanner />
+                {parentPortalEnabled ? (
+                    <Suspense fallback={<ParentPortalFallback />}>
+                        <ParentPortalApp />
+                    </Suspense>
+                ) : <ParentPortalUnavailable />}
+            </>
+        )
         : <MainApp />;
 
     return (
         <>
             <OfflineBanner />
-            <ReducedExperienceBanner />
             {content}
         </>
     );

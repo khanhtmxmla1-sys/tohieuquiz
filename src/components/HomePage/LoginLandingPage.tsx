@@ -172,9 +172,9 @@ const LoginLandingPage: React.FC = () => {
     };
 
     return (
-        <div className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#f8fafc] font-vietnam text-[#0f172a]">
-            <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-28 h-64 w-64 rounded-full bg-[#dbeafe]/60" />
-            <div aria-hidden="true" className="pointer-events-none absolute -right-20 bottom-24 h-72 w-72 rounded-full bg-[#fef3c7]/55" />
+        <div className="relative flex min-h-[100dvh] flex-col overflow-x-hidden bg-[#f7f9fc] font-vietnam text-[#0f172a]">
+            <div aria-hidden="true" className="pointer-events-none absolute -left-28 top-28 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(219,234,254,0.62)_0%,rgba(219,234,254,0)_72%)]" />
+            <div aria-hidden="true" className="pointer-events-none absolute -right-28 bottom-14 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(254,243,199,0.38)_0%,rgba(254,243,199,0)_72%)]" />
 
             {pendingTeacher && (
                 <PasswordChangeDialog forced onCancel={() => {
@@ -198,7 +198,7 @@ const LoginLandingPage: React.FC = () => {
                     : <CurrentAnnouncementBanner role={activeTab} />
             )}
 
-            <main className="relative z-10 mx-auto grid w-full max-w-[1280px] flex-1 items-center gap-6 px-4 pb-8 pt-2 md:gap-8 md:px-8 md:pb-10 md:pt-3 lg:grid-cols-[minmax(0,1.16fr)_minmax(380px,0.84fr)] lg:gap-14 lg:px-10 lg:py-6">
+            <main className="relative z-10 mx-auto grid w-full max-w-[1280px] flex-1 items-start gap-8 px-4 pb-10 pt-2 md:gap-10 md:px-8 md:pb-12 md:pt-3 lg:grid-cols-[minmax(0,1.16fr)_minmax(400px,0.84fr)] lg:items-center lg:gap-10 lg:px-10 lg:py-6">
                 <Suspense fallback={<div className="h-64 animate-pulse rounded-[28px] bg-white/70" />}>
                     <HeroSection />
                 </Suspense>

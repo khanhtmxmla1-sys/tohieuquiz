@@ -39,7 +39,7 @@ const LandingHeader: React.FC = () => {
                 <button type="button" className={navButtonClass} onClick={() => goTo('/contact')}>Liên hệ</button>
                 <a
                     href={PARENT_PORTAL_URL}
-                    className="inline-flex min-h-11 items-center rounded-[13px] border border-[#bfdbfe] bg-white px-3.5 text-sm font-bold text-[#1e3a8a] shadow-[0_12px_28px_-24px_rgba(37,99,235,0.75)] transition-colors hover:bg-[#eff6ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
+                    className="inline-flex min-h-11 items-center rounded-[13px] border border-[#dbeafe] bg-[#eff6ff] px-3.5 text-sm font-bold text-[#1d4ed8] transition-colors hover:border-[#bfdbfe] hover:bg-[#e6f0ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
                 >
                     Cổng phụ huynh
                 </a>

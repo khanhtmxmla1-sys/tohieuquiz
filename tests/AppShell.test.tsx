@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import { getSystemSettings } from '../src/services/systemSettingsService';
@@ -11,6 +11,9 @@ import { useClassroomStore } from '../src/stores/useClassroomStore';
 vi.mock('@vercel/analytics/react', () => ({ Analytics: () => <div data-testid="analytics" /> }));
 vi.mock('react-hot-toast', () => ({ Toaster: () => <div data-testid="toaster" /> }));
 vi.mock('../src/hooks/useSeo', () => ({ useSeo: vi.fn() }));
+vi.mock('../src/hooks/useReducedExperience', () => ({
+    useReducedExperience: () => ({ reduceData: false, reduceMotion: true, reduceVisuals: true }),
+}));
 vi.mock('../src/services/systemSettingsService', () => ({ getSystemSettings: vi.fn() }));
 vi.mock('../src/components/ChatBot', () => ({ ChatBot: () => <div>chatbot</div> }));
 vi.mock('../src/components/StudentView', () => ({ default: () => <div>student-view</div> }));
@@ -32,7 +35,22 @@ vi.mock('../src/components/common/Footer', () => ({
 vi.mock('../src/components/schoolPage/AboutPage', () => ({ default: () => <div>about-page</div> }));
 vi.mock('../src/components/schoolPage/ContactPage', () => ({ default: () => <div>contact-page</div> }));
 vi.mock('../src/pages/PhieuPublicPage', () => ({ default: () => <div>phieu-public-page</div> }));
-vi.mock('../src/features/parent-portal/ParentPortalApp', () => ({ default: () => <div>parent-portal-app</div> }));
+vi.mock('../src/features/parent-portal/ParentPortalApp', () => ({
+    default: () => {
+        const navigate = useNavigate();
+        return (
+            <button
+                type="button"
+                onClick={() => {
+                    window.history.replaceState({}, '', '/dashboard');
+                    navigate('/dashboard');
+                }}
+            >
+                parent-portal-app
+            </button>
+        );
+    },
+}));
 
 const originalQuizState = useQuizStore.getState();
 const originalAuthState = useAuthStore.getState();
@@ -114,6 +132,36 @@ describe('App shell routing contracts', () => {
         expect(useQuizStore.getState().loadQuizzes).not.toHaveBeenCalled();
         expect(useAuthStore.getState().restoreSession).not.toHaveBeenCalled();
         expect(useClassroomStore.getState().restoreStudentSession).not.toHaveBeenCalled();
+    });
+
+    it('keeps localhost parent mode mounted after the portal query is consumed by client navigation', async () => {
+        vi.stubEnv('VITE_FEATURE_PARENT_PORTAL_V1', 'true');
+        window.history.replaceState({}, '', '/?portal=parent');
+        renderApp('/?portal=parent');
+
+        fireEvent.click(await screen.findByRole('button', { name: 'parent-portal-app' }));
+
+        await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/dashboard'));
+        expect(screen.getByRole('button', { name: 'parent-portal-app' })).toBeInTheDocument();
+        expect(screen.queryByText('home-page')).not.toBeInTheDocument();
+        expect(useQuizStore.getState().loadQuizzes).not.toHaveBeenCalled();
+    });
+
+    it('hides the reduced-experience status banner on the unauthenticated root login only', async () => {
+        const rootRender = renderApp('/');
+        expect(await screen.findByText('home-page')).toBeInTheDocument();
+        expect(screen.queryByTestId('reduced-experience-banner')).not.toBeInTheDocument();
+        rootRender.unmount();
+
+        const aboutRender = renderApp('/about');
+        expect(await screen.findByText('about-page')).toBeInTheDocument();
+        expect(screen.getByTestId('reduced-experience-banner')).toBeInTheDocument();
+        aboutRender.unmount();
+
+        useAuthStore.setState({ isLoggedIn: true });
+        renderApp('/');
+        expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
+        expect(screen.getByTestId('reduced-experience-banner')).toBeInTheDocument();
     });
 
     it('loads quizzes and system settings on mount while showing public shell globals', async () => {
