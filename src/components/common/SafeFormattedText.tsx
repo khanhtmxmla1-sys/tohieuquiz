@@ -14,6 +14,10 @@ const TAG_COMPONENTS: Record<string, React.ElementType> = {
     strong: 'strong',
 };
 
+const MATH_TOKEN_OPEN = '\uE100';
+const MATH_TOKEN_CLOSE = '\uE101';
+const mathTokenPattern = () => new RegExp(`${MATH_TOKEN_OPEN}(\\d+)${MATH_TOKEN_CLOSE}`, 'g');
+
 const findFirstMarkup = (value: string, enableMarkdown: boolean): RegExpExecArray | null => {
     const tagMatch = /<(u|b|i|em|strong)>([\s\S]*?)<\/\1>/i.exec(value);
     const underline = /_([^_\s]+)_/.exec(value);
@@ -27,10 +31,36 @@ const findFirstMarkup = (value: string, enableMarkdown: boolean): RegExpExecArra
         .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))[0] ?? null;
 };
 
-const renderPlainSegment = (
+const renderMaskedLiteral = (
+    value: string,
+    mathSegments: string[],
+    keyPrefix: string,
+): React.ReactNode[] => {
+    const nodes: React.ReactNode[] = [];
+    const pattern = mathTokenPattern();
+    let cursor = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = pattern.exec(value)) !== null) {
+        if (match.index > cursor) nodes.push(value.slice(cursor, match.index));
+        const mathIndex = Number.parseInt(match[1], 10);
+        nodes.push(
+            <React.Fragment key={`${keyPrefix}-math-${mathIndex}-${match.index}`}>
+                {mathSegments[mathIndex] ?? match[0]}
+            </React.Fragment>,
+        );
+        cursor = pattern.lastIndex;
+    }
+
+    if (cursor < value.length) nodes.push(value.slice(cursor));
+    return nodes;
+};
+
+const renderFormattedSegment = (
     value: string,
     keyPrefix: string,
     enableMarkdown: boolean,
+    mathSegments: string[],
 ): React.ReactNode[] => {
     const nodes: React.ReactNode[] = [];
     let remaining = value;
@@ -39,12 +69,18 @@ const renderPlainSegment = (
     while (remaining) {
         const match = findFirstMarkup(remaining, enableMarkdown);
         if (!match) {
-            nodes.push(remaining);
+            nodes.push(...renderMaskedLiteral(remaining, mathSegments, `${keyPrefix}-literal-${sequence}`));
             break;
         }
 
         const index = match.index ?? 0;
-        if (index > 0) nodes.push(remaining.slice(0, index));
+        if (index > 0) {
+            nodes.push(...renderMaskedLiteral(
+                remaining.slice(0, index),
+                mathSegments,
+                `${keyPrefix}-before-${sequence}`,
+            ));
+        }
 
         let tagName: keyof React.JSX.IntrinsicElements = 'u';
         let inner = '';
@@ -64,10 +100,11 @@ const renderPlainSegment = (
 
         const Tag = TAG_COMPONENTS[tagName] ?? tagName;
         nodes.push(
-            <Tag key={`${keyPrefix}-style-${sequence++}`}>
-                {renderPlainSegment(inner, `${keyPrefix}-inner-${sequence}`, enableMarkdown)}
+            <Tag key={`${keyPrefix}-style-${sequence}`}>
+                {renderFormattedSegment(inner, `${keyPrefix}-inner-${sequence}`, enableMarkdown, mathSegments)}
             </Tag>,
         );
+        sequence += 1;
         remaining = remaining.slice(index + match[0].length);
     }
 
@@ -80,17 +117,16 @@ const renderPlainSegment = (
  */
 const SafeFormattedText: React.FC<SafeFormattedTextProps> = ({ content, enableMarkdown = false }) => {
     const normalized = normalizeMathText(content);
-    return (
-        <>
-            {splitMathSegments(normalized).map((segment, index) => (
-                <React.Fragment key={`safe-text-${index}`}>
-                    {segment.type === 'math'
-                        ? segment.raw
-                        : renderPlainSegment(segment.raw, `safe-text-${index}`, enableMarkdown)}
-                </React.Fragment>
-            ))}
-        </>
-    );
+    const mathSegments: string[] = [];
+    const masked = splitMathSegments(normalized)
+        .map((segment) => {
+            if (segment.type !== 'math') return segment.raw;
+            const index = mathSegments.push(segment.raw) - 1;
+            return `${MATH_TOKEN_OPEN}${index}${MATH_TOKEN_CLOSE}`;
+        })
+        .join('');
+
+    return <>{renderFormattedSegment(masked, 'safe-text', enableMarkdown, mathSegments)}</>;
 };
 
 export default React.memo(SafeFormattedText);

@@ -115,6 +115,19 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
             );
         }
 
+        if (isDragDrop) {
+            return (
+                <button
+                    key={key}
+                    type="button"
+                    aria-label={currentValue ? `Xóa đáp án ô ${blankId}` : `Ô trống ${blankId}`}
+                    onClick={() => currentValue && handleFill(blankId, '')}
+                    className={`mx-1 inline-flex min-w-[72px] items-center justify-center rounded-[8px] border px-3 py-1 text-center align-middle outline-none transition-colors focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${answerInputClasses(Boolean(currentValue.trim()))}`}
+                >
+                    {currentValue ? <SmartText content={currentValue} /> : <span className="text-slate-400">...</span>}
+                </button>
+            );
+        }
         return (
             <input
                 key={key}
@@ -123,9 +136,7 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
                 value={currentValue}
                 onChange={(event) => handleFill(blankId, event.target.value)}
                 placeholder="..."
-                className={`mx-1 inline-block w-20 min-w-[72px] rounded-[8px] border px-2 py-1 text-center align-middle outline-none transition-colors ${answerInputClasses(Boolean(currentValue.trim()))} ${isDragDrop ? 'cursor-pointer focus:border-sky-500' : 'focus:border-sky-500 focus:ring-2 focus:ring-sky-100'}`}
-                onClick={() => isDragDrop && currentValue && handleFill(blankId, '')}
-                readOnly={isDragDrop}
+                className={`mx-1 inline-block w-20 min-w-[72px] rounded-[8px] border px-2 py-1 text-center align-middle outline-none transition-colors ${answerInputClasses(Boolean(currentValue.trim()))} focus:border-sky-500 focus:ring-2 focus:ring-sky-100`}
             />
         );
     }, [answers, handleFill, isDragDrop, q.id, resolveBlankOptions]);
