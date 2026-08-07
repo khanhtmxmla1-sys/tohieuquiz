@@ -51,4 +51,53 @@ describe('QuestionImportDrawer', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('Chỉ hỗ trợ CSV, XLSX hoặc DOCX');
         expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions).toHaveLength(0);
     });
+
+    it('previews pasted JSON, imports the selected questions and keeps undo working', async () => {
+        render(<QuestionImportDrawer open onClose={vi.fn()} />);
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Dán JSON' }));
+        expect(screen.getByRole('tab', { name: 'Dán JSON' })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('button', { name: 'Sao chép JSON mẫu' })).toBeInTheDocument();
+
+        fireEvent.change(screen.getByLabelText('Dữ liệu JSON'), {
+            target: {
+                value: JSON.stringify([
+                    {
+                        type: 'multiple_choice',
+                        question: '2 + 3 bằng bao nhiêu?',
+                        options: ['4', '5', '6', '7'],
+                        answer: '5',
+                    },
+                ]),
+            },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra JSON' }));
+
+        expect(await screen.findByText('2 + 3 bằng bao nhiêu?')).toBeInTheDocument();
+        expect(screen.getByText('1 sẵn sàng')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Nhập 1 câu đã chọn' }));
+
+        await waitFor(() => {
+            expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions).toHaveLength(1);
+        });
+        expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions[0]).toEqual(expect.objectContaining({
+            correctAnswer: 'B',
+        }));
+
+        fireEvent.click(screen.getByRole('button', { name: 'Hoàn tác nhập câu hỏi' }));
+        expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions).toHaveLength(0);
+    });
+
+    it('shows a readable alert for invalid pasted JSON and does not change the quiz', () => {
+        render(<QuestionImportDrawer open onClose={vi.fn()} />);
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Dán JSON' }));
+        fireEvent.change(screen.getByLabelText('Dữ liệu JSON'), {
+            target: { value: '{bad json' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra JSON' }));
+
+        expect(screen.getByRole('alert')).toHaveTextContent('JSON không hợp lệ');
+        expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions).toHaveLength(0);
+    });
 });
