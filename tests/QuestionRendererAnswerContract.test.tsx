@@ -142,4 +142,50 @@ describe('question renderer answer contract', () => {
     expect(screen.getByRole('button', { name: 'mine' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'hers' })).toHaveLength(1);
   });
+  it('renders a selected drag-drop LaTeX answer as rich content instead of a text input', () => {
+    const onAnswerChange = vi.fn();
+    render(
+      <FillInTheBlankRenderer
+        question={{
+          id: 'drag-latex',
+          type: 'DRAG_DROP',
+          question: 'Kéo số',
+          text: 'Mỗi bao nặng: 350 : 7 = [1] (kg).',
+          blanks: [{ id: 'blank-0', correctAnswer: '$50$' }],
+        } as any}
+        index={0}
+        answers={{ 'drag-latex': { 'blank-0': '$50$' } }}
+        onAnswerChange={onAnswerChange}
+      />,
+    );
+
+    expect(screen.queryByRole('textbox', { name: 'Ô trống blank-0' })).not.toBeInTheDocument();
+    const selectedBlank = screen.getByRole('button', { name: 'Xóa đáp án ô blank-0' });
+    expect(selectedBlank).toHaveTextContent('$50$');
+
+    fireEvent.click(selectedBlank);
+    expect(onAnswerChange).toHaveBeenCalledWith('drag-latex', '', 'blank-0');
+  });
+  it('keeps a non-drag fill-in-the-blank as an editable textbox', () => {
+    const onAnswerChange = vi.fn();
+    render(
+      <FillInTheBlankRenderer
+        question={{
+          id: 'fill-text',
+          type: 'FILL_IN_THE_BLANK',
+          question: 'Điền đáp án',
+          text: 'Kết quả là [1].',
+          blanks: [{ id: 'blank-0', correctAnswer: '50' }],
+        } as any}
+        index={0}
+        answers={{}}
+        onAnswerChange={onAnswerChange}
+      />,
+    );
+
+    const textbox = screen.getByRole('textbox', { name: 'Ô trống blank-0' });
+    expect(textbox).toBeInTheDocument();
+    fireEvent.change(textbox, { target: { value: '50' } });
+    expect(onAnswerChange).toHaveBeenCalledWith('fill-text', '50', 'blank-0');
+  });
 });
