@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import { useLocation } from 'react-router';
+import { useAuthStore } from '../../stores/authStore';
 import { useQuizStore } from '../../stores/quizStore';
 import { useSeo } from '../hooks/useSeo';
 import { AppGlobals } from './AppGlobals';
@@ -15,6 +16,7 @@ import { isDedicatedParentHost, resolveHostContext } from './hostContext';
 import { isParentPortalEnabled } from '../config/featureFlags';
 import { ParentPortalApp } from './lazyViews';
 import { ParentPortalFallback } from '../features/parent-portal/layout/ParentPortalLayout';
+import { useClassroomStore } from '../stores/useClassroomStore';
 import { OfflineBanner, ReducedExperienceBanner } from '../components/common';
 
 const MainApp: React.FC = () => {
@@ -49,6 +51,9 @@ const ParentPortalUnavailable = () => (
 );
 
 const App: React.FC = () => {
+    const location = useLocation();
+    const isTeacherLoggedIn = useAuthStore((state) => state.isLoggedIn);
+    const studentSession = useClassroomStore((state) => state.studentSession);
     const hostname = typeof window === 'undefined' ? '' : window.location.hostname;
     const search = typeof window === 'undefined' ? '' : window.location.search;
     const hostContext = resolveHostContext(hostname, search);
@@ -63,10 +68,15 @@ const App: React.FC = () => {
         ) : <ParentPortalUnavailable />)
         : <MainApp />;
 
+    const isUnauthenticatedRootLogin = hostContext === 'main'
+        && location.pathname === '/'
+        && !isTeacherLoggedIn
+        && !studentSession;
+
     return (
         <>
             <OfflineBanner />
-            <ReducedExperienceBanner />
+            {!isUnauthenticatedRootLogin && <ReducedExperienceBanner />}
             {content}
         </>
     );

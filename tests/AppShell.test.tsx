@@ -11,6 +11,9 @@ import { useClassroomStore } from '../src/stores/useClassroomStore';
 vi.mock('@vercel/analytics/react', () => ({ Analytics: () => <div data-testid="analytics" /> }));
 vi.mock('react-hot-toast', () => ({ Toaster: () => <div data-testid="toaster" /> }));
 vi.mock('../src/hooks/useSeo', () => ({ useSeo: vi.fn() }));
+vi.mock('../src/hooks/useReducedExperience', () => ({
+    useReducedExperience: () => ({ reduceData: false, reduceMotion: true, reduceVisuals: true }),
+}));
 vi.mock('../src/services/systemSettingsService', () => ({ getSystemSettings: vi.fn() }));
 vi.mock('../src/components/ChatBot', () => ({ ChatBot: () => <div>chatbot</div> }));
 vi.mock('../src/components/StudentView', () => ({ default: () => <div>student-view</div> }));
@@ -114,6 +117,23 @@ describe('App shell routing contracts', () => {
         expect(useQuizStore.getState().loadQuizzes).not.toHaveBeenCalled();
         expect(useAuthStore.getState().restoreSession).not.toHaveBeenCalled();
         expect(useClassroomStore.getState().restoreStudentSession).not.toHaveBeenCalled();
+    });
+
+    it('hides the reduced-experience status banner on the unauthenticated root login only', async () => {
+        const rootRender = renderApp('/');
+        expect(await screen.findByText('home-page')).toBeInTheDocument();
+        expect(screen.queryByTestId('reduced-experience-banner')).not.toBeInTheDocument();
+        rootRender.unmount();
+
+        const aboutRender = renderApp('/about');
+        expect(await screen.findByText('about-page')).toBeInTheDocument();
+        expect(screen.getByTestId('reduced-experience-banner')).toBeInTheDocument();
+        aboutRender.unmount();
+
+        useAuthStore.setState({ isLoggedIn: true });
+        renderApp('/');
+        expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
+        expect(screen.getByTestId('reduced-experience-banner')).toBeInTheDocument();
     });
 
     it('loads quizzes and system settings on mount while showing public shell globals', async () => {

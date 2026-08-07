@@ -24,7 +24,7 @@ describe('LoginForm passkey option', () => {
     renderForm('teacher', onPasskey);
     fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập bằng passkey' }));
     expect(onPasskey).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('hoặc')).toBeInTheDocument();
+    expect(screen.getByText('Hoặc tiếp tục bằng')).toBeInTheDocument();
   });
 
   it('does not expose staff passkeys to the student tab', () => {
