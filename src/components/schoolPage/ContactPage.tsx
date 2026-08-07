@@ -30,18 +30,18 @@ const supportTopics = [
 const quickContacts = [
     {
         icon: Phone,
-        title: 'Hotline hỗ trợ',
-        value: '0212 388 8888',
+        title: 'Điện thoại / Zalo',
+        value: '0326439774',
         note: 'Thứ 2 – Thứ 6, 08:00 – 17:00',
-        href: 'tel:02123888888',
+        href: 'tel:0326439774',
         accent: 'bg-blue-50 text-blue-700',
     },
     {
         icon: Mail,
         title: 'Email hỗ trợ',
-        value: 'support@thtohieu.com',
+        value: 'tongminhkhanh@gmail.com',
         note: 'Phù hợp khi cần gửi ảnh hoặc mô tả chi tiết',
-        href: 'mailto:support@thtohieu.com',
+        href: 'mailto:tongminhkhanh@gmail.com',
         accent: 'bg-amber-50 text-amber-700',
     },
     {
@@ -307,14 +307,14 @@ const ContactPage: React.FC = () => {
                     </div>
                     <div className="relative z-10 mt-8 flex flex-col gap-3 sm:flex-row lg:mt-0 lg:shrink-0">
                         <a
-                            href="tel:02123888888"
+                            href="tel:0326439774"
                             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-yellow-400 px-6 font-extrabold text-[#172554] transition hover:bg-yellow-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-200/50"
                         >
                             <Phone className="h-5 w-5" />
-                            Gọi 0212 388 8888
+                            Gọi 0326439774
                         </a>
                         <a
-                            href="mailto:support@thtohieu.com"
+                            href="mailto:tongminhkhanh@gmail.com"
                             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/30 px-6 font-bold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/30"
                         >
                             <Mail className="h-5 w-5" />

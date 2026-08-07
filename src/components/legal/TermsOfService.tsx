@@ -148,7 +148,7 @@ const TermsOfService: React.FC<Props> = ({ onBack }) => (
 
         <LegalSection id="terms-changes" number="10" title="Thay đổi điều khoản và liên hệ" icon={Mail}>
             <p>Điều khoản có thể được cập nhật khi tính năng, quy trình nhà trường hoặc yêu cầu pháp lý thay đổi. Phiên bản mới sẽ ghi rõ ngày áp dụng; thay đổi quan trọng nên được thông báo qua kênh phù hợp trước khi triển khai.</p>
-            <p>Gửi câu hỏi hoặc báo cáo hành vi không an toàn đến <a href="mailto:support@thtohieu.com" className="font-extrabold text-blue-700 underline decoration-blue-200 underline-offset-4">support@thtohieu.com</a>, giáo viên chủ nhiệm hoặc Ban Quản trị nhà trường. Khi báo cáo, không gửi mật khẩu hay dữ liệu nhạy cảm không cần thiết.</p>
+            <p>Gửi câu hỏi hoặc báo cáo hành vi không an toàn đến <a href="mailto:tongminhkhanh@gmail.com" className="font-extrabold text-blue-700 underline decoration-blue-200 underline-offset-4">tongminhkhanh@gmail.com</a>, giáo viên chủ nhiệm hoặc Ban Quản trị nhà trường. Khi báo cáo, không gửi mật khẩu hay dữ liệu nhạy cảm không cần thiết.</p>
             <div className="flex items-start gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-950">
                 <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-blue-700" />
                 <span>Việc tiếp tục sử dụng sau ngày áp dụng thể hiện sự đồng ý trong phạm vi người dùng có thẩm quyền; đối với học sinh, việc hướng dẫn và chấp thuận của nhà trường/phụ huynh được thực hiện theo quy định liên quan.</span>

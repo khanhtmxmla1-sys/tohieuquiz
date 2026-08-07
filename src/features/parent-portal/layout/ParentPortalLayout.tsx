@@ -117,7 +117,7 @@ export const ParentPortalLayout: React.FC<React.PropsWithChildren> = ({ children
             </div>
 
             <a
-              href="mailto:support@thtohieu.com?subject=Hỗ trợ Cổng phụ huynh TôHiệuQuiz"
+              href="mailto:tongminhkhanh@gmail.com?subject=Hỗ trợ Cổng phụ huynh TôHiệuQuiz"
               className="block rounded-[20px] border border-[#bfdbfe] bg-[#eff6ff] p-4 transition-[background-color,border-color,transform] hover:border-[#93c5fd] hover:bg-[#dbeafe] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2 active:scale-[0.99]"
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white text-[#2563eb] shadow-sm">

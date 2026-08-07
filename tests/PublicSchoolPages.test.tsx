@@ -24,8 +24,8 @@ describe('public school pages branding and content', () => {
 
         expect(screen.getByRole('heading', { name: /Kết nối với TôHiệuQuiz/i })).toBeVisible();
         expect(screen.getByRole('button', { name: 'Liên hệ' })).toHaveAttribute('aria-current', 'page');
-        expect(screen.getByText('0212 388 8888')).toBeVisible();
-        expect(screen.getByText('support@thtohieu.com')).toBeVisible();
+        expect(screen.getByText('0326439774')).toBeVisible();
+        expect(screen.getByText('tongminhkhanh@gmail.com')).toBeVisible();
         expect(screen.queryByRole('iframe')).not.toBeInTheDocument();
 
         const submitButton = screen.getByRole('button', { name: 'Gửi yêu cầu hỗ trợ' });

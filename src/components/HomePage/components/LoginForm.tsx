@@ -169,7 +169,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                                 Ghi nhớ đăng nhập
                             </label>
                             <a
-                                href="mailto:support@thtohieu.com?subject=Hỗ trợ đặt lại mật khẩu TôHiệuQuiz"
+                                href="mailto:tongminhkhanh@gmail.com?subject=Hỗ trợ đặt lại mật khẩu TôHiệuQuiz"
                                 className="flex min-h-11 items-center font-semibold text-[#2563eb] underline-offset-4 hover:text-[#1d4ed8] hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]"
                             >
                                 Quên mật khẩu?
@@ -216,7 +216,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
                     <p className="mt-5 text-center text-sm leading-6 text-[#64748b]">
                         Gặp khó khăn khi đăng nhập?{' '}
                         <a
-                            href="mailto:support@thtohieu.com"
+                            href="mailto:tongminhkhanh@gmail.com"
                             className="font-semibold text-[#2563eb] underline-offset-4 hover:text-[#1d4ed8] hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]"
                         >
                             Liên hệ Quản trị viên
