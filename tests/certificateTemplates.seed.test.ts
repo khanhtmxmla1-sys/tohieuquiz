@@ -10,6 +10,7 @@ const pngMigrationPath = path.join(root, 'workers', 'migrations', '0055_certific
 const pngRollbackPath = path.join(root, 'workers', 'rollbacks', '0055_drop_certificate_render_backgrounds_png.sql');
 const generatedMigrationPath = path.join(root, 'workers', 'migrations', '0056_add_generated_certificate_templates.sql');
 const generatedRollbackPath = path.join(root, 'workers', 'rollbacks', '0056_drop_generated_certificate_templates.sql');
+const footerMigrationPath = path.join(root, 'workers', 'migrations', '0063_certificate_footer_safe_zone.sql');
 const defaultsPath = path.join(root, 'workers', 'seeds', 'defaults.sql');
 
 const templates = [
@@ -119,6 +120,23 @@ describe('TôHiệuQuiz certificate template seed', () => {
     }
     expect(rollback).toContain('SET is_active = 0');
     expect(rollback).not.toContain('DELETE FROM certificate_templates');
+  });
+
+  it('keeps all built-in footers inside the shared safe zone', async () => {
+    const migration = await readFile(footerMigrationPath, 'utf8');
+    const defaults = await readFile(defaultsPath, 'utf8');
+
+    for (const sql of [migration, defaults]) {
+      expect(sql).toContain("'$.y', 520");
+      expect(sql).toContain("'$.y', 555");
+      expect(sql).toContain("'$.y', 610");
+      expect(sql).toContain("'$.maxWidth', 450");
+      expect(sql).toContain("'$.maxWidth', 320");
+      expect(sql).toContain("'$.baseline', 'alphabetic'");
+    }
+    for (const template of [...templates, ...generatedTemplates]) {
+      expect(migration).toContain(`'${template.id}'`);
+    }
   });
 
   it('aligns names to guide lines and centers score text in each score frame', async () => {
