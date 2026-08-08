@@ -8,7 +8,12 @@
 
 import { Env } from '../types';
 import { jsonResponse, errorResponse, generateId } from '../utils/response';
-import { mapQuestionForSave, parseBody, extractIdFromPath } from '../utils/helpers';
+import {
+    mapQuestionForSave,
+    parseBody,
+    extractIdFromPath,
+    QuestionRichTextValidationError,
+} from '../utils/helpers';
 import { verifyJWTMiddleware, requireAdmin, requireTeacher } from '../middleware/jwtAuth';
 import { JWTPayload } from '../utils/jwt';
 import { withD1Retry } from '../utils/d1';
@@ -28,6 +33,10 @@ import {
 import { QuestionScoringContractValidationError } from '../services/questionScoringContract';
 import { sanitizeSvgDiagram } from '../services/svgDiagramSanitizer';
 import { z } from 'zod';
+import {
+    deserializeQuestionRichText,
+    serializeQuestionRichText,
+} from '../../../shared/question-rich-text.contract';
 
 const canAccessQuiz = async (db: D1Database, user: JWTPayload, quizId: string): Promise<boolean> => {
     if (requireAdmin(user)) return true;
@@ -95,11 +104,11 @@ const shuffle = <T>(values: T[]): T[] => {
 
 const buildQuestionInsertStatement = (db: D1Database) => db.prepare(
     `INSERT INTO questions (
-        id, quiz_id, type, question, options, correct_answer, items, text_field,
+        id, quiz_id, type, question, question_rich_text, options, correct_answer, items, text_field,
         blanks, distractors, sentence, words, correct_word_indexes, image, tags,
         subject, skill_code, subskill_code, difficulty, math_format_version, points, explanation, image_alt,
         svg_content, svg_alt, answer_schema_version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 );
 
 const mapQuestionBatch = (questions: unknown[], quizId: string): string[][] =>
@@ -120,6 +129,13 @@ const mathValidationResponse = (error: QuestionMathValidationError): Response =>
     })),
 }, 400);
 
+const richTextValidationResponse = (error: QuestionRichTextValidationError): Response => jsonResponse({
+    status: 'error',
+    code: error.code,
+    message: 'Định dạng nội dung câu hỏi chưa hợp lệ.',
+    issue: error.issue,
+}, 400);
+
 const scoringContractValidationResponse = (
     error: QuestionScoringContractValidationError,
 ): Response => jsonResponse({
@@ -128,6 +144,20 @@ const scoringContractValidationResponse = (
     message: 'Một hoặc nhiều câu hỏi chưa có hợp đồng đáp án hợp lệ để chấm tự động.',
     issues: error.issues,
 }, 400);
+
+const serializeStoredQuestionRichText = (
+    question: { type?: unknown; question_rich_text?: unknown; questionRichText?: unknown },
+): string => {
+    const rawRichText = question.question_rich_text ?? question.questionRichText;
+    const parsed = deserializeQuestionRichText(rawRichText);
+    if (rawRichText && !parsed) {
+        console.info(JSON.stringify({
+            event: 'question_rich_text_copy_fallback',
+            questionType: String(question.type ?? ''),
+        }));
+    }
+    return serializeQuestionRichText(parsed);
+};
 
 const copiedQuestionValues = (
     question: import('../types').Question,
@@ -162,6 +192,11 @@ const copiedQuestionValues = (
         newQuizId,
         question.type,
         String(normalized.question ?? ''),
+        serializeStoredQuestionRichText(question as unknown as {
+            type?: unknown;
+            question_rich_text?: unknown;
+            questionRichText?: unknown;
+        }),
         String(normalized.options ?? ''),
         String(normalized.correct_answer ?? ''),
         String(normalized.items ?? ''),
@@ -267,6 +302,14 @@ const toEditorQuizDto = (quiz: import('../types').Quiz) => ({
 export const mapQuestionFromD1 = (question: any): any => {
     const svgContent = String(question?.svgContent ?? question?.svg_content ?? '');
     const svgAlt = String(question?.svgAlt ?? question?.svg_alt ?? '');
+    const rawRichText = question?.questionRichText ?? question?.question_rich_text;
+    const questionRichText = deserializeQuestionRichText(rawRichText);
+    if (rawRichText && !questionRichText) {
+        console.info(JSON.stringify({
+            event: 'question_rich_text_read_fallback',
+            questionType: String(question?.type ?? ''),
+        }));
+    }
     const mapped = {
         ...question,
         imageAlt: String(question?.imageAlt ?? question?.image_alt ?? '') || undefined,
@@ -274,6 +317,9 @@ export const mapQuestionFromD1 = (question: any): any => {
         svgAlt: svgContent && svgAlt ? svgAlt : undefined,
         svgVersion: svgContent && svgAlt ? 1 : undefined,
     };
+    delete mapped.question_rich_text;
+    delete mapped.questionRichText;
+    if (questionRichText) mapped.questionRichText = questionRichText;
     delete mapped.image_alt;
     delete mapped.svg_content;
     delete mapped.svg_alt;
@@ -517,6 +563,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             mappedQuestions = mapQuestionBatch(incomingQuestions, String(body.id || ''));
         } catch (error) {
             if (error instanceof QuestionMathValidationError) return mathValidationResponse(error);
+            if (error instanceof QuestionRichTextValidationError) return richTextValidationResponse(error);
             if (error instanceof QuestionScoringContractValidationError) {
                 return scoringContractValidationResponse(error);
             }
@@ -620,6 +667,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             mappedQuestions = mapQuestionBatch(incomingQuestions, quizId);
         } catch (error) {
             if (error instanceof QuestionMathValidationError) return mathValidationResponse(error);
+            if (error instanceof QuestionRichTextValidationError) return richTextValidationResponse(error);
             if (error instanceof QuestionScoringContractValidationError) {
                 return scoringContractValidationResponse(error);
             }
@@ -720,6 +768,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
                     copiedQuestionValues(question, generateId('q'), newQuizId));
             } catch (error) {
                 if (error instanceof QuestionMathValidationError) return mathValidationResponse(error);
+            if (error instanceof QuestionRichTextValidationError) return richTextValidationResponse(error);
                 throw error;
             }
 
@@ -796,6 +845,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
                     copiedQuestionValues(question, generateId('q'), newQuizId));
             } catch (error) {
                 if (error instanceof QuestionMathValidationError) return mathValidationResponse(error);
+            if (error instanceof QuestionRichTextValidationError) return richTextValidationResponse(error);
                 throw error;
             }
 

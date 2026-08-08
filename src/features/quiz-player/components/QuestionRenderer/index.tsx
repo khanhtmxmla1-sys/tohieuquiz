@@ -4,6 +4,8 @@ import SmartText from './utils/SmartText';
 import { getQuestionProgress } from '../../../../domain/quiz-progress';
 import { QuestionProgressBadge } from '../answer-state';
 import SafeSvgDiagram from '../../../../components/common/SafeSvgDiagram';
+import QuestionRichTextRenderer from '../../../../components/common/QuestionRichTextRenderer';
+import type { QuestionRichTextEnvelopeV1 } from '../../../../../shared/question-rich-text.contract';
 
 import MCQRenderer from './renderers/MCQRenderer';
 import TrueFalseRenderer from './renderers/TrueFalseRenderer';
@@ -28,6 +30,7 @@ const QuestionRenderer: React.FC<BaseRendererProps> = (props) => {
   const normalizedType = rawType.replace(/-/g, '_');
   const progress = getQuestionProgress(question, props.answers[question.id]);
   const questionRecord = question as unknown as Record<string, unknown>;
+  const questionRichText = questionRecord.questionRichText as QuestionRichTextEnvelopeV1 | undefined;
   const svgContent = typeof questionRecord.svgContent === 'string'
     ? questionRecord.svgContent
     : (typeof questionRecord.svg_content === 'string' ? questionRecord.svg_content : '');
@@ -77,10 +80,18 @@ const QuestionRenderer: React.FC<BaseRendererProps> = (props) => {
           {index + 1}
         </span>
         <div className="min-h-9 min-w-0 flex-1 py-1 text-base font-medium leading-7 text-[#172033] sm:text-lg">
-          <SmartText
-            content={(question as any).mainQuestion || (question as any).content || (question as any).question}
-            className="leading-relaxed"
-          />
+          {questionRichText ? (
+            <QuestionRichTextRenderer
+              value={questionRichText}
+              fallback={(question as any).mainQuestion || (question as any).content || (question as any).question || ''}
+              className="leading-relaxed"
+            />
+          ) : (
+            <SmartText
+              content={(question as any).mainQuestion || (question as any).content || (question as any).question}
+              className="leading-relaxed"
+            />
+          )}
         </div>
         <QuestionProgressBadge progress={progress} />
       </div>

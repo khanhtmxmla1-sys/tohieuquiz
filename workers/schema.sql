@@ -172,6 +172,7 @@ CREATE TABLE IF NOT EXISTS questions (
   quiz_id TEXT NOT NULL,
   type TEXT NOT NULL,
   question TEXT DEFAULT '',
+  question_rich_text TEXT NOT NULL DEFAULT '',
   options TEXT DEFAULT '',
   correct_answer TEXT DEFAULT '',
   items TEXT DEFAULT '',

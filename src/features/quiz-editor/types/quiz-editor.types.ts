@@ -17,6 +17,7 @@ import type {
     CategoryGroup,
     CategorizationItem,
 } from '../../../types';
+import type { QuestionRichTextEnvelopeV1 } from '../../../../shared/question-rich-text.contract';
 
 // ---------------------------------------------------------------------------
 // Common Fields
@@ -135,7 +136,7 @@ export interface ErrorCorrectionEditorDraft extends BaseEditorDraft {
  * useQuestionEditor.saveEdited() accepts this union and maps to the
  * correct domain Question shape.
  */
-export type AnyEditorDraft =
+export type AnyEditorDraft = (
     | MCQEditorDraft
     | MultipleSelectEditorDraft
     | TrueFalseEditorDraft
@@ -149,7 +150,10 @@ export type AnyEditorDraft =
     | CategorizationEditorDraft
     | WordScrambleEditorDraft
     | RiddleEditorDraft
-    | ErrorCorrectionEditorDraft;
+    | ErrorCorrectionEditorDraft
+) & {
+    questionRichText?: QuestionRichTextEnvelopeV1;
+};
 
 // ---------------------------------------------------------------------------
 // QuizPreview Props

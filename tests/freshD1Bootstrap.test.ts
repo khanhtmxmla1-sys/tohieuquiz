@@ -72,6 +72,7 @@ describe('fresh D1 bootstrap contract', () => {
       'is_default integer not null default 0',
       'canvas_width integer not null default 1200',
       'canvas_height integer not null default 848',
+      "question_rich_text text not null default ''",
       'create index if not exists idx_questions_tags',
       'create index if not exists idx_hw_submissions_student_latest',
       'create index if not exists idx_classes_teacher_username',
@@ -107,8 +108,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(62);
-    expect(migrationNames.at(-1)).toBe('0063_certificate_footer_safe_zone.sql');
+    expect(migrationNames).toHaveLength(63);
+    expect(migrationNames.at(-1)).toBe('0064_add_question_rich_text.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);

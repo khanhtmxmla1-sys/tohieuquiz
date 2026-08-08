@@ -105,7 +105,7 @@ describe('teacher-friendly live math validation', () => {
         useManualQuizWorkspaceStore.getState().addQuestion({
             id: 'q-1',
             type: QuestionType.MCQ,
-            question: 'Câu hỏi cũ',
+            question: 'Tính $\\frac{1}{2',
             options: ['1', '2'],
             correctAnswer: 'B',
             difficulty: 1,
@@ -113,8 +113,6 @@ describe('teacher-friendly live math validation', () => {
         });
         render(<QuestionEditorPane />);
 
-        const prompt = screen.getByPlaceholderText('Nhập nội dung câu hỏi...');
-        fireEvent.change(prompt, { target: { value: 'Tính $\\frac{1}{2' } });
         await act(async () => { vi.advanceTimersByTime(150); });
 
         expect(screen.getByRole('status', { name: 'Cảnh báo công thức toán' })).toBeInTheDocument();

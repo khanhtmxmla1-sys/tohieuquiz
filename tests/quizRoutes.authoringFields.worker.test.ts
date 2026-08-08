@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JWTPayload } from '../workers/src/utils/jwt';
+import { plainTextToRichText } from '../shared/question-rich-text.contract';
 
 let currentUser: JWTPayload | null = null;
 vi.mock('../workers/src/middleware/jwtAuth', () => ({
@@ -10,7 +11,7 @@ vi.mock('../workers/src/middleware/jwtAuth', () => ({
     requireTeacher: vi.fn((user: JWTPayload) => user.role === 'teacher' || user.role === 'admin'),
 }));
 
-import { handleQuizRoutes, sanitizeQuestionForStudent } from '../workers/src/routes/quizzes';
+import { handleQuizRoutes, mapQuestionFromD1, sanitizeQuestionForStudent } from '../workers/src/routes/quizzes';
 import { mapQuestionForSave } from '../workers/src/utils/helpers';
 
 class Statement {
@@ -48,6 +49,7 @@ class Database {
         if (!sql.includes('FROM questions')) return [];
         return [{
             id: 'q-old', quiz_id: 'quiz-a', type: 'MCQ', question: '1 + 1 = ?',
+            question_rich_text: JSON.stringify(richQuestion),
             options: '1|2', correct_answer: 'B', items: '', text_field: '', blanks: '',
             distractors: '', sentence: '', words: '', correct_word_indexes: '', image: '',
             tags: '', subject: 'toan', skill_code: '', subskill_code: '', difficulty: 1,
@@ -72,8 +74,15 @@ const request = (path: string, method: string, body?: unknown) => new Request(`h
     body: body === undefined ? undefined : JSON.stringify(body),
 });
 
+const richQuestion = plainTextToRichText('1 + 1 = ?');
+richQuestion.doc.content[0] = {
+    type: 'paragraph',
+    attrs: { textAlign: 'center' },
+    content: [{ type: 'text', text: '1 + 1 = ?', marks: [{ type: 'bold' }] }],
+};
+
 const question = {
-    id: 'q-1', type: 'MCQ', question: '1 + 1 = ?', options: ['1', '2'],
+    id: 'q-1', type: 'MCQ', question: '1 + 1 = ?', questionRichText: richQuestion, options: ['1', '2'],
     correctAnswer: 'B', difficulty: 1, points: 2.5,
     explanation: 'Vì một cộng một bằng hai.', imageAlt: 'Hai khối vuông.',
     svgContent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="2" /></svg>',
@@ -85,9 +94,11 @@ beforeEach(() => {
 });
 
 describe('quiz authoring points and explanations', () => {
-    it('maps points and explanation as the final persisted question fields', () => {
+    it('maps rich presentation into a dedicated persisted column without changing plain question semantics', () => {
         const mapped = mapQuestionForSave(question, 'quiz-a');
-        expect(mapped).toHaveLength(26);
+        expect(mapped).toHaveLength(27);
+        expect(mapped[3]).toBe('1 + 1 = ?');
+        expect(JSON.parse(mapped[4])).toEqual(richQuestion);
         expect(mapped.slice(-6)).toEqual([
             '2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.',
             expect.stringContaining('<svg'), 'Một đường tròn.', '2',
@@ -103,8 +114,11 @@ describe('quiz authoring points and explanations', () => {
 
         expect(response.status).toBe(200);
         const insert = db.executed.find((statement) => statement.sql.includes('INSERT INTO questions'));
+        expect(insert?.sql).toContain('question, question_rich_text, options');
         expect(insert?.sql).toContain('points, explanation, image_alt');
         expect(insert?.sql).toContain('svg_content, svg_alt');
+        expect(insert?.bindings).toHaveLength(27);
+        expect(JSON.parse(String(insert?.bindings[4]))).toEqual(richQuestion);
         expect(insert?.bindings.slice(-6)).toEqual([
             '2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.',
             expect.stringContaining('<svg'), 'Một đường tròn.', '2',
@@ -126,7 +140,7 @@ describe('quiz authoring points and explanations', () => {
             status: 'success', questionCount: 1, revision: 2,
         });
         const insert = db.executed.find((statement) => statement.sql.includes('INSERT INTO questions'));
-        expect(insert?.bindings[5]).toBe('mine');
+        expect(insert?.bindings[6]).toBe('mine');
     });
 
     it('returns a readable Vietnamese message for invalid scoring contracts', async () => {
@@ -150,6 +164,44 @@ describe('quiz authoring points and explanations', () => {
         });
     });
 
+    it('rejects unsupported rich presentation before executing any D1 write', async () => {
+        const db = new Database();
+        const response = await handleQuizRoutes(request('/api/quizzes', 'POST', {
+            id: 'quiz-a', title: 'Đề Toán', classLevel: '4A', category: 'toan',
+            timeLimit: 20, questions: [{
+                ...question,
+                questionRichText: {
+                    schemaVersion: 1,
+                    doc: {
+                        type: 'doc',
+                        content: [{
+                            type: 'paragraph',
+                            content: [{ type: 'text', text: 'X', marks: [{ type: 'link' }] }],
+                        }],
+                    },
+                },
+            }],
+        }), env(db), '/api/quizzes', 'POST');
+
+        expect(response.status).toBe(400);
+        await expect(response.json()).resolves.toMatchObject({
+            status: 'error',
+            code: 'INVALID_QUESTION_RICH_TEXT',
+        });
+        expect(db.executed.some((statement) => statement.sql.includes('INSERT INTO questions'))).toBe(false);
+    });
+
+    it('maps valid D1 rich JSON to camelCase and drops the raw storage field', () => {
+        const mapped = mapQuestionFromD1({
+            id: 'q-rich',
+            type: 'MCQ',
+            question: '1 + 1 = ?',
+            question_rich_text: JSON.stringify(richQuestion),
+        });
+        expect(mapped.questionRichText).toEqual(richQuestion);
+        expect(mapped).not.toHaveProperty('question_rich_text');
+    });
+
     it('keeps authoring fields when duplicating a quiz', async () => {
         const db = new Database();
         const response = await handleQuizRoutes(
@@ -161,28 +213,35 @@ describe('quiz authoring points and explanations', () => {
         const insert = db.executed.find((statement) =>
             statement.sql.includes('INSERT INTO questions') && statement.bindings.length > 0,
         );
+        expect(insert?.bindings).toHaveLength(27);
+        expect(JSON.parse(String(insert?.bindings[4]))).toEqual(richQuestion);
         expect(insert?.bindings.slice(-6)).toEqual([
             '2.5', 'Vì một cộng một bằng hai.', 'Hai khối vuông.',
             expect.stringContaining('<svg'), 'Một đường tròn.', '1',
         ]);
     });
 
-    it('hides explanations from students while keeping non-secret points', () => {
+    it('hides explanations from students while keeping non-secret points and rich presentation', () => {
         const safe = sanitizeQuestionForStudent({
             ...question,
             correct_answer: 'B',
             points: 2.5,
             explanation: 'Lời giải bí mật',
+            question_rich_text: JSON.stringify(richQuestion),
         });
         expect(safe).not.toHaveProperty('correct_answer');
         expect(safe).not.toHaveProperty('explanation');
         expect(safe.points).toBe(2.5);
+        expect(safe.questionRichText).toEqual(richQuestion);
+        expect(safe).not.toHaveProperty('question_rich_text');
     });
 
     it('keeps old questions valid when authoring fields are absent', () => {
         const mapped = mapQuestionForSave({
             id: 'q-old', type: 'MCQ', question: 'Câu cũ', options: ['A', 'B'], correctAnswer: 'A',
         }, 'quiz-a');
+        expect(mapped).toHaveLength(27);
+        expect(mapped[4]).toBe('');
         expect(mapped.slice(-6)).toEqual(['', '', '', '', '', '2']);
     });
 });

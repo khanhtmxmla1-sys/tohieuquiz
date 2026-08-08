@@ -9,9 +9,10 @@ describe('canonical scoring persistence', () => {
       id: 'q1', type: 'MCQ', question: '2 + 2?', options: ['3', '4'], correctAnswer: 'B',
     } as any, 'quiz-a');
 
-    expect(values).toHaveLength(26);
-    expect(values[5]).toBe('option-1');
-    expect(values[25]).toBe('2');
+    expect(values).toHaveLength(27);
+    expect(values[4]).toBe('');
+    expect(values[6]).toBe('option-1');
+    expect(values[26]).toBe('2');
   });
 
   it('stores drag-drop blanks with stable IDs and correct answers', () => {
@@ -20,11 +21,11 @@ describe('canonical scoring persistence', () => {
       blanks: ['xanh', 'đỏ'], distractors: ['vàng'],
     } as any, 'quiz-a');
 
-    expect(JSON.parse(values[8])).toEqual([
+    expect(JSON.parse(values[9])).toEqual([
       { id: 'blank-0', correctAnswer: 'xanh' },
       { id: 'blank-1', correctAnswer: 'đỏ' },
     ]);
-    expect(values[25]).toBe('2');
+    expect(values[26]).toBe('2');
   });
 
   it('sanitizes and persists valid SVG while dropping malicious SVG', () => {
@@ -33,16 +34,16 @@ describe('canonical scoring persistence', () => {
       id: 'q-svg', type: 'MCQ', question: 'Quan sát hình', options: ['A', 'B'], correctAnswer: 'A',
       svgContent: validSvg, svgAlt: 'Đường tròn tâm O', svgVersion: 1,
     } as any, 'quiz-a');
-    expect(valid[23]).toContain('<svg');
-    expect(valid[24]).toBe('Đường tròn tâm O');
+    expect(valid[24]).toContain('<svg');
+    expect(valid[25]).toBe('Đường tròn tâm O');
 
     const malicious = mapQuestionForSave({
       id: 'q-xss', type: 'MCQ', question: 'Quan sát hình', options: ['A', 'B'], correctAnswer: 'A',
       svgContent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" onload="alert(1)"></svg>',
       svgAlt: 'Hình lỗi', svgVersion: 1,
     } as any, 'quiz-a');
-    expect(malicious[23]).toBe('');
     expect(malicious[24]).toBe('');
+    expect(malicious[25]).toBe('');
   });
 
   it('rejects ungradable question contracts at the API persistence boundary', () => {

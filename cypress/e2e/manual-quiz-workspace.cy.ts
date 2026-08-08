@@ -111,6 +111,12 @@ const interceptManualQuizBackend = () => {
     cy.intercept('PUT', '**/api/quiz-drafts/*', (request) => {
         const draft = request.body.draft;
         if (draft?.quiz?.timeLimit === 45) request.alias = 'saveTimeDraft';
+        if (draft?.quiz?.questions?.some((question: any) => question?.questionRichText?.schemaVersion === 1)) {
+            request.alias = 'saveRichDraft';
+        }
+        if (draft?.quiz?.questions?.some((question: any) => question?.question === '1 + 1 bằng bao nhiêu?')) {
+            request.alias = 'saveCompleteQuestionDraft';
+        }
         const revision = Number(request.body.expectedRevision || 0) + 1;
         request.reply({
             statusCode: 200,
@@ -181,7 +187,11 @@ describe('Manual quiz workspace end-to-end', () => {
 
         cy.get('#manual-quiz-title').clear({ force: true }).type('Đề đang tự động lưu', { force: true });
         cy.get('button[aria-label="Thêm nhanh Trắc nghiệm"]').click();
-        cy.get('textarea[placeholder="Nhập nội dung câu hỏi..."]').clear().type('1 + 1 bằng bao nhiêu?');
+        cy.get('[data-testid="question-rich-editor"]')
+            .click()
+            .type('{ctrl}a')
+            .type('{backspace}1 + 1 bằng bao nhiêu?')
+            .should('contain.text', '1 + 1 bằng bao nhiêu?');
         cy.get('input[placeholder="Đáp án A"]').type('1');
         cy.get('input[placeholder="Đáp án B"]').type('2');
         cy.get('input[placeholder="Đáp án C"]').type('3');
@@ -190,13 +200,17 @@ describe('Manual quiz workspace end-to-end', () => {
         cy.get('input[aria-label="Điểm câu hỏi"]').clear().type('10');
         cy.contains('button', 'Lưu câu hỏi').click();
         cy.get('body').type('{ctrl}s');
-        cy.wait('@saveDraft', { timeout: 15_000 });
+        cy.wait('@saveCompleteQuestionDraft', { timeout: 15_000 }).then(({ request }) => {
+            expect(request.body.draft.quiz.questions[0].question).to.eq('1 + 1 bằng bao nhiêu?');
+            expect(request.body.draft.quiz.questions[0].questionRichText.schemaVersion).to.eq(1);
+        });
         cy.contains('Đã tự động lưu').should('be.visible');
 
         cy.reload();
         cy.wait('@accountProfile', { timeout: 15_000 });
         continueRecoveredDraft('Đề đang tự động lưu');
-        cy.contains('1 + 1 bằng bao nhiêu?').should('exist');
+        cy.get('[data-testid="question-rich-editor"]', { timeout: 15_000 })
+            .should('contain.text', '1 + 1 bằng bao nhiêu?');
 
         cy.window().then((win) => {
             Object.defineProperty(win.navigator, 'onLine', { configurable: true, value: false });
@@ -232,7 +246,65 @@ describe('Manual quiz workspace end-to-end', () => {
             expect(win.scrollY, 'page scroll position after navigator scroll').to.eq(pageScrollBeforeNavigator);
         });
         cy.get('button[aria-label^="Chọn câu 30:"]').should('be.visible').click();
-        cy.get('textarea[placeholder="Nhập nội dung câu hỏi..."]').should('have.value', 'Câu hỏi số 30');
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Câu hỏi số 30');
+    });
+
+    it('preserves Enter formatting through draft save, reload and publish', () => {
+        visitManualWorkspace(validDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.get('[data-testid="question-rich-editor"]')
+            .click()
+            .type('{ctrl}a{backspace}');
+        cy.get('button[aria-label="In đậm"]').click();
+        cy.get('[data-testid="question-rich-editor"]').type('Dòng thứ nhất');
+        cy.get('button[aria-label="In đậm"]').click();
+        cy.get('[data-testid="question-rich-editor"]').type('{enter}');
+        cy.get('button[aria-label="Căn giữa"]').click();
+        cy.get('[data-testid="question-rich-editor"]').type('Dòng thứ hai');
+        cy.contains('button', 'Lưu câu hỏi').click();
+        cy.get('body').type('{ctrl}s');
+
+        cy.wait('@saveRichDraft', { timeout: 15_000 }).then(({ request }) => {
+            const saved = request.body.draft.quiz.questions[0];
+            expect(saved.question).to.eq('Dòng thứ nhất\nDòng thứ hai');
+            expect(saved.questionRichText.schemaVersion).to.eq(1);
+            expect(saved.questionRichText.doc.content[0].content[0].marks).to.deep.include({ type: 'bold' });
+            expect(saved.questionRichText.doc.content[1].attrs.textAlign).to.eq('center');
+        });
+
+        cy.reload();
+        cy.wait('@accountProfile', { timeout: 15_000 });
+        continueRecoveredDraft('Đề kiểm tra E2E');
+        cy.get('[data-testid="question-rich-editor"] strong').should('contain.text', 'Dòng thứ nhất');
+        cy.get('[data-testid="question-rich-editor"] p').eq(1).should('have.attr', 'style').and('contain', 'text-align: center');
+
+        cy.contains('button', 'Kiểm tra và xuất bản').click();
+        cy.contains('button', 'Xuất bản đề').click();
+        cy.wait('@publishQuiz').then(({ request }) => {
+            expect(request.body.questions[0].question).to.eq('Dòng thứ nhất\nDòng thứ hai');
+            expect(request.body.questions[0].questionRichText.schemaVersion).to.eq(1);
+        });
+    });
+
+    it('serializes Shift+Enter as a hard break while keeping the plain newline fallback', () => {
+        visitManualWorkspace(validDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.get('[data-testid="question-rich-editor"]')
+            .click()
+            .type('{ctrl}a{backspace}Dòng 1')
+            .trigger('keydown', { key: 'Enter', code: 'Enter', shiftKey: true });
+        cy.get('[data-testid="question-rich-editor"]').type('Dòng 2');
+        cy.contains('button', 'Lưu câu hỏi').click();
+        cy.get('body').type('{ctrl}s');
+
+        cy.wait('@saveRichDraft', { timeout: 15_000 }).then(({ request }) => {
+            const saved = request.body.draft.quiz.questions[0];
+            expect(saved.question).to.eq('Dòng 1\nDòng 2');
+            expect(saved.questionRichText.doc.content).to.have.length(1);
+            expect(saved.questionRichText.doc.content[0].content.some((node: any) => node.type === 'hardBreak')).to.eq(true);
+        });
     });
 
     it('persists the configured duration and publishes the same value', () => {
@@ -272,7 +344,7 @@ describe('Manual quiz workspace end-to-end', () => {
     });
 
     [
-        { width: 390, height: 844, label: 'mobile-390' },
+        { width: 320, height: 800, label: 'mobile-320' },
         { width: 768, height: 1024, label: 'tablet-768' },
         { width: 1024, height: 768, label: 'tablet-1024' },
         { width: 1440, height: 900, label: 'desktop-1440' },
@@ -281,6 +353,9 @@ describe('Manual quiz workspace end-to-end', () => {
             cy.viewport(width, height);
             visitManualWorkspace(validDraft());
             continueRecoveredDraft('Đề kiểm tra E2E');
+            cy.get('button[aria-label="Thêm ảnh đính kèm"]')
+                .should('have.attr', 'aria-expanded', 'false');
+            cy.contains('Chọn, kéo thả hoặc dán ảnh').should('not.exist');
             assertNoHorizontalOverflow();
             cy.screenshot(`manual-quiz-workspace/${label}`, { capture: 'viewport' });
         });

@@ -12,9 +12,38 @@ import {
 } from '../services/quizScoringRolloutService';
 import type { FeatureFlagSubject } from '../../../shared/feature-rollout.contract';
 import { sanitizeSvgDiagram } from '../services/svgDiagramSanitizer';
+import { parseQuestionRichText } from '../../../shared/question-rich-text.contract';
+
+export class QuestionRichTextValidationError extends Error {
+    readonly code = 'INVALID_QUESTION_RICH_TEXT';
+
+    constructor(readonly issue: string) {
+        super('Question rich text is invalid.');
+        this.name = 'QuestionRichTextValidationError';
+    }
+}
+
+const serializeQuestionRichTextForSave = (input: unknown): string => {
+    if (input === undefined || input === null || input === '') return '';
+    let candidate = input;
+    if (typeof input === 'string') {
+        try {
+            candidate = JSON.parse(input);
+        } catch {
+            throw new QuestionRichTextValidationError('Dữ liệu rich text không phải JSON hợp lệ.');
+        }
+    }
+    const parsed = parseQuestionRichText(candidate);
+    if (!parsed.ok) throw new QuestionRichTextValidationError(parsed.error);
+    return JSON.stringify(parsed.value);
+};
 
 // ============ Map question data for D1 insert ============
 export function mapQuestionForSave(q: Partial<Question> & { type: string }, quizId: string): string[] {
+    const rawQuestion = q as Partial<Question> & { type: string; questionRichText?: unknown; question_rich_text?: unknown };
+    const questionRichTextField = serializeQuestionRichTextForSave(
+        rawQuestion.questionRichText ?? rawQuestion.question_rich_text,
+    );
     const mathNormalizedQuestion = prepareIncomingQuestion(q) as Partial<Question> & { type: string };
     const scoringContract = prepareQuestionScoringContractForSave(mathNormalizedQuestion);
     const normalizedQuestion = scoringContract.question as Partial<Question> & { type: string };
@@ -138,7 +167,7 @@ export function mapQuestionForSave(q: Partial<Question> & { type: string }, quiz
     }
 
     const result = [
-        normalizedQuestion.id || '', quizId, normalizedQuestion.type, questionText || '', options, correctAnswer,
+        normalizedQuestion.id || '', quizId, normalizedQuestion.type, questionText || '', questionRichTextField, options, correctAnswer,
         items, textField, blanksField, distractorsField, sentenceField,
         wordsField, correctWordIndexesField, imageField, tagsField,
         subjectField, skillCodeField, subskillCodeField, difficultyField,
