@@ -15,7 +15,7 @@ export async function loadLiveExamQuiz(
   if (!quizRow) throw new LiveExamServiceError('Quiz not found', 404);
 
   const questionRows = await db.prepare(`
-    SELECT id, type, question, options, correct_answer, items, text_field, blanks,
+    SELECT id, type, question, question_rich_text, options, correct_answer, items, text_field, blanks,
            distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, difficulty
     FROM questions
     WHERE quiz_id = ?

@@ -74,16 +74,17 @@ describe('server-owned math normalization and observability', () => {
       imageAlt: 'Hai phân số cần so sánh',
     } as any, 'quiz-1');
 
-    expect(values).toHaveLength(26);
+    expect(values).toHaveLength(27);
     expect(values[3]).toBe('So sánh $\\frac{1}{2}$ và $\\frac{2}{4}$');
-    expect(values[4]).toBe('$\\frac{1}{2}$|$\\frac{2}{3}$');
-    expect(values[19]).toBe('2');
-    expect(values[20]).toBe('');
+    expect(values[4]).toBe('');
+    expect(values[5]).toBe('$\\frac{1}{2}$|$\\frac{2}{3}$');
+    expect(values[20]).toBe('2');
     expect(values[21]).toBe('');
-    expect(values[22]).toBe('Hai phân số cần so sánh');
-    expect(values[23]).toBe('');
+    expect(values[22]).toBe('');
+    expect(values[23]).toBe('Hai phân số cần so sánh');
     expect(values[24]).toBe('');
-    expect(values[25]).toBe('2');
+    expect(values[25]).toBe('');
+    expect(values[26]).toBe('2');
   });
 
   it('rejects malformed TeX before returning D1 bindings', () => {

@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import QuestionRenderer from '../src/features/quiz-player/components/QuestionRenderer';
+import { plainTextToRichText } from '../shared/question-rich-text.contract';
 import FillInTheBlankRenderer from '../src/features/quiz-player/components/QuestionRenderer/renderers/FillInTheBlankRenderer';
 
 vi.mock('better-react-mathjax', () => ({
@@ -10,6 +11,33 @@ vi.mock('better-react-mathjax', () => ({
 }));
 
 describe('question renderer rich text + math integration', () => {
+  it('prefers structured rich prompt presentation while keeping the normal player shell', () => {
+    const rich = plainTextToRichText('Câu hỏi có $x^2$');
+    rich.doc.content[0] = {
+      type: 'paragraph',
+      attrs: { textAlign: 'center' },
+      content: [{ type: 'text', text: 'Câu hỏi có $x^2$', marks: [{ type: 'bold' }] }],
+    };
+    const { container } = render(
+      <QuestionRenderer
+        question={{
+          id: 'rich-prompt',
+          type: 'MCQ',
+          question: 'Câu hỏi plain',
+          questionRichText: rich,
+          options: ['A', 'B'],
+        } as any}
+        index={0}
+        answers={{}}
+        onAnswerChange={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('strong')).toHaveTextContent('Câu hỏi có $x^2$');
+    expect(container.querySelector('p')?.style.textAlign).toBe('center');
+    expect(container).not.toHaveTextContent('Câu hỏi plain');
+  });
+
   it('renders a strong question heading even when the formatted range crosses inline math', () => {
     const { container } = render(
       <QuestionRenderer

@@ -3,14 +3,18 @@
  *
  * Bidirectional mapping between domain Question types and EditorDraft types.
  *
- * - questionToDraft(question): converts a saved Question → editable draft
- * - draftToQuestion(draft, original): converts a draft → saved Question
+ * - questionToDraft(question): converts a saved Question â†’ editable draft
+ * - draftToQuestion(draft, original): converts a draft â†’ saved Question
  *
  * This keeps the editor forms decoupled from save logic.
  */
 
 import type { Question } from '../../../types';
 import { QuestionType } from '../../../types';
+import {
+    deserializeQuestionRichText,
+    plainTextToRichText,
+} from '../../../../shared/question-rich-text.contract';
 import {
     normalizeTrueFalseItems,
     normalizeDragDropBlanks,
@@ -42,13 +46,19 @@ type Loose = Record<string, unknown>;
 const r = (q: Question): Loose => q as unknown as Loose;
 
 // ---------------------------------------------------------------------------
-// questionToDraft — Question → EditorDraft
+// questionToDraft â€” Question â†’ EditorDraft
 // ---------------------------------------------------------------------------
 
 export function questionToDraft(question: Question): AnyEditorDraft {
     const q = r(question);
+    const plainQuestion = question.type === QuestionType.TRUE_FALSE
+        ? String(q.mainQuestion ?? q.question ?? '')
+        : String(q.question ?? q.mainQuestion ?? '');
+    const questionRichText = deserializeQuestionRichText(q.questionRichText ?? q.question_rich_text)
+        ?? plainTextToRichText(plainQuestion);
     const base = {
-        question: String(q.question ?? q.mainQuestion ?? ''),
+        question: plainQuestion,
+        questionRichText,
         difficulty: q.difficulty as Difficulty | undefined,
         image: typeof q.image === 'string' ? q.image : undefined,
         imageAlt: typeof q.imageAlt === 'string' ? q.imageAlt : (typeof q.image_alt === 'string' ? q.image_alt : undefined),
@@ -82,9 +92,10 @@ export function questionToDraft(question: Question): AnyEditorDraft {
             return {
                 type: QuestionType.TRUE_FALSE,
                 mainQuestion: String(q.mainQuestion ?? q.question ?? ''),
+                questionRichText,
                 items: normalizeTrueFalseItems(q.items),
                 difficulty: q.difficulty as Difficulty | undefined,
-            } satisfies TrueFalseEditorDraft;
+            } satisfies TrueFalseEditorDraft & { questionRichText: typeof questionRichText };
 
         case QuestionType.SHORT_ANSWER:
             return {
@@ -209,7 +220,7 @@ export function questionToDraft(question: Question): AnyEditorDraft {
                 type: QuestionType.RIDDLE,
                 riddleLines: lines.length > 0 ? lines : [''],
                 correctAnswer: String(q.correctAnswer ?? ''),
-                answerLabel: String(q.answerLabel ?? 'Đáp án'),
+                answerLabel: String(q.answerLabel ?? 'ÄÃ¡p Ã¡n'),
             } satisfies RiddleEditorDraft;
         }
 
@@ -234,7 +245,7 @@ export function questionToDraft(question: Question): AnyEditorDraft {
 }
 
 // ---------------------------------------------------------------------------
-// draftToQuestion — EditorDraft → Question (merged with original)
+// draftToQuestion â€” EditorDraft â†’ Question (merged with original)
 // ---------------------------------------------------------------------------
 
 export function draftToQuestion(draft: AnyEditorDraft, original: Question): Question {
@@ -243,6 +254,7 @@ export function draftToQuestion(draft: AnyEditorDraft, original: Question): Ques
         type: original.type,
         difficulty: draft.difficulty,
         imageAlt: (draft as { imageAlt?: string }).imageAlt,
+        questionRichText: draft.questionRichText,
     };
 
     switch (draft.type) {

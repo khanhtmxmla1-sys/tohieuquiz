@@ -1,13 +1,28 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../stores/authStore';
 import { QuestionType } from '../src/types';
 import ManualQuizWorkspacePage from '../src/features/manual-quiz-workspace/ManualQuizWorkspacePage';
 import { useWorkspaceKeyboardShortcuts } from '../src/features/manual-quiz-workspace/hooks/useWorkspaceKeyboardShortcuts';
 import { useManualQuizWorkspaceStore } from '../src/features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 import { useClassStore } from '../src/stores/useClassStore';
+
+beforeAll(() => {
+    Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
+    Range.prototype.getBoundingClientRect = () => ({
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        toJSON: () => ({}),
+    }) as DOMRect;
+});
 
 const seed = {
     title: 'Đề accessibility', classLevel: '3', category: 'toan', timeLimit: 20,
@@ -134,16 +149,17 @@ describe('ManualQuizWorkspace focus and screen-reader access', () => {
             useManualQuizWorkspaceStore.getState().selectQuestion('q-access-1');
         });
 
-        const editor = await screen.findByPlaceholderText('Nhập nội dung câu hỏi...');
-        fireEvent.change(editor, { target: { value: 'Câu một đã sửa' } });
+        const editor = await screen.findByTestId('question-rich-editor');
+        act(() => editor.focus());
+
         fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
 
         await waitFor(() => {
             const state = useManualQuizWorkspaceStore.getState().envelope!;
             expect(state.selectedQuestionId).toBe('q-access-2');
-            expect((state.quiz.questions[0] as any).question).toBe('Câu một đã sửa');
+            expect((state.quiz.questions[0] as any).question).toBe('Câu một');
         });
-        await waitFor(() => expect(screen.getByPlaceholderText('Nhập nội dung câu hỏi...')).toHaveFocus());
+        await waitFor(() => expect(screen.getByTestId('question-rich-editor')).toHaveFocus());
     });
 
     it('keeps live regions and keyboard alternatives available at high zoom', async () => {

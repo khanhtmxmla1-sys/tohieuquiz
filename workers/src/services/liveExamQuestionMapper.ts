@@ -1,4 +1,5 @@
 import type { Question } from '../../../src/types';
+import { deserializeQuestionRichText } from '../../../shared/question-rich-text.contract';
 
 function parseJson<T>(value: unknown, fallback: T): T {
     if (value === null || value === undefined || value === '') return fallback;
@@ -41,12 +42,14 @@ export function mapLiveExamQuestionRow(row: any): Question {
     const parsedCorrectAnswer = looksLikeJsonCollection(rawCorrectAnswer)
         ? parseJson<any>(rawCorrectAnswer, rawCorrectAnswer)
         : rawCorrectAnswer;
+    const questionRichText = deserializeQuestionRichText(row.question_rich_text ?? row.questionRichText);
 
     const base: any = {
         id: String(row.id),
         type,
         question: String(row.question || ''),
         mainQuestion: String(row.question || ''),
+        ...(questionRichText ? { questionRichText } : {}),
         options: parsePipeList(row.options),
         correctAnswer: parsedCorrectAnswer,
         image: String(row.image || ''),

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { Save, X } from 'lucide-react';
 import { QuestionType } from '../../../../types';
 import type { Question } from '../../../../types';
@@ -16,8 +16,11 @@ import CategorizationEditor from './editors/CategorizationEditor';
 import WordScrambleEditor from './editors/WordScrambleEditor';
 import RiddleEditor from './editors/RiddleEditor';
 import ErrorCorrectionEditor from './editors/ErrorCorrectionEditor';
-import { FieldRow, MathTextarea, TextInput } from './editors/shared';
-import MediaDropzone from '../../../manual-quiz-workspace/components/MediaDropzone';
+import { FieldRow, TextInput } from './editors/shared';
+import CompactMediaAttachment from '../../../manual-quiz-workspace/components/CompactMediaAttachment';
+import { plainTextToRichText } from '../../../../../shared/question-rich-text.contract';
+
+const RichQuestionEditor = React.lazy(() => import('../RichQuestionEditor/RichQuestionEditor'));
 
 export interface QuestionEditorFormProps {
     editingQuestion: Question;
@@ -43,7 +46,6 @@ const SharedHeaderEditor: React.FC<{
     draft: AnyEditorDraft;
     onDraftChange: (updater: (prev: AnyEditorDraft) => AnyEditorDraft) => void;
 }> = ({ draft, onDraftChange }) => {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const questionField = draft.type === QuestionType.TRUE_FALSE ? 'mainQuestion' : 'question';
     const questionValue = draft.type === QuestionType.TRUE_FALSE
         ? (draft as { mainQuestion: string }).mainQuestion
@@ -52,17 +54,26 @@ const SharedHeaderEditor: React.FC<{
     return (
         <div className="space-y-4">
             <FieldRow label="Nội dung câu hỏi">
-                <MathTextarea
-                    ref={textareaRef}
-                    value={questionValue}
-                    onChange={(event) => onDraftChange((previous) => ({
-                        ...previous,
-                        [questionField]: event.target.value,
-                    }))}
-                    rows={4}
-                    className="resize-y"
-                    placeholder="Nhập nội dung câu hỏi..."
-                />
+                <React.Suspense
+                    fallback={(
+                        <div
+                            className="min-h-56 rounded-xl border border-slate-200 bg-slate-50"
+                            aria-label="Đang tải trình soạn câu hỏi"
+                            aria-busy="true"
+                        />
+                    )}
+                >
+                    <RichQuestionEditor
+                        value={draft.questionRichText ?? plainTextToRichText(questionValue)}
+                        onChange={(questionRichText, plainText) => onDraftChange((previous) => ({
+                            ...previous,
+                            [questionField]: plainText,
+                            questionRichText,
+                        }) as AnyEditorDraft)}
+                        ariaLabel="Nội dung câu hỏi"
+                        minHeightClassName="min-h-56"
+                    />
+                </React.Suspense>
             </FieldRow>
 
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
@@ -94,7 +105,7 @@ const SharedHeaderEditor: React.FC<{
                     && draft.type !== QuestionType.DROPDOWN && (
                     <div className="min-w-0 flex-1">
                         <FieldRow label="Ảnh đính kèm (tùy chọn)">
-                            <MediaDropzone
+                            <CompactMediaAttachment
                                 label="Ảnh đính kèm"
                                 value={(draft as { image?: string }).image ?? ''}
                                 altText={(draft as { imageAlt?: string }).imageAlt ?? ''}

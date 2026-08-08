@@ -69,4 +69,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0060_system_question_bank.sql'),
   ('0061_assignment_revocation.sql'),
   ('0062_add_question_svg_diagrams.sql'),
-  ('0063_certificate_footer_safe_zone.sql');
+  ('0063_certificate_footer_safe_zone.sql'),
+  ('0064_add_question_rich_text.sql');

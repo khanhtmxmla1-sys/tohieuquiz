@@ -1,5 +1,6 @@
 import { Env } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
+import { deserializeQuestionRichText } from '../../../shared/question-rich-text.contract';
 
 export async function handlePracticeRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
     const db = env.DB;
@@ -71,12 +72,16 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
             const searchPattern = `%${topic}%`;
 
             const rows = await db.prepare(
-                'SELECT id, quiz_id, type, question, options, correct_answer, items, text_field, blanks, distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, tags FROM questions WHERE tags LIKE ? ORDER BY RANDOM() LIMIT ?'
+                'SELECT id, quiz_id, type, question, question_rich_text, options, correct_answer, items, text_field, blanks, distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, tags FROM questions WHERE tags LIKE ? ORDER BY RANDOM() LIMIT ?'
             ).bind(searchPattern, limit).all<import('../types').Question>();
 
             // Map D1 snake_case and JSON string fields to frontend camelCase objects
             const mappedQuestions = rows.results.map((q: any) => {
                 const parsed = { ...q };
+                const questionRichText = deserializeQuestionRichText(q.question_rich_text ?? q.questionRichText);
+                delete parsed.question_rich_text;
+                delete parsed.questionRichText;
+                if (questionRichText) parsed.questionRichText = questionRichText;
                 if (typeof q.items === 'string') try { parsed.items = JSON.parse(q.items); } catch { }
                 if (typeof q.pairs === 'string') try { parsed.pairs = JSON.parse(q.pairs); } catch { }
                 if (typeof q.categories === 'string') try { parsed.categories = JSON.parse(q.categories); } catch { }
