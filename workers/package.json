@@ -33,7 +33,7 @@
     },
     "dependencies": {
         "@resvg/resvg-wasm": "^2.6.2",
-        "@simplewebauthn/server": "13.3.0",
+        "@simplewebauthn/server": "13.3.2",
         "jose": "^5.2.0",
         "nanoid": "^5.1.16",
         "zod": "^4.2.1"
