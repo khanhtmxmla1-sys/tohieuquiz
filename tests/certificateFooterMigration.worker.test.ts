@@ -1,9 +1,11 @@
+// @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const migrationPath = 'workers/migrations/0063_certificate_footer_safe_zone.sql';
 const rollbackPath = 'workers/rollbacks/0063_drop_certificate_footer_safe_zone.sql';
+const teacherHeading = 'GI\u00c1O VI\u00caN CH\u1ee6 NHI\u1ec6M';
 let db: DatabaseSync | null = null;
 
 afterEach(() => {
@@ -26,7 +28,7 @@ function createFixture(): DatabaseSync {
   const fields = JSON.stringify([
     { key: 'score', x: 635, y: 509, fontSize: 30 },
     { key: 'date', x: 895, y: 575, fontSize: 16, align: 'right' },
-    { key: 'static_text', text: 'GIÁO VIÊN CHỦ NHIỆM', x: 805, y: 614, fontSize: 17 },
+    { key: 'static_text', text: teacherHeading, x: 805, y: 614, fontSize: 17 },
     { key: 'teacher_name', x: 805, y: 657, fontSize: 18 },
     { key: 'custom_note', x: 635, y: 530, fontSize: 18 },
   ]);
@@ -61,7 +63,7 @@ describe('certificate footer safe-zone migration', () => {
       maxWidth: 450,
     });
     expect(fields.find((field) => field.key === 'static_text')).toMatchObject({
-      text: 'GIÁO VIÊN CHỦ NHIỆM',
+      text: teacherHeading,
       y: 555,
       baseline: 'alphabetic',
     });
