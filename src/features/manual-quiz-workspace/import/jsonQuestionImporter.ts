@@ -382,24 +382,34 @@ const normalizeUnderlineToken = (value: string): string => value
 const normalizeUnderlineData = (row: JsonRecord) => {
     const sentence = firstText(row, ['content', 'sentence']);
     const words = sentence ? sentence.split(/\s+/).filter(Boolean) : [];
+    const normalizedWords = words.map(normalizeUnderlineToken);
     const parts = normalizeStringItems(row.selectable_parts);
-    const wordIndexByPartId = new Map<string, number>();
+    const wordIndexesByPartId = new Map<string, number[]>();
     const invalidReferences: string[] = [];
 
     parts.forEach((part) => {
-        if (/\s/.test(part.text.trim())) {
+        const targetTokens = part.text
+            .split(/\s+/)
+            .map(normalizeUnderlineToken)
+            .filter(Boolean);
+        if (targetTokens.length === 0 || targetTokens.length > words.length) {
             invalidReferences.push(part.id);
             return;
         }
-        const target = normalizeUnderlineToken(part.text);
-        const matches = words.flatMap((word, index) => (
-            normalizeUnderlineToken(word) === target ? [index] : []
-        ));
-        if (!target || matches.length !== 1) {
+
+        const matchingSpans: number[][] = [];
+        for (let start = 0; start <= normalizedWords.length - targetTokens.length; start += 1) {
+            const matches = targetTokens.every((token, offset) => normalizedWords[start + offset] === token);
+            if (matches) {
+                matchingSpans.push(targetTokens.map((_token, offset) => start + offset));
+            }
+        }
+
+        if (matchingSpans.length !== 1) {
             invalidReferences.push(part.id);
             return;
         }
-        wordIndexByPartId.set(part.id, matches[0]);
+        wordIndexesByPartId.set(part.id, matchingSpans[0]);
     });
 
     const rawAnswers = Array.isArray(row.correct_answers)
@@ -409,12 +419,12 @@ const normalizeUnderlineData = (row: JsonRecord) => {
             : [];
     const correctWordIndexes = Array.from(new Set(rawAnswers.flatMap((entry) => {
         const id = text(entry);
-        const index = wordIndexByPartId.get(id);
-        if (index === undefined) {
+        const indexes = wordIndexesByPartId.get(id);
+        if (!indexes) {
             invalidReferences.push(id);
             return [];
         }
-        return [index];
+        return indexes;
     }))).sort((left, right) => left - right);
 
     return {
@@ -425,56 +435,105 @@ const normalizeUnderlineData = (row: JsonRecord) => {
     };
 };
 const normalizeCategorizationData = (row: JsonRecord) => {
-    const categories = Array.isArray(row.groups) ? row.groups.flatMap((group) => {
-        if (!isRecord(group)) return [];
+    const invalidReferences: string[] = [];
+    const seenCategoryIds = new Set<string>();
+    const categories = Array.isArray(row.groups) ? row.groups.flatMap((group, index) => {
+        if (!isRecord(group)) {
+            invalidReferences.push(`group-${index + 1}`);
+            return [];
+        }
         const id = text(group.id);
         const name = firstText(group, ['name', 'text', 'label']);
-        return id && name ? [{ id, name }] : [];
+        if (!id || !name || seenCategoryIds.has(id)) {
+            invalidReferences.push(id || `group-${index + 1}`);
+            return [];
+        }
+        seenCategoryIds.add(id);
+        return [{ id, name }];
     }) : [];
     const categoryIds = new Set(categories.map((category) => category.id));
+
+    const seenItemIds = new Set<string>();
+    const rawItems = Array.isArray(row.items) ? row.items.flatMap((item, index) => {
+        if (!isRecord(item)) {
+            invalidReferences.push(`item-${index + 1}`);
+            return [];
+        }
+        const id = text(item.id);
+        const content = firstText(item, ['text', 'content', 'label', 'value']);
+        if (!id || !content || seenItemIds.has(id)) {
+            invalidReferences.push(id || `item-${index + 1}`);
+            return [];
+        }
+        seenItemIds.add(id);
+        return [{
+            id,
+            content,
+            inlineCategoryId: text(item.categoryId ?? item.category_id),
+        }];
+    }) : [];
+
     const assignmentByItemId = new Map<string, string>();
-    const invalidReferences: string[] = [];
     if (Array.isArray(row.answers)) {
-        row.answers.forEach((answer) => {
-            if (!isRecord(answer)) return;
+        row.answers.forEach((answer, index) => {
+            if (!isRecord(answer)) {
+                invalidReferences.push(`answer-${index + 1}`);
+                return;
+            }
             const itemId = text(answer.item);
             const groupId = text(answer.group);
-            if (!itemId || !categoryIds.has(groupId)) {
-                invalidReferences.push(itemId || groupId || 'unknown');
+            if (!seenItemIds.has(itemId) || !categoryIds.has(groupId) || assignmentByItemId.has(itemId)) {
+                invalidReferences.push(itemId || groupId || `answer-${index + 1}`);
                 return;
             }
             assignmentByItemId.set(itemId, groupId);
         });
     }
-    const items = Array.isArray(row.items) ? row.items.flatMap((item) => {
-        if (!isRecord(item)) return [];
-        const id = text(item.id);
-        const content = firstText(item, ['text', 'content', 'label', 'value']);
-        const categoryId = assignmentByItemId.get(id) ?? text(item.categoryId ?? item.category_id);
-        if (!id || !content || !categoryIds.has(categoryId)) {
-            invalidReferences.push(id || categoryId || 'unknown');
+
+    const items = rawItems.flatMap((item) => {
+        const assignedCategoryId = assignmentByItemId.get(item.id);
+        if (assignedCategoryId && item.inlineCategoryId && assignedCategoryId !== item.inlineCategoryId) {
+            invalidReferences.push(item.id);
             return [];
         }
-        return [{ id, content, categoryId }];
-    }) : [];
+        const categoryId = assignedCategoryId ?? item.inlineCategoryId;
+        if (!categoryIds.has(categoryId)) {
+            invalidReferences.push(item.id || categoryId || 'unknown');
+            return [];
+        }
+        return [{ id: item.id, content: item.content, categoryId }];
+    });
     return { categories, items, invalidReferences };
 };
 
 const normalizeWordAssemblyData = (row: JsonRecord) => {
-    const parts = normalizeStringItems(row.parts ?? row.letters);
-    const ordering = normalizeOrderingData({ ...row, items: row.parts ?? row.items });
+    const sourceParts = row.parts ?? row.letters ?? row.items;
+    const parts = normalizeStringItems(sourceParts);
+    const ordering = normalizeOrderingData({ ...row, items: sourceParts });
     const isCharacterAssembly = parts.length >= 2
         && parts.every((part) => Array.from(part.text).length === 1);
-    const derivedCorrectText = ordering.correctOrder
-        .map((index) => parts[index]?.text ?? '')
-        .filter(Boolean)
-        .join(isCharacterAssembly ? '' : ' ');
-    const correctWord = firstText(row, ['correct_text', 'correctWord', 'correct_word']) || derivedCorrectText;
+    const validOrder = parts.length >= 2
+        && ordering.correctOrder.length === parts.length
+        && new Set(ordering.correctOrder).size === parts.length
+        && ordering.invalidReferences.length === 0;
+    const derivedCorrectText = validOrder
+        ? ordering.correctOrder
+            .map((index) => parts[index]?.text ?? '')
+            .join(isCharacterAssembly ? '' : ' ')
+        : '';
+    const providedCorrectText = firstText(row, ['correct_text', 'correctWord', 'correct_word']);
+    const normalizeComparableText = (value: string) => value.trim().replace(/\s+/g, ' ');
+    const correctTextMatchesOrder = !providedCorrectText
+        || !validOrder
+        || normalizeComparableText(providedCorrectText) === normalizeComparableText(derivedCorrectText);
+    const correctWord = validOrder && derivedCorrectText ? derivedCorrectText : providedCorrectText;
     return {
         letters: parts.map((part) => part.text),
         correctWord,
         isCharacterAssembly,
         ordering,
+        validOrder,
+        correctTextMatchesOrder,
     };
 };
 
@@ -509,6 +568,18 @@ const createBaseQuestion = (row: JsonRecord) => ({
     image: firstText(row, ['image', 'image_url', 'imageUrl']) || undefined,
     imageAlt: firstText(row, ['imageAlt', 'image_alt', 'image_description']) || undefined,
 });
+
+const isUsableImportedImageSource = (value: string | undefined): boolean => {
+    const source = value?.trim();
+    if (!source || source.includes('...') || /<[^>]+>/.test(source)) return false;
+    if (/^data:image\//i.test(source) || source.startsWith('/')) return true;
+    try {
+        const parsed = new URL(source);
+        return (parsed.protocol === 'https:' || parsed.protocol === 'http:') && Boolean(parsed.hostname);
+    } catch {
+        return false;
+    }
+};
 
 const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate => {
     const sourceRow = index + 1;
@@ -568,8 +639,9 @@ const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate 
 
     if (normalizedType.type === QuestionType.IMAGE_QUESTION) {
         const correctAnswer = normalizeSingleChoiceAnswer(rawAnswer, options);
-        if (!base.image) {
-            issues.push('Câu hình ảnh cần có ảnh/media thật; image_description chỉ là mô tả hỗ trợ.');
+        const image = isUsableImportedImageSource(base.image) ? base.image : undefined;
+        if (!image) {
+            issues.push('Câu hình ảnh cần có ảnh/media hoặc image_url hợp lệ; image_description chỉ là mô tả hỗ trợ.');
             if (status !== 'rejected') status = 'needsReview';
         }
         if (options.length < 2 || !correctAnswer || !/^[A-Z]$/.test(correctAnswer) || options[correctAnswer.charCodeAt(0) - 65] === undefined) {
@@ -578,6 +650,7 @@ const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate 
         }
         question = {
             ...base,
+            image,
             type: QuestionType.IMAGE_QUESTION,
             question: prompt,
             options,
@@ -599,8 +672,16 @@ const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate 
     } else if (normalizedType.type === QuestionType.WORD_SCRAMBLE) {
         const data = normalizeWordAssemblyData(raw);
         if (data.isCharacterAssembly) {
+            if (!data.validOrder) {
+                issues.push('Câu ghép chữ cần correct_order tham chiếu đủ mỗi phần đúng một lần.');
+                if (status !== 'rejected') status = 'needsReview';
+            }
             if (!data.correctWord) {
                 issues.push('Câu ghép chữ cần có đáp án đúng.');
+                if (status !== 'rejected') status = 'needsReview';
+            }
+            if (!data.correctTextMatchesOrder) {
+                issues.push('correct_text của câu ghép chữ không khớp với correct_order.');
                 if (status !== 'rejected') status = 'needsReview';
             }
             question = {
@@ -612,12 +693,12 @@ const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate 
                 hint: text(raw.hint) || undefined,
             } as ManualQuizQuestion;
         } else {
-            const validOrder = data.ordering.items.length >= 2
-                && data.ordering.correctOrder.length === data.ordering.items.length
-                && new Set(data.ordering.correctOrder).size === data.ordering.items.length
-                && data.ordering.invalidReferences.length === 0;
-            if (!validOrder) {
+            if (!data.validOrder) {
                 issues.push('Câu ghép từ thành câu cần correct_order tham chiếu đủ mỗi phần đúng một lần.');
+                if (status !== 'rejected') status = 'needsReview';
+            }
+            if (!data.correctTextMatchesOrder) {
+                issues.push('correct_text của câu ghép từ thành câu không khớp với correct_order.');
                 if (status !== 'rejected') status = 'needsReview';
             }
             question = {
