@@ -1,4 +1,8 @@
 import { QuestionType } from '../../../types';
+import {
+    parseQuestionRichText,
+    type QuestionRichTextEnvelopeV1,
+} from '../../../../shared/question-rich-text.contract';
 import type { ManualQuizQuestion } from '../types/manualQuizWorkspace.types';
 import {
     appendImportCandidate,
@@ -28,6 +32,10 @@ export const QUESTION_JSON_EXAMPLE = JSON.stringify({
     ],
 }, null, 2);
 type JsonRecord = Record<string, unknown>;
+
+type ImportedManualQuizQuestion = ManualQuizQuestion & {
+    questionRichText?: QuestionRichTextEnvelopeV1;
+};
 
 let jsonCandidateCounter = 0;
 
@@ -531,6 +539,11 @@ const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate 
     const rawAnswer = normalizeAcceptedAnswer(raw);
     const issues: string[] = [];
     let status: QuestionImportStatus = 'accepted';
+    const rawQuestionRichText = raw.questionRichText ?? raw.question_rich_text;
+    const parsedQuestionRichText = rawQuestionRichText === undefined || rawQuestionRichText === null || rawQuestionRichText === ''
+        ? undefined
+        : parseQuestionRichText(rawQuestionRichText);
+    const questionRichText = parsedQuestionRichText?.ok ? parsedQuestionRichText.value : undefined;
 
     if (!prompt) {
         issues.push('Thiếu nội dung câu hỏi.');
@@ -545,9 +558,13 @@ const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate 
         issues.push('question_type và type đang mô tả hai loại câu hỏi khác nhau; hệ thống ưu tiên question_type.');
         if (status !== 'rejected') status = 'needsReview';
     }
+    if (parsedQuestionRichText && parsedQuestionRichText.ok === false) {
+        issues.push(`questionRichText không hợp lệ: ${parsedQuestionRichText.error}`);
+        if (status !== 'rejected') status = 'needsReview';
+    }
 
     const base = createBaseQuestion(raw);
-    let question: ManualQuizQuestion;
+    let question: ImportedManualQuizQuestion;
 
     if (normalizedType.type === QuestionType.IMAGE_QUESTION) {
         const correctAnswer = normalizeSingleChoiceAnswer(rawAnswer, options);
@@ -765,6 +782,9 @@ const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate 
         } as ManualQuizQuestion;
     }
 
+    if (questionRichText) {
+        question = { ...question, questionRichText };
+    }
     return {
         id: createId('import-json-candidate'),
         sourceRow,
