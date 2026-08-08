@@ -88,6 +88,51 @@ describe('QuestionImportDrawer', () => {
         expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions).toHaveLength(0);
     });
 
+    it('keeps questionRichText when a pasted JSON question is imported into the workspace', async () => {
+        const questionRichText = {
+            schemaVersion: 1,
+            doc: {
+                type: 'doc',
+                content: [
+                    {
+                        type: 'paragraph',
+                        attrs: { textAlign: 'left' },
+                        content: [{ type: 'text', text: 'Quan sát biểu thức.' }],
+                    },
+                    {
+                        type: 'paragraph',
+                        attrs: { textAlign: 'center' },
+                        content: [{ type: 'text', text: '$12 \\div 3 = ?$', marks: [{ type: 'bold' }] }],
+                    },
+                ],
+            },
+        };
+        const plainQuestion = 'Quan sát biểu thức.\n$12 \\div 3 = ?$';
+        render(<QuestionImportDrawer open onClose={vi.fn()} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Dán JSON' }));
+        fireEvent.change(screen.getByLabelText('Dữ liệu JSON'), {
+            target: {
+                value: JSON.stringify([{
+                    question_type: 'SINGLE_CHOICE',
+                    question: plainQuestion,
+                    questionRichText,
+                    options: ['2', '3', '4', '6'],
+                    correct_answer: 'C',
+                }]),
+            },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra JSON' }));
+
+        expect(await screen.findByText('1 sẵn sàng')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Nhập 1 câu đã chọn' }));
+
+        await waitFor(() => {
+            expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions).toHaveLength(1);
+        });
+        const imported = useManualQuizWorkspaceStore.getState().envelope!.quiz.questions[0] as any;
+        expect(imported.question).toBe(plainQuestion);
+        expect(imported.questionRichText).toEqual(questionRichText);
+    });
     it('shows canonical short-answer and matching answers in JSON preview', async () => {
         render(<QuestionImportDrawer open onClose={vi.fn()} />);
         fireEvent.click(screen.getByRole('tab', { name: 'Dán JSON' }));

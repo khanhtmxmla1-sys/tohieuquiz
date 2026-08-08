@@ -98,6 +98,91 @@ describe('spreadsheet question importer', () => {
 });
 
 describe('JSON question importer', () => {
+    it('preserves valid questionRichText with alignment, hard breaks, marks and LaTeX', () => {
+        const questionRichText = {
+            schemaVersion: 1,
+            doc: {
+                type: 'doc',
+                content: [
+                    {
+                        type: 'paragraph',
+                        attrs: { textAlign: 'left' },
+                        content: [{ type: 'text', text: 'Quan sát biểu thức sau.', marks: [{ type: 'bold' }] }],
+                    },
+                    {
+                        type: 'paragraph',
+                        attrs: { textAlign: 'center' },
+                        content: [{ type: 'text', text: '$24 \\div 6 = ?$' }],
+                    },
+                    {
+                        type: 'paragraph',
+                        attrs: { textAlign: 'right' },
+                        content: [
+                            { type: 'text', text: 'Dòng 1' },
+                            { type: 'hardBreak' },
+                            { type: 'text', text: 'Dòng 2', marks: [{ type: 'underline' }] },
+                        ],
+                    },
+                ],
+            },
+        };
+        const plainQuestion = 'Quan sát biểu thức sau.\n$24 \\div 6 = ?$\nDòng 1\nDòng 2';
+        const result = parseQuestionJsonText(JSON.stringify([{
+            question_type: 'SINGLE_CHOICE',
+            question: plainQuestion,
+            questionRichText,
+            options: [
+                { id: 'A', text: '2' },
+                { id: 'B', text: '4' },
+                { id: 'C', text: '6' },
+                { id: 'D', text: '8' },
+            ],
+            correct_answer: 'B',
+        }]));
+
+        expect(result.accepted).toHaveLength(1);
+        expect(result.needsReview).toHaveLength(0);
+        expect((result.accepted[0].question as any).questionRichText).toEqual(questionRichText);
+        expect(result.accepted[0].question).toEqual(expect.objectContaining({ question: plainQuestion }));
+    });
+
+    it('marks invalid questionRichText for review and keeps the plain question fallback', () => {
+        const invalidRichTexts = [
+            {
+                schemaVersion: 1,
+                doc: {
+                    type: 'doc',
+                    content: [{
+                        type: 'paragraph',
+                        attrs: { textAlign: 'justify' },
+                        content: [{ type: 'text', text: 'Không hỗ trợ justify.' }],
+                    }],
+                },
+            },
+            {
+                schemaVersion: 1,
+                doc: {
+                    type: 'doc',
+                    content: [{ type: 'image', attrs: { src: 'https://example.com/a.png' } }],
+                },
+            },
+        ];
+        const result = parseQuestionJsonText(JSON.stringify(invalidRichTexts.map((questionRichText, index) => ({
+            question_type: 'SINGLE_CHOICE',
+            question: `Câu fallback ${index + 1}`,
+            questionRichText,
+            options: ['A1', 'A2', 'A3', 'A4'],
+            correct_answer: 'A',
+        }))));
+
+        expect(result.accepted).toHaveLength(0);
+        expect(result.needsReview).toHaveLength(2);
+        result.needsReview.forEach((candidate, index) => {
+            expect(candidate.issues.some((issue) => issue.includes('questionRichText không hợp lệ'))).toBe(true);
+            expect(candidate.question).toEqual(expect.objectContaining({ question: `Câu fallback ${index + 1}` }));
+            expect((candidate.question as any).questionRichText).toBeUndefined();
+        });
+    });
     it('accepts an array and normalizes an MCQ answer from option text to its letter', () => {
         const result = parseQuestionJsonText(JSON.stringify([
             {
