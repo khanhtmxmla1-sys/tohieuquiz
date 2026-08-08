@@ -171,11 +171,11 @@ function buildSnapshotQuery() {
     `SELECT 'targetTeacher' AS bucket, username, role FROM teachers WHERE username=${p.targetTeacher}`,
     `SELECT 'targetStudents' AS bucket, id, username, class_id FROM students WHERE username IN (${p.studentUsernames}) ORDER BY username`,
     `SELECT 'targetClass' AS bucket, id, name, teacher_username FROM classes WHERE id=${p.oldClassId} OR name=${p.oldClassName}`,
-    `SELECT 'preservedStudents' AS bucket, id, username, class_id FROM students WHERE username IN (${preservedUsernames}) ORDER BY username`,
+    `SELECT 'preservedStudents' AS bucket, id, username, class_id, archived_at FROM students WHERE username IN (${preservedUsernames}) ORDER BY username`,
     `SELECT 'classOccupants' AS bucket, id, username, class_id FROM students WHERE class_id=${p.oldClassId} ORDER BY username`,
-    `SELECT 'smokeTeacher' AS bucket, username, role, class FROM teachers WHERE username=${quoteSqlLiteral(FIXTURES.smokeTeacher)}`,
+    `SELECT 'smokeTeacher' AS bucket, username, role, class, status FROM teachers WHERE username=${quoteSqlLiteral(FIXTURES.smokeTeacher)}`,
     `SELECT 'protectedOwners' AS bucket, username FROM teachers WHERE username IN (${protectedOwners}) ORDER BY username`,
-    `SELECT 'smokeClass' AS bucket, id, name, teacher_username FROM classes WHERE id=${quoteSqlLiteral(FIXTURES.smokeClass.id)} OR name=${quoteSqlLiteral(FIXTURES.smokeClass.name)}`,
+    `SELECT 'smokeClass' AS bucket, id, name, teacher_username, archived_at FROM classes WHERE id=${quoteSqlLiteral(FIXTURES.smokeClass.id)} OR name=${quoteSqlLiteral(FIXTURES.smokeClass.name)}`,
     `SELECT 'artifactCounts' AS bucket, 'quizzes' AS table_name, COUNT(*) AS row_count FROM quizzes WHERE created_by=${p.targetTeacher} OR id IN (${p.knownQuizIds})`,
     `SELECT 'artifactCounts' AS bucket, 'assignments' AS table_name, COUNT(*) AS row_count FROM assignments WHERE class_id=${p.oldClassId} OR student_id IN (${p.studentIds}) OR quiz_id IN (SELECT id FROM quizzes WHERE created_by=${p.targetTeacher} OR id IN (${p.knownQuizIds}))`,
     `SELECT 'artifactCounts' AS bucket, 'results' AS table_name, COUNT(*) AS row_count FROM results WHERE student_id IN (${p.studentIds}) OR class_name=${p.oldClassName} OR quiz_id IN (SELECT id FROM quizzes WHERE created_by=${p.targetTeacher} OR id IN (${p.knownQuizIds}))`,
@@ -230,7 +230,7 @@ function validateSnapshot(input) {
   };
 
   const smokeTeacher = snapshot.smokeTeacher.find((row) => row.username === FIXTURES.smokeTeacher);
-  if (!smokeTeacher || smokeTeacher.role !== 'teacher') {
+  if (!smokeTeacher || smokeTeacher.role !== 'teacher' || smokeTeacher.status !== 'ACTIVE') {
     throw new Error('Required smoke.teacher account is missing or has the wrong role.');
   }
   const ownerNames = snapshot.protectedOwners.map((row) => row.username);
@@ -247,6 +247,11 @@ function validateSnapshot(input) {
     if (!row || row.id !== expected.id) {
       throw new Error(`Preserved student identity mismatch: ${expected.username}`);
     }
+  }
+
+  const smokeStudent = snapshot.preservedStudents.find((row) => row.username === 'smoke.student');
+  if (smokeStudent?.archived_at) {
+    throw new Error('Dedicated smoke.student fixture is archived.');
   }
 
   const targetCounts = [
@@ -309,6 +314,9 @@ function validateSnapshot(input) {
     || smokeClass.teacher_username !== FIXTURES.smokeClass.teacherUsername
   ) {
     throw new Error('Dedicated production smoke class is missing after cleanup.');
+  }
+  if (smokeClass.archived_at) {
+    throw new Error('Dedicated production smoke class is archived.');
   }
   for (const row of snapshot.preservedStudents) {
     if (row.class_id !== FIXTURES.smokeClass.id) {

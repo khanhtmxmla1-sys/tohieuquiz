@@ -61,6 +61,7 @@
     "perf:collections": "node scripts/benchmark-list-endpoints.mjs",
     "d1:migrations:safe": "node workers/scripts/apply-d1-migrations-safe.cjs",
     "d1:cleanup:test-data": "node workers/scripts/cleanup-production-test-data.cjs",
+    "d1:repair:smoke-fixtures": "node workers/scripts/repair-production-smoke-fixtures.cjs",
     "audit:scoring-contracts": "node workers/scripts/audit-scoring-contracts.cjs",
     "report:result-regrading": "node workers/scripts/report-result-regrading.cjs"
   },

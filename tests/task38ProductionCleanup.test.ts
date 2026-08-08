@@ -22,10 +22,10 @@ const baseSnapshot = {
   ],
   targetClass: [{ id: 'c-cd364c7d', name: 'Lớp Test 1', teacher_username: 'test.gv1' }],
   preservedStudents: [
-    { id: 's-ca79f38f', username: 'smoke.student', class_id: 'c-cd364c7d' },
-    { id: 's-e4ba05c6', username: 'thienkhanh', class_id: 'c-cd364c7d' },
+    { id: 's-ca79f38f', username: 'smoke.student', class_id: 'c-cd364c7d', archived_at: null },
+    { id: 's-e4ba05c6', username: 'thienkhanh', class_id: 'c-cd364c7d', archived_at: null },
   ],
-  smokeTeacher: [{ username: 'smoke.teacher', role: 'teacher' }],
+  smokeTeacher: [{ username: 'smoke.teacher', role: 'teacher', status: 'ACTIVE' }],
   protectedOwners: [
     { username: 'tongminhkhanh' },
     { username: 'admin' },
@@ -74,6 +74,40 @@ describe('Task 38 production cleanup safety', () => {
       protectedOwners: baseSnapshot.protectedOwners.filter((row) => row.username !== 'tongminhkhanh'),
     })).toThrow(/tongminhkhanh/i);
     expect(() => validateSnapshot({ ...baseSnapshot, smokeTeacher: [] })).toThrow(/smoke\.teacher/i);
+  });
+
+  it('fails closed when the dedicated production smoke class or student is archived', () => {
+    const upToDateSnapshot = {
+      ...baseSnapshot,
+      targetTeacher: [],
+      targetStudents: [],
+      targetClass: [],
+      classOccupants: [],
+      preservedStudents: [
+        { id: 's-ca79f38f', username: 'smoke.student', class_id: 'c-production-smoke', archived_at: null },
+        { id: 's-e4ba05c6', username: 'thienkhanh', class_id: 'c-production-smoke', archived_at: null },
+      ],
+      smokeClass: [{
+        id: 'c-production-smoke',
+        name: 'Lớp Smoke Production',
+        teacher_username: 'smoke.teacher',
+        archived_at: null,
+      }],
+    };
+
+    expect(() => validateSnapshot({
+      ...upToDateSnapshot,
+      smokeClass: [{ ...upToDateSnapshot.smokeClass[0], archived_at: '2026-08-07T15:13:15.895Z' }],
+    })).toThrow(/smoke class.*archived/i);
+
+    expect(() => validateSnapshot({
+      ...upToDateSnapshot,
+      preservedStudents: upToDateSnapshot.preservedStudents.map((row) => (
+        row.username === 'smoke.student'
+          ? { ...row, archived_at: '2026-08-07T15:13:15.895Z' }
+          : row
+      )),
+    })).toThrow(/smoke\.student.*archived/i);
   });
 });
 
