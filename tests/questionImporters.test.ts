@@ -609,6 +609,112 @@ describe('JSON question importer', () => {
             correctOrder: [1, 2, 0],
         }));
     });
+    it('supports multi-word UNDERLINE parts by mapping each phrase to its contiguous word span', () => {
+        const result = parseQuestionJsonText(JSON.stringify([{
+            question_type: 'UNDERLINE',
+            difficulty: 'VAN_DUNG',
+            points: 1,
+            question: 'Gạch chân dưới các vế B trong đoạn văn sau.',
+            content: 'Cây me tây cao lớn tựa một người khổng lồ. Tán lá xòe rộng như một chiếc ô xanh.',
+            selectable_parts: [
+                { id: 'U1', text: 'một người khổng lồ' },
+                { id: 'U2', text: 'một chiếc ô xanh' },
+            ],
+            correct_answers: ['U1', 'U2'],
+        }]));
+
+        expect(result.needsReview).toHaveLength(0);
+        expect(result.accepted).toHaveLength(1);
+        expect(result.accepted[0].question).toEqual(expect.objectContaining({
+            type: QuestionType.UNDERLINE,
+            correctWordIndexes: [6, 7, 8, 9, 15, 16, 17, 18],
+        }));
+    });
+
+    it('flags categorization answers that reference missing items or assign one item more than once', () => {
+        const result = parseQuestionJsonText(JSON.stringify([
+            {
+                question_type: 'CATEGORIZATION',
+                question: 'Phân loại các từ.',
+                groups: [
+                    { id: 'G1', name: 'Nhóm 1' },
+                    { id: 'G2', name: 'Nhóm 2' },
+                ],
+                items: [{ id: 'I1', text: 'một' }],
+                answers: [
+                    { item: 'I1', group: 'G1' },
+                    { item: 'I_MISSING', group: 'G2' },
+                ],
+            },
+            {
+                question_type: 'CATEGORIZATION',
+                question: 'Phân loại các từ.',
+                groups: [
+                    { id: 'G1', name: 'Nhóm 1' },
+                    { id: 'G2', name: 'Nhóm 2' },
+                ],
+                items: [{ id: 'I1', text: 'một' }],
+                answers: [
+                    { item: 'I1', group: 'G1' },
+                    { item: 'I1', group: 'G2' },
+                ],
+            },
+        ]));
+
+        expect(result.accepted).toHaveLength(0);
+        expect(result.needsReview).toHaveLength(2);
+        result.needsReview.forEach((candidate) => {
+            expect(candidate.question.type).toBe(QuestionType.CATEGORIZATION);
+            expect(candidate.issues.join(' ')).toMatch(/phân loại|tham chiếu|group|item/i);
+        });
+    });
+
+    it('requires WORD_ASSEMBLY correct_order and flags correct_text that disagrees with that order', () => {
+        const result = parseQuestionJsonText(JSON.stringify([
+            {
+                question_type: 'WORD_ASSEMBLY',
+                question: 'Ghép các chữ thành từ đúng.',
+                parts: [
+                    { id: 'W1', text: 'c' },
+                    { id: 'W2', text: 'a' },
+                    { id: 'W3', text: 't' },
+                ],
+                correct_text: 'cat',
+            },
+            {
+                question_type: 'WORD_ASSEMBLY',
+                question: 'Ghép các chữ thành từ đúng.',
+                parts: [
+                    { id: 'W1', text: 'a' },
+                    { id: 'W2', text: 't' },
+                    { id: 'W3', text: 'c' },
+                ],
+                correct_order: ['W3', 'W1', 'W2'],
+                correct_text: 'dog',
+            },
+        ]));
+
+        expect(result.accepted).toHaveLength(0);
+        expect(result.needsReview).toHaveLength(2);
+        expect(result.needsReview[0].issues.join(' ')).toMatch(/correct_order|ghép chữ/i);
+        expect(result.needsReview[1].issues.join(' ')).toMatch(/correct_text|khớp|thứ tự/i);
+    });
+
+    it('rejects obvious placeholder image URLs instead of treating them as real media', () => {
+        const result = parseQuestionJsonText(JSON.stringify([{
+            question_type: 'IMAGE_QUESTION',
+            image_url: 'https://...',
+            image_description: 'Một hình minh họa.',
+            question: 'Quan sát hình và chọn đáp án đúng.',
+            options: ['A1', 'A2'],
+            correct_answer: 'A',
+        }]));
+
+        expect(result.accepted).toHaveLength(0);
+        expect(result.needsReview).toHaveLength(1);
+        expect(result.needsReview[0].issues.join(' ')).toMatch(/ảnh|media|url/i);
+    });
+
     it('parses the copied canonical JSON example as ready to import', () => {
         const result = parseQuestionJsonText(QUESTION_JSON_EXAMPLE);
         expect(result.accepted).toHaveLength(1);
