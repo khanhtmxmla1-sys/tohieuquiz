@@ -3,6 +3,7 @@
 **Source spec:** `docs/design/manual-quiz-rich-text-editor-spec.md`
 **Detailed implementation plan:** `docs/superpowers/plans/2026-08-08-manual-quiz-rich-text-editor.md`
 **Status:** IMPLEMENTED + VERIFIED. Production migration/deploy remains separately gated.
+**Main integration:** Protected `main` requires CODEOWNERS approval and required CI; direct pushes are not used.
 
 ## Goal
 
