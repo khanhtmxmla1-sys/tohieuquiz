@@ -1,8 +1,8 @@
 # TôHiệuQuiz — Manual Quiz Rich Text Editor & Compact Attachment Spec
 
-**Status:** Proposed — awaiting implementation approval  
-**Date:** 2026-08-08  
-**Primary surface:** `/teacher/quizzes/new` — Soạn đề thủ công  
+**Status:** Implemented + verified — production migration/deploy remains separately gated.
+**Date:** 2026-08-08
+**Primary surface:** `/teacher/quizzes/new` — Soạn đề thủ công
 **Target user:** Giáo viên
 
 ## 1. Problem statement

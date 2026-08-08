@@ -1,8 +1,8 @@
 # Current Plan — Manual Quiz Rich Text Editor
 
-**Source spec:** `docs/design/manual-quiz-rich-text-editor-spec.md`  
-**Detailed implementation plan:** `docs/superpowers/plans/2026-08-08-manual-quiz-rich-text-editor.md`  
-**Status:** IMPLEMENTED + VERIFIED — awaiting explicit commit/merge/push approval. Production migration/deploy remains separately gated.
+**Source spec:** `docs/design/manual-quiz-rich-text-editor-spec.md`
+**Detailed implementation plan:** `docs/superpowers/plans/2026-08-08-manual-quiz-rich-text-editor.md`
+**Status:** IMPLEMENTED + VERIFIED. Production migration/deploy remains separately gated.
 
 ## Goal
 
