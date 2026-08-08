@@ -50,6 +50,16 @@ describe('QuestionRichTextRenderer', () => {
         expect(container.querySelector('iframe')).toBeNull();
     });
 
+    it('preserves line breaks in the plain fallback used by preview surfaces', () => {
+        const fallback = 'Đọc đoạn thơ sau:\nDòng thơ thứ nhất\nDòng thơ thứ hai';
+        const { container } = render(
+            <QuestionRichTextRenderer fallback={fallback} />,
+        );
+        const fallbackNode = Array.from(container.querySelectorAll('div')).find((node) => node.textContent === fallback);
+        expect(fallbackNode).toBeDefined();
+        expect(fallbackNode).toHaveStyle({ whiteSpace: 'pre-line' });
+    });
+
     it('never turns text-node HTML-like strings into executable DOM', () => {
         const value = plainTextToRichText('<script>alert(1)</script><img src=x onerror=evil()>Nội dung');
         const { container } = render(<QuestionRichTextRenderer value={value} fallback="fallback" />);
