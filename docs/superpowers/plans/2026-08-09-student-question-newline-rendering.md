@@ -84,3 +84,14 @@
 - Validate examples as JSON and scan for accidental numeric backreferences/fake image URLs.
 
 **Stop condition:** implementation is verified in the feature worktree; do not commit/push/merge without separate approval.
+
+
+## Verification evidence before PR merge
+
+- Vitest regression: 9/9 passed.
+- Cypress question scoring matrix: 2/2 passed.
+- Targeted ESLint, frontend typecheck, strict typecheck, and git diff --check: passed.
+- Frontend production build: passed after restoring the worktree dependency junction.
+- Security scan: passed.
+- GitNexus: LOW risk, 0 affected processes.
+- Scope check: frontend renderer/tests/docs only; no Worker, D1, migration, or schema changes.
