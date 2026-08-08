@@ -24,7 +24,7 @@ const SmartText: React.FC<SmartTextProps> = ({ content, className }) => {
         return <MathSpan content={text} className={className} />;
     }
 
-    return <span className={className}>{text}</span>;
+    return <span className={className} style={{ whiteSpace: 'pre-line' }}>{text}</span>;
 };
 
 export default React.memo(SmartText);

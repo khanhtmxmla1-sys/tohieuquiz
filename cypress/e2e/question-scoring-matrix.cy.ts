@@ -5,7 +5,7 @@ import { gradeQuiz } from '../../src/domain/quiz-scoring';
 const QUIZ_ID = 'scoring-matrix-14';
 
 const questions = [
-  { id: 'mcq', quizId: QUIZ_ID, type: 'MCQ', question: 'Chọn số bốn.', options: ['2', '4', '6'], correctAnswer: 'B' },
+  { id: 'mcq', quizId: QUIZ_ID, type: 'MCQ', question: 'Chọn số bốn.\nDòng hướng dẫn thứ hai.', options: ['2', '4', '6'], correctAnswer: 'B' },
   { id: 'image', quizId: QUIZ_ID, type: 'IMAGE_QUESTION', question: 'Chọn hình tròn.', options: ['tròn', 'vuông'], optionImages: ['', ''], correctAnswer: 'A' },
   { id: 'multi', quizId: QUIZ_ID, type: 'MULTIPLE_SELECT', question: 'Chọn số chẵn.', options: ['1', '2', '3', '4'], correctAnswers: ['B', 'D'] },
   { id: 'short', quizId: QUIZ_ID, type: 'SHORT_ANSWER', question: 'Thủ đô Việt Nam là gì?', correctAnswer: 'Hà Nội|Ha Noi' },
@@ -171,7 +171,11 @@ describe('Canonical scoring browser matrix', () => {
     cy.get('select').select('4A1');
     cy.contains('button', 'Bắt đầu làm bài!').click();
 
-    withinQuestion('mcq', () => cy.get('button').eq(1).click());
+    withinQuestion('mcq', () => {
+      cy.contains('span', 'Chọn số bốn.').should('have.css', 'white-space', 'pre-line');
+      cy.contains('span', 'Dòng hướng dẫn thứ hai.').should('be.visible');
+      cy.get('button').eq(1).click();
+    });
     withinQuestion('image', () => cy.get('button').eq(0).click());
     withinQuestion('multi', () => {
       cy.get('button').eq(1).click();

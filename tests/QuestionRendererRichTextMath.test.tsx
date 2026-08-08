@@ -61,6 +61,58 @@ describe('question renderer rich text + math integration', () => {
     expect(container).not.toHaveTextContent('<strong>');
   });
 
+  it('preserves author-entered line breaks for a plain student question prompt', () => {
+    const prompt = [
+      'Đọc đoạn thơ sau và chọn tất cả các nhận định đúng.',
+      '',
+      'Những chị lúa phất phơ bím tóc',
+      'Những cậu tre bá vai nhau thì thầm đứng học',
+      'Đàn cò áo trắng',
+      'Khiêng nắng',
+      'Qua sông',
+    ].join('\n');
+    const { container } = render(
+      <QuestionRenderer
+        question={{
+          id: 'plain-multiline-poem',
+          type: 'MULTIPLE_SELECT',
+          question: prompt,
+          options: ['A', 'B'],
+        } as any}
+        index={10}
+        answers={{}}
+        onAnswerChange={vi.fn()}
+      />,
+    );
+
+    const shell = container.querySelector('[data-math-question-id="plain-multiline-poem"]');
+    const promptSpan = Array.from(shell?.querySelectorAll('span') ?? []).find((node) => node.textContent === prompt);
+    expect(promptSpan).toBeDefined();
+    expect(promptSpan).toHaveStyle({ whiteSpace: 'pre-line' });
+  });
+
+  it('preserves line breaks when the plain fallback prompt also contains math', () => {
+    const prompt = 'Tính $24 \\div 6$.\nViết đáp án vào ô trống.';
+    const { container } = render(
+      <QuestionRenderer
+        question={{
+          id: 'plain-multiline-math',
+          type: 'MCQ',
+          question: prompt,
+          options: ['4', '6'],
+        } as any}
+        index={0}
+        answers={{}}
+        onAnswerChange={vi.fn()}
+      />,
+    );
+
+    const shell = container.querySelector('[data-math-question-id="plain-multiline-math"]');
+    const promptNode = Array.from(shell?.querySelectorAll('span') ?? []).find((node) => node.textContent === prompt);
+    expect(promptNode).toBeDefined();
+    expect(promptNode).toHaveStyle({ whiteSpace: 'pre-line' });
+  });
+
   it('renders a selected drag-drop math answer through SmartText rather than an input value', () => {
     render(
       <FillInTheBlankRenderer
