@@ -1,6 +1,6 @@
 # TôHiệuQuiz — Manual Quiz Rich Text Editor & Compact Attachment Spec
 
-**Status:** Implemented + verified — production migration/deploy remains separately gated.
+**Status:** RELEASED — initial production migration/frontend/Worker release completed on 2026-08-08; presentation-integrity hardening from PR #92 released on 2026-08-09.
 **Date:** 2026-08-08
 **Primary surface:** `/teacher/quizzes/new` — Soạn đề thủ công
 **Target user:** Giáo viên
@@ -17,7 +17,7 @@ Mục tiêu là biến vùng **Nội dung câu hỏi** thành một trình soạ
 
 Không xây dựng một bản sao Microsoft Word. Không cho phép định dạng tự do theo pixel. Không lưu HTML tùy ý.
 
-## 3. Current repository evidence
+## 3. Pre-implementation repository evidence (historical baseline)
 
 ### Current question editor
 
@@ -310,7 +310,8 @@ Nếu `questionRichText` bị thiếu, invalid hoặc version chưa hỗ trợ:
 3. Add D1 column and server validation.
 4. Enable rich editor on manual question prompt only.
 5. Verify preview/player parity.
-6. Production D1 migration and production deploy require a separate explicit approval after tests/review.
+6. Production D1 migration and initial deploy were separately approved and completed; release evidence is recorded in `docs/operations/releases/2026-08-08-manual-quiz-rich-text-production.md`.
+7. Historical presentation integrity, rich result snapshots, shared review rendering and server-authoritative rich → plain hardening were released separately through PR #92; evidence is recorded in `docs/operations/releases/2026-08-09-question-presentation-integrity-production.md`.
 
 ## 14. Decision summary
 

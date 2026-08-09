@@ -1,39 +1,33 @@
-# TODO — Manual Quiz Rich Text Editor + Compact Attachment
+# Execution Checklist — Repository Hygiene After Question Presentation Release
 
-## Planning
-- [x] Read TôHiệuQuiz lead workflow and planning skills.
-- [x] Inspect current manual editor, media upload, math composer, preview/player and persistence paths.
-- [x] Run GitNexus impact checks on important symbols.
-- [x] Check current Tiptap documentation.
-- [x] Save consolidated product/technical spec.
-- [x] Save detailed implementation plan.
-- [x] User approves implementation plan.
+## Previous production phase — completed
+- [x] Manual Quiz Rich Text Editor + Compact Attachment released on 2026-08-08.
+- [x] D1 migration `0064_add_question_rich_text.sql` applied.
+- [x] Question Presentation Integrity & Historical Review Rendering implemented and merged via PR #92.
+- [x] Worker rollout completed to 100% on version `0b91dd72-ff0e-40c1-8a1f-57f138bc5eca`.
+- [x] Production smoke run `31295886040` completed successfully.
+- [x] Remote D1 migration audit on 2026-08-09 reported no pending migrations.
 
-## Slice A — Compact attachment
-- [x] Task 1: Add compact attachment regression tests.
-- [x] Task 2: Implement compact optional attachment while preserving `IMAGE_QUESTION` full media UI.
-- [x] Task 3: Reclaim editor space; responsive browser verification completed in final gate.
-- [x] Checkpoint A unit/typecheck review.
+## Active repository hygiene
+- [x] Task 1: Create rescue packet for root dirty state and two dirty merged worktrees.
+- [x] Task 2: Create isolated `chore/main-hygiene-20260809` worktree from `origin/main`.
+- [x] Task 3: Add exact ignore rules for `/downloads/` and `/reports/bundle-report.json` without deleting either artifact.
+- [x] Task 4: Copy retained ADR/release/roadmap/spec/plan documents from rescue into hygiene worktree.
+- [x] Task 5: Refresh GitHub + Cloudflare + D1 deployment evidence read-only.
+- [x] Task 6: Normalize documentation and create 2026-08-09 release evidence.
+- [x] Checkpoint A: review exact diff; run lint, typecheck, Worker typecheck, `git diff --check`, secret scan and worktree/branch whitelist review.
+- [ ] Task 7: commit ignore and documentation changes separately; push branch; open PR; require green checks/review.
+- [ ] Checkpoint B: verify merged hygiene PR and retained docs in refreshed `origin/main`.
+- [ ] Task 8: clean known root collisions and fast-forward local `main` with `--ff-only`.
+- [ ] Task 9: remove only fresh-validated merged+clean worktrees from approved whitelist.
+- [ ] Task 10: delete only merged local branches with `git branch -d`; keep all unmerged/dirty branches.
+- [ ] Task 11: final root sync/cleanliness/recovery verification.
 
-## Slice B — Rich text
-- [x] Task 4: Create versioned rich-text contract + conversion tests.
-- [x] Task 5: Add approved Tiptap dependencies + editor foundation.
-- [x] Task 6: Add toolbar, lists, alignment, palette colors/highlight and persisted allowlist normalization.
-- [x] Task 7: Adapt existing Math Composer to rich editor selections while preserving native fields.
-- [x] Task 8: Verify and harden dual rich/plain frontend draft mapping (HIGH-impact `questionToDraft` explicitly approved by user; proceed cautiously).
-- [x] Task 9: Verify D1 migration `0064_add_question_rich_text.sql` + rollback/schema/registry.
-- [x] Task 10: Verify Worker persistence, validation and DTO mapping.
-- [x] Task 11: Verify main prompt integration with rich editor.
-- [x] Task 12: Verify safe teacher-preview + student-player rich renderer.
-- [x] Task 13: Verify rich presentation in practice/live-exam read paths.
+## Quarantine — intentionally retained
+- [ ] `.worktrees/stability-audit-e2e` dirty changes require a separate review/recovery decision.
+- [ ] `.worktrees/teacher-dashboard-mockup-parity` untracked plan requires a separate review/recovery decision.
 
-## Slice C — Verification
-- [x] Task 14: Extend/verify manual workspace E2E for Enter/Shift+Enter, formatting, persistence, compact media and responsive overflow.
-- [x] Task 15: Focused tests, typecheck, lint, build, perf budget, security, browser accessibility, GitNexus detect_changes, code review and `npm run verify`.
-
-## Production — separate approval
-- [ ] Ask for production migration/deploy approval.
-- [ ] Audit migration registry before production change.
-- [ ] Apply production D1 migration safely.
-- [ ] Deploy reviewed Worker/frontend release.
-- [ ] Run post-deploy smoke and legacy/new-rich quiz checks.
+## Deferred product work — not active in this cleanup
+- [ ] Phase 2 rich explanation/options/items requires a new focused plan and explicit approval.
+- [ ] JSON/System Prompt presentation evolution requires runtime field support and a new plan.
+- [ ] Full Question Contract v2 remains conditional and requires a new ADR/spec decision gate.

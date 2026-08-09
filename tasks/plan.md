@@ -1,41 +1,35 @@
-# Current Plan — Manual Quiz Rich Text Editor
+# Current Plan — Repository Hygiene After Question Presentation Release
 
-**Source spec:** `docs/design/manual-quiz-rich-text-editor-spec.md`
-**Detailed implementation plan:** `docs/superpowers/plans/2026-08-08-manual-quiz-rich-text-editor.md`
-**Status:** IMPLEMENTED + VERIFIED. Production migration/deploy remains separately gated.
-**Main integration:** Protected `main` requires CODEOWNERS approval and required CI; direct pushes are not used.
+**Previous phase:** Question Presentation Integrity & Historical Review Rendering — COMPLETED, MERGED, RELEASED via PR #92.
+**Active plan:** `docs/superpowers/plans/2026-08-09-main-repository-cleanup.md`
+**Status:** IN EXECUTION
+**Scope:** repository/documentation/worktree hygiene only; no application code, D1 mutation, Worker deploy or Vercel deploy.
 
 ## Goal
 
-1. Thu gọn `Ảnh đính kèm (tùy chọn)` để mặc định chỉ còn một hàng và chỉ mở upload UI khi giáo viên cần.
-2. Mở rộng không gian `Nội dung câu hỏi`.
-3. Thay prompt textarea bằng focused rich-text editor hỗ trợ Enter/Shift+Enter, formatting, alignment, lists, colors/highlight, undo/redo và Math Composer hiện có.
-4. Lưu rich formatting bằng structured JSON version 1 trong `question_rich_text`, đồng thời giữ plain `question` để tương thích grading/search/AI/legacy.
-5. Render cùng dữ liệu ở teacher preview + student player, fallback an toàn cho câu hỏi cũ.
+1. Preserve all uncommitted work in a local rescue packet before cleanup.
+2. Reconcile release/architecture/task documentation with the completed 2026-08-09 Question Presentation rollout.
+3. Ignore only known local/generated artifacts (`/downloads/`, `/reports/bundle-report.json`) without deleting them.
+4. Merge hygiene through protected `main` using a focused documentation PR.
+5. After the PR is merged, fast-forward local `main`, remove only revalidated merged+clean worktrees, and delete only merged local branches using non-force deletion.
+6. Keep dirty quarantine worktrees and every unmerged branch/worktree intact.
 
 ## Execution order
 
-### Slice A — UI compact attachment
-- Task 1: Test collapsed/expanded behavior.
-- Task 2: Implement `CompactMediaAttachment` only for optional attachment.
-- Task 3: Reclaim editor space + responsive browser check.
-
-### Slice B — Rich text
-- Task 4: Shared rich-text contract + converters.
-- Task 5: Tiptap foundation.
-- Task 6: Toolbar + paste constraints.
-- Task 7: Math Composer adapter.
-- Task 8: Frontend draft mapping.
-- Task 9: D1 migration 0064 + schema/registry.
-- Task 10: Worker persistence/validation.
-- Task 11: Wire rich editor to SharedHeader.
-- Task 12: Safe teacher/student rich renderer.
-- Task 13: Practice/live-exam read paths.
-
-### Slice C — Verification
-- Task 14: Manual workspace Cypress coverage.
-- Task 15: lint/typecheck/tests/build/perf/security/browser/GitNexus/review/full verify.
+- Task 1: Freeze + rescue evidence.
+- Task 2: Create isolated hygiene worktree from current `origin/main`.
+- Task 3: Add exact ignore rules.
+- Task 4: Reconcile retained documentation from rescue packet.
+- Task 5: Refresh GitHub/Cloudflare/D1 deployment baseline read-only.
+- Task 6: Normalize release/ADR/roadmap/progress/task documentation.
+- Checkpoint A: diff review + lint/typecheck/Worker typecheck + secret/whitelist review.
+- Task 7: commit, push and PR through branch protection.
+- Checkpoint B: confirm merged PR is present in refreshed `origin/main`.
+- Task 8: restore known root-only edits and fast-forward local `main`.
+- Task 9: remove only approved merged+clean worktrees after fresh guards.
+- Task 10: delete only merged local branches with `git branch -d`.
+- Task 11: final cleanliness/sync/recovery verification.
 
 ## Approval boundaries
 
-Plan approval authorizes implementation and only the Tiptap packages listed in the detailed plan. It does **not** authorize production D1 migration or production deploy; those require a separate explicit approval after verification.
+The approved cleanup plan authorizes the exact rescue, documentation, ignore, merged-clean worktree removal and non-force local-branch cleanup described in the detailed plan. It does not authorize force delete/reset/clean, dirty-worktree discard, unmerged branch removal, remote branch deletion, production deploy/migration/data mutation, or application-code changes.
