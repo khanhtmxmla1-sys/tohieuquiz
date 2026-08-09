@@ -188,7 +188,7 @@ const ActionCenterPanel: React.FC = () => {
           disabled={isLoading || !isOnline}
           title={!isOnline ? 'Cần kết nối mạng để làm mới.' : 'Làm mới danh sách'}
           aria-label="Làm mới"
-          className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading
             ? <Loader2 aria-hidden="true" className="size-4 animate-spin" />

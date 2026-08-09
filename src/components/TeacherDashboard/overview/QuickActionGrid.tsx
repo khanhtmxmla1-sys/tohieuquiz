@@ -32,7 +32,7 @@ const QuickActionGrid: React.FC<QuickActionGridProps> = ({ actions, onSelect }) 
       </p>
     </div>
 
-    <div data-testid="quick-actions-grid" className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6 lg:gap-4">
+    <div data-testid="quick-actions-grid" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6 xl:gap-4">
       {actions.map((action) => {
         const tone = dashboardToneClasses[action.tone];
         return (
@@ -49,7 +49,7 @@ const QuickActionGrid: React.FC<QuickActionGridProps> = ({ actions, onSelect }) 
                 className="size-12 object-contain"
               />
             </span>
-            <span className="max-w-full truncate text-sm font-semibold text-slate-900">{action.title}</span>
+            <span className="max-w-full line-clamp-2 text-sm font-semibold leading-5 text-slate-900">{action.title}</span>
             <span className="sr-only">{action.description}</span>
             <ArrowUpRight
               aria-hidden="true"

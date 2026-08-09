@@ -26,8 +26,50 @@ describe('TeacherMobileBottomNav', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Thêm' }));
     expect(onOpenMore).toHaveBeenCalledTimes(1);
   });
+  it('marks More as the current location for secondary dashboard tabs', () => {
+    render(
+      <TeacherMobileBottomNav
+        activeTab="assignments"
+        onSelectTab={vi.fn()}
+        onOpenMore={vi.fn()}
+      />,
+    );
 
-  it('marks the matching route as current and keeps labels visible', () => {
+    expect(screen.getByRole('button', { name: 'Thêm' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Tổng quan' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('button', { name: 'Đề thi' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('button', { name: 'Học sinh' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('button', { name: 'Kết quả' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('keeps a primary destination current and leaves More inactive', () => {
+    render(
+      <TeacherMobileBottomNav
+        activeTab="overview"
+        onSelectTab={vi.fn()}
+        onOpenMore={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Tổng quan' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Thêm' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('opens the secondary navigation drawer from More', () => {
+    const onOpenMore = vi.fn();
+    render(
+      <TeacherMobileBottomNav
+        activeTab="assignments"
+        onSelectTab={vi.fn()}
+        onOpenMore={onOpenMore}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm' }));
+    expect(onOpenMore).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks the matching primary route as current and keeps all labels available', () => {
     render(
       <TeacherMobileBottomNav
         activeTab="results"

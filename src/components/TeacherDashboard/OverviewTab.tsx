@@ -31,6 +31,7 @@ interface OverviewTabProps {
   summaryLoadState: ResultsLoadState;
   summaryError?: string | null;
   onSelectTab: (tab: TeacherDashboardTab) => void;
+  onOpenQuiz: (quizId: string) => void;
   manualQuizWorkspaceEnabled: boolean;
   onCreateQuizWithAi: () => void;
   onCreateQuizManually: () => void;
@@ -89,6 +90,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   summaryLoadState,
   summaryError,
   onSelectTab,
+  onOpenQuiz,
   manualQuizWorkspaceEnabled,
   onCreateQuizWithAi,
   onCreateQuizManually,
@@ -208,7 +210,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-4 sm:space-y-5 lg:space-y-6">
       <nav aria-label="Đường dẫn trang" className="flex min-h-8 items-center gap-1.5 text-xs font-medium text-slate-500 sm:text-sm">
-        <span className="transition-colors hover:text-blue-700">Trang chủ</span>
+        <a
+          href="/"
+          className="rounded-md transition-colors hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+        >
+          Trang chủ
+        </a>
         <ChevronRight aria-hidden="true" className="size-4 text-slate-400" />
         <span aria-current="page" className="text-slate-800">Dashboard giáo viên</span>
       </nav>
@@ -267,6 +274,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       <RecentQuizzesPanel
         quizzes={recentQuizzes}
         onManageQuizzes={() => onSelectTab('manage')}
+        onOpenQuiz={onOpenQuiz}
       />
     </div>
   );

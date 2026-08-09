@@ -193,6 +193,23 @@ const assertNoHorizontalOverflow = () => {
   });
 };
 
+const assertMinTouchTarget = (selector: string, label: string) => {
+  cy.get(selector).filter(':visible').each(($element, index) => {
+    const rect = $element[0].getBoundingClientRect();
+    expect(rect.width, `${label} ${index + 1} width`).to.be.at.least(44);
+    expect(rect.height, `${label} ${index + 1} height`).to.be.at.least(44);
+  });
+};
+
+const assertQuickActionTitlesFit = () => {
+  cy.get('[data-testid="quick-actions-grid"] button').each(($button) => {
+    const title = $button.find('span.max-w-full.font-semibold')[0] as HTMLElement | undefined;
+    expect(title, 'quick action title').to.exist;
+    if (!title) return;
+    expect(title.scrollWidth, title.textContent || 'quick action').to.be.at.most(title.clientWidth + 1);
+  });
+};
+
 type ViewportCase = {
   name: string;
   width: number;
@@ -219,6 +236,21 @@ describe('Teacher dashboard responsive redesign', () => {
       cy.visit('/teacher/overview', { onBeforeLoad: installSession });
       waitForDashboard();
       assertNoHorizontalOverflow();
+      assertQuickActionTitlesFit();
+
+      if (desktopShell) {
+        assertMinTouchTarget('aside[aria-label="Điều hướng quản trị"] button', 'sidebar control');
+        assertMinTouchTarget('#teacher-dashboard-search', 'dashboard search input');
+        assertMinTouchTarget('button[aria-label="Tìm chức năng"]', 'dashboard search button');
+        assertMinTouchTarget('button[aria-label="Làm mới"]', 'action center refresh');
+        cy.contains('button', 'Xem tất cả').each(($button, index) => {
+          const rect = $button[0].getBoundingClientRect();
+          expect(rect.width, `Xem tất cả ${index + 1} width`).to.be.at.least(44);
+          expect(rect.height, `Xem tất cả ${index + 1} height`).to.be.at.least(44);
+        });
+      } else {
+        assertMinTouchTarget('button[aria-label="Mở menu điều hướng"]', 'mobile menu');
+      }
 
       if (desktopShell) {
         cy.get('aside[aria-label="Điều hướng quản trị"]').should('be.visible');
@@ -227,6 +259,16 @@ describe('Teacher dashboard responsive redesign', () => {
           cy.get('[data-testid="teacher-dashboard-top-composition"]')
             .invoke('outerHeight')
             .should('be.lte', 480);
+        }
+        if (width === 1024) {
+          cy.get('[data-testid="quick-actions-grid"] button').then(($buttons) => {
+            expect($buttons).to.have.length(6);
+            const firstTop = $buttons[0].getBoundingClientRect().top;
+            expect($buttons[1].getBoundingClientRect().top).to.be.closeTo(firstTop, 1);
+            expect($buttons[2].getBoundingClientRect().top).to.be.closeTo(firstTop, 1);
+            expect($buttons[3].getBoundingClientRect().top).to.be.greaterThan(firstTop + 1);
+          });
+          assertQuickActionTitlesFit();
         }
       } else {
         cy.get('aside[aria-label="Điều hướng quản trị"]')
@@ -245,5 +287,17 @@ describe('Teacher dashboard responsive redesign', () => {
       assertNoHorizontalOverflow();
       cy.screenshot(`teacher-dashboard/${name}`, { capture: 'fullPage' });
     });
+  });
+
+  it('marks More as current on a mobile secondary dashboard route', () => {
+    cy.viewport(390, 844);
+    cy.visit('/teacher/assignments', { onBeforeLoad: installSession });
+    cy.wait('@accountProfile');
+    cy.location('pathname').should('eq', '/teacher/assignments');
+    cy.get('nav[aria-label="Điều hướng nhanh"]').should('be.visible');
+    cy.get('nav[aria-label="Điều hướng nhanh"] button[aria-label="Thêm"]')
+      .should('have.attr', 'aria-current', 'page');
+    cy.get('nav[aria-label="Điều hướng nhanh"] button[aria-current="page"]')
+      .should('have.length', 1);
   });
 });

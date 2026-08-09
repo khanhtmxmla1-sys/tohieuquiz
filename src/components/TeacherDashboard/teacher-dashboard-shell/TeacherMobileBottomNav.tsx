@@ -29,7 +29,10 @@ const TeacherMobileBottomNav: React.FC<TeacherMobileBottomNavProps> = ({
   activeTab,
   onSelectTab,
   onOpenMore,
-}) => (
+}) => {
+  const isMoreActive = !items.some(({ id }) => id === activeTab);
+
+  return (
   <nav
     aria-label="Điều hướng nhanh"
     className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgb(15_23_42_/_0.08)] backdrop-blur lg:hidden"
@@ -57,13 +60,17 @@ const TeacherMobileBottomNav: React.FC<TeacherMobileBottomNavProps> = ({
         type="button"
         onClick={onOpenMore}
         aria-label="Thêm"
-        className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600"
+        aria-current={isMoreActive ? 'page' : undefined}
+        className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-600 ${
+          isMoreActive ? 'text-blue-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+        }`}
       >
-        <LayoutGrid aria-hidden="true" className="size-5" />
+        <LayoutGrid aria-hidden="true" className={`size-5 ${isMoreActive ? 'fill-blue-100' : ''}`} />
         <span>Thêm</span>
       </button>
     </div>
   </nav>
-);
+  );
+};
 
 export default TeacherMobileBottomNav;
