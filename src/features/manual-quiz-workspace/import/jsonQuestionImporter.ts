@@ -1,9 +1,11 @@
 import { QuestionType } from '../../../types';
 import {
     parseQuestionRichText,
+    richTextToPlainText,
     type QuestionRichTextEnvelopeV1,
 } from '../../../../shared/question-rich-text.contract';
 import type { ManualQuizQuestion } from '../types/manualQuizWorkspace.types';
+import { detectJsonQuestionFieldOwnershipIssues } from './jsonQuestionFieldOwnership';
 import {
     appendImportCandidate,
     createEmptyQuestionImportResult,
@@ -19,7 +21,7 @@ export const QUESTION_JSON_EXAMPLE = JSON.stringify({
             question_type: 'SINGLE_CHOICE',
             difficulty: 'NHAN_BIET',
             points: 1,
-            question: '<strong>Chọn đáp án đúng.</strong>\n2 + 3 bằng bao nhiêu?',
+            question: 'Chọn đáp án đúng.\n2 + 3 bằng bao nhiêu?',
             options: [
                 { id: 'A', text: '4' },
                 { id: 'B', text: '5' },
@@ -634,6 +636,17 @@ const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate 
         if (status !== 'rejected') status = 'needsReview';
     }
 
+    const ownership = detectJsonQuestionFieldOwnershipIssues({
+        type: normalizedType.type,
+        row: raw,
+        question: prompt,
+        questionRichTextPlainText: questionRichText ? richTextToPlainText(questionRichText) : undefined,
+    });
+    if (ownership.issues.length > 0) {
+        issues.push(...ownership.issues);
+        if (status !== 'rejected') status = 'needsReview';
+    }
+
     const base = createBaseQuestion(raw);
     let question: ImportedManualQuizQuestion;
 
@@ -863,7 +876,7 @@ const classifyQuestion = (raw: unknown, index: number): QuestionImportCandidate 
         } as ManualQuizQuestion;
     }
 
-    if (questionRichText) {
+    if (questionRichText && !ownership.richTextViolatesOwnership) {
         question = { ...question, questionRichText };
     }
     return {

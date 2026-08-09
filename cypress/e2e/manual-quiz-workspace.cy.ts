@@ -343,6 +343,41 @@ describe('Manual quiz workspace end-to-end', () => {
         cy.location('pathname', { timeout: 15_000 }).should('eq', '/teacher/quizzes');
     });
 
+    it('keeps DROPDOWN content leakage in review instead of marking it ready to import', () => {
+        visitManualWorkspace(validDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.contains('button', 'Nhập từ tệp').click();
+        cy.get('[role="dialog"][aria-label="Nhập câu hỏi"]').should('be.visible');
+        cy.contains('[role="tab"]', 'Dán JSON').click();
+
+        const payload = JSON.stringify([{
+            question_type: 'DROPDOWN',
+            question: 'Chọn từ so sánh thích hợp để điền vào câu ca dao sau.\nCông cha {{select1}} núi Thái Sơn\nNghĩa mẹ {{select2}} nước trong nguồn chảy ra.',
+            content: 'Công cha {{select1}} núi Thái Sơn\nNghĩa mẹ {{select2}} nước trong nguồn chảy ra.',
+            dropdowns: [
+                { id: 'select1', options: ['như', 'tựa'], correct_answer: 'như' },
+                { id: 'select2', options: ['như', 'tựa'], correct_answer: 'như' },
+            ],
+        }]);
+
+        cy.get<HTMLTextAreaElement>('textarea[aria-label="Dữ liệu JSON"]').then(($textarea) => {
+            const textarea = $textarea[0];
+            const view = textarea.ownerDocument.defaultView!;
+            const valueSetter = Object.getOwnPropertyDescriptor(view.HTMLTextAreaElement.prototype, 'value')?.set;
+            expect(valueSetter, 'native textarea value setter').to.be.a('function');
+            valueSetter!.call(textarea, payload);
+            textarea.dispatchEvent(new view.Event('input', { bubbles: true }));
+        });
+        cy.get('textarea[aria-label="Dữ liệu JSON"]').should('have.value', payload);
+        cy.contains('button', 'Kiểm tra JSON').click();
+
+        cy.contains('0 sẵn sàng').should('be.visible');
+        cy.contains('1 cần rà soát').should('be.visible');
+        cy.contains(/^Câu DROPDOWN đang đưa \{\{select\.\.\.\}\} vào question/).should('exist');
+        cy.get('button[aria-label="Nhập 0 câu đã chọn"]').should('be.disabled');
+    });
+
     [
         { width: 320, height: 800, label: 'mobile-320' },
         { width: 768, height: 1024, label: 'tablet-768' },

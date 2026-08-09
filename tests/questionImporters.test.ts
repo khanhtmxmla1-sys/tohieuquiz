@@ -715,6 +715,182 @@ describe('JSON question importer', () => {
         expect(result.needsReview[0].issues.join(' ')).toMatch(/ảnh|media|url/i);
     });
 
+    it('flags DROPDOWN field leakage while accepting the canonical field ownership shape', () => {
+        const result = parseQuestionJsonText(JSON.stringify([
+            {
+                question_type: 'DROPDOWN',
+                question: 'Chọn từ so sánh thích hợp để điền vào câu ca dao sau.\nCông cha {{select1}} núi Thái Sơn\nNghĩa mẹ {{select2}} nước trong nguồn chảy ra.',
+                content: 'Công cha {{select1}} núi Thái Sơn\nNghĩa mẹ {{select2}} nước trong nguồn chảy ra.',
+                dropdowns: [
+                    { id: 'select1', options: ['như', 'tựa'], correct_answer: 'như' },
+                    { id: 'select2', options: ['như', 'tựa'], correct_answer: 'như' },
+                ],
+            },
+            {
+                question_type: 'DROPDOWN',
+                question: 'Chọn từ so sánh thích hợp để điền vào câu ca dao sau.',
+                content: 'Công cha {{select1}} núi Thái Sơn\nNghĩa mẹ {{select2}} nước trong nguồn chảy ra.',
+                dropdowns: [
+                    { id: 'select1', options: ['như', 'tựa'], correct_answer: 'như' },
+                    { id: 'select2', options: ['như', 'tựa'], correct_answer: 'như' },
+                ],
+            },
+        ]));
+
+        expect(result.accepted).toHaveLength(1);
+        expect(result.needsReview).toHaveLength(1);
+        expect(result.needsReview[0].question.type).toBe(QuestionType.DROPDOWN);
+        expect(result.needsReview[0].issues.join(' ')).toMatch(/DROPDOWN|question|content|select/i);
+        expect(result.accepted[0].question).toEqual(expect.objectContaining({
+            question: 'Chọn từ so sánh thích hợp để điền vào câu ca dao sau.',
+            text: 'Công cha [select1] núi Thái Sơn\nNghĩa mẹ [select2] nước trong nguồn chảy ra.',
+        }));
+    });
+
+    it('flags rich-text leakage and drops the violating rich text from the import candidate', () => {
+        const questionRichText = {
+            schemaVersion: 1,
+            doc: {
+                type: 'doc',
+                content: [
+                    {
+                        type: 'paragraph',
+                        content: [{ type: 'text', text: 'Chọn từ so sánh thích hợp để điền vào câu ca dao sau.' }],
+                    },
+                    {
+                        type: 'paragraph',
+                        content: [
+                            { type: 'text', text: 'Công cha {{select1}} núi Thái Sơn' },
+                            { type: 'hardBreak' },
+                            { type: 'text', text: 'Nghĩa mẹ {{select2}} nước trong nguồn chảy ra.' },
+                        ],
+                    },
+                ],
+            },
+        };
+        const result = parseQuestionJsonText(JSON.stringify([{
+            question_type: 'DROPDOWN',
+            question: 'Chọn từ so sánh thích hợp để điền vào câu ca dao sau.',
+            questionRichText,
+            content: 'Công cha {{select1}} núi Thái Sơn\nNghĩa mẹ {{select2}} nước trong nguồn chảy ra.',
+            dropdowns: [
+                { id: 'select1', options: ['như', 'tựa'], correct_answer: 'như' },
+                { id: 'select2', options: ['như', 'tựa'], correct_answer: 'như' },
+            ],
+        }]));
+
+        expect(result.accepted).toHaveLength(0);
+        expect(result.needsReview).toHaveLength(1);
+        expect(result.needsReview[0].issues.join(' ')).toMatch(/questionRichText|question|content|select/i);
+        expect((result.needsReview[0].question as any).questionRichText).toBeUndefined();
+    });
+
+    it('flags content-owned payload copied into prompts for drag-drop, underline and riddle', () => {
+        const result = parseQuestionJsonText(JSON.stringify([
+            {
+                question_type: 'DRAG_DROP_FILL',
+                question: 'Kéo từ thích hợp. I have a book. It is {{blank1}}.',
+                content: 'I have a book. It is {{blank1}}.',
+                drag_items: [
+                    { id: 'D1', text: 'mine' },
+                    { id: 'D2', text: 'yours' },
+                ],
+                answers: [{ blank: 'blank1', item: 'D1' }],
+            },
+            {
+                question_type: 'UNDERLINE',
+                question: 'Gạch chân từ so sánh. Cây cao lớn tựa một người khổng lồ.',
+                content: 'Cây cao lớn tựa một người khổng lồ.',
+                selectable_parts: [{ id: 'U1', text: 'tựa' }],
+                correct_answers: ['U1'],
+            },
+            {
+                question_type: 'RIDDLE',
+                question: 'Em hãy giải câu đố sau. Thân em nhiều đốt Ruột trắng áo xanh',
+                riddle: 'Thân em nhiều đốt\nRuột trắng áo xanh',
+                accepted_answers: ['cây mía'],
+            },
+        ]));
+
+        expect(result.accepted).toHaveLength(0);
+        expect(result.needsReview).toHaveLength(3);
+        expect(result.needsReview.map((candidate) => candidate.question.type)).toEqual([
+            QuestionType.DRAG_DROP,
+            QuestionType.UNDERLINE,
+            QuestionType.RIDDLE,
+        ]);
+    });
+
+    it('flags structured item payload duplicated into question text', () => {
+        const result = parseQuestionJsonText(JSON.stringify([
+            {
+                question_type: 'TRUE_FALSE',
+                question: 'Chọn đúng hoặc sai. Trái Đất quay quanh Mặt Trời. Mặt Trăng là một ngôi sao.',
+                items: [
+                    { id: 'TF1', statement: 'Trái Đất quay quanh Mặt Trời.', correct_answer: true },
+                    { id: 'TF2', statement: 'Mặt Trăng là một ngôi sao.', correct_answer: false },
+                ],
+            },
+            {
+                question_type: 'MATCHING',
+                question: 'Nối hai cột: thủ đô Việt Nam; thủ đô Nhật Bản; Hà Nội; Tokyo.',
+                left_items: [
+                    { id: 'L1', text: 'thủ đô Việt Nam' },
+                    { id: 'L2', text: 'thủ đô Nhật Bản' },
+                ],
+                right_items: [
+                    { id: 'R1', text: 'Tokyo' },
+                    { id: 'R2', text: 'Hà Nội' },
+                ],
+                matches: [
+                    { left: 'L1', right: 'R2' },
+                    { left: 'L2', right: 'R1' },
+                ],
+            },
+            {
+                question_type: 'ORDERING',
+                question: 'Sắp xếp: Thức dậy; Đánh răng; Ăn sáng.',
+                items: [
+                    { id: 'O1', text: 'Thức dậy' },
+                    { id: 'O2', text: 'Đánh răng' },
+                    { id: 'O3', text: 'Ăn sáng' },
+                ],
+                correct_order: ['O1', 'O2', 'O3'],
+            },
+            {
+                question_type: 'CATEGORIZATION',
+                question: 'Phân loại: Động vật; Thực vật; con mèo; cây phượng.',
+                groups: [
+                    { id: 'G1', name: 'Động vật' },
+                    { id: 'G2', name: 'Thực vật' },
+                ],
+                items: [
+                    { id: 'I1', text: 'con mèo' },
+                    { id: 'I2', text: 'cây phượng' },
+                ],
+                answers: [
+                    { item: 'I1', group: 'G1' },
+                    { item: 'I2', group: 'G2' },
+                ],
+            },
+            {
+                question_type: 'WORD_ASSEMBLY',
+                question: 'Ghép các từ sau thành câu: This; book; is; mine.',
+                parts: [
+                    { id: 'W1', text: 'book' },
+                    { id: 'W2', text: 'mine' },
+                    { id: 'W3', text: 'This' },
+                    { id: 'W4', text: 'is' },
+                ],
+                correct_order: ['W3', 'W1', 'W4', 'W2'],
+                correct_text: 'This book is mine',
+            },
+        ]));
+
+        expect(result.accepted).toHaveLength(0);
+        expect(result.needsReview).toHaveLength(5);
+    });
+
     it('parses the copied canonical JSON example as ready to import', () => {
         const result = parseQuestionJsonText(QUESTION_JSON_EXAMPLE);
         expect(result.accepted).toHaveLength(1);
