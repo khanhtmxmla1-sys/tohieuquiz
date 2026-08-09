@@ -4,6 +4,8 @@ import {
     QUESTION_HIGHLIGHT_PALETTE,
     QUESTION_TEXT_COLOR_PALETTE,
     deserializeQuestionRichText,
+    deriveQuestionPlainText,
+    normalizeQuestionPlainText,
     parseQuestionRichText,
     plainTextToRichText,
     richTextToPlainText,
@@ -89,7 +91,7 @@ describe('question rich text contract', () => {
         expect(richTextToPlainText(plainTextToRichText(source))).toBe(source);
     });
 
-    it('converts hard breaks and list items into readable fallback lines', () => {
+    it('preserves semantic bullet markers in the plain projection', () => {
         const value = {
             schemaVersion: 1 as const,
             doc: {
@@ -114,7 +116,32 @@ describe('question rich text contract', () => {
             },
         };
 
-        expect(richTextToPlainText(value)).toBe('Dòng A\nDòng B\nMục 1\nMục 2');
+        expect(richTextToPlainText(value)).toBe('Dòng A\nDòng B\n- Mục 1\n- Mục 2');
+    });
+
+    it('preserves ordered-list numbering including a non-default start value', () => {
+        const value = {
+            schemaVersion: 1 as const,
+            doc: {
+                type: 'doc' as const,
+                content: [{
+                    type: 'orderedList' as const,
+                    attrs: { start: 3 },
+                    content: [
+                        { type: 'listItem' as const, content: [{ type: 'paragraph' as const, content: [{ type: 'text' as const, text: 'Ba' }] }] },
+                        { type: 'listItem' as const, content: [{ type: 'paragraph' as const, content: [{ type: 'text' as const, text: 'Bốn' }] }] },
+                    ],
+                }],
+            },
+        };
+
+        expect(richTextToPlainText(value)).toBe('3. Ba\n4. Bốn');
+    });
+
+    it('derives normalized plain text without trimming or rewriting TeX', () => {
+        const rich = plainTextToRichText('  Dòng 1\r\n$24 \\div 6$  ');
+        expect(deriveQuestionPlainText(rich)).toBe('  Dòng 1\n$24 \\div 6$  ');
+        expect(normalizeQuestionPlainText('  A\r\nB\rC  ')).toBe('  A\nB\nC  ');
     });
 
     it('serializes only valid envelopes and safely deserializes storage values', () => {

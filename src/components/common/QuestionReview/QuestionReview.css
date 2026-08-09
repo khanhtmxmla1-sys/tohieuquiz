@@ -32,9 +32,10 @@
 
 .question-header-content {
     display: flex;
-    align-items: baseline;
+    align-items: flex-start;
     gap: 8px;
     flex: 1;
+    min-width: 0;
 }
 
 .review-question-number {
@@ -45,6 +46,8 @@
 }
 
 .question-text-inline {
+    flex: 1;
+    min-width: 0;
     font-size: 1.1rem;
     line-height: 1.5;
     color: #374151;

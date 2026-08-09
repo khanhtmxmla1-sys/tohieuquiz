@@ -35,7 +35,7 @@ export interface AuthoritativeQuizGrading {
 }
 
 const QUESTION_COLUMNS = `
-  id, type, question, options, correct_answer, items, text_field, blanks,
+  id, type, question, question_rich_text, options, correct_answer, items, text_field, blanks,
   distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, difficulty,
   answer_schema_version
 `;
@@ -99,6 +99,7 @@ const stripCorrectFields = (value: unknown): unknown => {
     'correctWord',
     'correct_answer',
     'correct_word_indexes',
+    'question_rich_text',
     'isCorrect',
     'categoryId',
   ]);
@@ -108,6 +109,21 @@ const stripCorrectFields = (value: unknown): unknown => {
       .map(([key, nested]) => [key, stripCorrectFields(nested)]),
   );
 };
+
+export const MAX_RESULT_ANSWERS_WITH_RICH_BYTES = 1_500_000;
+
+const utf8ByteLength = (value: string): number =>
+  new TextEncoder().encode(value).byteLength;
+
+const stripSnapshotRichText = (storedAnswers: Record<string, unknown>): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(storedAnswers).map(([questionId, entry]) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return [questionId, entry];
+    const envelope = entry as Record<string, unknown>;
+    const snapshot = envelope.questionSnapshot;
+    if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return [questionId, entry];
+    const { questionRichText: _questionRichText, ...plainSnapshot } = snapshot as Record<string, unknown>;
+    return [questionId, { ...envelope, questionSnapshot: plainSnapshot }];
+  }));
 
 export function buildAuthoritativeStoredAnswers(
   questions: readonly Record<string, unknown>[],
@@ -119,7 +135,7 @@ export function buildAuthoritativeStoredAnswers(
     : {};
   const detailMap = new Map(details.map((detail) => [detail.questionId, detail]));
 
-  return Object.fromEntries(questions.map((question) => {
+  const richCandidate = Object.fromEntries(questions.map((question) => {
     const questionId = String(question.id ?? '');
     const detail = detailMap.get(questionId);
     return [questionId, {
@@ -130,6 +146,28 @@ export function buildAuthoritativeStoredAnswers(
       gradingVersion: QUIZ_SCORING_ENGINE_VERSION,
     }];
   }));
+
+  const containsRichSnapshot = Object.values(richCandidate).some((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
+    const snapshot = (entry as Record<string, unknown>).questionSnapshot;
+    return Boolean(snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot)
+      && (snapshot as Record<string, unknown>).questionRichText !== undefined);
+  });
+  if (!containsRichSnapshot) return richCandidate;
+
+  const candidateAnswersBytes = utf8ByteLength(JSON.stringify(richCandidate));
+  if (candidateAnswersBytes <= MAX_RESULT_ANSWERS_WITH_RICH_BYTES) return richCandidate;
+
+  const plainCandidate = stripSnapshotRichText(richCandidate);
+  const plainAnswersBytes = utf8ByteLength(JSON.stringify(plainCandidate));
+  console.info(JSON.stringify({
+    event: 'result_rich_snapshot_budget_exceeded',
+    questionCount: questions.length,
+    candidateAnswersBytes,
+    plainAnswersBytes,
+    limitBytes: MAX_RESULT_ANSWERS_WITH_RICH_BYTES,
+  }));
+  return plainCandidate;
 }
 
 export function buildAuthoritativeReviewDetails(

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { plainTextToRichText } from '../shared/question-rich-text.contract';
 import {
     buildDisplayQuestions,
     filterDisplayQuestions,
@@ -37,6 +38,53 @@ describe('student detail question model', () => {
         ]);
         expect(getQuestionResultCounts(questions)).toEqual({ correctCount: 1, wrongCount: 0 });
         expect(filterDisplayQuestions(questions, 'wrong')).toHaveLength(0);
+    });
+
+    it('does not inherit current rich presentation into a legacy historical snapshot', () => {
+        const currentRich = plainTextToRichText('Rich hiện tại');
+        const currentQuestion = {
+            id: 'q-history', type: 'MCQ', question: 'Nội dung hiện tại', questionRichText: currentRich,
+            options: ['A', 'B'], correctAnswer: 'A',
+        } as any;
+        const result = {
+            ...studentDetailResult,
+            answers: {
+                'q-history': {
+                    selectedAnswer: 'A', isCorrect: true,
+                    questionSnapshot: {
+                        id: 'q-history', type: 'MCQ', question: 'Nội dung lúc nộp', options: ['A', 'B'],
+                    },
+                },
+            },
+        } as any;
+
+        const [display] = buildDisplayQuestions(result, [currentQuestion]);
+        expect(display.question).toBe('Nội dung lúc nộp');
+        expect(display.questionRichText).toBeUndefined();
+    });
+
+    it('keeps the rich presentation stored in the historical snapshot', () => {
+        const currentRich = plainTextToRichText('Rich hiện tại');
+        const historicalRich = plainTextToRichText('Rich lúc nộp');
+        const currentQuestion = {
+            id: 'q-rich-history', type: 'MCQ', question: 'Nội dung hiện tại', questionRichText: currentRich,
+            options: ['A', 'B'], correctAnswer: 'A',
+        } as any;
+        const result = {
+            ...studentDetailResult,
+            answers: {
+                'q-rich-history': {
+                    selectedAnswer: 'A', isCorrect: true,
+                    questionSnapshot: {
+                        id: 'q-rich-history', type: 'MCQ', question: 'Nội dung lúc nộp',
+                        questionRichText: historicalRich, options: ['A', 'B'],
+                    },
+                },
+            },
+        } as any;
+
+        const [display] = buildDisplayQuestions(result, [currentQuestion]);
+        expect(display.questionRichText).toEqual(historicalRich);
     });
 
     it('treats matching shuffle metadata without any pair as skipped', () => {

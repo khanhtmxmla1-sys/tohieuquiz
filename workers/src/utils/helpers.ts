@@ -3,7 +3,11 @@
 
 import { jsonResponse } from './response';
 import { Question, Assignment, PetData, ShopItem, ResultRow } from '../types';
-import { CURRENT_MATH_FORMAT_VERSION, prepareIncomingQuestion } from '../services/questionMath';
+import {
+    CURRENT_MATH_FORMAT_VERSION,
+    normalizeIncomingQuestion,
+    prepareIncomingQuestion,
+} from '../services/questionMath';
 import { QuizGradingServiceError, gradeQuizSubmission } from '../services/quizGradingService';
 import { prepareQuestionScoringContractForSave } from '../services/questionScoringContract';
 import {
@@ -12,7 +16,12 @@ import {
 } from '../services/quizScoringRolloutService';
 import type { FeatureFlagSubject } from '../../../shared/feature-rollout.contract';
 import { sanitizeSvgDiagram } from '../services/svgDiagramSanitizer';
-import { parseQuestionRichText } from '../../../shared/question-rich-text.contract';
+import {
+    deriveQuestionPlainText,
+    normalizeQuestionPlainText,
+    parseQuestionRichText,
+    type QuestionRichTextEnvelopeV1,
+} from '../../../shared/question-rich-text.contract';
 
 export class QuestionRichTextValidationError extends Error {
     readonly code = 'INVALID_QUESTION_RICH_TEXT';
@@ -23,8 +32,30 @@ export class QuestionRichTextValidationError extends Error {
     }
 }
 
-const serializeQuestionRichTextForSave = (input: unknown): string => {
-    if (input === undefined || input === null || input === '') return '';
+interface PreparedQuestionRichText {
+    value: QuestionRichTextEnvelopeV1;
+    serialized: string;
+}
+
+const getSubmittedPlainPrompt = (input: Record<string, unknown>): string | undefined => {
+    const keys = String(input.type || '').toUpperCase() === 'TRUE_FALSE'
+        ? ['mainQuestion', 'question']
+        : ['question', 'mainQuestion'];
+    for (const key of keys) {
+        if (input[key] !== undefined && input[key] !== null) return String(input[key]);
+    }
+    return undefined;
+};
+
+const normalizePlainEchoForComparison = (value: string): string => {
+    const { normalized } = normalizeIncomingQuestion({
+        question: normalizeQuestionPlainText(value),
+    });
+    return normalizeQuestionPlainText(String(normalized.question ?? ''));
+};
+
+const prepareQuestionRichTextForSave = (input: unknown): PreparedQuestionRichText | undefined => {
+    if (input === undefined || input === null || input === '') return undefined;
     let candidate = input;
     if (typeof input === 'string') {
         try {
@@ -35,16 +66,33 @@ const serializeQuestionRichTextForSave = (input: unknown): string => {
     }
     const parsed = parseQuestionRichText(candidate);
     if (!parsed.ok) throw new QuestionRichTextValidationError(parsed.error);
-    return JSON.stringify(parsed.value);
+    return { value: parsed.value, serialized: JSON.stringify(parsed.value) };
 };
 
 // ============ Map question data for D1 insert ============
 export function mapQuestionForSave(q: Partial<Question> & { type: string }, quizId: string): string[] {
-    const rawQuestion = q as Partial<Question> & { type: string; questionRichText?: unknown; question_rich_text?: unknown };
-    const questionRichTextField = serializeQuestionRichTextForSave(
+    const rawQuestion = q as Partial<Question> & {
+        type: string;
+        mainQuestion?: unknown;
+        questionRichText?: unknown;
+        question_rich_text?: unknown;
+    };
+    const preparedRichText = prepareQuestionRichTextForSave(
         rawQuestion.questionRichText ?? rawQuestion.question_rich_text,
     );
-    const mathNormalizedQuestion = prepareIncomingQuestion(q) as Partial<Question> & { type: string };
+    const submittedPlainPrompt = getSubmittedPlainPrompt(rawQuestion as unknown as Record<string, unknown>);
+    const semanticQuestion = { ...rawQuestion } as Record<string, unknown> & { type: string };
+    delete semanticQuestion.questionRichText;
+    delete semanticQuestion.question_rich_text;
+    if (preparedRichText) {
+        const derivedPrompt = deriveQuestionPlainText(preparedRichText.value);
+        semanticQuestion.question = derivedPrompt;
+        if (String(semanticQuestion.type || '').toUpperCase() === 'TRUE_FALSE') {
+            semanticQuestion.mainQuestion = derivedPrompt;
+        }
+    }
+    const questionRichTextField = preparedRichText?.serialized ?? '';
+    const mathNormalizedQuestion = prepareIncomingQuestion(semanticQuestion) as Partial<Question> & { type: string };
     const scoringContract = prepareQuestionScoringContractForSave(mathNormalizedQuestion);
     const normalizedQuestion = scoringContract.question as Partial<Question> & { type: string };
     let options = '';
@@ -59,6 +107,19 @@ export function mapQuestionForSave(q: Partial<Question> & { type: string }, quiz
 
     // Legacy object mapping to strings after server-owned normalization/validation.
     const anyQ = normalizedQuestion as any;
+    if (preparedRichText && submittedPlainPrompt !== undefined) {
+        const normalizedPersistedPrompt = normalizeQuestionPlainText(String(
+            normalizedQuestion.type === 'TRUE_FALSE'
+                ? (anyQ.mainQuestion || normalizedQuestion.question || anyQ.question || '')
+                : (normalizedQuestion.question || anyQ.question || ''),
+        ));
+        if (normalizePlainEchoForComparison(submittedPlainPrompt) !== normalizedPersistedPrompt) {
+            console.info(JSON.stringify({
+                event: 'question_rich_text_plain_mismatch',
+                questionType: normalizedQuestion.type,
+            }));
+        }
+    }
 
     if (normalizedQuestion.type === 'MCQ') {
         options = (anyQ.options || []).join('|');

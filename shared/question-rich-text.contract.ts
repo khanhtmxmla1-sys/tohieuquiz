@@ -196,6 +196,11 @@ export const parseQuestionRichText = (input: unknown): ParseQuestionRichTextResu
     return { ok: true, value: input as unknown as QuestionRichTextEnvelopeV1 };
 };
 
+const prefixPlainTextLines = (value: string, prefix: string): string => {
+    const lines = value.split('\n');
+    return lines.map((line, index) => index === 0 ? `${prefix}${line}` : line).join('\n');
+};
+
 const renderNodePlainText = (node: QuestionRichTextNode): string => {
     switch (node.type) {
         case 'text':
@@ -207,8 +212,15 @@ const renderNodePlainText = (node: QuestionRichTextNode): string => {
         case 'listItem':
             return (node.content ?? []).map(renderNodePlainText).join('\n');
         case 'bulletList':
-        case 'orderedList':
-            return (node.content ?? []).map(renderNodePlainText).join('\n');
+            return (node.content ?? [])
+                .map((item) => prefixPlainTextLines(renderNodePlainText(item), '- '))
+                .join('\n');
+        case 'orderedList': {
+            const start = Number.isInteger(node.attrs?.start) ? Number(node.attrs?.start) : 1;
+            return (node.content ?? [])
+                .map((item, index) => prefixPlainTextLines(renderNodePlainText(item), `${start + index}. `))
+                .join('\n');
+        }
         case 'doc':
             return (node.content ?? []).map(renderNodePlainText).join('\n');
         default:
@@ -216,8 +228,14 @@ const renderNodePlainText = (node: QuestionRichTextNode): string => {
     }
 };
 
+export const normalizeQuestionPlainText = (value: string): string =>
+    String(value ?? '').replace(/\r\n?/g, '\n');
+
 export const richTextToPlainText = (value: QuestionRichTextEnvelopeV1): string =>
     renderNodePlainText(value.doc);
+
+export const deriveQuestionPlainText = (value: QuestionRichTextEnvelopeV1): string =>
+    normalizeQuestionPlainText(richTextToPlainText(value));
 
 export const plainTextToRichText = (value: string): QuestionRichTextEnvelopeV1 => {
     const normalized = String(value ?? '').replace(/\r\n?/g, '\n');

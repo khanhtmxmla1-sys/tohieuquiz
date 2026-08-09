@@ -39,6 +39,9 @@ export const buildDisplayQuestions = (
             type: snapshot?.type || fromQuiz?.type || (normalized as any).questionType,
             question: snapshot?.question || snapshot?.mainQuestion
                 || (fromQuiz as any)?.question || (fromQuiz as any)?.mainQuestion || '',
+            questionRichText: snapshot
+                ? snapshot.questionRichText
+                : fromQuiz?.questionRichText,
         } as DisplayQuestion;
 
         let isCorrect = normalized.isCorrect;

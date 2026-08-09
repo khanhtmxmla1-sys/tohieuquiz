@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { plainTextToRichText } from '../shared/question-rich-text.contract';
 import {
   QuizGradingServiceError,
   buildAuthoritativeStoredAnswers,
@@ -14,8 +15,12 @@ class Statement {
 }
 
 class Database {
+  lastPreparedSql = '';
   constructor(readonly rows: unknown[]) {}
-  prepare() { return new Statement(this.rows); }
+  prepare(sql: string) {
+    this.lastPreparedSql = sql;
+    return new Statement(this.rows);
+  }
 }
 
 const rows = [
@@ -70,6 +75,78 @@ describe('Worker quiz grading service', () => {
     expect(JSON.stringify(stored)).not.toContain('correctAnswer');
     expect(JSON.stringify(stored)).not.toContain('correct_answer');
     expect(JSON.stringify(stored)).not.toContain('isCorrect":false,"questionSnapshot":{"correctAnswer');
+  });
+
+  it('selects and preserves validated rich presentation in authoritative result snapshots', async () => {
+    const rich = plainTextToRichText('Rich historical prompt');
+    const db = new Database([{
+      id: 'rich', type: 'MCQ', question: 'Rich historical prompt', question_rich_text: JSON.stringify(rich),
+      options: 'A|B', correct_answer: 'A', items: '', text_field: '', blanks: '', distractors: '',
+      sentence: '', words: '', correct_word_indexes: '', image: '', difficulty: 1, answer_schema_version: 1,
+    }]);
+    const grading = await gradeQuizSubmission(db as any, 'quiz-rich', { rich: 'A' });
+    expect(db.lastPreparedSql).toContain('question_rich_text');
+    const stored = buildAuthoritativeStoredAnswers(grading.questions, { rich: 'A' }, grading.details);
+    const snapshot = (stored.rich as any).questionSnapshot;
+
+    expect(snapshot.questionRichText).toEqual(rich);
+    expect(JSON.stringify(snapshot)).not.toMatch(
+      /correctAnswer|correctAnswers|correctOrder|correctWordIndexes|correctWord|categoryId|question_rich_text/,
+    );
+  });
+
+  it('falls back to a plain snapshot when stored rich presentation is invalid', async () => {
+    const grading = await gradeQuizSubmission(new Database([{
+      id: 'bad-rich', type: 'MCQ', question: 'Plain historical prompt', question_rich_text: '{bad json',
+      options: 'A|B', correct_answer: 'A', items: '', text_field: '', blanks: '', distractors: '',
+      sentence: '', words: '', correct_word_indexes: '', image: '', difficulty: 1, answer_schema_version: 1,
+    }]) as any, 'quiz-bad-rich', { 'bad-rich': 'A' });
+    const stored = buildAuthoritativeStoredAnswers(grading.questions, { 'bad-rich': 'A' }, grading.details);
+    const snapshot = (stored['bad-rich'] as any).questionSnapshot;
+
+    expect(snapshot.question).toBe('Plain historical prompt');
+    expect(snapshot.questionRichText).toBeUndefined();
+  });
+
+  it('keeps rich snapshots while the final serialized answers candidate stays within budget', () => {
+    const rich = plainTextToRichText('x'.repeat(10_000));
+    const questions = [{ id: 'within', type: 'MCQ', question: 'Plain', questionRichText: rich }];
+    const details = [{ questionId: 'within', isCorrect: true, status: 'correct' }] as any;
+    const stored = buildAuthoritativeStoredAnswers(questions, { within: 'A' }, details);
+
+    expect(new TextEncoder().encode(JSON.stringify(stored)).byteLength).toBeLessThanOrEqual(1_500_000);
+    expect((stored.within as any).questionSnapshot.questionRichText).toEqual(rich);
+  });
+
+  it('degrades all rich snapshots when final answers-with-rich exceeds the 1.5 MB budget', () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const rich = plainTextToRichText('x'.repeat(60_000));
+    const questions = Array.from({ length: 30 }, (_, index) => ({
+      id: `q-${index}`, type: 'MCQ', question: `Plain ${index}`, questionRichText: rich,
+    }));
+    const details = questions.map((question) => ({
+      questionId: question.id, isCorrect: true, status: 'correct',
+    })) as any;
+    const answers = Object.fromEntries(questions.map((question) => [question.id, 'A']));
+    const stored = buildAuthoritativeStoredAnswers(questions, answers, details);
+
+    expect(Object.values(stored).every((entry: any) =>
+      entry.questionSnapshot.questionRichText === undefined)).toBe(true);
+    expect(Object.values(stored).every((entry: any) =>
+      typeof entry.questionSnapshot.question === 'string')).toBe(true);
+    expect(info).toHaveBeenCalledWith(expect.stringContaining('result_rich_snapshot_budget_exceeded'));
+    expect(info).not.toHaveBeenCalledWith(expect.stringContaining('Plain 0'));
+    info.mockRestore();
+  });
+
+  it('does not impose the rich budget as a new rejection path for large plain-only answers', () => {
+    const largePlain = 'p'.repeat(1_550_000);
+    const questions = [{ id: 'plain-large', type: 'MCQ', question: largePlain }];
+    const details = [{ questionId: 'plain-large', isCorrect: true, status: 'correct' }] as any;
+
+    expect(() => buildAuthoritativeStoredAnswers(questions, { 'plain-large': 'A' }, details)).not.toThrow();
+    const stored = buildAuthoritativeStoredAnswers(questions, { 'plain-large': 'A' }, details);
+    expect((stored['plain-large'] as any).questionSnapshot.question).toBe(largePlain);
   });
 
   it('stores skipped metadata-only wrappers as a null selected answer', async () => {

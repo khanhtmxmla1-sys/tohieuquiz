@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import QuestionReview from '../src/components/common/QuestionReview';
+import { plainTextToRichText } from '../shared/question-rich-text.contract';
 
 // Mock better-react-mathjax to avoid requiring MathJaxContext in unit tests
 vi.mock('better-react-mathjax', () => ({
@@ -36,6 +37,25 @@ describe('QuestionReview Component', () => {
             correctAnswer: 'B',
             explanation: '2 là số nguyên tố duy nhất chẵn.'
         };
+
+        it('renders rich historical prompt instead of a differing plain fallback', () => {
+            const questionRichText = plainTextToRichText('Rich historical prompt');
+            questionRichText.doc.content[0].content = [{
+                type: 'text', text: 'Rich historical prompt', marks: [{ type: 'bold' }],
+            }];
+            const richQuestion = {
+                ...mockMCQ,
+                question: 'Plain fallback prompt',
+                questionRichText,
+            };
+
+            render(<QuestionReview index={0} question={richQuestion} studentAnswer="B" />);
+
+            expect(screen.getByTestId('question-rich-text-renderer')).toBeDefined();
+            expect(screen.getByText('Rich historical prompt').closest('strong')).not.toBeNull();
+            expect(screen.queryByText('Plain fallback prompt')).toBeNull();
+            expect(screen.getByTestId('icon-correct')).toBeDefined();
+        });
 
         it('nên hiển thị đúng khi học sinh chọn ĐÚNG', () => {
             render(<QuestionReview index={0} question={mockMCQ} studentAnswer="B" />);
