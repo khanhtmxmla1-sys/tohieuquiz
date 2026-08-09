@@ -1,5 +1,6 @@
 import React from 'react';
 import MathContent from './MathContent';
+import QuestionRichTextRenderer from '../QuestionRichTextRenderer';
 import { checkAnswer, AnswerStatus } from '../../../utils/question/scoring.util';
 import { CheckCircle, XCircle, MinusCircle } from 'lucide-react';
 import './QuestionReview.css';
@@ -70,7 +71,15 @@ const QuestionReview: React.FC<QuestionReviewProps> = ({
             <div className="review-header">
                 <div className="question-header-content">
                     <span className="review-question-number">Câu {index + 1}:</span>
-                    <MathContent content={questionText} className="question-text-inline" />
+                    {question.questionRichText ? (
+                        <QuestionRichTextRenderer
+                            value={question.questionRichText}
+                            fallback={questionText}
+                            className="question-text-inline"
+                        />
+                    ) : (
+                        <MathContent content={questionText} className="question-text-inline" />
+                    )}
                 </div>
                 <div className="status-badge">
                     {getStatusIcon()}

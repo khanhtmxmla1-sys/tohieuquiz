@@ -9,6 +9,14 @@ vi.mock('better-react-mathjax', () => ({
     MathJaxContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
+vi.mock('../src/components/common/MathSpan', () => ({
+    default: ({ content, as: Tag = 'span', className }: {
+        content: string;
+        as?: React.ElementType;
+        className?: string;
+    }) => <Tag className={className} data-math-span={content}>{content}</Tag>,
+}));
+
 describe('QuestionRichTextRenderer', () => {
     it('renders alignment, marks, hard breaks and lists from the allowlisted JSON', () => {
         const value = plainTextToRichText('unused');
@@ -36,6 +44,94 @@ describe('QuestionRichTextRenderer', () => {
         expect(container.querySelector('u')).toHaveTextContent('Tính $\\frac{1}{2}$');
         expect(container.querySelector('br')).not.toBeNull();
         expect(container.querySelector('ul li')).toHaveTextContent('Ý thứ nhất');
+    });
+
+    it('emits one complete math span when a delimited formula crosses marked text nodes', () => {
+        const delimiter = String.fromCharCode(36);
+        const formula = delimiter + 'x^2' + delimiter;
+        const value = plainTextToRichText('unused');
+        value.doc.content = [{
+            type: 'paragraph',
+            content: [
+                { type: 'text', text: 'Tính ' + delimiter },
+                { type: 'text', text: 'x', marks: [{ type: 'bold' }] },
+                { type: 'text', text: '^2' + delimiter + ' rồi trả lời.' },
+            ],
+        }];
+
+        const { container } = render(<QuestionRichTextRenderer value={value} fallback="fallback" />);
+        const rendered = Array.from(container.querySelectorAll('[data-math-span]'))
+            .map((node) => node.getAttribute('data-math-span'));
+
+        expect(rendered).toContain(formula);
+        expect(rendered).not.toContain(delimiter);
+        expect(rendered).not.toContain('x');
+        expect(rendered).not.toContain('^2' + delimiter);
+        const renderedFormula = Array.from(container.querySelectorAll('[data-math-span]'))
+            .find((node) => node.getAttribute('data-math-span') === formula);
+        expect(renderedFormula?.closest('strong')).toBeNull();
+    });
+
+    it('keeps one continuous mark wrapper when the whole formula range shares that mark', () => {
+        const delimiter = String.fromCharCode(36);
+        const formula = delimiter + 'x^2' + delimiter;
+        const value = plainTextToRichText('unused');
+        value.doc.content = [{
+            type: 'paragraph',
+            content: [
+                { type: 'text', text: 'Tính ' + delimiter, marks: [{ type: 'bold' }] },
+                { type: 'text', text: 'x', marks: [{ type: 'bold' }] },
+                { type: 'text', text: '^2' + delimiter, marks: [{ type: 'bold' }] },
+            ],
+        }];
+
+        const { container } = render(<QuestionRichTextRenderer value={value} fallback="fallback" />);
+        expect(container.querySelectorAll('strong')).toHaveLength(1);
+        const renderedFormula = Array.from(container.querySelectorAll('[data-math-span]'))
+            .find((node) => node.getAttribute('data-math-span') === formula);
+        expect(renderedFormula?.closest('strong')).toBe(container.querySelector('strong'));
+    });
+
+    it('reassembles a complete raw TeX command across rich text-node boundaries', () => {
+        const slash = String.fromCharCode(92);
+        const formula = slash + 'frac{1}{2}';
+        const value = plainTextToRichText('unused');
+        value.doc.content = [{
+            type: 'paragraph',
+            content: [
+                { type: 'text', text: 'Tính ' + slash + 'fr' },
+                { type: 'text', text: 'ac{1}', marks: [{ type: 'italic' }] },
+                { type: 'text', text: '{2} rồi trả lời.' },
+            ],
+        }];
+
+        const { container } = render(<QuestionRichTextRenderer value={value} fallback="fallback" />);
+        const rendered = Array.from(container.querySelectorAll('[data-math-span]'))
+            .map((node) => node.getAttribute('data-math-span'));
+
+        expect(rendered).toContain(formula);
+        expect(rendered).not.toContain(slash + 'fr');
+        expect(rendered).not.toContain('ac{1}');
+    });
+
+    it('keeps a hard break as a structural boundary instead of joining math through it', () => {
+        const delimiter = String.fromCharCode(36);
+        const formula = delimiter + 'x^2' + delimiter;
+        const value = plainTextToRichText('unused');
+        value.doc.content = [{
+            type: 'paragraph',
+            content: [
+                { type: 'text', text: delimiter + 'x' },
+                { type: 'hardBreak' },
+                { type: 'text', text: '^2' + delimiter },
+            ],
+        }];
+
+        const { container } = render(<QuestionRichTextRenderer value={value} fallback="fallback" />);
+        expect(container.querySelector('br')).not.toBeNull();
+        const rendered = Array.from(container.querySelectorAll('[data-math-span]'))
+            .map((node) => node.getAttribute('data-math-span'));
+        expect(rendered).not.toContain(formula);
     });
 
     it('falls back to the plain math path when the rich document is invalid', () => {

@@ -1,5 +1,6 @@
 import type { QuestionSkillMetadataFields } from '../shared/skillTaxonomy';
 import type { AiQuestionQualityPersistedSummary } from '../../shared/ai-question-quality.contract';
+import type { QuestionRichTextEnvelopeV1 } from '../../shared/question-rich-text.contract';
 import type { QuestionAnswerReview } from '../domain/quiz-scoring';
 
 /**
@@ -10,6 +11,8 @@ import type { QuestionAnswerReview } from '../domain/quiz-scoring';
 
 export interface QuestionMetadata extends QuestionSkillMetadataFields {
     tags?: string[] | string;
+    /** Versioned presentation overlay for the main question prompt. */
+    questionRichText?: QuestionRichTextEnvelopeV1;
     /** Version of the server-owned math normalization applied to this question. */
     mathFormatVersion?: number;
     /** Điểm dành cho câu hỏi trong đề do giáo viên soạn. */
@@ -270,6 +273,7 @@ export interface GeometryQuestion {
  */
 export interface QuestionSnapshot {
     question: string;           // Nội dung câu hỏi
+    questionRichText?: QuestionRichTextEnvelopeV1;
     type: QuestionType;         // Loại câu hỏi
     options?: string[];         // Các đáp án (nếu MCQ/IMAGE_QUESTION)
     correctAnswer?: string | string[];  // Đáp án đúng

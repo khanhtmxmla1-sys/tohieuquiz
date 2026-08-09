@@ -166,6 +166,60 @@ describe('unified quiz editor access contract', () => {
     expect(payload.currentRevision).toBe(4);
   });
 
+  it('rejects deleting a quiz that already has submissions', async () => {
+    const db = new Database();
+    db.resultCount = 1;
+
+    const response = await handleQuizRoutes(
+      request('/api/quizzes/quiz-a', 'DELETE'), env(db), '/api/quizzes/quiz-a', 'DELETE',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(409);
+    expect(payload.code).toBe('QUIZ_HAS_SUBMISSIONS');
+    expect(db.executed.some(statement => statement.sql.startsWith('DELETE FROM'))).toBe(false);
+  });
+
+  it('rejects deleting a quiz while a live exam is active', async () => {
+    const db = new Database();
+    db.activeLiveExamCount = 1;
+
+    const response = await handleQuizRoutes(
+      request('/api/quizzes/quiz-a', 'DELETE'), env(db), '/api/quizzes/quiz-a', 'DELETE',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(409);
+    expect(payload.code).toBe('QUIZ_LIVE_EXAM_ACTIVE');
+    expect(db.executed.some(statement => statement.sql.startsWith('DELETE FROM'))).toBe(false);
+  });
+
+  it('rejects deleting a quiz while it has an open assignment', async () => {
+    const db = new Database();
+    db.openAssignmentCount = 1;
+
+    const response = await handleQuizRoutes(
+      request('/api/quizzes/quiz-a', 'DELETE'), env(db), '/api/quizzes/quiz-a', 'DELETE',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(409);
+    expect(payload.code).toBe('QUIZ_HAS_OPEN_ASSIGNMENTS');
+    expect(db.executed.some(statement => statement.sql.startsWith('DELETE FROM'))).toBe(false);
+  });
+
+  it('keeps the existing delete behavior for an unused quiz', async () => {
+    const db = new Database();
+
+    const response = await handleQuizRoutes(
+      request('/api/quizzes/quiz-a', 'DELETE'), env(db), '/api/quizzes/quiz-a', 'DELETE',
+    );
+
+    expect(response.status).toBe(200);
+    const deletes = db.executed.filter(statement => statement.sql.startsWith('DELETE FROM'));
+    expect(deletes).toHaveLength(2);
+  });
+
   it('creates an editable version without copying attempts or assignments', async () => {
     const db = new Database();
     db.resultCount = 4;

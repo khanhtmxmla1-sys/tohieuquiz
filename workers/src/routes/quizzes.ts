@@ -905,6 +905,29 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             return errorResponse('Forbidden: You do not have permission to delete this quiz', 403);
         }
 
+        const usage = await loadQuizUsage(db, quizId);
+        if (usage.activeLiveExamCount > 0) {
+            return quizConflictResponse(
+                'QUIZ_LIVE_EXAM_ACTIVE',
+                'Đề đang được sử dụng trong một ca thi trực tiếp và không thể xóa.',
+                { activeLiveExamCount: usage.activeLiveExamCount },
+            );
+        }
+        if (usage.resultCount > 0) {
+            return quizConflictResponse(
+                'QUIZ_HAS_SUBMISSIONS',
+                'Đề đã có bài nộp và không thể xóa vì cần giữ dữ liệu xem lại kết quả.',
+                { resultCount: usage.resultCount },
+            );
+        }
+        if (usage.openAssignmentCount > 0) {
+            return quizConflictResponse(
+                'QUIZ_HAS_OPEN_ASSIGNMENTS',
+                'Đề đang được giao cho học sinh và không thể xóa khi bài giao còn mở.',
+                { openAssignmentCount: usage.openAssignmentCount },
+            );
+        }
+
         await db.prepare('DELETE FROM questions WHERE quiz_id = ?').bind(quizId).run();
         await db.prepare('DELETE FROM quizzes WHERE id = ?').bind(quizId).run();
         return jsonResponse({ status: 'success' });

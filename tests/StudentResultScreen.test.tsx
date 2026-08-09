@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { QuestionType, type Quiz, type StudentResult } from '../src/types';
 import ResultScreen from '../src/components/student/ResultScreen';
+import { plainTextToRichText } from '../shared/question-rich-text.contract';
 
 vi.mock('../src/services/weaknessProfileService', () => ({
   fetchWeaknessProfile: vi.fn().mockResolvedValue({ subjects: [], coveragePercent: 100, unclassifiedQuestionCount: 0 }),
@@ -67,6 +68,53 @@ describe('student result screen', () => {
     expect(screen.getByText('Câu một')).toBeInTheDocument();
     expect(screen.getByText('Câu hai')).toBeInTheDocument();
     expect(screen.getByText('Câu ba')).toBeInTheDocument();
+  });
+
+  it('renders rich prompt in review while keeping server review details authoritative', () => {
+    const questionRichText = plainTextToRichText('Rich historical prompt');
+    questionRichText.doc.content[0].content = [{
+      type: 'text', text: 'Rich historical prompt', marks: [{ type: 'bold' }],
+    }];
+    const richQuiz: Quiz = {
+      ...quiz,
+      questions: [{
+        id: 'rich-review', type: QuestionType.MCQ, question: 'Plain fallback prompt',
+        questionRichText, options: ['A', 'B'], correctAnswer: 'A',
+      }],
+    };
+    const richResult: StudentResult = {
+      ...result,
+      quizId: richQuiz.id,
+      score: 0,
+      correctCount: 0,
+      totalQuestions: 1,
+      answers: {
+        'rich-review': {
+          selectedAnswer: 'B', isCorrect: false, questionSnapshot: richQuiz.questions[0],
+        },
+      },
+      reviewDetails: [{
+        questionId: 'rich-review', type: 'MCQ', status: 'wrong', isCorrect: false,
+        studentAnswer: { kind: 'text', lines: [{ value: 'SERVER-STUDENT' }] },
+        correctAnswer: { kind: 'text', lines: [{ value: 'SERVER-CORRECT' }] },
+      }],
+    } as any;
+
+    render(
+      <ResultScreen
+        quiz={richQuiz}
+        result={richResult}
+        answers={{ 'rich-review': 'B' }}
+        initialTab="review"
+        onExit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('question-rich-text-renderer')).toBeInTheDocument();
+    expect(screen.getByText('Rich historical prompt').closest('strong')).not.toBeNull();
+    expect(screen.queryByText('Plain fallback prompt')).not.toBeInTheDocument();
+    expect(screen.getByText('SERVER-STUDENT')).toBeInTheDocument();
+    expect(screen.getByText('SERVER-CORRECT')).toBeInTheDocument();
   });
 
   it('presents a compact factual result summary and three useful areas', () => {

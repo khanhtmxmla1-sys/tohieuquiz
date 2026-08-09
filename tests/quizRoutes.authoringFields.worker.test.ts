@@ -105,6 +105,109 @@ describe('quiz authoring points and explanations', () => {
         ]);
     });
 
+    it('persists the rich-derived prompt instead of a stale plain echo', () => {
+        const rich = plainTextToRichText('Nội dung từ rich');
+        const mapped = mapQuestionForSave({
+            id: 'q-drift', type: 'MCQ', question: 'Nội dung stale', questionRichText: rich,
+            options: ['A', 'B'], correctAnswer: 'A',
+        } as any, 'quiz-a');
+
+        expect(mapped[3]).toBe('Nội dung từ rich');
+        expect(JSON.parse(mapped[4])).toEqual(rich);
+    });
+
+    it('uses rich content as the TRUE_FALSE main prompt authority', () => {
+        const rich = plainTextToRichText('Đọc dữ kiện rich');
+        const mapped = mapQuestionForSave({
+            id: 'tf-rich', type: 'TRUE_FALSE', mainQuestion: 'Stale main', question: 'Stale question',
+            questionRichText: rich,
+            items: [{ id: 'tf-1', statement: 'Mệnh đề', isCorrect: true }],
+        } as any, 'quiz-a');
+
+        expect(mapped[3]).toBe('Đọc dữ kiện rich');
+    });
+
+    it('validates one flattened rich formula even when marks split its text nodes', () => {
+        const rich = {
+            schemaVersion: 1 as const,
+            doc: {
+                type: 'doc' as const,
+                content: [{
+                    type: 'paragraph' as const,
+                    content: [
+                        { type: 'text' as const, text: 'Tính $' },
+                        { type: 'text' as const, text: 'x', marks: [{ type: 'bold' as const }] },
+                        { type: 'text' as const, text: '^2$' },
+                    ],
+                }],
+            },
+        };
+
+        const mapped = mapQuestionForSave({
+            id: 'q-split-rich', type: 'MCQ', question: 'Tính x bình phương', questionRichText: rich,
+            options: ['A', 'B'], correctAnswer: 'A',
+        } as any, 'quiz-a');
+
+        expect(mapped[3]).toContain('x^2');
+        expect(JSON.parse(mapped[4])).toEqual(rich);
+    });
+
+    it('rejects malformed math from the flattened rich prompt instead of trusting a benign plain echo', () => {
+        const rich = plainTextToRichText('Tính $x^2');
+        expect(() => mapQuestionForSave({
+            id: 'q-math-rich', type: 'MCQ', question: '2 + 2 = ?', questionRichText: rich,
+            options: ['4', '5'], correctAnswer: 'A',
+        } as any, 'quiz-a')).toThrow();
+    });
+
+    it('emits one metadata-only event when submitted plain text disagrees with rich content', () => {
+        const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+        const rich = plainTextToRichText('Nội dung rich');
+
+        mapQuestionForSave({
+            id: 'q-drift-log', type: 'MCQ', question: 'Nội dung khác', questionRichText: rich,
+            options: ['A', 'B'], correctAnswer: 'A',
+        } as any, 'quiz-a');
+
+        const driftEvents = info.mock.calls
+            .map(([message]) => {
+                try { return JSON.parse(String(message)); } catch { return null; }
+            })
+            .filter((event) => event?.event === 'question_rich_text_plain_mismatch');
+        expect(driftEvents).toEqual([{ event: 'question_rich_text_plain_mismatch', questionType: 'MCQ' }]);
+        expect(JSON.stringify(driftEvents)).not.toContain('Nội dung');
+        info.mockRestore();
+    });
+
+    it('does not emit drift for matching, omitted, or math-normalization-equivalent plain echoes', () => {
+        const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+        const matching = plainTextToRichText('Nội dung A');
+        mapQuestionForSave({
+            id: 'q-match', type: 'MCQ', question: 'Nội dung A', questionRichText: matching,
+            options: ['A', 'B'], correctAnswer: 'A',
+        } as any, 'quiz-a');
+
+        mapQuestionForSave({
+            id: 'q-omitted', type: 'MCQ', questionRichText: matching,
+            options: ['A', 'B'], correctAnswer: 'A',
+        } as any, 'quiz-a');
+
+        const fraction = String.raw`\frac{1}{2}`;
+        const mathRich = plainTextToRichText(`Tính ${fraction}`);
+        mapQuestionForSave({
+            id: 'q-math-equivalent', type: 'MCQ', question: `Tính $${fraction}$`, questionRichText: mathRich,
+            options: ['A', 'B'], correctAnswer: 'A',
+        } as any, 'quiz-a');
+
+        const driftEvents = info.mock.calls
+            .map(([message]) => {
+                try { return JSON.parse(String(message)); } catch { return null; }
+            })
+            .filter((event) => event?.event === 'question_rich_text_plain_mismatch');
+        expect(driftEvents).toEqual([]);
+        info.mockRestore();
+    });
+
     it('persists authoring fields on quiz creation', async () => {
         const db = new Database();
         const response = await handleQuizRoutes(request('/api/quizzes', 'POST', {

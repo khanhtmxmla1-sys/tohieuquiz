@@ -185,6 +185,54 @@ export const splitMathSegments = (input: string): MathTextSegment[] => {
   return segments;
 };
 
+const splitRawTexCommands = (segment: MathTextSegment): MathTextSegment[] => {
+  const value = segment.raw;
+  const segments: MathTextSegment[] = [];
+  let cursor = 0;
+  let i = 0;
+
+  const pushText = (end: number) => {
+    if (end <= cursor) return;
+    const raw = value.slice(cursor, end);
+    segments.push({
+      type: 'text',
+      raw,
+      inner: raw,
+      start: segment.start + cursor,
+      end: segment.start + end,
+    });
+  };
+
+  while (i < value.length) {
+    if (value[i] === '\\') {
+      const commandEnd = readRawCommandEnd(value, i);
+      if (commandEnd !== null) {
+        pushText(i);
+        const raw = value.slice(i, commandEnd);
+        segments.push({
+          type: 'math',
+          raw,
+          inner: raw,
+          start: segment.start + i,
+          end: segment.start + commandEnd,
+          display: false,
+        });
+        cursor = commandEnd;
+        i = commandEnd;
+        continue;
+      }
+    }
+    i++;
+  }
+
+  pushText(value.length);
+  return segments;
+};
+
+export const splitRenderableMathSegments = (input: string): MathTextSegment[] =>
+  splitMathSegments(input).flatMap((segment) =>
+    segment.type === 'math' ? [segment] : splitRawTexCommands(segment));
+
 const normalizeEscapedCommands = (input: string): string => {
   const commandPattern = new RegExp(String.raw`\\\\(?=(?:${KNOWN_COMMANDS})\b)`, 'g');
   let result = input;

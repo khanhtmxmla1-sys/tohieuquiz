@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { plainTextToRichText } from '../shared/question-rich-text.contract';
 import {
   buildAssignmentReviewQuiz,
   buildAssignedQuizzes,
@@ -51,6 +52,31 @@ describe('student dashboard assignment model', () => {
     expect(reviewQuiz.questions.map((question) => question.id)).toEqual(['q2', 'q1']);
     expect((reviewQuiz.questions[0] as any).question).toBe('Submitted question 2');
     expect(buildSelectedAssignmentAnswers(answers)).toEqual({ q1: 'A', q2: 'B' });
+  });
+
+  it('keeps assignment review snapshot-first for rich and legacy historical questions', () => {
+    const currentRich = plainTextToRichText('Rich hiện tại');
+    const historicalRich = plainTextToRichText('Rich lúc nộp');
+    const quiz = {
+      id: 'quiz-history', title: 'Quiz',
+      questions: [
+        { id: 'rich', question: 'Current rich', questionRichText: currentRich },
+        { id: 'legacy', question: 'Current legacy', questionRichText: currentRich },
+        { id: 'current-only', question: 'Current only', questionRichText: currentRich },
+      ],
+    } as any;
+    const answers = {
+      rich: { selectedAnswer: 'A', questionSnapshot: { id: 'rich', question: 'Historical rich', questionRichText: historicalRich } },
+      legacy: { selectedAnswer: 'B', questionSnapshot: { id: 'legacy', question: 'Historical plain' } },
+      'current-only': { selectedAnswer: 'C' },
+    } as any;
+
+    const reviewQuiz = buildAssignmentReviewQuiz(quiz, answers);
+    const byId = new Map(reviewQuiz.questions.map((question: any) => [question.id, question]));
+    expect((byId.get('rich') as any).questionRichText).toEqual(historicalRich);
+    expect((byId.get('legacy') as any).questionRichText).toBeUndefined();
+    expect((byId.get('legacy') as any).question).toBe('Historical plain');
+    expect((byId.get('current-only') as any).questionRichText).toEqual(currentRich);
   });
 });
 

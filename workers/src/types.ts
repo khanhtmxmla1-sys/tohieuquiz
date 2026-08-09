@@ -1,3 +1,5 @@
+import type { QuestionRichTextEnvelopeV1 } from '../../shared/question-rich-text.contract';
+
 export interface AiGatewayBinding {
     fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
 }
@@ -57,6 +59,8 @@ export interface Question {
     quiz_id: string;
     type: string;
     question: string;
+    question_rich_text?: string;
+    questionRichText?: QuestionRichTextEnvelopeV1;
     options?: string;
     correct_answer: string;
     items?: string;
