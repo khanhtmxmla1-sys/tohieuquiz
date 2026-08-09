@@ -25,6 +25,7 @@ export default tseslint.config(
       '**/.wrangler/**',
       '**/.vercel/**',
       '**/artifacts/**',
+      '**/downloads/**',
       '**/cypress/screenshots/**',
       '**/cypress/videos/**',
       '**/public/**',
