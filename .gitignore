@@ -99,3 +99,9 @@ coverage/
 
 # Local MCP configuration and credentials
 /mcp.json
+
+# Local downloaded media (not application assets)
+/downloads/
+
+# Generated performance analysis output
+/reports/bundle-report.json
