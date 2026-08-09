@@ -71,6 +71,7 @@ const renderOverview = (
         summaryLoadState="success"
         summaryError={null}
         onSelectTab={vi.fn()}
+        onOpenQuiz={vi.fn()}
         manualQuizWorkspaceEnabled
         onCreateQuizWithAi={vi.fn()}
         onCreateQuizManually={vi.fn()}
@@ -160,7 +161,7 @@ describe('TeacherDashboard OverviewTab', () => {
         renderOverview();
 
         const breadcrumb = screen.getByRole('navigation', { name: 'Đường dẫn trang' });
-        expect(within(breadcrumb).getByText('Trang chủ')).toBeInTheDocument();
+        expect(within(breadcrumb).getByRole('link', { name: 'Trang chủ' })).toHaveAttribute('href', '/');
         expect(within(breadcrumb).getByText('Dashboard giáo viên')).toBeInTheDocument();
 
         const topComposition = screen.getByTestId('teacher-dashboard-top-composition');
@@ -192,7 +193,9 @@ describe('TeacherDashboard OverviewTab', () => {
         const quickSection = quickHeading.closest('section');
         expect(within(quickSection as HTMLElement).getAllByRole('button')).toHaveLength(6);
         expect(within(quickSection as HTMLElement).queryByRole('button', { name: /Tạo đề/i })).not.toBeInTheDocument();
-        expect(within(quickSection as HTMLElement).getByTestId('quick-actions-grid').className).toContain('lg:grid-cols-6');
+        const quickGrid = within(quickSection as HTMLElement).getByTestId('quick-actions-grid');
+        expect(quickGrid.className).toContain('xl:grid-cols-6');
+        expect(quickGrid.className).not.toContain('lg:grid-cols-6');
     });
 
     it('uses administrator-specific overview copy for school-wide accounts', () => {
@@ -253,13 +256,19 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(onCreateQuizWithAi).toHaveBeenCalledTimes(1);
     });
 
-    it('shows recent quizzes and opens the quiz management tab', () => {
+    it('opens the selected recent quiz and keeps the all-quizzes management action', () => {
         const onSelectTab = vi.fn();
-        renderOverview({ onSelectTab });
+        const onOpenQuiz = vi.fn();
+        renderOverview({ onSelectTab, onOpenQuiz });
 
-        expect(screen.getAllByText('Đề lớp 3A').length).toBeGreaterThan(0);
         const recentSection = screen.getByRole('heading', { name: 'Đề kiểm tra gần đây' }).closest('section');
-        fireEvent.click(within(recentSection as HTMLElement).getAllByRole('button', { name: /^Quản lý/i })[0]);
+        const quizArticle = screen.getByText('Đề lớp 3A').closest('article');
+        expect(quizArticle).toBeTruthy();
+
+        fireEvent.click(within(quizArticle as HTMLElement).getByRole('button', { name: 'Mở đề' }));
+        expect(onOpenQuiz).toHaveBeenCalledWith('quiz-3a');
+
+        fireEvent.click(within(recentSection as HTMLElement).getByRole('button', { name: 'Xem tất cả' }));
         expect(onSelectTab).toHaveBeenCalledWith('manage');
     });
 

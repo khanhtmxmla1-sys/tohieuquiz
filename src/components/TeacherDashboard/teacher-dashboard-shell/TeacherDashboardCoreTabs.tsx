@@ -44,6 +44,7 @@ export const TeacherDashboardCoreTabs = (props: TeacherDashboardCoreTabsProps) =
           summaryLoadState={props.summaryLoadState}
           summaryError={props.summaryLoadError}
           onSelectTab={props.selectTab}
+          onOpenQuiz={(quizId) => navigate(getQuizEditorRoute(quizId))}
           manualQuizWorkspaceEnabled={props.manualQuizWorkspaceEnabled}
           onCreateQuizWithAi={props.onCreateQuizWithAi}
           onCreateQuizManually={props.onCreateQuizManually}

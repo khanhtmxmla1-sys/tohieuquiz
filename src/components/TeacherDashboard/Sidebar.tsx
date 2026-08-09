@@ -169,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         type="button"
         onClick={() => navigateTo(item.id)}
         aria-current={isActive ? 'page' : undefined}
-        className={`flex min-h-10 w-full items-center gap-3 rounded-xl border-l-[3px] px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+        className={`flex min-h-11 w-full items-center gap-3 rounded-xl border-l-[3px] px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
           isActive
             ? 'border-blue-600 bg-blue-50 font-semibold text-blue-700'
             : 'border-transparent font-medium text-slate-600 hover:bg-white hover:text-slate-900'
@@ -193,7 +193,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => toggleGroup(groupKey)}
           aria-expanded={isOpen}
           aria-controls={panelId}
-          className="flex h-10 w-full items-center justify-between rounded-xl px-3 text-left transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          className="flex h-11 w-full items-center justify-between rounded-xl px-3 text-left transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
         >
           <span className="text-xs font-semibold text-slate-500">{title}</span>
           <ChevronRight

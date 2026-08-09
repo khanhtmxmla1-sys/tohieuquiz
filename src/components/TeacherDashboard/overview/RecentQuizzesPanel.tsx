@@ -6,11 +6,12 @@ import type { Quiz } from '../../../types';
 interface RecentQuizzesPanelProps {
   quizzes: Quiz[];
   onManageQuizzes: () => void;
+  onOpenQuiz: (quizId: string) => void;
 }
 
 const formatQuizDate = (value: string): string => formatSystemDate(value, 'Chưa cập nhật');
 
-const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({ quizzes, onManageQuizzes }) => (
+const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({ quizzes, onManageQuizzes, onOpenQuiz }) => (
   <section
     aria-labelledby="recent-quizzes-heading"
     className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[var(--dashboard-card-shadow)]"
@@ -25,7 +26,7 @@ const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({ quizzes, onMana
       <button
         type="button"
         onClick={onManageQuizzes}
-        className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
       >
         Xem tất cả
         <ArrowRight aria-hidden="true" className="size-4" />
@@ -56,10 +57,10 @@ const RecentQuizzesPanel: React.FC<RecentQuizzesPanelProps> = ({ quizzes, onMana
             </div>
             <button
               type="button"
-              onClick={onManageQuizzes}
+              onClick={() => onOpenQuiz(quiz.id)}
               className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 self-end rounded-lg px-2.5 text-xs font-semibold text-blue-700 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:self-auto"
             >
-              Quản lý
+              Mở đề
               <ArrowRight aria-hidden="true" className="size-3.5" />
             </button>
           </article>

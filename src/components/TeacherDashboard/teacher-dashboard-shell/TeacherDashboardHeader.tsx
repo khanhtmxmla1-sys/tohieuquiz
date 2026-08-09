@@ -73,7 +73,7 @@ export const TeacherDashboardHeader = (props: TeacherDashboardHeaderProps) => {
             type="button"
             aria-label="Mở menu điều hướng"
             onClick={props.onOpenMenu}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:hidden"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 lg:hidden"
           >
             <Menu aria-hidden="true" className="size-5" />
           </button>
@@ -107,7 +107,7 @@ export const TeacherDashboardHeader = (props: TeacherDashboardHeaderProps) => {
               aria-label="Quản lý thông báo"
               title="Quản lý thông báo"
               onClick={() => props.setActiveTab('announcements')}
-              className={`hidden size-10 items-center justify-center rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:inline-flex ${
+              className={`hidden size-11 items-center justify-center rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 sm:inline-flex ${
                 props.activeTab === 'announcements'
                   ? 'border-blue-200 bg-blue-50 text-blue-700'
                   : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-700'
