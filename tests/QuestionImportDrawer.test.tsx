@@ -170,6 +170,29 @@ describe('QuestionImportDrawer', () => {
         expect(screen.getByLabelText('Đáp án đúng Câu JSON 2')).toHaveValue('my book → mine; her doll → hers');
         expect(screen.queryByText(/Thiếu đáp án đúng/)).not.toBeInTheDocument();
     });
+    it('keeps field-leaking DROPDOWN JSON out of the ready-to-import count', async () => {
+        render(<QuestionImportDrawer open onClose={vi.fn()} />);
+        fireEvent.click(screen.getByRole('tab', { name: 'Dán JSON' }));
+        fireEvent.change(screen.getByLabelText('Dữ liệu JSON'), {
+            target: {
+                value: JSON.stringify([{
+                    question_type: 'DROPDOWN',
+                    question: 'Chọn từ thích hợp.\nCông cha {{select1}} núi Thái Sơn.',
+                    content: 'Công cha {{select1}} núi Thái Sơn.',
+                    dropdowns: [
+                        { id: 'select1', options: ['như', 'tựa'], correct_answer: 'như' },
+                    ],
+                }]),
+            },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra JSON' }));
+
+        expect(await screen.findByText('0 sẵn sàng')).toBeInTheDocument();
+        expect(screen.getByText('1 cần rà soát')).toBeInTheDocument();
+        expect(screen.getByText(/^Câu DROPDOWN đang đưa \{\{select\.\.\.\}\} vào question/)).toBeInTheDocument();
+        expect(useManualQuizWorkspaceStore.getState().envelope!.quiz.questions).toHaveLength(0);
+    });
+
     it('shows a readable alert for invalid pasted JSON and does not change the quiz', () => {
         render(<QuestionImportDrawer open onClose={vi.fn()} />);
 
