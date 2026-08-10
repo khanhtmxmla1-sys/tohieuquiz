@@ -8,7 +8,10 @@ import { fetchResultAnswerReview } from '../src/services/results/resultAnswersSe
 
 vi.mock('../src/components/teacher/ResultsView', () => ({
     StudentDetailModal: ({ result }: any) => (
-        <div data-testid="resolved-review-count">{result.reviewDetails?.length ?? 0}</div>
+        <>
+            <div data-testid="resolved-review-count">{result.reviewDetails?.length ?? 0}</div>
+            <div data-testid="resolved-selected-answer">{result.answers?.q1?.selectedAnswer ?? ''}</div>
+        </>
     ),
 }));
 
@@ -39,7 +42,7 @@ describe('TeacherResultDetailPage review hydration', () => {
 
     it('hydrates reviewDetails even when answers are already present', async () => {
         fetchReviewMock.mockResolvedValue({
-            answers: { q1: { selectedAnswer: 'A', isCorrect: true } },
+            answers: {},
             reviewDetails: [{
                 questionId: 'q1',
                 type: 'MCQ',
@@ -60,5 +63,6 @@ describe('TeacherResultDetailPage review hydration', () => {
 
         await waitFor(() => expect(fetchReviewMock).toHaveBeenCalledWith('result-1'));
         expect(await screen.findByTestId('resolved-review-count')).toHaveTextContent('1');
+        expect(screen.getByTestId('resolved-selected-answer')).toHaveTextContent('A');
     });
 });
