@@ -29,6 +29,7 @@ export const QuestionDetailPanel: React.FC<QuestionDetailPanelProps> = (props) =
                     question={props.selectedQuestion}
                     studentAnswer={props.selectedQuestion.selectedAnswer}
                     status={props.selectedQuestion.isCorrect === true ? 'correct' : props.selectedQuestion.isCorrect === false ? 'wrong' : 'skipped'}
+                    reviewDetail={props.selectedQuestion.reviewDetail}
                     showExplanation={false}
                 />
                 <div className="mt-5 flex flex-col gap-3 rounded-3xl border border-white bg-white/80 p-3 shadow-lg shadow-slate-200/60 backdrop-blur sm:flex-row sm:items-center sm:justify-between">

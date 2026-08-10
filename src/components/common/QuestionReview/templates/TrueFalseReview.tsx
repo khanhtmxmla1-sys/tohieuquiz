@@ -1,148 +1,214 @@
 import React, { memo } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
+import type { AnswerReviewValue, QuestionAnswerReview } from '../../../../domain/quiz-scoring';
 import MathContent from '../MathContent';
+import { normalizeBooleanValue } from '../reviewNormalization';
 
 interface TrueFalseReviewProps {
     question: any;
-    studentAnswer: any; // Record<string, boolean> e.g. {"item-0": true, "item-1": false}
+    studentAnswer: any;
     status: 'correct' | 'wrong' | 'skipped';
+    reviewDetail?: QuestionAnswerReview;
 }
 
-/**
- * TrueFalseReview: Render TRUE_FALSE answers as a clean list instead of raw JSON
- * studentAnswer format: { "item-0": true, "item-1": false } or string "true"/"false"
- */
-const TrueFalseReview: React.FC<TrueFalseReviewProps> = memo(({ question, studentAnswer, status }) => {
-    const items = question.items || [];
-    const correctAnswer = question.correctAnswer;
-    const buildCorrectAnswers = (): Record<string, boolean> => {
-        const normalized: Record<string, boolean> = {};
+const normalizeReviewBoolean = (value: unknown): boolean | undefined => {
+    const direct = normalizeBooleanValue(value);
+    if (direct !== undefined) return direct;
+    if (typeof value !== 'string') return undefined;
+    const normalized = value.trim().toLocaleLowerCase('vi');
+    if (normalized === 'đúng') return true;
+    if (normalized === 'sai') return false;
+    return undefined;
+};
 
-        if (Array.isArray(items) && items.length > 0) {
-            items.forEach((item: any, idx: number) => {
-                if (item && typeof item === 'object' && 'isCorrect' in item) {
-                    normalized[item.id || `item-${idx}`] = Boolean(item.isCorrect);
-                }
-            });
-            if (Object.keys(normalized).length > 0) {
-                return normalized;
-            }
-        }
+const itemText = (item: any, index: number): string => (
+    typeof item === 'string'
+        ? item
+        : String(item?.text || item?.statement || `Phát biểu ${index + 1}`)
+);
 
-        if (typeof correctAnswer === 'object' && correctAnswer !== null && !Array.isArray(correctAnswer)) {
-            Object.entries(correctAnswer).forEach(([key, value]) => {
-                normalized[key] = Boolean(value);
-            });
-            return normalized;
-        }
+const reviewMapForItems = (items: any[], value?: AnswerReviewValue): Record<string, boolean> | null => {
+    if (!value || value.kind === 'unsupported' || value.lines.length === 0 || items.length === 0) return null;
+    const lines = value.lines;
+    const byLabel = new Map(lines
+        .filter((line) => line.label)
+        .map((line) => [String(line.label).trim(), normalizeReviewBoolean(line.value)] as const));
+    const canUseIndex = lines.length === items.length && lines.every((line, index) => (
+        !line.label || String(line.label).trim() === itemText(items[index], index).trim()
+    ));
+    const mapped: Record<string, boolean> = {};
 
-        if (typeof correctAnswer === 'string') {
-            try {
-                const parsed = JSON.parse(correctAnswer);
-                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-                    Object.entries(parsed).forEach(([key, value]) => {
-                        normalized[key] = Boolean(value);
-                    });
-                    return normalized;
-                }
-            } catch {
-                // Keep simple single-value fallback below.
-            }
-        }
+    items.forEach((item, index) => {
+        const key = item?.id || `item-${index}`;
+        const label = itemText(item, index).trim();
+        const valueFromLabel = byLabel.get(label);
+        const parsed = valueFromLabel !== undefined
+            ? valueFromLabel
+            : canUseIndex
+                ? normalizeReviewBoolean(lines[index]?.value)
+                : undefined;
+        if (parsed !== undefined) mapped[key] = parsed;
+    });
 
-        return normalized;
+    return Object.keys(mapped).length === items.length ? mapped : null;
+};
+
+const buildLocalCorrectAnswers = (items: any[], correctAnswer: unknown): Record<string, boolean> => {
+    const normalized: Record<string, boolean> = {};
+
+    items.forEach((item: any, index: number) => {
+        if (!item || typeof item !== 'object' || !('isCorrect' in item)) return;
+        const value = normalizeBooleanValue(item.isCorrect);
+        if (value !== undefined) normalized[item.id || `item-${index}`] = value;
+    });
+    if (Object.keys(normalized).length > 0) return normalized;
+
+    const addObjectValues = (value: unknown) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+        Object.entries(value).forEach(([key, raw]) => {
+            const parsed = normalizeBooleanValue(raw);
+            if (parsed !== undefined) normalized[key] = parsed;
+        });
+        return Object.keys(normalized).length > 0;
     };
 
-    // Handle simple true/false (single statement)
+    if (addObjectValues(correctAnswer)) return normalized;
+    if (typeof correctAnswer === 'string') {
+        try {
+            addObjectValues(JSON.parse(correctAnswer));
+        } catch {
+            // Simple-value handling is performed separately below.
+        }
+    }
+    return normalized;
+};
+
+const ReviewValueLines: React.FC<{ title: string; value: AnswerReviewValue }> = ({ title, value }) => (
+    <div className="rounded-lg border border-slate-200 bg-white p-3">
+        <div className="mb-1 text-xs font-bold text-slate-500">{title}</div>
+        {value.lines.map((line, index) => (
+            <div key={`${line.label || 'value'}-${index}`} className="text-sm text-slate-700">
+                {line.label ? <strong>{line.label}: </strong> : null}
+                {line.value}
+            </div>
+        ))}
+    </div>
+);
+
+const TrueFalseReview: React.FC<TrueFalseReviewProps> = memo(({ question, studentAnswer, reviewDetail }) => {
+    const items = Array.isArray(question.items) ? question.items : [];
+    const correctAnswer = question.correctAnswer;
+    const serverCorrectAnswers = reviewMapForItems(items, reviewDetail?.correctAnswer);
+    const serverStudentAnswers = reviewMapForItems(items, reviewDetail?.studentAnswer);
+    const hasServerReview = Boolean(
+        reviewDetail
+        && reviewDetail.correctAnswer.kind !== 'unsupported'
+        && reviewDetail.correctAnswer.lines.length > 0
+    );
+
+    if (hasServerReview && items.length > 0 && !serverCorrectAnswers) {
+        return (
+            <div className="true-false-review-template grid gap-2 sm:grid-cols-2">
+                <ReviewValueLines title="Câu trả lời của học sinh" value={reviewDetail!.studentAnswer} />
+                <ReviewValueLines title="Đáp án đúng" value={reviewDetail!.correctAnswer} />
+            </div>
+        );
+    }
+
+    const correctAnswers = serverCorrectAnswers || buildLocalCorrectAnswers(items, correctAnswer);
+
     if (typeof studentAnswer === 'string' || typeof studentAnswer === 'boolean') {
-        const studentVal = String(studentAnswer).toLowerCase() === 'true';
-        const normalizedCorrectAnswers = buildCorrectAnswers();
-        const singleDerivedAnswer = Object.keys(normalizedCorrectAnswers).length === 1
-            ? Object.values(normalizedCorrectAnswers)[0]
+        const studentVal = normalizeBooleanValue(studentAnswer);
+        const serverCorrect = reviewDetail?.correctAnswer.lines.length === 1
+            ? normalizeReviewBoolean(reviewDetail.correctAnswer.lines[0]?.value)
             : undefined;
-        const correctVal = singleDerivedAnswer ?? (typeof correctAnswer === 'string'
-            ? correctAnswer.toLowerCase() === 'true'
-            : Boolean(correctAnswer));
+        const singleDerivedAnswer = Object.keys(correctAnswers).length === 1
+            ? Object.values(correctAnswers)[0]
+            : undefined;
+        const correctVal = serverCorrect ?? singleDerivedAnswer ?? normalizeBooleanValue(correctAnswer);
+        const hasComparableValues = studentVal !== undefined && correctVal !== undefined;
+        const isCorrect = hasComparableValues && studentVal === correctVal;
 
         return (
             <div className="true-false-review-template">
                 <div className="tf-simple-row">
                     <span className="tf-label">Câu trả lời:</span>
-                    <span className={`tf-value ${studentVal === correctVal ? 'correct' : 'wrong'}`}>
-                        {studentVal ? '✅ Đúng' : '❌ Sai'}
+                    <span className={`tf-value ${hasComparableValues ? (isCorrect ? 'correct' : 'wrong') : 'neutral'}`}>
+                        {studentVal === true ? 'Đúng' : studentVal === false ? 'Sai' : String(studentAnswer)}
                     </span>
-                    {studentVal !== correctVal && (
+                    {correctVal !== undefined && !isCorrect ? (
                         <span className="tf-correct-hint"> (Đáp án: {correctVal ? 'Đúng' : 'Sai'})</span>
-                    )}
+                    ) : null}
+                    {correctVal === undefined ? (
+                        <span className="ml-2 text-sm text-slate-500">Chưa có dữ liệu đáp án</span>
+                    ) : null}
                 </div>
             </div>
         );
     }
 
-    // Handle multi-item format: { "item-0": true, "item-1": false }
     if (typeof studentAnswer === 'object' && studentAnswer !== null) {
-        // Parse correct answers
-        const correctAnswers = buildCorrectAnswers();
-
         return (
             <div className="true-false-review-template">
                 <div className="tf-items-list">
-                    {items.length > 0 ? (
-                        items.map((item: any, idx: number) => {
-                            const key = item.id || `item-${idx}`;
-                            const itemText = typeof item === 'string' ? item : (item.text || item.statement || `Phát biểu ${idx + 1}`);
-                            const studentVal = studentAnswer[key];
-                            const correctVal = correctAnswers[key];
-                            const isCorrect = studentVal === correctVal;
+                    {items.length > 0 ? items.map((item: any, index: number) => {
+                        const key = item?.id || `item-${index}`;
+                        const studentVal = serverStudentAnswers?.[key] ?? normalizeBooleanValue(studentAnswer[key]);
+                        const correctVal = correctAnswers[key];
+                        const hasCorrectValue = correctVal !== undefined;
+                        const isCorrect = hasCorrectValue && studentVal !== undefined && studentVal === correctVal;
+                        const rowState = hasCorrectValue ? (isCorrect ? 'correct' : 'wrong') : 'neutral';
 
-                            return (
-                                <div key={key} className={`tf-item-row ${isCorrect ? 'correct' : 'wrong'}`}>
-                                    <span className="tf-item-index">{idx + 1}.</span>
-                                    <MathContent content={itemText} className="tf-item-text" />
-                                    <span className="tf-item-answer">
-                                        {isCorrect ? (
-                                            <CheckCircle className="w-4 h-4 text-green-500 inline" />
-                                        ) : (
-                                            <XCircle className="w-4 h-4 text-red-500 inline" />
-                                        )}
-                                        <span className="tf-item-val">{studentVal ? ' Đúng' : ' Sai'}</span>
-                                        {!isCorrect && (
-                                            <span className="tf-correct-hint"> (Đ.án: {correctVal ? 'Đúng' : 'Sai'})</span>
-                                        )}
+                        return (
+                            <div key={key} className={`tf-item-row ${rowState}`}>
+                                <span className="tf-item-index">{index + 1}.</span>
+                                <MathContent content={itemText(item, index)} className="tf-item-text" />
+                                <span className="tf-item-answer">
+                                    {hasCorrectValue ? (
+                                        isCorrect
+                                            ? <CheckCircle className="w-4 h-4 text-green-500 inline" />
+                                            : <XCircle className="w-4 h-4 text-red-500 inline" />
+                                    ) : null}
+                                    <span className="tf-item-val">
+                                        {studentVal === true ? ' Đúng' : studentVal === false ? ' Sai' : ' Chưa trả lời'}
                                     </span>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        // No items metadata - just render the answer entries
-                        Object.entries(studentAnswer).map(([key, val], idx) => {
-                            const correctVal = correctAnswers[key];
-                            const isCorrect = val === correctVal;
-
-                            return (
-                                <div key={key} className={`tf-item-row ${isCorrect ? 'correct' : 'wrong'}`}>
-                                    <span className="tf-item-index">{idx + 1}.</span>
-                                    <span className="tf-item-answer">
-                                        {isCorrect ? (
-                                            <CheckCircle className="w-4 h-4 text-green-500 inline" />
-                                        ) : (
-                                            <XCircle className="w-4 h-4 text-red-500 inline" />
-                                        )}
-                                        <span className="tf-item-val">{val ? ' Đúng' : ' Sai'}</span>
-                                        {!isCorrect && correctVal !== undefined && (
-                                            <span className="tf-correct-hint"> (Đ.án: {correctVal ? 'Đúng' : 'Sai'})</span>
-                                        )}
+                                    {!hasCorrectValue ? (
+                                        <span className="text-xs font-medium text-slate-500">Chưa có dữ liệu đáp án</span>
+                                    ) : !isCorrect ? (
+                                        <span className="tf-correct-hint"> (Đ.án: {correctVal ? 'Đúng' : 'Sai'})</span>
+                                    ) : null}
+                                </span>
+                            </div>
+                        );
+                    }) : Object.entries(studentAnswer).map(([key, rawValue], index) => {
+                        const studentVal = normalizeBooleanValue(rawValue);
+                        const correctVal = correctAnswers[key];
+                        const hasCorrectValue = correctVal !== undefined;
+                        const isCorrect = hasCorrectValue && studentVal !== undefined && studentVal === correctVal;
+                        return (
+                            <div key={key} className={`tf-item-row ${hasCorrectValue ? (isCorrect ? 'correct' : 'wrong') : 'neutral'}`}>
+                                <span className="tf-item-index">{index + 1}.</span>
+                                <span className="tf-item-answer">
+                                    {hasCorrectValue ? (isCorrect
+                                        ? <CheckCircle className="w-4 h-4 text-green-500 inline" />
+                                        : <XCircle className="w-4 h-4 text-red-500 inline" />) : null}
+                                    <span className="tf-item-val">
+                                        {studentVal === true ? ' Đúng' : studentVal === false ? ' Sai' : ' Chưa trả lời'}
                                     </span>
-                                </div>
-                            );
-                        })
-                    )}
+                                    {!hasCorrectValue ? (
+                                        <span className="text-xs font-medium text-slate-500">Chưa có dữ liệu đáp án</span>
+                                    ) : !isCorrect ? (
+                                        <span className="tf-correct-hint"> (Đ.án: {correctVal ? 'Đúng' : 'Sai'})</span>
+                                    ) : null}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         );
     }
 
-    // Fallback
     return (
         <div className="true-false-review-template">
             <span className="tf-no-answer">(Bỏ trống)</span>

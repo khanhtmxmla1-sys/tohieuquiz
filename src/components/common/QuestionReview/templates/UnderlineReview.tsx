@@ -1,60 +1,75 @@
 import React, { memo } from 'react';
+import type { AnswerReviewValue, QuestionAnswerReview } from '../../../../domain/quiz-scoring';
+import { normalizeIndexList } from '../reviewNormalization';
 
 interface UnderlineReviewProps {
     question: any;
-    studentAnswer: any; // Array of indices [0, 5, 12] or object {"0": true}
+    studentAnswer: any;
     status: 'correct' | 'wrong' | 'skipped';
+    reviewDetail?: QuestionAnswerReview;
 }
 
-/**
- * UnderlineReview: Hiển thị gạch chân các từ đúng/sai
- */
-const UnderlineReview: React.FC<UnderlineReviewProps> = memo(({ question, studentAnswer, status }) => {
-    const words = question.words || [];
-    const correctAnswer = question.correctAnswer || [];
+const ReviewLines: React.FC<{ title: string; value: AnswerReviewValue }> = ({ title, value }) => (
+    <div className="rounded-lg border border-slate-200 bg-white p-3">
+        <div className="mb-1 text-xs font-bold text-slate-500">{title}</div>
+        {value.lines.map((line, index) => (
+            <div key={`${line.label || 'value'}-${index}`} className="text-sm text-slate-700">
+                {line.label ? <strong>{line.label}: </strong> : null}
+                {line.value}
+            </div>
+        ))}
+    </div>
+);
 
-    // Normalize correct indices
-    let correctIndices: number[] = [];
-    if (Array.isArray(correctAnswer)) {
-        correctIndices = correctAnswer.map(v => Number(v));
-    } else if (typeof correctAnswer === 'object' && correctAnswer !== null) {
-        correctIndices = Object.keys(correctAnswer).filter(k => correctAnswer[k]).map(k => Number(k));
-    }
+const UnderlineReview: React.FC<UnderlineReviewProps> = memo(({ question, studentAnswer, reviewDetail }) => {
+    const words = Array.isArray(question.words) ? question.words : [];
+    const hasCorrectIndexSource = question.correctWordIndexes != null || question.correctAnswer != null;
+    const correctSource = question.correctWordIndexes ?? question.correctAnswer;
+    const correctIndices = normalizeIndexList(correctSource, words.length);
+    const studentIndices = normalizeIndexList(studentAnswer, words.length);
+    const canUseServerFallback = Boolean(
+        reviewDetail
+        && reviewDetail.correctAnswer.kind !== 'unsupported'
+        && reviewDetail.correctAnswer.lines.length > 0
+    );
 
-    // Normalize student indices
-    let studentIndices: number[] = [];
-    if (Array.isArray(studentAnswer)) {
-        studentIndices = studentAnswer.map(v => Number(v));
-    } else if (typeof studentAnswer === 'object' && studentAnswer !== null) {
-        studentIndices = Object.keys(studentAnswer).filter(k => studentAnswer[k]).map(k => Number(k));
+    if (!hasCorrectIndexSource && canUseServerFallback) {
+        return (
+            <div className="underline-review-template grid gap-2 sm:grid-cols-2">
+                <ReviewLines title="Câu trả lời của học sinh" value={reviewDetail!.studentAnswer} />
+                <ReviewLines title="Đáp án đúng" value={reviewDetail!.correctAnswer} />
+            </div>
+        );
     }
 
     return (
         <div className="underline-review-template">
             <div className="words-container">
-                {words.map((word: string, idx: number) => {
-                    const isSelectedByStudent = studentIndices.includes(idx);
-                    const isActuallyCorrect = correctIndices.includes(idx);
+                {words.map((word: string, index: number) => {
+                    const isSelectedByStudent = studentIndices.includes(index);
+                    const isActuallyCorrect = hasCorrectIndexSource && correctIndices.includes(index);
 
-                    let wordClass = "word-item";
-                    if (isSelectedByStudent) wordClass += " student-selected";
-                    if (isActuallyCorrect) wordClass += " correct-word";
-
-                    // Highlight mismatch
-                    if (isSelectedByStudent && !isActuallyCorrect) wordClass += " error-underline";
-                    if (!isSelectedByStudent && isActuallyCorrect) wordClass += " missed-underline";
+                    let wordClass = 'word-item';
+                    if (isSelectedByStudent) wordClass += ' student-selected';
+                    if (isActuallyCorrect) wordClass += ' correct-word';
+                    if (hasCorrectIndexSource && isSelectedByStudent && !isActuallyCorrect) wordClass += ' error-underline';
+                    if (hasCorrectIndexSource && !isSelectedByStudent && isActuallyCorrect) wordClass += ' missed-underline';
 
                     return (
-                        <span key={idx} className={wordClass}>
+                        <span key={index} className={wordClass}>
                             {typeof word === 'object' ? JSON.stringify(word) : word}
-                            {isActuallyCorrect && !isSelectedByStudent && <span className="missed-marker">^</span>}
+                            {hasCorrectIndexSource && isActuallyCorrect && !isSelectedByStudent
+                                ? <span className="missed-marker">^</span>
+                                : null}
                         </span>
                     );
                 })}
             </div>
             <div className="underline-legend small mt-2">
                 <span className="legend-item student">Gạch chân của bé</span>
-                <span className="legend-item correct">Đáp án đúng</span>
+                {hasCorrectIndexSource
+                    ? <span className="legend-item correct">Đáp án đúng</span>
+                    : <span className="text-slate-500">Chưa có dữ liệu đáp án</span>}
             </div>
         </div>
     );
