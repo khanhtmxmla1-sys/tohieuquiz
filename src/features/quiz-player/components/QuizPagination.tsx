@@ -1,5 +1,6 @@
 import React from 'react';
 import type { QuizPageChangeHandler } from '../hooks/useQuizPageNavigation';
+import QuizSubmitButton from './QuizSubmitButton';
 
 interface QuizPaginationProps {
   currentPage: number;
@@ -7,6 +8,7 @@ interface QuizPaginationProps {
   onPageChange: QuizPageChangeHandler;
   onSubmit: () => void;
   isSubmitting: boolean;
+  hideSubmitOnDesktop?: boolean;
 }
 
 const QuizPagination: React.FC<QuizPaginationProps> = ({
@@ -15,6 +17,7 @@ const QuizPagination: React.FC<QuizPaginationProps> = ({
   onPageChange,
   onSubmit,
   isSubmitting,
+  hideSubmitOnDesktop = false,
 }) => {
   return (
     <div className="mt-8 flex flex-col gap-4 border-t border-slate-200 pb-12 pt-6 sm:flex-row sm:items-center sm:justify-between">
@@ -36,18 +39,14 @@ const QuizPagination: React.FC<QuizPaginationProps> = ({
         >
           Trang {currentPage} / {totalPages}
         </div>
-
       </div>
 
       {currentPage === totalPages ? (
-        <button
-          type="button"
-          onClick={onSubmit}
-          disabled={isSubmitting}
-          className="inline-flex min-h-12 w-full items-center justify-center rounded-[10px] bg-sky-600 px-6 text-base font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-        >
-          {isSubmitting ? 'Đang nộp bài...' : 'Nộp bài'}
-        </button>
+        <QuizSubmitButton
+          onSubmit={onSubmit}
+          isSubmitting={isSubmitting}
+          className={`w-full sm:w-auto${hideSubmitOnDesktop ? ' lg:hidden' : ''}`}
+        />
       ) : (
         <button
           type="button"
