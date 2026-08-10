@@ -285,7 +285,7 @@ describe('AI SVG diagrams end-to-end', () => {
       expect(document.documentElement.scrollWidth).to.be.lte(document.documentElement.clientWidth + 1);
     });
     cy.get('#question-svg-mcq').find('button').first().click();
-    cy.contains('button', 'Nộp bài').click();
+    cy.contains('button:visible', 'Nộp bài').click();
     cy.contains('button', 'Đồng ý nộp').click();
     cy.wait('@validateSvgAnswer');
     cy.contains('10/10').should('be.visible');
