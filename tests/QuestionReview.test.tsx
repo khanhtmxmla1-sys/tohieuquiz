@@ -137,6 +137,21 @@ describe('QuestionReview Component', () => {
         it('nên hiển thị đúng khi học sinh chọn ĐÚNG', () => {
             render(<QuestionReview index={0} question={mockUnderline} studentAnswer={[0, 1]} />);
             expect(screen.getByTestId('icon-correct')).toBeDefined();
+            expect(document.querySelectorAll('.word-item.correct-word')).toHaveLength(2);
+            expect(document.querySelector('.word-item.error-underline')).toBeNull();
+        });
+
+        it('chuẩn hóa index chuỗi, loại trùng và bỏ index ngoài phạm vi', () => {
+            render(<QuestionReview
+                index={0}
+                question={{ ...mockUnderline, correctWordIndexes: ['1', '1', 99, 'x'] }}
+                studentAnswer={['1', '1', 99]}
+                status="correct"
+            />);
+
+            expect(document.querySelectorAll('.word-item.correct-word')).toHaveLength(1);
+            expect(document.querySelectorAll('.word-item.student-selected')).toHaveLength(1);
+            expect(document.querySelector('.word-item.error-underline')).toBeNull();
         });
     });
 
@@ -166,6 +181,64 @@ describe('QuestionReview Component', () => {
         it('nên hiển thị đúng khi học sinh trả lời ĐÚNG', () => {
             render(<QuestionReview index={0} question={mockTF} studentAnswer="Đúng" />);
             expect(screen.getByTestId('icon-correct')).toBeDefined();
+        });
+
+        it('không biến chuỗi "false" thành true ở câu nhiều mệnh đề', () => {
+            render(<QuestionReview
+                index={0}
+                question={{
+                    type: 'TRUE_FALSE',
+                    questionText: 'Chọn đúng sai',
+                    items: [{ id: 'a', statement: 'Mệnh đề A', isCorrect: 'false' }],
+                }}
+                studentAnswer={{ a: false }}
+                status="correct"
+            />);
+
+            expect(document.querySelector('.tf-item-row.correct')).toBeTruthy();
+            expect(document.querySelector('.tf-item-row.wrong')).toBeNull();
+        });
+
+        it('hiển thị trung tính khi thiếu đáp án chuẩn thay vì suy diễn thành Sai', () => {
+            render(<QuestionReview
+                index={0}
+                question={{
+                    type: 'TRUE_FALSE',
+                    questionText: 'Chọn đúng sai',
+                    items: [{ id: 'a', statement: 'Mệnh đề A' }],
+                }}
+                studentAnswer={{ a: false }}
+                status="correct"
+            />);
+
+            expect(document.querySelector('.tf-item-row.neutral')).toBeTruthy();
+            expect(screen.getByText(/Chưa có dữ liệu đáp án/)).toBeDefined();
+            expect(screen.queryByText(/Đ\.án: Sai/)).toBeNull();
+        });
+
+        it('ưu tiên reviewDetail của server khi snapshot không còn answer key', () => {
+            render(<QuestionReview
+                index={0}
+                question={{
+                    type: 'TRUE_FALSE',
+                    questionText: 'Chọn đúng sai',
+                    items: [{ id: 'a', statement: 'Mệnh đề A' }],
+                }}
+                studentAnswer={{ a: false }}
+                status="correct"
+                reviewDetail={{
+                    questionId: 'tf-1',
+                    type: 'TRUE_FALSE',
+                    status: 'correct',
+                    isCorrect: true,
+                    studentAnswer: { kind: 'mapping', lines: [{ label: 'Mệnh đề A', value: 'Sai' }] },
+                    correctAnswer: { kind: 'mapping', lines: [{ label: 'Mệnh đề A', value: 'Sai' }] },
+                }}
+            />);
+
+            expect(document.querySelector('.tf-item-row.correct')).toBeTruthy();
+            expect(document.querySelector('.tf-item-row.wrong')).toBeNull();
+            expect(screen.queryByText(/Chưa có dữ liệu đáp án/)).toBeNull();
         });
     });
 

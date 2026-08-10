@@ -3,6 +3,7 @@ import MathContent from './MathContent';
 import QuestionRichTextRenderer from '../QuestionRichTextRenderer';
 import { checkAnswer, AnswerStatus } from '../../../utils/question/scoring.util';
 import { CheckCircle, XCircle, MinusCircle } from 'lucide-react';
+import type { QuestionAnswerReview } from '../../../domain/quiz-scoring';
 import './QuestionReview.css';
 
 import MCQReview from './templates/MCQReview';
@@ -24,6 +25,7 @@ interface QuestionReviewProps {
     studentAnswer: any;
     showExplanation?: boolean;
     status?: AnswerStatus;
+    reviewDetail?: QuestionAnswerReview;
 }
 
 const ReviewMap: Record<string, any> = {
@@ -49,10 +51,27 @@ const QuestionReview: React.FC<QuestionReviewProps> = ({
     question,
     studentAnswer,
     showExplanation = true,
-    status: propStatus
+    status: propStatus,
+    reviewDetail,
 }) => {
     const { status: calculatedStatus } = checkAnswer(question, studentAnswer);
-    const status = propStatus || calculatedStatus;
+    const reviewStatus: AnswerStatus | undefined = reviewDetail?.status === 'correct'
+        ? 'correct'
+        : reviewDetail?.status === 'wrong' || reviewDetail?.status === 'invalid'
+            ? 'wrong'
+            : reviewDetail?.status === 'skipped' || reviewDetail?.status === 'voided'
+                ? 'skipped'
+                : undefined;
+    const status = reviewStatus || propStatus || calculatedStatus;
+
+    if (import.meta.env.DEV && question?.id && (propStatus || reviewStatus) && status !== calculatedStatus) {
+        console.warn('[QuestionReview] Server/client status mismatch', {
+            questionId: question?.id,
+            type: question?.type,
+            serverStatus: status,
+            calculatedStatus,
+        });
+    }
 
     const getStatusIcon = () => {
         if (status === 'correct') return <CheckCircle className="status-icon correct" />;
@@ -96,6 +115,7 @@ const QuestionReview: React.FC<QuestionReviewProps> = ({
                             question={question}
                             studentAnswer={studentAnswer}
                             status={status}
+                            reviewDetail={reviewDetail}
                         />
                     ) : (
                         <div className="student-response">

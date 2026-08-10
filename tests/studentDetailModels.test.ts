@@ -63,6 +63,71 @@ describe('student detail question model', () => {
         expect(display.questionRichText).toBeUndefined();
     });
 
+    it('merges stripped TRUE_FALSE answer keys from the current question by item id', () => {
+        const currentQuestion = {
+            id: 'q-tf-history',
+            type: 'TRUE_FALSE',
+            question: 'Nội dung hiện tại',
+            items: [
+                { id: 'a', statement: 'Mệnh đề A hiện tại', isCorrect: false },
+                { id: 'b', statement: 'Mệnh đề B hiện tại', isCorrect: true },
+            ],
+        } as any;
+        const result = {
+            ...studentDetailResult,
+            answers: {
+                'q-tf-history': {
+                    selectedAnswer: { a: false, b: true },
+                    isCorrect: true,
+                    questionSnapshot: {
+                        id: 'q-tf-history',
+                        type: 'TRUE_FALSE',
+                        question: 'Nội dung lúc nộp',
+                        items: [
+                            { id: 'b', statement: 'Mệnh đề B lúc nộp' },
+                            { id: 'a', statement: 'Mệnh đề A lúc nộp' },
+                        ],
+                    },
+                },
+            },
+        } as any;
+
+        const [display] = buildDisplayQuestions(result, [currentQuestion]);
+        expect(display.items).toEqual([
+            { id: 'b', statement: 'Mệnh đề B lúc nộp', isCorrect: true },
+            { id: 'a', statement: 'Mệnh đề A lúc nộp', isCorrect: false },
+        ]);
+    });
+
+    it('attaches reviewDetail and lets server status override persisted correctness', () => {
+        const currentQuestion = {
+            id: 'q-review', type: 'MCQ', question: 'Nội dung', options: ['A', 'B'], correctAnswer: 'A',
+        } as any;
+        const reviewDetail = {
+            questionId: 'q-review',
+            type: 'MCQ',
+            status: 'correct',
+            isCorrect: true,
+            studentAnswer: { kind: 'text', lines: [{ value: 'A' }] },
+            correctAnswer: { kind: 'text', lines: [{ value: 'A' }] },
+        } as any;
+        const result = {
+            ...studentDetailResult,
+            reviewDetails: [reviewDetail],
+            answers: {
+                'q-review': {
+                    selectedAnswer: 'A',
+                    isCorrect: false,
+                    questionSnapshot: { id: 'q-review', type: 'MCQ', question: 'Nội dung', options: ['A', 'B'] },
+                },
+            },
+        } as any;
+
+        const [display] = buildDisplayQuestions(result, [currentQuestion]);
+        expect(display.reviewDetail).toBe(reviewDetail);
+        expect(display.isCorrect).toBe(true);
+    });
+
     it('keeps the rich presentation stored in the historical snapshot', () => {
         const currentRich = plainTextToRichText('Rich hiện tại');
         const historicalRich = plainTextToRichText('Rich lúc nộp');

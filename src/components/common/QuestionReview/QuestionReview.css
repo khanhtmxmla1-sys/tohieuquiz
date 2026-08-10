@@ -404,6 +404,12 @@
     border-color: #ef4444;
 }
 
+.tf-item-row.neutral {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #64748b;
+}
+
 .tf-item-index {
     font-weight: 600;
     color: #6b7280;

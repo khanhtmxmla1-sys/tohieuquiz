@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 import TeacherResultDetailPage from '../src/components/TeacherDashboard/TeacherResultDetailPage';
 
 vi.mock('../src/components/teacher/ResultsView', () => ({ StudentDetailModal: () => null }));
-vi.mock('../src/services/results/resultAnswersService', () => ({ fetchResultAnswers: vi.fn() }));
+vi.mock('../src/services/results/resultAnswersService', () => ({
+    fetchResultAnswers: vi.fn(),
+    fetchResultAnswerReview: vi.fn(),
+}));
 
 /**
  * "Quay lại danh sách" pops history when possible so filters and pagination are restored.

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { StudentDetailModal } from '../teacher/ResultsView';
-import { fetchResultAnswers } from '../../services/results/resultAnswersService';
+import { fetchResultAnswerReview } from '../../services/results/resultAnswersService';
 import { useQuizStore } from '../../../stores/quizStore';
 import { getTeacherRoute } from '../../app/navigationRoutes';
 import type { Question, StudentResult } from '../../types';
@@ -37,7 +37,9 @@ const TeacherResultDetailPage: React.FC = () => {
                 return;
             }
 
-            if (result.answers && Object.keys(result.answers).length > 0) {
+            const hasAnswers = Boolean(result.answers && Object.keys(result.answers).length > 0);
+            const hasReviewDetails = Array.isArray(result.reviewDetails);
+            if (hasAnswers && hasReviewDetails) {
                 setResolvedResult(result);
                 return;
             }
@@ -46,9 +48,16 @@ const TeacherResultDetailPage: React.FC = () => {
             setLoadError(null);
 
             try {
-                const answers = await fetchResultAnswers(result.id);
+                const payload = await fetchResultAnswerReview(result.id);
                 if (!cancelled) {
-                    setResolvedResult({ ...result, answers });
+                    const hydratedAnswers = Object.keys(payload.answers).length > 0
+                        ? payload.answers
+                        : result.answers;
+                    setResolvedResult({
+                        ...result,
+                        answers: hydratedAnswers,
+                        reviewDetails: payload.reviewDetails,
+                    });
                 }
             } catch {
                 if (!cancelled) {
