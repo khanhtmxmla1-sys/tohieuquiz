@@ -86,6 +86,23 @@ export interface InterventionGroup {
   updatedAt: string;
 }
 
+export interface InterventionDataReadiness {
+  studentsInScope: number;
+  resultsInWindow: number;
+  quizzesInScope: number;
+  questionsInScope: number;
+  questionsWithSkillMetadata: number;
+  skillMetadataCoveragePercent: number;
+  studentSkillSignals: number;
+  eligibleSignals: number;
+  excludedSignals: {
+    stable: number;
+    insufficientSamples: number;
+    lowConfidence: number;
+    missingMetadata: number;
+  };
+}
+
 export interface InterventionDashboard {
   generatedAt: string;
   criteria: {
@@ -93,6 +110,7 @@ export interface InterventionDashboard {
     minimumSampleSize: number;
     minimumConfidence: number;
   };
+  readiness: InterventionDataReadiness;
   suggestions: InterventionSuggestion[];
   groups: InterventionGroup[];
 }

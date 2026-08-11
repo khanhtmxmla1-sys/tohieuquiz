@@ -14,6 +14,7 @@ import {
   type CreateInterventionAssignmentsRequest,
   type CreateInterventionAssignmentsResponse,
   type InterventionDashboard,
+  type InterventionDataReadiness,
   type InterventionGroup,
   type InterventionPrivateNote,
   type InterventionQuizRecommendation,
@@ -28,6 +29,7 @@ import {
 import {
   buildWeaknessProfileFromData,
   getQuestionsForQuizIds,
+  parseStoredAnswers,
   type ResultRowWithAnswers,
 } from './weaknessProfile';
 import { createNotifications } from './notificationWriter';
@@ -102,6 +104,119 @@ const safeJson = <T>(value: unknown, fallback: T): T => {
   } catch {
     return fallback;
   }
+};
+
+const createEmptyInterventionReadiness = (): InterventionDataReadiness => ({
+  studentsInScope: 0,
+  resultsInWindow: 0,
+  quizzesInScope: 0,
+  questionsInScope: 0,
+  questionsWithSkillMetadata: 0,
+  skillMetadataCoveragePercent: 0,
+  studentSkillSignals: 0,
+  eligibleSignals: 0,
+  excludedSignals: {
+    stable: 0,
+    insufficientSamples: 0,
+    lowConfidence: 0,
+    missingMetadata: 0,
+  },
+});
+
+const resolveReadinessSkillMetadata = (
+  source: Record<string, unknown> | null | undefined,
+  origin: 'explicit_db' | 'explicit_question',
+) => {
+  if (!source) return null;
+  return resolveExplicitSkillMetadata({
+    subject: String(source.subject || '') || undefined,
+    skillCode: String(source.skillCode || source.skill_code || '') || undefined,
+    subskillCode: String(source.subskillCode || source.subskill_code || '') || undefined,
+  }, origin) || resolveSkillMetadataFromTags(source.tags as string | string[] | undefined);
+};
+
+const buildInterventionReadinessFromData = (
+  students: InterventionStudentRow[],
+  results: InterventionResultRow[],
+  questions: Question[],
+): InterventionDataReadiness => {
+  const readiness = createEmptyInterventionReadiness();
+  readiness.studentsInScope = students.length;
+  readiness.resultsInWindow = results.length;
+  readiness.quizzesInScope = new Set(results.map((result) => String(result.quiz_id || '')).filter(Boolean)).size;
+  readiness.questionsInScope = questions.length;
+
+  const questionsById = new Map(questions.map((question) => [String(question.id), question]));
+  const questionIdsWithMetadata = new Set<string>();
+  for (const question of questions) {
+    if (resolveReadinessSkillMetadata(question as unknown as Record<string, unknown>, 'explicit_db')) {
+      questionIdsWithMetadata.add(String(question.id));
+    }
+  }
+  for (const result of results) {
+    const answers = parseStoredAnswers(result.answers);
+    for (const [questionId, answerData] of Object.entries(answers)) {
+      if (questionId.startsWith('_') || !questionsById.has(questionId)) continue;
+      const snapshot = answerData && typeof answerData === 'object'
+        ? (answerData as { questionSnapshot?: Record<string, unknown> }).questionSnapshot
+        : undefined;
+      if (resolveReadinessSkillMetadata(snapshot, 'explicit_question')) {
+        questionIdsWithMetadata.add(questionId);
+      }
+    }
+  }
+  readiness.questionsWithSkillMetadata = questionIdsWithMetadata.size;
+  readiness.skillMetadataCoveragePercent = readiness.questionsInScope === 0
+    ? 0
+    : Math.round((readiness.questionsWithSkillMetadata / readiness.questionsInScope) * 100);
+  // missingMetadata is question-level because no skill code exists to form a student-skill signal.
+  readiness.excludedSignals.missingMetadata = Math.max(
+    0,
+    readiness.questionsInScope - readiness.questionsWithSkillMetadata,
+  );
+
+  const studentsById = new Map(students.map((student) => [student.id, student]));
+  const resultsByStudentId = new Map<string, InterventionResultRow[]>();
+  for (const result of results) {
+    const student = resolveStudentForResult(result, studentsById);
+    if (!student) continue;
+    const studentResults = resultsByStudentId.get(student.id) || [];
+    studentResults.push(result);
+    resultsByStudentId.set(student.id, studentResults);
+  }
+
+  for (const student of students) {
+    const studentResults = (resultsByStudentId.get(student.id) || [])
+      .sort((left, right) => Date.parse(left.submitted_at) - Date.parse(right.submitted_at));
+    if (studentResults.length === 0) continue;
+    const profile = buildWeaknessProfileFromData(
+      studentResults[studentResults.length - 1],
+      studentResults,
+      questions,
+    );
+    const coverageFactor = Math.max(0, Math.min(1, profile.coveragePercent / 100));
+    for (const subjectGroup of profile.subjects) {
+      for (const skill of subjectGroup.skills) {
+        readiness.studentSkillSignals += 1;
+        if (skill.status === 'stable') {
+          readiness.excludedSignals.stable += 1;
+          continue;
+        }
+        const confidence = round(coverageFactor * (skill.attempted / (skill.attempted + 2)), 2);
+        if (skill.attempted < INTERVENTION_MIN_SAMPLE_SIZE) {
+          readiness.excludedSignals.insufficientSamples += 1;
+          continue;
+        }
+        if (confidence < INTERVENTION_MIN_CONFIDENCE) {
+          readiness.excludedSignals.lowConfidence += 1;
+          continue;
+        }
+        readiness.eligibleSignals += 1;
+      }
+    }
+  }
+
+  return readiness;
 };
 
 const buildFourWeekTrend = (
@@ -461,6 +576,7 @@ export async function loadInterventionDashboard(
         minimumSampleSize: INTERVENTION_MIN_SAMPLE_SIZE,
         minimumConfidence: INTERVENTION_MIN_CONFIDENCE,
       },
+      readiness: createEmptyInterventionReadiness(),
       suggestions: [],
       groups: [],
     };
@@ -502,6 +618,7 @@ export async function loadInterventionDashboard(
 
   const questions = await getQuestionsForQuizIds(db, results.map((result) => result.quiz_id));
   const recommendationRows = await loadRecommendationRows(db, user);
+  const readiness = buildInterventionReadinessFromData(students, results, questions);
   const [suggestions, groups] = await Promise.all([
     Promise.resolve(buildInterventionSuggestionsFromData({
       students,
@@ -519,6 +636,7 @@ export async function loadInterventionDashboard(
       minimumSampleSize: INTERVENTION_MIN_SAMPLE_SIZE,
       minimumConfidence: INTERVENTION_MIN_CONFIDENCE,
     },
+    readiness,
     suggestions,
     groups,
   };
