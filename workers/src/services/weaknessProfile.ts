@@ -285,7 +285,7 @@ export function buildWeaknessProfileFromData(
 
 export async function getResultById(db: D1Database, resultId: string): Promise<ResultRowWithAnswers | null> {
     const result = await db.prepare(
-        'SELECT id, student_name, class_name, quiz_id, quiz_title, score, correct_count, total_questions, time_taken, submitted_at, answers FROM results WHERE id = ?',
+        'SELECT id, student_id, class_id, assignment_id, student_name, class_name, quiz_id, quiz_title, score, correct_count, total_questions, time_taken, submitted_at, answers, grading_version FROM results WHERE id = ?',
     ).bind(resultId).first<ResultRowWithAnswers>();
 
     return result || null;
@@ -307,13 +307,14 @@ export async function getRecentResultsForStudentContext(
     db: D1Database,
     result: ResultRowWithAnswers,
 ): Promise<ResultRowWithAnswers[]> {
+    if (!result.student_id || !result.class_id) return [];
     const rows = await db.prepare(
-        `SELECT id, student_name, class_name, quiz_id, quiz_title, score, correct_count, total_questions, time_taken, submitted_at, answers
+        `SELECT id, student_id, class_id, assignment_id, student_name, class_name, quiz_id, quiz_title, score, correct_count, total_questions, time_taken, submitted_at, answers, grading_version
          FROM results
-         WHERE student_name = ? AND class_name = ?
+         WHERE student_id = ? AND class_id = ?
          ORDER BY submitted_at DESC
          LIMIT 5`,
-    ).bind(result.student_name, result.class_name).all<ResultRowWithAnswers>();
+    ).bind(result.student_id, result.class_id).all<ResultRowWithAnswers>();
 
     return rows.results || [];
 }

@@ -160,7 +160,7 @@ export default {
                     s.username,
                     SUM(r.score) as total_score
                 FROM results r
-                JOIN students s ON s.username = r.student_name
+                JOIN students s ON s.id = r.student_id
                 WHERE r.submitted_at >= ?
                   AND r.submitted_at < ?
                 GROUP BY s.username

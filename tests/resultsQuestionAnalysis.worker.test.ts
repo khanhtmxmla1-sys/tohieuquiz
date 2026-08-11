@@ -27,6 +27,9 @@ class FakeStatement {
 
     async all<T>() {
         this.database.executed.push(this);
+        if (this.sql.includes('FROM classes') && this.sql.includes('teacher_username')) {
+            return { results: [{ id: 'class-1' }] as T[] };
+        }
         return { results: this.database.rows as T[] };
     }
 }
@@ -64,7 +67,10 @@ describe('bulk result answers authorization', () => {
         expect(response.status).toBe(200);
         expect(payload.data['result-1']).toContain('selectedAnswer');
         expect(database.executed[0].sql).toContain('teacher_username = ?');
-        expect(database.executed[0].bindings).toEqual(['result-1', 'teacher-1']);
+        expect(database.executed[0].bindings).toEqual(['teacher-1']);
+        expect(database.executed[1].sql).toContain('class_id IN (?)');
+        expect(database.executed[1].sql).not.toMatch(/class_name/i);
+        expect(database.executed[1].bindings).toEqual(['result-1', 'class-1']);
     });
 
     it('rejects students and invalid batches before querying D1', async () => {

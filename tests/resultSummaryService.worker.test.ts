@@ -136,23 +136,24 @@ describe('loadResultDashboardSummary', () => {
         expect(db.calls.every((call) => !call.sql.includes('teacher_username = ?'))).toBe(true);
     });
 
-    it('scopes both teacher queries by the authenticated username', async () => {
+    it('scopes both teacher queries by canonical managed class ids', async () => {
         const db = new FakeDatabase();
         await loadResultDashboardSummary(
             db as unknown as D1Database,
-            { role: 'teacher', username: 'teacher-a' },
+            { role: 'teacher', classIds: ['class-a', 'class-b'] },
             new Date('2026-07-24T08:00:00.000Z'),
         );
 
         expect(db.calls).toHaveLength(2);
         expect(db.calls[0].bindings).toEqual([
-            'teacher-a',
+            'class-a',
+            'class-b',
             '2026-07-23T17:00:00.000Z',
             '2026-07-24T17:00:00.000Z',
         ]);
-        expect(db.calls[1].bindings).toEqual(['teacher-a']);
-        expect(db.calls.every((call) => call.sql.includes('teacher_username = ?'))).toBe(true);
+        expect(db.calls[1].bindings).toEqual(['class-a', 'class-b']);
+        expect(db.calls.every((call) => call.sql.includes('class_id IN (?, ?)'))).toBe(true);
+        expect(db.calls.every((call) => !call.sql.includes('teacher_username = ?'))).toBe(true);
         expect(db.calls[1].sql).toContain('ROW_NUMBER() OVER');
         expect(db.calls[1].sql).toContain('PARTITION BY student_key, work_key');
-    });
-});
+    });});

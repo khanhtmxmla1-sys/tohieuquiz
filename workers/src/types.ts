@@ -107,6 +107,9 @@ export interface Assignment {
 export interface ResultRow {
     id: number;
     student_id?: string | null;
+    class_id?: string | null;
+    assignment_id?: string | null;
+    grading_version?: string | null;
     student_name: string;
     class_name: string;
     quiz_id: string;

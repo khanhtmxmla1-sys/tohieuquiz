@@ -275,29 +275,28 @@ async function resolveStudentFromResult(
     | { type: 'error'; code: 'STUDENT_NOT_FOUND'; message: string }
     | { type: 'error'; code: 'AMBIGUOUS_STUDENT_MATCH'; message: string; candidates: SmartAssignmentPreviewCandidate[] }
 > {
-    const studentRows = await db.prepare(
+    if (!result.student_id || !result.class_id) {
+        return {
+            type: 'error',
+            code: 'STUDENT_NOT_FOUND',
+            message: 'Result chua co dinh danh hoc sinh/lop canonical.',
+        };
+    }
+
+    const student = await db.prepare(
         `SELECT s.id, s.full_name, s.class_id, c.name AS class_name
          FROM students s
          INNER JOIN classes c ON c.id = s.class_id
-         WHERE s.full_name = ? AND c.teacher_username = ?`,
-    ).bind(result.student_name, teacherUsername).all<{
+         WHERE s.id = ? AND s.class_id = ? AND c.teacher_username = ?
+         LIMIT 1`,
+    ).bind(result.student_id, result.class_id, teacherUsername).first<{
         id: string;
         full_name: string;
         class_id: string;
         class_name: string;
     }>();
 
-    const normalizedResultClass = normalizeClassName(result.class_name || '');
-    const candidates = (studentRows.results || [])
-        .filter((row) => normalizeClassName(row.class_name || '') === normalizedResultClass)
-        .map((row) => ({
-            id: row.id,
-            fullName: row.full_name,
-            classId: row.class_id,
-            className: row.class_name,
-        }));
-
-    if (candidates.length === 0) {
+    if (!student) {
         return {
             type: 'error',
             code: 'STUDENT_NOT_FOUND',
@@ -305,16 +304,15 @@ async function resolveStudentFromResult(
         };
     }
 
-    if (candidates.length > 1) {
-        return {
-            type: 'error',
-            code: 'AMBIGUOUS_STUDENT_MATCH',
-            message: 'Co nhieu hoc sinh trung ten trong cung ngu canh lop.',
-            candidates,
-        };
-    }
-
-    return { type: 'success', student: candidates[0] };
+    return {
+        type: 'success',
+        student: {
+            id: student.id,
+            fullName: student.full_name,
+            classId: student.class_id,
+            className: student.class_name,
+        },
+    };
 }
 
 function resolveQuestionSkill(question: QuizQuestionRow) {

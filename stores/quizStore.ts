@@ -50,6 +50,34 @@ const parseMultipleSelectAnswersForQuestion = (raw: any, optionCount: number): s
     return normalized.split('|').map((value: string) => optionReferenceForAuthoring(value, optionCount)).filter(Boolean);
 };
 
+const finiteResultNumber = (value: unknown, fallback = 0): number => {
+    const parsed = Number(String(value ?? '').replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+export const mapResultRow = (row: any): StudentResult => ({
+    id: row.id ?? `result-${Date.now()}`,
+    studentId: row.studentId ?? row.student_id ?? undefined,
+    classId: row.classId ?? row.class_id ?? undefined,
+    assignmentId: row.assignmentId ?? row.assignment_id ?? undefined,
+    gradingVersion: row.gradingVersion ?? row.grading_version ?? undefined,
+    studentName: row.studentName ?? row.name ?? row['Student Name'] ?? '',
+    studentClass: row.studentClass ?? row.className ?? row['Class'] ?? '',
+    quizId: row.quizId ?? row.quiz_id ?? row['Quiz ID'] ?? '',
+    quizTitle: row.quizTitle ?? row.quiz_title ?? row['Quiz Title'] ?? '',
+    score: finiteResultNumber(row.score ?? row['Score']),
+    correctCount: finiteResultNumber(row.correctCount ?? row.correct_count),
+    totalQuestions: finiteResultNumber(row.totalQuestions ?? row.total_questions ?? row['Total Questions']),
+    submittedAt: row.submittedAt ?? row.submitted_at ?? row['Submitted At'] ?? new Date().toISOString(),
+    timeTaken: finiteResultNumber(row.timeTaken ?? row.time_taken ?? row['Time Taken']),
+    answers: (() => {
+        if (typeof row.answers === 'string') {
+            try { return JSON.parse(row.answers || '{}'); } catch { return {}; }
+        }
+        return row.answers || {};
+    })(),
+});
+
 export const normalizeQuestionRow = (q: any): any => {
     const parsed = { ...q };
     if (typeof q.items === 'string') try { parsed.items = JSON.parse(q.items); } catch { }
@@ -456,24 +484,9 @@ export const useQuizStore = create<QuizState>()(
                         set({ results: [], error: null });
                         return;
                     }
-                    const results: StudentResult[] = rawResults.map((row: any) => ({
-                        id: row.id || `result-${Date.now()}`,
-                        studentName: row.studentName || row.name || row['Student Name'] || '',
-                        studentClass: row.studentClass || row.className || row['Class'] || '',
-                        quizId: row.quizId || row.quiz_id || row['Quiz ID'] || '',
-                        quizTitle: row.quizTitle || row.quiz_title || row['Quiz Title'] || '',
-                        score: parseFloat(String(row.score || row['Score'] || 0).replace(',', '.')) || 0,
-                        correctCount: parseInt(row.correctCount || row.correct_count) || 0,
-                        totalQuestions: parseInt(row.totalQuestions || row.total_questions || row['Total Questions']) || 0,
-                        submittedAt: row.submittedAt || row.submitted_at || row['Submitted At'] || new Date().toISOString(),
-                        timeTaken: parseInt(row.timeTaken || row.time_taken || row['Time Taken']) || 0,
-                        answers: (() => {
-                            if (typeof row.answers === 'string') {
-                                try { return JSON.parse(row.answers || '{}'); } catch { return {}; }
-                            }
-                            return row.answers || {};
-                        })()
-                    })).filter(r => !!r.studentName);
+                    const results: StudentResult[] = rawResults
+                        .map(mapResultRow)
+                        .filter(r => !!r.studentName);
                     set({ results, error: null });
                 } catch (err: any) {
                     console.error('Failed to load results:', err);
@@ -562,6 +575,7 @@ export const useQuizStore = create<QuizState>()(
                         score?: number;
                         correctCount?: number;
                         totalQuestions?: number;
+                        classId?: string;
                         gradingVersion?: string;
                         answers?: StudentResult['answers'];
                         validationDetails?: StudentResult['validationDetails'];
@@ -583,6 +597,7 @@ export const useQuizStore = create<QuizState>()(
                             totalQuestions: typeof res.totalQuestions === 'number'
                                 ? res.totalQuestions
                                 : result.totalQuestions,
+                            classId: res.classId ?? result.classId,
                             gradingVersion: res.gradingVersion ?? result.gradingVersion,
                             answers: res.answers ?? result.answers,
                             validationDetails: res.validationDetails ?? result.validationDetails,

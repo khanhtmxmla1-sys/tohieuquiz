@@ -4,12 +4,13 @@ export interface AuthorizedAiTutorResult {
   id: string;
   student_id: string | null;
   assignment_id: string | null;
+  class_id: string | null;
   quiz_id: string;
   class_name: string;
   answers: string | null;
 }
 
-const RESULT_COLUMNS = 'CAST(r.id AS TEXT) AS id, r.student_id, r.assignment_id, r.quiz_id, r.class_name, r.answers';
+const RESULT_COLUMNS = 'CAST(r.id AS TEXT) AS id, r.student_id, r.assignment_id, r.class_id, r.quiz_id, r.class_name, r.answers';
 
 export async function loadAuthorizedAiTutorResult(
   db: D1Database,
@@ -39,7 +40,7 @@ export async function loadAuthorizedAiTutorResult(
       WHERE CAST(r.id AS TEXT) = ?
         AND EXISTS (
           SELECT 1 FROM classes c
-          WHERE c.name = r.class_name AND c.teacher_username = ?
+          WHERE c.id = r.class_id AND c.teacher_username = ?
         )
       LIMIT 1
     `).bind(resultId, user.username).first<AuthorizedAiTutorResult>();

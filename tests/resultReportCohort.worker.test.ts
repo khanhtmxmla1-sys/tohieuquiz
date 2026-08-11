@@ -61,17 +61,17 @@ class CohortDatabase {
   ];
   results: Record<string, unknown>[] = [
     {
-      id: 'an-old', student_name: 'Nguyễn Văn An', score: 6, correct_count: 6,
+      id: 'an-old', student_id: 'student-an', student_name: 'Nguyễn Văn An', score: 6, correct_count: 6,
       total_questions: 10, submitted_at: '2026-07-10T08:00:00.000Z',
       quiz_title: 'Bài 1 – Ôn tập phép nhân',
     },
     {
-      id: 'an-new', student_name: 'NGUYỄN VĂN AN', score: 8, correct_count: 8,
+      id: 'an-new', student_id: 'student-an', student_name: 'NGUYỄN VĂN AN', score: 8, correct_count: 8,
       total_questions: 10, submitted_at: '2026-07-12T08:00:00.000Z',
       quiz_title: 'Bài 1 – Ôn tập phép nhân',
     },
     {
-      id: 'binh-one', student_name: 'Trần Minh Bình', score: 9, correct_count: 9,
+      id: 'binh-one', student_id: 'student-binh', student_name: 'Trần Minh Bình', score: 9, correct_count: 9,
       total_questions: 10, submitted_at: '2026-07-11T08:00:00.000Z',
       quiz_title: 'Bài 1 – Ôn tập phép nhân',
     },
@@ -224,11 +224,13 @@ describe('result report cohort API', () => {
     expect(rosterQuery?.sql).toContain('archived_at IS NULL');
     const resultQuery = db.executed.find((statement) => statement.sql.includes('FROM results'));
     expect(resultQuery?.sql).toContain(`answers != '{"status":"STARTED"}'`);
-    expect(resultQuery?.sql).toContain("REPLACE(class_name, 'Lớp ', '')");
+    expect(resultQuery?.sql).toContain('class_id = ?');
+    expect(resultQuery?.sql).toContain('student_id IS NOT NULL');
+    expect(resultQuery?.sql).not.toMatch(/class_name\s*=|student_name\s*=/i);
     expect(db.executed.every((statement) => !/\bINSERT\b|\bUPDATE\b|\bDELETE\b/i.test(statement.sql))).toBe(true);
   });
 
-  it('passes the highest policy through and surfaces duplicate roster names as unresolved', async () => {
+  it('passes the highest policy through and keeps duplicate roster names distinct by student id', async () => {
     const db = new CohortDatabase();
     db.roster = [
       ...db.roster,
@@ -245,13 +247,18 @@ describe('result report cohort API', () => {
     expect(payload.data.attemptPolicy).toBe('highest');
     expect(payload.data.summary).toMatchObject({
       totalStudents: 4,
-      completedStudents: 1,
-      notCompletedStudents: 1,
-      unresolvedStudents: 2,
-      reportCount: 1,
+      completedStudents: 2,
+      notCompletedStudents: 2,
+      unresolvedStudents: 0,
+      reportCount: 2,
     });
-    expect(payload.data.unresolved.map((item: any) => item.student.id)).toEqual([
-      'student-an', 'student-an-2',
+    expect(payload.data.unresolved).toEqual([]);
+    expect(payload.data.ready.find((item: any) => item.student.id === 'student-an')).toMatchObject({
+      result: { id: 'an-new', score: 8 },
+      attemptCount: 2,
+    });
+    expect(payload.data.notCompleted.map((item: any) => item.id)).toEqual([
+      'student-chi', 'student-an-2',
     ]);
   });
 

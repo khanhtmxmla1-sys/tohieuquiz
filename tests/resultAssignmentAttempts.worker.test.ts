@@ -38,6 +38,9 @@ class FakeDatabase {
         class_id: 'class-4a9', class_name: '4A9',
       };
     }
+    if (sql.includes('FROM classes') && sql.includes('WHERE id = ?')) {
+      return { id: 'class-4a9', name: '4A9', teacher_username: 'teacher-a' };
+    }
     if (sql.includes('FROM assignments') && sql.includes('WHERE a.id = ?')) {
       return {
         id: bindings[0], quiz_id: 'quiz-week-30', class_id: 'class-4a9',
@@ -192,6 +195,9 @@ describe('assignment-scoped result attempt limits', () => {
           id: 'student-1', username: 'student-1', full_name: 'Nguyen Van A',
           class_id: 'class-4a9', class_name: '4A9',
         };
+      }
+      if (sql.includes('FROM classes') && sql.includes('WHERE id = ?')) {
+        return { id: 'class-4a9', name: '4A9', teacher_username: 'teacher-a' };
       }
       if (sql.includes('FROM assignments') && sql.includes('WHERE a.id = ?')) {
         return {

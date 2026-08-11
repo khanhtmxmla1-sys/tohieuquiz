@@ -44,7 +44,7 @@ export async function loadPreviewContext(
     return certificateError('CERTIFICATE_TEMPLATE_FORBIDDEN', 'Template is outside your scope', 403);
   }
 
-  const quizData = await loadPreviewQuiz(env, user, input, classroom.name, student.full_name);
+  const quizData = await loadPreviewQuiz(env, user, input);
   if (quizData instanceof Response) return quizData;
   let fieldsConfig: FieldConfig[];
   try {

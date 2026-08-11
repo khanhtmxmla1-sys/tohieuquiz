@@ -26,6 +26,8 @@ class RewardDatabase {
   pet: any = { level: 1, exp: 0, exp_to_next: 100, mood: 'happy' };
   result: any = {
     id: 42,
+    student_id: 'student-a',
+    class_id: 'class-a',
     student_name: 'Nguyễn Văn An',
     class_name: '5A',
     score: 8,
@@ -43,7 +45,7 @@ class RewardDatabase {
       return String(bindings[0]) === String(this.result?.id) ? this.result : null;
     }
     if (sql.includes('LEFT JOIN classes')) {
-      return { full_name: 'Nguyễn Văn An', class_name: '5A', coins: this.coins };
+      return { id: 'student-a', class_id: 'class-a', full_name: 'Nguyễn Văn An', class_name: '5A', coins: this.coins };
     }
     if (sql.includes('SELECT * FROM user_pets')) return this.pet ? { ...this.pet } : null;
     return null;
@@ -194,7 +196,8 @@ describe('result reward claim', () => {
 
   it('rejects a result owned by another student', async () => {
     const db = new RewardDatabase();
-    db.result.student_name = 'Học sinh khác';
+    db.result.student_id = 'student-other';
+    db.result.student_name = 'Nguyễn Văn An';
 
     const response = await claim(db);
     expect(response.status).toBe(403);

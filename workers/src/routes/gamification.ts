@@ -427,7 +427,7 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
                 COUNT(r.id) as quiz_count,
                 SUM(r.correct_count) as total_correct
             FROM results r
-            JOIN students s ON s.username = r.student_name
+            JOIN students s ON s.id = r.student_id
             WHERE r.submitted_at >= ?
               AND r.submitted_at < ?
             GROUP BY s.username
@@ -449,7 +449,7 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
                 AVG(CAST(r.time_taken AS REAL) / CAST(r.time_limit AS REAL)) as avg_speed_ratio,
                 COUNT(r.id) as quiz_count
             FROM results r
-            JOIN students s ON s.username = r.student_name
+            JOIN students s ON s.id = r.student_id
             WHERE r.time_taken > 0 AND r.time_limit > 0
             GROUP BY s.username
             HAVING quiz_count >= 5
@@ -471,7 +471,7 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
                 AVG(CAST(r.correct_count AS REAL) / CAST(r.total_questions AS REAL) * 100) as avg_accuracy,
                 COUNT(r.id) as quiz_count
             FROM results r
-            JOIN students s ON s.username = r.student_name
+            JOIN students s ON s.id = r.student_id
             WHERE r.total_questions > 0
             GROUP BY s.username
             HAVING quiz_count >= 5

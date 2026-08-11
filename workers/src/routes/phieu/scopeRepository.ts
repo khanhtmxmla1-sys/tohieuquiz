@@ -59,11 +59,11 @@ export async function getResultScope(
       r.score AS diem_so
     FROM results r
     JOIN classes c
-      ON LOWER(TRIM(c.name)) = LOWER(TRIM(r.class_name))
+      ON c.id = r.class_id
      AND COALESCE(c.archived_at, '') = ''
     JOIN students s
-      ON s.class_id = c.id
-     AND LOWER(TRIM(s.full_name)) = LOWER(TRIM(r.student_name))
+      ON s.id = r.student_id
+     AND s.class_id = c.id
      AND COALESCE(s.archived_at, '') = ''
     LEFT JOIN quizzes q ON q.id = r.quiz_id
     WHERE CAST(r.id AS TEXT) = ?

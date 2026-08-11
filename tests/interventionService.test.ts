@@ -31,6 +31,7 @@ const question = (id: string): Question => ({
 const result = (overrides: Record<string, unknown>) => ({
   id: 'result-1',
   student_id: 'student-1',
+  class_id: 'class-4a',
   student_name: 'Lan',
   class_name: '4A',
   quiz_id: 'quiz-source',

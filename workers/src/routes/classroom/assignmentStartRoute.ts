@@ -3,8 +3,6 @@ import { isStudent } from '../../middleware/jwtAuth';
 import { parseBody } from '../../utils/helpers';
 import { errorResponse, jsonResponse } from '../../utils/response';
 
-const normalizeIdentityText = (value: unknown): string => String(value ?? '').trim().toLowerCase();
-
 export async function handleAssignmentStartRoute(context: ClassroomRouteContext): Promise<Response | null> {
     const { request, path, method, db, nowIso, user } = context;
     if (!path.match(/^\/api\/assignments\/[^/]+\/start$/) || method !== 'POST') return null;
@@ -87,19 +85,10 @@ export async function handleAssignmentStartRoute(context: ClassroomRouteContext)
         SELECT COUNT(*) as cnt FROM results
         WHERE assignment_id = ?
           AND COALESCE(answers, '') != '{"status":"STARTED"}'
-          AND (
-            student_id = ?
-            OR (
-              (student_id IS NULL OR student_id = '')
-              AND LOWER(TRIM(student_name)) = ?
-              AND LOWER(TRIM(class_name)) = ?
-            )
-          )
+          AND student_id = ?
     `).bind(
         assignmentId,
         student.id,
-        normalizeIdentityText(student.full_name),
-        normalizeIdentityText(student.class_name),
     ).first<{ cnt: number }>();
 
     const attemptCount = Number(countResult?.cnt || 0);

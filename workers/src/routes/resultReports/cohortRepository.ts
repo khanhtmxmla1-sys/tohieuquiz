@@ -89,18 +89,15 @@ export async function loadResultReportCohortScope(
   `).bind(classroom.id).all<ResultReportRosterDbRow>();
 
   const resultsResult = await env.DB.prepare(`
-    SELECT id, student_name, score, correct_count, total_questions,
+    SELECT id, student_id, student_name, score, correct_count, total_questions,
            submitted_at, quiz_title
     FROM results
     WHERE quiz_id = ?
-      AND (
-        class_name = ?
-        OR class_name = 'Lớp ' || ?
-        OR REPLACE(class_name, 'Lớp ', '') = REPLACE(?, 'Lớp ', '')
-      )
+      AND class_id = ?
+      AND student_id IS NOT NULL
       AND answers != '{"status":"STARTED"}'
     ORDER BY submitted_at ASC, id ASC
-  `).bind(quiz.id, classroom.name, classroom.name, classroom.name)
+  `).bind(quiz.id, classroom.id)
     .all<ResultReportSourceDbRow>();
 
   return {

@@ -133,13 +133,10 @@ const buildFourWeekTrend = (
 const resolveStudentForResult = (
   result: InterventionResultRow,
   studentsById: Map<string, InterventionStudentRow>,
-  studentsByNameClass: Map<string, InterventionStudentRow>,
 ): InterventionStudentRow | null => {
-  const direct = result.student_id ? studentsById.get(String(result.student_id)) : null;
-  if (direct) return direct;
-  return studentsByNameClass.get(
-    `${normalizeText(result.student_name)}:${normalizeText(result.class_name)}`,
-  ) || null;
+  if (!result.student_id || !result.class_id) return null;
+  const direct = studentsById.get(String(result.student_id));
+  return direct && String(direct.class_id) === String(result.class_id) ? direct : null;
 };
 
 const buildRecommendations = (
@@ -194,14 +191,10 @@ export function buildInterventionSuggestionsFromData(
 ): InterventionSuggestion[] {
   const now = input.now || new Date();
   const studentsById = new Map(input.students.map((student) => [student.id, student]));
-  const studentsByNameClass = new Map(input.students.map((student) => [
-    `${normalizeText(student.full_name)}:${normalizeText(student.class_name)}`,
-    student,
-  ]));
   const resultsByStudentId = new Map<string, InterventionResultRow[]>();
 
   for (const result of input.results) {
-    const student = resolveStudentForResult(result, studentsById, studentsByNameClass);
+    const student = resolveStudentForResult(result, studentsById);
     if (!student) continue;
     const studentResults = resultsByStudentId.get(student.id) || [];
     studentResults.push(result);
@@ -489,21 +482,13 @@ export async function loadInterventionDashboard(
     const studentPlaceholders = studentIds.map(() => '?').join(',');
     const resultBindings: unknown[] = [since, ...studentIds, ...classIds];
     let resultQuery = `
-      SELECT r.id, r.student_id, r.student_name, r.class_name, r.quiz_id, r.quiz_title,
+      SELECT r.id, r.student_id, r.class_id, r.student_name, r.class_name, r.quiz_id, r.quiz_title,
              r.score, r.correct_count, r.total_questions, r.time_taken, r.submitted_at, r.answers
       FROM results r
       WHERE r.submitted_at >= ?
         AND r.answers != '{"status":"STARTED"}'
-        AND (
-          r.student_id IN (${studentPlaceholders})
-          OR (COALESCE(r.student_id, '') = '' AND EXISTS (
-            SELECT 1 FROM students sx
-            JOIN classes cx ON cx.id = sx.class_id
-            WHERE sx.class_id IN (${classPlaceholders})
-              AND LOWER(TRIM(sx.full_name)) = LOWER(TRIM(r.student_name))
-              AND LOWER(TRIM(cx.name)) = LOWER(TRIM(r.class_name))
-          ))
-        )`;
+        AND r.student_id IN (${studentPlaceholders})
+        AND r.class_id IN (${classPlaceholders})`;
     if (filters.quizId && filters.quizId !== 'all') {
       resultQuery += ' AND r.quiz_id = ?';
       resultBindings.push(filters.quizId);

@@ -38,12 +38,12 @@ const scope = {
   ],
   results: [
     {
-      id: 'result-an', student_name: 'Nguyễn Văn An', score: 8, correct_count: 8,
+      id: 'result-an', student_id: 'student-an', student_name: 'Nguyễn Văn An', score: 8, correct_count: 8,
       total_questions: 10, submitted_at: '2026-07-20T08:00:00.000Z',
       quiz_title: 'Bài 1 – Ôn tập phép nhân',
     },
     {
-      id: 'result-binh', student_name: 'Trần Minh Bình', score: 6, correct_count: 6,
+      id: 'result-binh', student_id: 'student-binh', student_name: 'Trần Minh Bình', score: 6, correct_count: 6,
       total_questions: 10, submitted_at: '2026-07-20T08:05:00.000Z',
       quiz_title: 'Bài 1 – Ôn tập phép nhân',
     },

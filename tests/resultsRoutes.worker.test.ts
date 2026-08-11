@@ -40,20 +40,25 @@ class Statement {
 class FakeDatabase {
   executed: Statement[] = [];
   matchingStudents: Array<{ id: string }> = [{ id: 'student-canonical' }];
+  classes = [{ id: 'class-4a9', name: '4A9', teacher_username: 'teacher-a' }];
 
   prepare(sql: string) {
     return new Statement(sql, this);
   }
 
-  first(sql: string, _bindings: unknown[]) {
-    if (sql.includes('SELECT id FROM classes WHERE name = ? AND teacher_username = ?')) {
-      return { id: 'class-4a9' };
+  first(sql: string, bindings: unknown[]) {
+    if (sql.includes('FROM classes') && sql.includes('WHERE id = ?')) {
+      return this.classes.find((row) => row.id === bindings[0]) || null;
     }
     return null;
   }
 
-  all(sql: string, _bindings: unknown[]) {
-    if (sql.includes('FROM students s') && sql.includes('JOIN classes c')) {
+  all(sql: string, bindings: unknown[]) {
+    if (sql.includes('FROM classes') && sql.includes('LOWER(TRIM(name))')) {
+      const normalized = String(bindings[0] || '').trim().toLowerCase();
+      return this.classes.filter((row) => row.name.trim().toLowerCase() === normalized);
+    }
+    if (sql.includes('FROM students s') && sql.includes('s.class_id = ?')) {
       return this.matchingStudents;
     }
     if (sql.includes('FROM questions')) {
@@ -67,7 +72,7 @@ class FakeDatabase {
   }
 }
 
-const makeRequest = () => new Request('https://example.test/api/results', {
+const makeRequest = (overrides: Record<string, unknown> = {}) => new Request('https://example.test/api/results', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -80,6 +85,7 @@ const makeRequest = () => new Request('https://example.test/api/results', {
     totalQuestions: 10,
     timeTaken: 300,
     answers: {},
+    ...overrides,
   }),
 });
 
@@ -118,10 +124,59 @@ describe('canonical student id on result writes', () => {
     expect(insert?.sql).toContain('student_id');
     expect(insert?.bindings[0]).toBe('student-canonical');
     expect(insert?.bindings[1]).toBeNull();
-    expect(insert?.bindings[2]).toBe(' Nguyễn Văn An ');
+    expect(insert?.bindings[2]).toBe('class-4a9');
+    expect(insert?.bindings[3]).toBe(' Nguyễn Văn An ');
+    expect(payload.classId).toBe('class-4a9');
   });
 
-  it('stores null instead of guessing when multiple active students match', async () => {
+  it('rejects a forged classId outside the teacher scope', async () => {
+    const db = new FakeDatabase();
+    db.classes.push({ id: 'class-other', name: '4A9', teacher_username: 'teacher-b' });
+
+    const response = await handleResultRoutes(
+      makeRequest({ classId: 'class-other' }),
+      { DB: db } as any,
+      '/api/results',
+      'POST',
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: 'RESULT_CLASS_FORBIDDEN' });
+    expect(insertedResult(db)).toBeUndefined();
+  });
+
+  it('rejects a classId and className mismatch', async () => {
+    const db = new FakeDatabase();
+
+    const response = await handleResultRoutes(
+      makeRequest({ classId: 'class-4a9', className: '5A' }),
+      { DB: db } as any,
+      '/api/results',
+      'POST',
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'RESULT_CLASS_AMBIGUOUS' });
+    expect(insertedResult(db)).toBeUndefined();
+  });
+
+  it('rejects a legacy className when multiple owned classes have the same name', async () => {
+    const db = new FakeDatabase();
+    db.classes.push({ id: 'class-duplicate', name: '4A9', teacher_username: 'teacher-a' });
+
+    const response = await handleResultRoutes(
+      makeRequest(),
+      { DB: db } as any,
+      '/api/results',
+      'POST',
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'RESULT_CLASS_AMBIGUOUS' });
+    expect(insertedResult(db)).toBeUndefined();
+  });
+
+  it('rejects ambiguous student identity instead of creating a newly unresolved result', async () => {
     const db = new FakeDatabase();
     db.matchingStudents = [{ id: 'student-1' }, { id: 'student-2' }];
 
@@ -132,7 +187,8 @@ describe('canonical student id on result writes', () => {
       'POST',
     );
 
-    expect(response.status).toBe(200);
-    expect(insertedResult(db)?.bindings[0]).toBeNull();
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'RESULT_STUDENT_AMBIGUOUS' });
+    expect(insertedResult(db)).toBeUndefined();
   });
 });

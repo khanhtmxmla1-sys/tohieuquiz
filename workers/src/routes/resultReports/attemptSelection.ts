@@ -15,6 +15,7 @@ export interface ResultReportRosterRow {
 
 export interface ResultReportSourceRow {
   id: string;
+  studentId: string | null;
   studentName: string;
   score: number;
   correctCount: number;
@@ -81,20 +82,13 @@ export function buildResultReportCohort(
   results: ResultReportSourceRow[],
   policy: ResultReportAttemptPolicy,
 ): SelectedResultReportCohort {
-  const rosterByName = new Map<string, ResultReportRosterRow[]>();
-  for (const student of roster) {
-    const key = normalizeResultReportLookup(student.fullName);
-    const matches = rosterByName.get(key) ?? [];
-    matches.push(student);
-    rosterByName.set(key, matches);
-  }
-
-  const resultsByName = new Map<string, ResultReportSourceRow[]>();
+  const resultsByStudentId = new Map<string, ResultReportSourceRow[]>();
   for (const result of results) {
-    const key = normalizeResultReportLookup(result.studentName);
-    const matches = resultsByName.get(key) ?? [];
+    const studentId = String(result.studentId || '').trim();
+    if (!studentId) continue;
+    const matches = resultsByStudentId.get(studentId) ?? [];
     matches.push(result);
-    resultsByName.set(key, matches);
+    resultsByStudentId.set(studentId, matches);
   }
 
   const ready: ResultReportCohortReadyItem[] = [];
@@ -103,18 +97,11 @@ export function buildResultReportCohort(
 
   for (const rosterRow of roster) {
     const student = mapStudent(rosterRow);
-    const key = normalizeResultReportLookup(rosterRow.fullName);
-    if ((rosterByName.get(key)?.length ?? 0) > 1) {
-      unresolved.push({ student, reason: 'duplicate_name' });
-      continue;
-    }
-
-    const attempts = resultsByName.get(key) ?? [];
+    const attempts = resultsByStudentId.get(rosterRow.id) ?? [];
     if (attempts.length === 0) {
       notCompleted.push(student);
       continue;
     }
-
     ready.push({
       student,
       result: mapResult(selectAttempt(attempts, policy)),

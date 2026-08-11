@@ -31,5 +31,5 @@ export interface BatchResult {
 export interface BatchScope {
   roster: BatchStudent[];
   quiz: BatchQuiz | null;
-  latestResultByName: Map<string, BatchResult>;
+  latestResultByStudentId: Map<string, BatchResult>;
 }

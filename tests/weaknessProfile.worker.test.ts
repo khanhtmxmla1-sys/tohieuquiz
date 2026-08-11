@@ -66,6 +66,8 @@ function createAnswerEntry(selectedAnswer: any, isCorrect: boolean, questionSnap
 function createResult(overrides: Partial<ResultRowWithAnswers>): ResultRowWithAnswers {
     return {
         id: 1,
+        student_id: 'student-lan',
+        class_id: 'class-2a',
         student_name: 'Lan',
         class_name: '2A',
         quiz_id: 'quiz-math',
@@ -125,10 +127,10 @@ function createFakeDb(results: ResultRowWithAnswers[], questions: Question[]) {
                             throw new Error(`Unhandled first query: ${query}`);
                         },
                         async all<T>() {
-                            if (query.includes('FROM results') && query.includes('student_name = ? AND class_name = ?')) {
-                                const [studentName, className] = params;
+                            if (query.includes('FROM results') && query.includes('student_id = ? AND class_id = ?')) {
+                                const [studentId, classId] = params;
                                 const filtered = results
-                                    .filter((result) => result.student_name === studentName && result.class_name === className)
+                                    .filter((result) => result.student_id === studentId && result.class_id === classId)
                                     .sort((left, right) => right.submitted_at.localeCompare(left.submitted_at))
                                     .slice(0, 5);
 
@@ -220,7 +222,7 @@ describe('weakness profile analytics', () => {
         expect(skill).toMatchObject({ attempted: 1, correct: 1, wrong: 0 });
     });
 
-    it('aggregates up to five recent results by student_name + class_name and applies status rules', () => {
+    it('aggregates up to five recent results by canonical student_id + class_id and applies status rules', () => {
         const baseResult = createResult({
             id: 100,
             quiz_id: 'quiz-math',
@@ -276,6 +278,7 @@ describe('weakness profile analytics', () => {
             }),
             createResult({
                 id: 106,
+                class_id: 'class-2b',
                 class_name: '2B',
                 quiz_id: 'quiz-math',
                 submitted_at: '2026-04-21T11:00:00.000Z',
@@ -340,6 +343,7 @@ describe('weakness profile analytics', () => {
 
         const differentClassResult = createResult({
             id: 203,
+            class_id: 'class-3a',
             class_name: '3A',
             submitted_at: '2026-04-21T11:00:00.000Z',
             answers: JSON.stringify({

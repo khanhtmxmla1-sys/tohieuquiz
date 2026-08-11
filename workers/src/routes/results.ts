@@ -27,6 +27,12 @@ import {
 } from '../services/quizScoringRolloutService';
 import { handleInterventionRoutes } from './interventions';
 import {
+    canAccessCanonicalResult,
+    resolveResultAccessScope,
+    resultScopePredicate,
+    type ResultAccessScope,
+} from '../services/resultAccess';
+import {
     buildResultSkillBreakdownFromData,
     buildWeaknessProfileFromData,
     getQuestionsForQuizIds,
@@ -52,7 +58,7 @@ const loadResultAssignmentPolicy = async (
     input: {
         assignmentId: string;
         quizId: string;
-        className: string;
+        classId: string;
         student: any | null;
     },
 ): Promise<ResultAssignmentPolicy | null> => {
@@ -67,11 +73,12 @@ const loadResultAssignmentPolicy = async (
             .bind(input.assignmentId)
             .first<ResultAssignmentPolicy>();
     }
+    if (!input.classId) return null;
 
-    const bindings: unknown[] = [input.quizId, normalizeName(input.className), new Date().toISOString()];
+    const bindings: unknown[] = [input.quizId, input.classId, new Date().toISOString()];
     let query = `${selectColumns}
         WHERE a.quiz_id = ?
-          AND LOWER(TRIM(c.name)) = ?
+          AND a.class_id = ?
           AND UPPER(COALESCE(a.status, 'OPEN')) = 'OPEN'
           AND (COALESCE(a.deadline, '') = '' OR a.deadline >= ?)`;
 
@@ -91,11 +98,11 @@ const loadResultAssignmentPolicy = async (
 
 const validateResultAssignmentPolicy = (
     assignment: ResultAssignmentPolicy,
-    input: { quizId: string; className: string; student: any | null },
+    input: { quizId: string; classId: string; student: any | null },
 ): Response | null => {
     if (
         String(assignment.quiz_id) !== String(input.quizId)
-        || normalizeName(assignment.class_name) !== normalizeName(input.className)
+        || String(assignment.class_id) !== String(input.classId)
     ) {
         return errorResponse('Forbidden: Assignment does not match this quiz or class', 403);
     }
@@ -130,58 +137,157 @@ const getStudentForUser = async (db: D1Database, user: JWTPayload): Promise<any 
         `SELECT students.id, students.username, students.full_name, students.class_id, classes.name AS class_name
          FROM students
          LEFT JOIN classes ON classes.id = students.class_id
-         WHERE students.username = ?`
+         WHERE students.username = ? AND COALESCE(students.archived_at, '') = ''`
     ).bind(user.username).first<any>();
 };
 
-const canTeacherAccessClassName = async (db: D1Database, user: JWTPayload, className: string): Promise<boolean> => {
-    if (requireAdmin(user)) return true;
-    if (user.role !== 'teacher') return false;
-    const classroom = await db.prepare('SELECT id FROM classes WHERE name = ? AND teacher_username = ?')
-        .bind(className, user.username)
-        .first<any>();
-    return !!classroom;
+interface ResultClassRow {
+    id: string;
+    name: string;
+    teacher_username: string;
+}
+
+const resultClassError = (
+    code: 'RESULT_CLASS_AMBIGUOUS' | 'RESULT_CLASS_FORBIDDEN',
+    message: string,
+    status: 403 | 409,
+): Response => jsonResponse({ status: 'error', code, message }, status);
+
+const resolveSubmissionClass = async (
+    db: D1Database,
+    user: JWTPayload,
+    input: {
+        requestedClassId: string;
+        className: string;
+        student: any | null;
+        assignment: ResultAssignmentPolicy | null;
+    },
+): Promise<ResultClassRow | Response> => {
+    const requestedClassId = String(input.requestedClassId || '').trim();
+    const requestedClassName = normalizeName(input.className);
+
+    const loadById = async (classId: string): Promise<ResultClassRow | null> => db.prepare(`
+        SELECT id, name, teacher_username
+        FROM classes
+        WHERE id = ? AND COALESCE(archived_at, '') = ''
+        LIMIT 1
+    `).bind(classId).first<ResultClassRow>();
+
+    const enforceScopeAndName = (classroom: ResultClassRow): Response | null => {
+        if (user.role === 'teacher' && classroom.teacher_username !== user.username) {
+            return resultClassError('RESULT_CLASS_FORBIDDEN', 'Class is outside your scope', 403);
+        }
+        if (requestedClassId && requestedClassId !== classroom.id) {
+            return resultClassError('RESULT_CLASS_AMBIGUOUS', 'classId conflicts with the canonical result class', 409);
+        }
+        if (requestedClassName && normalizeName(classroom.name) !== requestedClassName) {
+            return resultClassError('RESULT_CLASS_AMBIGUOUS', 'className does not match classId', 409);
+        }
+        return null;
+    };
+
+    if (input.student) {
+        const classId = String(input.student.class_id || '').trim();
+        if (!classId) {
+            return resultClassError('RESULT_CLASS_AMBIGUOUS', 'Student has no canonical class', 409);
+        }
+        if (input.assignment && String(input.assignment.class_id) !== classId) {
+            return resultClassError('RESULT_CLASS_FORBIDDEN', 'Assignment is outside the student class', 403);
+        }
+        const classroom = await loadById(classId);
+        if (!classroom) {
+            return resultClassError('RESULT_CLASS_AMBIGUOUS', 'Student class could not be resolved', 409);
+        }
+        return classroom;
+    }
+
+    if (input.assignment) {
+        const classroom = await loadById(String(input.assignment.class_id || ''));
+        if (!classroom) {
+            return resultClassError('RESULT_CLASS_AMBIGUOUS', 'Assignment class could not be resolved', 409);
+        }
+        const error = enforceScopeAndName(classroom);
+        return error || classroom;
+    }
+
+    if (requestedClassId) {
+        const classroom = await loadById(requestedClassId);
+        if (!classroom) {
+            return resultClassError('RESULT_CLASS_AMBIGUOUS', 'classId could not be resolved', 409);
+        }
+        const error = enforceScopeAndName(classroom);
+        return error || classroom;
+    }
+
+    if (!requestedClassName) {
+        return resultClassError('RESULT_CLASS_AMBIGUOUS', 'A canonical class could not be resolved', 409);
+    }
+
+    const matches = await db.prepare(`
+        SELECT id, name, teacher_username
+        FROM classes
+        WHERE LOWER(TRIM(name)) = ? AND COALESCE(archived_at, '') = ''
+        ORDER BY id
+        LIMIT 3
+    `).bind(requestedClassName).all<ResultClassRow>();
+    const allMatches = matches.results || [];
+    const scopedMatches = user.role === 'teacher'
+        ? allMatches.filter((row) => row.teacher_username === user.username)
+        : allMatches;
+
+    if (user.role === 'teacher' && scopedMatches.length === 0 && allMatches.length > 0) {
+        return resultClassError('RESULT_CLASS_FORBIDDEN', 'Class is outside your scope', 403);
+    }
+    if (scopedMatches.length !== 1) {
+        return resultClassError('RESULT_CLASS_AMBIGUOUS', 'Class name is missing or ambiguous', 409);
+    }
+    return scopedMatches[0];
 };
 
 const resolveUniqueStudentId = async (
     db: D1Database,
     studentName: string,
-    className: string,
+    classId: string,
+    requestedStudentId = '',
 ): Promise<string | null> => {
+    if (!classId) return null;
+    const requestedId = String(requestedStudentId || '').trim();
+    if (requestedId) {
+        const row = await db.prepare(`
+            SELECT id, full_name
+            FROM students
+            WHERE id = ? AND class_id = ? AND COALESCE(archived_at, '') = ''
+            LIMIT 1
+        `).bind(requestedId, classId).first<{ id: string; full_name: string }>();
+        if (!row) return null;
+        if (normalizeName(studentName) && normalizeName(row.full_name) !== normalizeName(studentName)) return null;
+        return String(row.id);
+    }
+    if (!normalizeName(studentName)) return null;
     const rows = await db.prepare(`
         SELECT s.id
         FROM students s
-        JOIN classes c ON c.id = s.class_id
-        WHERE LOWER(TRIM(s.full_name)) = ?
-          AND LOWER(TRIM(c.name)) = ?
+        WHERE s.class_id = ?
+          AND LOWER(TRIM(s.full_name)) = ?
           AND COALESCE(s.archived_at, '') = ''
         LIMIT 2
-    `).bind(normalizeName(studentName), normalizeName(className)).all<{ id: string }>();
+    `).bind(classId, normalizeName(studentName)).all<{ id: string }>();
 
     return rows.results.length === 1 ? String(rows.results[0].id) : null;
 };
 
-const canAccessResult = async (db: D1Database, user: JWTPayload, result: any): Promise<boolean> => {
-    if (requireAdmin(user)) return true;
-    if (user.role === 'teacher') {
-        return await canTeacherAccessClassName(db, user, result.class_name || '');
-    }
-    if (isStudent(user)) {
-        const student = await getStudentForUser(db, user);
-        if (!student) return false;
-        return normalizeName(result.student_name) === normalizeName(student.full_name) &&
-            normalizeName(result.class_name) === normalizeName(student.class_name);
-    }
-    return false;
-};
-
-const requireResultAccess = async (db: D1Database, user: JWTPayload, resultId: string): Promise<{ result: any } | Response> => {
+const requireResultAccess = async (
+    db: D1Database,
+    user: JWTPayload,
+    resultId: string,
+): Promise<{ result: any; scope: ResultAccessScope } | Response> => {
     const result = await getResultById(db, resultId);
     if (!result) return errorResponse('Result not found', 404);
-    if (!(await canAccessResult(db, user, result))) {
+    const scope = await resolveResultAccessScope(db, user);
+    if (!canAccessCanonicalResult(scope, result)) {
         return errorResponse('Forbidden: You do not have access to this result', 403);
     }
-    return { result };
+    return { result, scope };
 };
 
 export async function handleResultRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
@@ -205,9 +311,10 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             return errorResponse('Forbidden: Teacher access required', 403);
         }
 
+        const accessScope = await resolveResultAccessScope(db, user);
         const scope = requireAdmin(user)
             ? { role: 'admin' as const }
-            : { role: 'teacher' as const, username: user.username };
+            : { role: 'teacher' as const, classIds: accessScope.classIds };
         const summary = await loadResultDashboardSummary(db, scope);
         return jsonResponse({ data: summary });
     }
@@ -226,7 +333,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const quizId = url.searchParams.get('quizId') || '';
 
         let countQuery = 'SELECT COUNT(*) as total FROM results';
-        let dataQuery = 'SELECT id, student_name, class_name, quiz_id, quiz_title, score, correct_count, total_questions, time_taken, submitted_at FROM results';
+        let dataQuery = 'SELECT id, student_id, class_id, assignment_id, student_name, class_name, quiz_id, quiz_title, score, correct_count, total_questions, time_taken, submitted_at, grading_version FROM results';
         const bindings: unknown[] = [];
         const whereClauses: string[] = [];
 
@@ -235,16 +342,14 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             bindings.push(quizId);
         }
 
-        if (user.role === 'teacher') {
-            whereClauses.push('class_name IN (SELECT name FROM classes WHERE teacher_username = ?)');
-            bindings.push(user.username);
-        } else if (isStudent(user)) {
-            const student = await getStudentForUser(db, user);
-            if (!student) return errorResponse('Student not found', 404);
-            whereClauses.push('LOWER(TRIM(student_name)) = ? AND LOWER(TRIM(class_name)) = ?');
-            bindings.push(normalizeName(student.full_name), normalizeName(student.class_name));
-        } else if (!requireAdmin(user)) {
+        if (!requireAdmin(user) && user.role !== 'teacher' && !isStudent(user)) {
             return errorResponse('Forbidden: Results access required', 403);
+        }
+        if (!requireAdmin(user)) {
+            const accessScope = await resolveResultAccessScope(db, user);
+            const predicate = resultScopePredicate(accessScope, 'results');
+            whereClauses.push(predicate.sql);
+            bindings.push(...predicate.bindings);
         }
 
         const countBindings = [...bindings];
@@ -272,6 +377,9 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const last = pageRows.at(-1);
         const mapped = pageRows.map((result) => ({
             id: result.id,
+            studentId: result.student_id || null,
+            classId: result.class_id || null,
+            assignmentId: result.assignment_id || null,
             'Student Name': result.student_name,
             'Class': result.class_name,
             'Quiz ID': result.quiz_id,
@@ -281,6 +389,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             'Total Questions': result.total_questions,
             'Time Taken': result.time_taken || 0,
             'Submitted At': result.submitted_at,
+            gradingVersion: result.grading_version || 'legacy',
         }));
         const hasMore = sourceRows.length > limit;
         return jsonResponse({
@@ -343,8 +452,10 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const bindings: unknown[] = [...resultIds];
         let query = `SELECT id, answers FROM results WHERE id IN (${placeholders})`;
         if (!requireAdmin(user)) {
-            query += ' AND class_name IN (SELECT name FROM classes WHERE teacher_username = ?)';
-            bindings.push(user.username);
+            const accessScope = await resolveResultAccessScope(db, user);
+            const predicate = resultScopePredicate(accessScope, 'results');
+            query += ` AND ${predicate.sql}`;
+            bindings.push(...predicate.bindings);
         }
         const rows = await db.prepare(query).bind(...bindings).all<{ id: string; answers: string }>();
         const answersByResultId = Object.fromEntries(
@@ -370,13 +481,10 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const resultId = path.split('/')[3];
         const access = await requireResultAccess(db, user, resultId);
         if (access instanceof Response) return access;
-        const { result } = access;
+        const { result, scope } = access;
 
         const recentResults = await getRecentResultsForStudentContext(db, result);
-        const visibleRecentResults: any[] = [];
-        for (const item of recentResults) {
-            if (await canAccessResult(db, user, item)) visibleRecentResults.push(item);
-        }
+        const visibleRecentResults = recentResults.filter((item) => canAccessCanonicalResult(scope, item));
         const questions = await getQuestionsForQuizIds(db, visibleRecentResults.map((item) => item.quiz_id));
         return jsonResponse(buildWeaknessProfileFromData(result, visibleRecentResults, questions));
     }
@@ -389,6 +497,8 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const quizId = body.quizId || '';
         let studentName = body.studentName || '';
         let className = body.className || '';
+        const requestedClassId = String(body.classId || '').trim();
+        const requestedStudentId = String(body.studentId || '').trim();
         let studentContext: any | null = null;
 
         if (isStudent(user)) {
@@ -396,59 +506,74 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             if (!studentContext) return errorResponse('Student not found', 404);
             studentName = studentContext.full_name || '';
             className = studentContext.class_name || '';
-        } else if (user.role === 'teacher') {
-            if (!(await canTeacherAccessClassName(db, user, className))) {
-                return errorResponse('Forbidden: You do not manage this class', 403);
-            }
-        } else if (!requireAdmin(user)) {
+        } else if (user.role !== 'teacher' && !requireAdmin(user)) {
             return errorResponse('Forbidden: Results submit access required', 403);
         }
 
-        const canonicalStudentId = studentContext?.id
-            || await resolveUniqueStudentId(db, studentName, className);
-
-        // SECURITY CHECK: Enforce the exact assignment selected by the student UI.
-        // Older clients without assignmentId fall back only to the newest applicable open assignment.
+        // Exact assignment IDs are resolved first because assignment.class_id is
+        // stronger ownership evidence than any client-provided class label.
         const assignmentId = String(body.assignmentId || '').trim();
-        const assignment = await loadResultAssignmentPolicy(db, {
-            assignmentId,
-            quizId,
-            className,
-            student: studentContext,
-        });
-
+        let assignment = assignmentId
+            ? await loadResultAssignmentPolicy(db, {
+                assignmentId,
+                quizId,
+                classId: '',
+                student: studentContext,
+            })
+            : null;
         if (assignmentId && !assignment) {
             return errorResponse('Assignment not found', 404);
+        }
+
+        const classResolution = await resolveSubmissionClass(db, user, {
+            requestedClassId,
+            className,
+            student: studentContext,
+            assignment,
+        });
+        if (classResolution instanceof Response) return classResolution;
+        const canonicalClassId = classResolution.id;
+        className = classResolution.name;
+
+        // Legacy clients without assignmentId may still bind to an open assignment,
+        // but only inside the already-resolved canonical class.
+        if (!assignment) {
+            assignment = await loadResultAssignmentPolicy(db, {
+                assignmentId: '',
+                quizId,
+                classId: canonicalClassId,
+                student: studentContext,
+            });
         }
 
         if (assignment) {
             const assignmentError = validateResultAssignmentPolicy(assignment, {
                 quizId,
-                className,
+                classId: canonicalClassId,
                 student: studentContext,
             });
             if (assignmentError) return assignmentError;
+        }
 
+        const canonicalStudentId = studentContext?.id
+            || await resolveUniqueStudentId(db, studentName, canonicalClassId, requestedStudentId);
+        if (!canonicalStudentId) {
+            return jsonResponse({
+                status: 'error',
+                code: 'RESULT_STUDENT_AMBIGUOUS',
+                message: 'A canonical student could not be resolved for this result',
+            }, 409);
+        }
+
+        if (assignment) {
             const maxAttempts = Number(assignment.max_attempts) || 1;
             const countResult = await db.prepare(
                 `SELECT COUNT(*) as cnt
                  FROM results
                  WHERE assignment_id = ?
                    AND COALESCE(answers, '') != '{"status":"STARTED"}'
-                   AND (
-                     student_id = ?
-                     OR (
-                       student_id IS NULL
-                       AND LOWER(TRIM(student_name)) = ?
-                       AND LOWER(TRIM(class_name)) = ?
-                     )
-                   )`
-            ).bind(
-                assignment.id,
-                canonicalStudentId,
-                normalizeName(studentName),
-                normalizeName(className),
-            ).first<{ cnt: number }>();
+                   AND student_id = ?`
+            ).bind(assignment.id, canonicalStudentId).first<{ cnt: number }>();
 
             const currentAttempts = countResult?.cnt || 0;
             if (currentAttempts >= maxAttempts) {
@@ -465,7 +590,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const scoringMode = await resolveQuizScoringRolloutMode(db, {
             role: user.role as 'admin' | 'teacher' | 'student' | 'parent' | 'public',
             username: user.username,
-            classIds: studentContext?.class_id ? [String(studentContext.class_id)] : [],
+            classIds: [canonicalClassId],
         });
         let grading;
         try {
@@ -506,12 +631,12 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const submittedAt = new Date().toISOString();
         const insertResult = await db.prepare(`
             INSERT INTO results (
-                student_id, assignment_id, student_name, class_name, quiz_id, quiz_title,
+                student_id, assignment_id, class_id, student_name, class_name, quiz_id, quiz_title,
                 score, correct_count, total_questions, time_taken, submitted_at, answers,
                 grading_version
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
-            canonicalStudentId, assignment?.id || null, studentName, className, quizId,
+            canonicalStudentId, assignment?.id || null, canonicalClassId, studentName, className, quizId,
             body.quizTitle || '', score, correctCount,
             totalQuestions, body.timeTaken || 0,
             submittedAt,
@@ -539,6 +664,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             status: 'success',
             resultId,
             assignmentId: assignment?.id || null,
+            classId: canonicalClassId,
             score,
             correctCount,
             questionCount: grading.questionCount,
