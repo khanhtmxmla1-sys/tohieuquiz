@@ -15,6 +15,7 @@ import {
     QUESTION_JSON_EXAMPLE,
     parseQuestionJsonText,
 } from '../src/features/manual-quiz-workspace/import/jsonQuestionImporter';
+import canonicalPromptFixture from '../docs/prompts/ToHieuQuiz_System_Prompt_v4.1_Canonical_Fixture.json';
 
 const officialRows = [
     {
@@ -821,6 +822,53 @@ describe('JSON question importer', () => {
         ]);
     });
 
+    it('accepts choice options that occur naturally inside a shared reading passage', () => {
+        const question = 'Đọc đoạn văn sau và chọn tất cả các từ chỉ hoạt động, trạng thái được dùng để nhân hóa thiên nhiên. Mặt trời đạp xe qua đỉnh núi. Gió trốn tìm trong kẽ lá. Những chú chim hót líu lo.';
+        const questionRichText = {
+            schemaVersion: 1,
+            doc: {
+                type: 'doc',
+                content: [{
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: question }],
+                }],
+            },
+        };
+        const result = parseQuestionJsonText(JSON.stringify([{
+            question_type: 'MULTIPLE_CHOICE',
+            question,
+            questionRichText,
+            options: [
+                { id: 'A', text: 'đạp xe' },
+                { id: 'B', text: 'trốn tìm' },
+                { id: 'C', text: 'hót líu lo' },
+            ],
+            correct_answers: ['A', 'B'],
+        }]));
+
+        expect(result.needsReview).toHaveLength(0);
+        expect(result.rejected).toHaveLength(0);
+        expect(result.accepted).toHaveLength(1);
+        expect((result.accepted[0].question as any).questionRichText).toEqual(questionRichText);
+    });
+
+    it('still flags a choice list explicitly copied into the main question', () => {
+        const result = parseQuestionJsonText(JSON.stringify([{
+            question_type: 'MULTIPLE_CHOICE',
+            question: 'Chọn tất cả đáp án đúng.\nA. đạp xe\nB. trốn tìm\nC. hót líu lo',
+            options: [
+                { id: 'A', text: 'đạp xe' },
+                { id: 'B', text: 'trốn tìm' },
+                { id: 'C', text: 'hót líu lo' },
+            ],
+            correct_answers: ['A', 'B'],
+        }]));
+
+        expect(result.accepted).toHaveLength(0);
+        expect(result.needsReview).toHaveLength(1);
+        expect(result.needsReview[0].issues.join(' ')).toMatch(/MULTIPLE_CHOICE|options|question/i);
+    });
+
     it('flags structured item payload duplicated into question text', () => {
         const result = parseQuestionJsonText(JSON.stringify([
             {
@@ -899,6 +947,15 @@ describe('JSON question importer', () => {
             type: QuestionType.MCQ,
             correctAnswer: 'B',
         }));
+    });
+
+    it('imports the v4.1 canonical prompt fixture with all 13 question types', () => {
+        const result = parseQuestionJsonText(JSON.stringify(canonicalPromptFixture));
+
+        expect(result.accepted).toHaveLength(13);
+        expect(result.needsReview).toHaveLength(0);
+        expect(result.rejected).toHaveLength(0);
+        expect(new Set(result.accepted.map(item => item.question.type)).size).toBe(13);
     });
 
     it('flags conflicting type aliases and broken canonical references for review', () => {

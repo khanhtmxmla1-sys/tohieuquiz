@@ -1,0 +1,219 @@
+[
+  {
+    "id": "Q001",
+    "question_type": "SINGLE_CHOICE",
+    "difficulty": "NHAN_BIET",
+    "points": 1,
+    "question": "Tính giá trị biểu thức sau.\n$24 \\div 6 = ?$",
+    "questionRichText": {
+      "schemaVersion": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": { "textAlign": "left" },
+            "content": [
+              { "type": "text", "text": "Tính giá trị biểu thức sau.", "marks": [{ "type": "bold" }] }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "attrs": { "textAlign": "center" },
+            "content": [
+              { "type": "text", "text": "$24 \\div 6 = ?$" }
+            ]
+          }
+        ]
+      }
+    },
+    "options": [
+      { "id": "A", "text": "$2$" },
+      { "id": "B", "text": "$4$" },
+      { "id": "C", "text": "$6$" },
+      { "id": "D", "text": "$8$" }
+    ],
+    "correct_answer": "B",
+    "explanation": "$24 \\div 6 = 4$."
+  },
+  {
+    "id": "Q002",
+    "question_type": "TRUE_FALSE",
+    "difficulty": "THONG_HIEU",
+    "points": 1,
+    "question": "Đánh dấu Đúng hoặc Sai cho từng nhận định.",
+    "items": [
+      { "id": "TF1", "statement": "Trái Đất quay quanh Mặt Trời.", "correct_answer": true },
+      { "id": "TF2", "statement": "Mặt Trăng là một ngôi sao.", "correct_answer": false }
+    ],
+    "explanation": "Trái Đất quay quanh Mặt Trời; Mặt Trăng là vệ tinh tự nhiên."
+  },
+  {
+    "id": "Q003",
+    "question_type": "SHORT_ANSWER",
+    "difficulty": "NHAN_BIET",
+    "points": 1,
+    "question": "Thủ đô của Việt Nam là thành phố nào?",
+    "accepted_answers": ["Hà Nội"],
+    "explanation": "Hà Nội là thủ đô của Việt Nam."
+  },
+  {
+    "id": "Q004",
+    "question_type": "MATCHING",
+    "difficulty": "THONG_HIEU",
+    "points": 1,
+    "question": "Nối mỗi quốc gia với thủ đô tương ứng.",
+    "left_items": [
+      { "id": "L1", "text": "Việt Nam" },
+      { "id": "L2", "text": "Nhật Bản" }
+    ],
+    "right_items": [
+      { "id": "R1", "text": "Tokyo" },
+      { "id": "R2", "text": "Hà Nội" }
+    ],
+    "matches": [
+      { "left": "L1", "right": "R2" },
+      { "left": "L2", "right": "R1" }
+    ],
+    "explanation": "Việt Nam – Hà Nội; Nhật Bản – Tokyo."
+  },
+  {
+    "id": "Q005",
+    "question_type": "MULTIPLE_CHOICE",
+    "difficulty": "THONG_HIEU",
+    "points": 1,
+    "question": "Chọn tất cả các phát biểu đúng về nước ở điều kiện thường.",
+    "options": [
+      { "id": "A", "text": "Nước không màu." },
+      { "id": "B", "text": "Nước có thể hòa tan một số chất." },
+      { "id": "C", "text": "Nước luôn có dạng cố định." },
+      { "id": "D", "text": "Nước có thể chảy." }
+    ],
+    "correct_answers": ["A", "B", "D"],
+    "explanation": "Nước không màu, có thể hòa tan một số chất và có thể chảy."
+  },
+  {
+    "id": "Q006",
+    "question_type": "DRAG_DROP_FILL",
+    "difficulty": "THONG_HIEU",
+    "points": 1,
+    "question": "Kéo từ thích hợp vào từng chỗ trống.",
+    "content": "I have a book. It is {{blank1}}. You have a ruler. It is {{blank2}}.",
+    "drag_items": [
+      { "id": "D1", "text": "mine" },
+      { "id": "D2", "text": "yours" },
+      { "id": "D3", "text": "hers" }
+    ],
+    "answers": [
+      { "blank": "blank1", "item": "D1" },
+      { "blank": "blank2", "item": "D2" }
+    ],
+    "explanation": "Mine và yours là các đại từ sở hữu phù hợp."
+  },
+  {
+    "id": "Q007",
+    "question_type": "ORDERING",
+    "difficulty": "THONG_HIEU",
+    "points": 1,
+    "question": "Sắp xếp các hoạt động theo trình tự buổi sáng hợp lý.",
+    "items": [
+      { "id": "O1", "text": "Ăn sáng" },
+      { "id": "O2", "text": "Thức dậy" },
+      { "id": "O3", "text": "Đánh răng" }
+    ],
+    "correct_order": ["O2", "O3", "O1"],
+    "explanation": "Thức dậy, đánh răng rồi ăn sáng."
+  },
+  {
+    "id": "Q008",
+    "question_type": "IMAGE_QUESTION",
+    "difficulty": "NHAN_BIET",
+    "points": 1,
+    "question": "Quan sát hình và chọn con vật xuất hiện trong ảnh.",
+    "image_url": "https://example.com/images/cat.jpg",
+    "image_description": "Một con mèo đang ngồi trên thảm.",
+    "options": [
+      { "id": "A", "text": "Con mèo" },
+      { "id": "B", "text": "Con chó" },
+      { "id": "C", "text": "Con thỏ" },
+      { "id": "D", "text": "Con chim" }
+    ],
+    "correct_answer": "A",
+    "explanation": "Ảnh thể hiện một con mèo."
+  },
+  {
+    "id": "Q009",
+    "question_type": "DROPDOWN",
+    "difficulty": "THONG_HIEU",
+    "points": 1,
+    "question": "Chọn từ đúng trong mỗi danh sách.",
+    "content": "The book is {{select1}}. The ruler is {{select2}}.",
+    "dropdowns": [
+      { "id": "select1", "options": ["mine", "my"], "correct_answer": "mine" },
+      { "id": "select2", "options": ["yours", "your"], "correct_answer": "yours" }
+    ],
+    "explanation": "Mine và yours đứng độc lập sau động từ to be."
+  },
+  {
+    "id": "Q010",
+    "question_type": "UNDERLINE",
+    "difficulty": "THONG_HIEU",
+    "points": 1,
+    "question": "Chọn các từ ngữ chỉ hoạt động của sự vật được nhân hóa.",
+    "content": "Mặt trời đạp xe qua đỉnh núi. Gió trốn tìm trong kẽ lá. Những chú chim hót líu lo.",
+    "selectable_parts": [
+      { "id": "U1", "text": "đạp xe" },
+      { "id": "U2", "text": "trốn tìm" },
+      { "id": "U3", "text": "hót líu lo" }
+    ],
+    "correct_answers": ["U1", "U2"],
+    "explanation": "“Đạp xe” và “trốn tìm” là hoạt động của con người được gán cho thiên nhiên."
+  },
+  {
+    "id": "Q011",
+    "question_type": "CATEGORIZATION",
+    "difficulty": "THONG_HIEU",
+    "points": 1,
+    "question": "Phân loại các từ vào nhóm phù hợp.",
+    "groups": [
+      { "id": "G1", "name": "Danh từ" },
+      { "id": "G2", "name": "Động từ" }
+    ],
+    "items": [
+      { "id": "I1", "text": "học sinh" },
+      { "id": "I2", "text": "đọc" }
+    ],
+    "answers": [
+      { "item": "I1", "group": "G1" },
+      { "item": "I2", "group": "G2" }
+    ],
+    "explanation": "“Học sinh” là danh từ; “đọc” là động từ."
+  },
+  {
+    "id": "Q012",
+    "question_type": "WORD_ASSEMBLY",
+    "difficulty": "NHAN_BIET",
+    "points": 1,
+    "question": "Ghép các chữ cái thành từ đúng.",
+    "parts": [
+      { "id": "W1", "text": "o" },
+      { "id": "W2", "text": "b" },
+      { "id": "W3", "text": "k" },
+      { "id": "W4", "text": "o" }
+    ],
+    "correct_order": ["W2", "W1", "W4", "W3"],
+    "correct_text": "book",
+    "explanation": "Thứ tự b-o-o-k tạo thành từ book."
+  },
+  {
+    "id": "Q013",
+    "question_type": "RIDDLE",
+    "difficulty": "THONG_HIEU",
+    "points": 1,
+    "question": "Em hãy giải câu đố sau.",
+    "riddle": "Thân em nhiều đốt\nRuột trắng áo xanh",
+    "accepted_answers": ["cây mía", "mía"],
+    "hint": "Một loại cây.",
+    "explanation": "Câu đố miêu tả cây mía."
+  }
+]

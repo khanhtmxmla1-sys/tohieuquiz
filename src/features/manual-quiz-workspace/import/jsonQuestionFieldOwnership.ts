@@ -61,6 +61,30 @@ const containsStructuredPayload = (haystack: string, values: string[]): boolean 
     return matched >= Math.max(2, Math.ceil(fragments.length * 0.8));
 };
 
+const containsExplicitChoiceList = (value: unknown, values: string[]): boolean => {
+    const fragments = new Set(meaningfulFragments(values));
+    if (fragments.size < 2) return false;
+
+    const source = String(value ?? '').normalize('NFC');
+    const segments = source.split(/\r?\n|;/).map((segment) => segment.trim()).filter(Boolean);
+    const explicitMatches = new Set(segments.flatMap((segment) => {
+        const match = segment.match(/^(?:(?:[A-Z]|\d+)[.)\-:]|[-*•])\s*(.+)$/iu);
+        if (!match) return [];
+        const normalized = normalizeComparableText(match[1]);
+        return fragments.has(normalized) ? [normalized] : [];
+    }));
+    if (explicitMatches.size >= 2) return true;
+
+    const announcesChoices = /(?:phương án|đáp án|lựa chọn|options?)\s*:/iu.test(source);
+    if (!announcesChoices) return false;
+    const announcedMatches = new Set(
+        segments
+            .map(normalizeComparableText)
+            .filter((segment) => fragments.has(segment)),
+    );
+    return announcedMatches.size >= 2;
+};
+
 const canonicalTypeLabel = (type: QuestionType): string => {
     switch (type) {
         case QuestionType.MCQ: return 'SINGLE_CHOICE';
@@ -139,10 +163,11 @@ const contentOwnedSource = (type: QuestionType, row: JsonRecord): { owner: strin
 
 const inspectSurface = (
     surface: 'question' | 'questionRichText',
-    normalizedValue: string,
+    value: string,
     type: QuestionType,
     row: JsonRecord,
 ): string[] => {
+    const normalizedValue = normalizeComparableText(value);
     if (!normalizedValue) return [];
     const typeLabel = canonicalTypeLabel(type);
     const issues: string[] = [];
@@ -160,7 +185,13 @@ const inspectSurface = (
     }
 
     const structuredPayload = structuredPayloadForType(type, row);
-    if (structuredPayload && containsStructuredPayload(normalizedValue, structuredPayload.values)) {
+    const isChoicePayload = type === QuestionType.MCQ
+        || type === QuestionType.MULTIPLE_SELECT
+        || type === QuestionType.IMAGE_QUESTION;
+    const copiesStructuredPayload = structuredPayload && (isChoicePayload
+        ? containsExplicitChoiceList(value, structuredPayload.values)
+        : containsStructuredPayload(normalizedValue, structuredPayload.values));
+    if (structuredPayload && copiesStructuredPayload) {
         issues.push(`Câu ${typeLabel} đang chép dữ liệu ${structuredPayload.owner} vào ${surface}; hãy giữ dữ liệu cấu trúc trong ${structuredPayload.owner}.`);
     }
 
@@ -175,9 +206,9 @@ export const detectJsonQuestionFieldOwnershipIssues = ({
 }: JsonQuestionFieldOwnershipInput): JsonQuestionFieldOwnershipResult => {
     const normalizedQuestion = normalizeComparableText(question);
     const normalizedRichText = normalizeComparableText(questionRichTextPlainText);
-    const questionIssues = inspectSurface('question', normalizedQuestion, type, row);
+    const questionIssues = inspectSurface('question', question, type, row);
     const richIssues = questionRichTextPlainText
-        ? inspectSurface('questionRichText', normalizedRichText, type, row)
+        ? inspectSurface('questionRichText', questionRichTextPlainText, type, row)
         : [];
 
     let richTextViolatesOwnership = richIssues.length > 0;
