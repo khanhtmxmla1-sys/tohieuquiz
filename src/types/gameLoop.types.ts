@@ -78,11 +78,5 @@ export interface GameLoopRewardResult {
 }
 
 export interface TrackQuizActivityInput {
-    username: string;
-    activityId: string;
-    quizId: string;
-    category?: string;
-    subject?: string;
-    correctCount: number;
-    totalQuestions: number;
+    resultId: string;
 }

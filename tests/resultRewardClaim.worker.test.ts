@@ -1,213 +1,165 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
-import type { JWTPayload } from '../workers/src/utils/jwt';
-
-let currentUser: JWTPayload | null = null;
-vi.mock('../workers/src/middleware/jwtAuth', () => ({
-  verifyJWTMiddleware: vi.fn(async () => currentUser
-    ? { user: currentUser }
-    : new Response(JSON.stringify({ status: 'error' }), { status: 401 })),
-  isStudent: vi.fn((user: JWTPayload) => user.role === 'student'),
-}));
-
-import { handleGamificationRoutes } from '../workers/src/routes/gamification';
+// @vitest-environment node
+import { DatabaseSync } from 'node:sqlite';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { handleResultRewardClaim } from '../workers/src/gamification/resultRewardClaim';
 
 class Statement {
   bindings: unknown[] = [];
-  constructor(readonly sql: string, readonly db: RewardDatabase) {}
+  constructor(readonly sql: string, private readonly db: DatabaseSync) {}
   bind(...values: unknown[]) { this.bindings = values; return this; }
-  async first<T>() { return this.db.first(this.sql, this.bindings) as T; }
-  async all<T>() { return { results: [] as T[] }; }
-  async run() { return this.db.execute(this.sql, this.bindings); }
+  async first<T>() { return this.db.prepare(this.sql).get(...this.bindings as any[]) as T; }
+  async all<T>() { return { results: this.db.prepare(this.sql).all(...this.bindings as any[]) as T[] }; }
+  async run() { return this.db.prepare(this.sql).run(...this.bindings as any[]); }
+  runSync() { return this.db.prepare(this.sql).run(...this.bindings as any[]); }
 }
 
-class RewardDatabase {
-  coins = 100;
-  pet: any = { level: 1, exp: 0, exp_to_next: 100, mood: 'happy' };
-  result: any = {
-    id: 42,
-    student_id: 'student-a',
-    class_id: 'class-a',
-    student_name: 'Nguyễn Văn An',
-    class_name: '5A',
-    score: 8,
-    correct_count: 8,
-    total_questions: 10,
-  };
-  receipt: any = null;
-  failBatchAtIndex: number | null = null;
-
-  prepare(sql: string) { return new Statement(sql, this); }
-
-  first(sql: string, bindings: unknown[]) {
-    if (sql.includes('FROM reward_receipts')) return this.receipt;
-    if (sql.includes('FROM results')) {
-      return String(bindings[0]) === String(this.result?.id) ? this.result : null;
-    }
-    if (sql.includes('LEFT JOIN classes')) {
-      return { id: 'student-a', class_id: 'class-a', full_name: 'Nguyễn Văn An', class_name: '5A', coins: this.coins };
-    }
-    if (sql.includes('SELECT * FROM user_pets')) return this.pet ? { ...this.pet } : null;
-    return null;
-  }
-
-  execute(sql: string, bindings: unknown[]) {
-    if (sql.includes('INSERT INTO reward_receipts')) {
-      if (this.receipt) throw new Error('UNIQUE constraint failed');
-      this.receipt = {
-        reward_exp: Number(bindings[4]),
-        reward_coins: Number(bindings[5]),
-        new_level: Number(bindings[6]),
-        new_exp: Number(bindings[7]),
-        new_exp_to_next: Number(bindings[8]),
-        new_coins: Number(bindings[9]),
-        leveled_up: Number(bindings[10]),
-        mood: String(bindings[11]),
-        created_at: bindings[12],
-      };
-    } else if (sql.includes('UPDATE students SET coins = ?')) {
-      this.coins = Number(bindings[0]);
-    } else if (sql.includes('UPDATE user_pets')) {
-      this.pet = {
-        level: Number(bindings[0]),
-        exp: Number(bindings[1]),
-        exp_to_next: Number(bindings[2]),
-        mood: String(bindings[3]),
-      };
-    } else if (sql.includes('INSERT INTO user_pets')) {
-      this.pet = {
-        level: Number(bindings[3]),
-        exp: Number(bindings[4]),
-        exp_to_next: Number(bindings[5]),
-        mood: String(bindings[6]),
-      };
-    }
-    return { success: true, meta: { changes: 1 } };
-  }
-
+class SqliteD1 {
+  failAtStatement: number | null = null;
+  constructor(readonly sqlite: DatabaseSync) {}
+  prepare(sql: string) { return new Statement(sql, this.sqlite); }
   async batch(statements: Statement[]) {
-    const snapshot = {
-      coins: this.coins,
-      pet: this.pet ? { ...this.pet } : null,
-      receipt: this.receipt ? { ...this.receipt } : null,
-    };
-
+    this.sqlite.exec('BEGIN IMMEDIATE');
     try {
-      return statements.map((statement, index) => {
-        if (this.failBatchAtIndex === index) throw new Error('Simulated transactional failure');
-        return this.execute(statement.sql, statement.bindings);
+      const results = statements.map((statement, index) => {
+        const result = statement.runSync();
+        if (this.failAtStatement === index) throw new Error('forced batch failure');
+        return result;
       });
+      this.sqlite.exec('COMMIT');
+      return results;
     } catch (error) {
-      this.coins = snapshot.coins;
-      this.pet = snapshot.pet;
-      this.receipt = snapshot.receipt;
+      this.sqlite.exec('ROLLBACK');
       throw error;
     }
   }
 }
 
-const env = (db: RewardDatabase) => ({ DB: db, JWT_SECRET: 'test-secret' } as any);
-const rewardRequest = (resultId: string) => new Request('https://test/api/game-state/result-reward', {
-  method: 'POST',
-  headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
-  body: JSON.stringify({ resultId }),
+let sqlite: DatabaseSync;
+let db: SqliteD1;
+
+beforeEach(() => {
+  sqlite = new DatabaseSync(':memory:');
+  sqlite.exec(`
+    CREATE TABLE students (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      coins INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE results (
+      id TEXT PRIMARY KEY,
+      student_id TEXT,
+      class_id TEXT,
+      score REAL DEFAULT 0,
+      correct_count INTEGER DEFAULT 0,
+      total_questions INTEGER DEFAULT 0
+    );
+    CREATE TABLE user_pets (
+      username TEXT PRIMARY KEY,
+      pet_id TEXT DEFAULT 'cat_01',
+      pet_name TEXT DEFAULT 'Mèo Con',
+      level INTEGER DEFAULT 1,
+      exp INTEGER DEFAULT 0,
+      exp_to_next INTEGER DEFAULT 100,
+      total_exp INTEGER NOT NULL DEFAULT 0,
+      mood TEXT DEFAULT 'happy',
+      items TEXT DEFAULT '[]',
+      last_active TEXT DEFAULT ''
+    );
+    CREATE TABLE student_reward_ledger (
+      id TEXT PRIMARY KEY,
+      student_id TEXT NOT NULL,
+      source_type TEXT NOT NULL,
+      source_key TEXT NOT NULL,
+      reward_type TEXT NOT NULL,
+      coins_delta INTEGER NOT NULL DEFAULT 0,
+      exp_delta INTEGER NOT NULL DEFAULT 0,
+      payload_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL,
+      UNIQUE(student_id, source_type, source_key)
+    );
+    INSERT INTO students VALUES
+      ('student-a', 'student-a', 100),
+      ('student-b', 'student-b', 50);
+    INSERT INTO results VALUES
+      ('result-1', 'student-a', 'class-a', 8, 8, 10),
+      ('result-other', 'student-b', 'class-a', 10, 10, 10);
+    INSERT INTO user_pets(username, total_exp) VALUES ('student-a', 0), ('student-b', 0);
+  `);
+  db = new SqliteD1(sqlite);
 });
-const claim = (db: RewardDatabase, resultId = '42') => handleGamificationRoutes(
-  rewardRequest(resultId),
-  env(db),
-  '/api/game-state/result-reward',
-  'POST',
-);
+
+afterEach(() => sqlite.close());
+
+const claim = (resultId = 'result-1') => handleResultRewardClaim(db as any, { resultId }, 'student-a');
 
 describe('result reward claim', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  beforeEach(() => {
-    currentUser = { id: 'student-a', username: 'student-a', role: 'student', classId: 'class-a' };
-  });
-
-  it('calculates and applies the saved result reward in one batch', async () => {
-    const db = new RewardDatabase();
-    const response = await claim(db);
+  it('calculates and applies the saved result reward atomically', async () => {
+    const response = await claim();
     const payload = await response.json() as any;
 
     expect(response.status).toBe(200);
     expect(payload.data).toMatchObject({
       awardedExp: 60,
       awardedCoins: 15,
-      alreadyClaimed: false,
+      newCoins: 115,
       newLevel: 1,
       newExp: 60,
-      newExpToNext: 100,
-      newCoins: 115,
+      alreadyClaimed: false,
     });
-    expect(db.receipt).toMatchObject({ new_exp: 60, new_coins: 115 });
+    expect(sqlite.prepare(`SELECT coins FROM students WHERE id='student-a'`).get()).toEqual({ coins: 115 });
+    expect(sqlite.prepare(`SELECT coins_delta, exp_delta FROM student_reward_ledger
+      WHERE student_id='student-a' AND source_type='QUIZ_RESULT' AND source_key='result-1'`).get())
+      .toEqual({ coins_delta: 15, exp_delta: 60 });
   });
 
-  it('returns the stored receipt snapshot without applying the reward twice', async () => {
-    const db = new RewardDatabase();
-    await claim(db);
-    db.coins = 999;
-    db.pet.exp = 99;
+  it('returns the stored ledger receipt without applying the reward twice', async () => {
+    await claim();
+    const response = await claim();
+    const payload = await response.json() as any;
 
-    const secondResponse = await claim(db);
-    const payload = await secondResponse.json() as any;
-
+    expect(response.status).toBe(200);
     expect(payload.data).toMatchObject({
       alreadyClaimed: true,
       awardedExp: 60,
       awardedCoins: 15,
-      newExp: 60,
       newCoins: 115,
+      newExp: 60,
     });
-    expect(db.coins).toBe(999);
-    expect(db.pet.exp).toBe(99);
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger`).get()).toEqual({ count: 1 });
+    expect(sqlite.prepare(`SELECT coins FROM students WHERE id='student-a'`).get()).toEqual({ coins: 115 });
   });
 
   it('rolls back a partial batch so retry can safely award later', async () => {
-    const errorSpy = expectConsoleError();
-    const db = new RewardDatabase();
-    db.failBatchAtIndex = 1;
+    db.failAtStatement = 1;
+    const failed = await claim();
+    expect(failed.status).toBe(500);
+    expect(sqlite.prepare(`SELECT coins FROM students WHERE id='student-a'`).get()).toEqual({ coins: 100 });
+    expect(sqlite.prepare(`SELECT total_exp FROM user_pets WHERE username='student-a'`).get()).toEqual({ total_exp: 0 });
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger`).get()).toEqual({ count: 0 });
 
-    const failedResponse = await claim(db);
-    expect(failedResponse.status).toBe(500);
-    expect(db.receipt).toBeNull();
-    expect(db.coins).toBe(100);
-    expect(db.pet.exp).toBe(0);
-
-    db.failBatchAtIndex = null;
-    const retryResponse = await claim(db);
-    expect(retryResponse.status).toBe(200);
-    expect(db.coins).toBe(115);
-    expect(db.pet.exp).toBe(60);
-    expectConsoleMessage(errorSpy, 'Simulated transactional failure');
+    db.failAtStatement = null;
+    const retry = await claim();
+    expect(retry.status).toBe(200);
+    expect(sqlite.prepare(`SELECT coins FROM students WHERE id='student-a'`).get()).toEqual({ coins: 115 });
   });
 
   it('creates a default pet inside the same transaction when needed', async () => {
-    const db = new RewardDatabase();
-    db.pet = null;
+    sqlite.exec(`DELETE FROM user_pets WHERE username='student-a'`);
 
-    const response = await claim(db);
+    const response = await claim();
     expect(response.status).toBe(200);
-    expect(db.pet).toMatchObject({ level: 1, exp: 60, exp_to_next: 100, mood: 'excited' });
+    expect(sqlite.prepare(`SELECT level, exp, exp_to_next, total_exp FROM user_pets WHERE username='student-a'`).get())
+      .toEqual({ level: 1, exp: 60, exp_to_next: 100, total_exp: 60 });
   });
 
   it('rejects a result owned by another student', async () => {
-    const db = new RewardDatabase();
-    db.result.student_id = 'student-other';
-    db.result.student_name = 'Nguyễn Văn An';
-
-    const response = await claim(db);
+    const response = await claim('result-other');
     expect(response.status).toBe(403);
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger`).get()).toEqual({ count: 0 });
   });
 
   it('returns 404 when the saved result does not exist', async () => {
-    const db = new RewardDatabase();
-    db.result = null;
-
-    const response = await claim(db, 'missing');
+    const response = await claim('missing');
     expect(response.status).toBe(404);
   });
 });

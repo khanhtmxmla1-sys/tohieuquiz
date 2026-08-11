@@ -254,6 +254,7 @@ CREATE TABLE IF NOT EXISTS user_pets (
   level INTEGER DEFAULT 1,
   exp INTEGER DEFAULT 0,
   exp_to_next INTEGER DEFAULT 100,
+  total_exp INTEGER NOT NULL DEFAULT 0,
   mood TEXT DEFAULT 'happy',
   items TEXT DEFAULT '[]',
   image_url TEXT DEFAULT '',
@@ -346,6 +347,77 @@ CREATE TABLE IF NOT EXISTS gift_wallet_ledger (
   ref_order_id TEXT DEFAULT '',
   created_at TEXT NOT NULL
 );
+
+-- Canonical immutable student reward ledger.
+CREATE TABLE IF NOT EXISTS student_reward_ledger (
+  id TEXT PRIMARY KEY,
+  student_id TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  source_key TEXT NOT NULL,
+  reward_type TEXT NOT NULL,
+  coins_delta INTEGER NOT NULL DEFAULT 0,
+  exp_delta INTEGER NOT NULL DEFAULT 0,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  UNIQUE(student_id, source_type, source_key),
+  FOREIGN KEY(student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_reward_ledger_student_created
+  ON student_reward_ledger(student_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_student_reward_ledger_source
+  ON student_reward_ledger(source_type, source_key);
+
+CREATE TRIGGER IF NOT EXISTS trg_student_reward_ledger_nonnegative_wallet
+BEFORE INSERT ON student_reward_ledger
+WHEN NEW.coins_delta < 0
+  AND COALESCE((SELECT coins FROM students WHERE id = NEW.student_id), 0) + NEW.coins_delta < 0
+BEGIN
+  SELECT RAISE(ABORT, 'INSUFFICIENT_COIN_BALANCE');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_student_reward_ledger_immutable_update
+BEFORE UPDATE ON student_reward_ledger
+BEGIN
+  SELECT RAISE(ABORT, 'REWARD_LEDGER_IMMUTABLE');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_student_reward_ledger_immutable_delete
+BEFORE DELETE ON student_reward_ledger
+BEGIN
+  SELECT RAISE(ABORT, 'REWARD_LEDGER_IMMUTABLE');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_gift_wallet_to_student_reward_ledger
+AFTER INSERT ON gift_wallet_ledger
+WHEN NEW.reason IN ('PURCHASE', 'REFUND') AND COALESCE(NEW.ref_order_id, '') <> ''
+BEGIN
+  INSERT INTO student_reward_ledger (
+    id, student_id, source_type, source_key, reward_type,
+    coins_delta, exp_delta, payload_json, created_at
+  ) VALUES (
+    'reward-gift-' || NEW.id,
+    NEW.student_id,
+    CASE WHEN NEW.reason = 'REFUND' THEN 'GIFT_REFUND' ELSE 'GIFT_PURCHASE' END,
+    NEW.ref_order_id,
+    'COINS',
+    NEW.delta_coins,
+    0,
+    json_object('giftLedgerId', NEW.id, 'reason', NEW.reason),
+    NEW.created_at
+  );
+END;
+
+CREATE VIEW IF NOT EXISTS student_reward_reconciliation AS
+SELECT
+  s.id AS student_id,
+  s.username AS username,
+  COALESCE(s.coins, 0) AS wallet_coins,
+  COALESCE(SUM(l.coins_delta), 0) AS ledger_coins,
+  COALESCE(s.coins, 0) - COALESCE(SUM(l.coins_delta), 0) AS difference
+FROM students s
+LEFT JOIN student_reward_ledger l ON l.student_id = s.id
+GROUP BY s.id, s.username, s.coins;
 
 -- Gift shop audit events
 CREATE TABLE IF NOT EXISTS gift_order_events (
@@ -1303,6 +1375,27 @@ CREATE TABLE IF NOT EXISTS student_weekly_progress (
 
 CREATE INDEX IF NOT EXISTS idx_weekly_progress_user_week ON student_weekly_progress(username, week_key);
 CREATE INDEX IF NOT EXISTS idx_weekly_progress_quest ON student_weekly_progress(quest_id, week_key);
+
+CREATE TABLE IF NOT EXISTS student_weekly_subjects (
+  username TEXT NOT NULL,
+  week_key TEXT NOT NULL,
+  subject_key TEXT NOT NULL CHECK(subject_key IN ('toan', 'tieng-viet', 'tieng-anh')),
+  first_result_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY(username, week_key, subject_key),
+  FOREIGN KEY(username) REFERENCES students(username)
+);
+
+CREATE TABLE IF NOT EXISTS student_weekly_state (
+  username TEXT NOT NULL,
+  week_key TEXT NOT NULL,
+  current_perfect_streak INTEGER NOT NULL DEFAULT 0,
+  max_perfect_streak INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY(username, week_key),
+  FOREIGN KEY(username) REFERENCES students(username)
+);
 
 -- Phiếu kết quả nhận xét
 CREATE TABLE IF NOT EXISTS phieu_nhanxet (

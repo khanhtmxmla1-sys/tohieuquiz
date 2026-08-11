@@ -9,7 +9,6 @@ import {
     ShopItem,
     PurchaseResult as BuyItemResponse,
     LeaderboardEntry,
-    GameStateResult,
     ResultRewardClaimResult,
     TopGoldStudent,
 } from '../types/gamification.types';
@@ -60,28 +59,8 @@ export const getPetData = async (
 };
 
 // ==========================================
-// GAME STATE
+// SERVER-ISSUED REWARDS
 // ==========================================
-
-/**
- * Update game state after completing a quiz.
- * Adds EXP and coins, checks for level up.
- */
-export const updateGameState = async (
-    username: string,
-    addExp: number,
-    addCoins: number
-): Promise<GameStateResult | null> => {
-    const res = await callWorkerApi<GameStateResult>('update_game_state', {
-        username,
-        addExp,
-        addCoins,
-    });
-    if (res.status === 'success' && res.data) {
-        return res.data;
-    }
-    return null;
-};
 
 export const claimResultReward = async (
     username: string,

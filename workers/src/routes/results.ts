@@ -12,6 +12,8 @@ import { verifyJWTMiddleware, requireAdmin, requireTeacher, isStudent } from '..
 import { withD1Retry } from '../utils/d1';
 import { collectionLimit, decodeCollectionCursor, encodeCollectionCursor } from '../utils/cursorPagination';
 import { createParentNotification } from '../parentPortal/notificationService';
+import { recordQuizActivity } from '../gameLoop/activityService';
+import { normalizeGameLoopCategory } from '../gameLoop/normalization';
 import { loadResultDashboardSummary } from '../services/resultSummaryService';
 import {
     QuizGradingServiceError,
@@ -645,6 +647,28 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         ).run();
         const resultId = insertResult.meta.last_row_id;
         if (canonicalStudentId) {
+            try {
+                const progressStudent = studentContext?.username
+                    ? studentContext
+                    : await db.prepare('SELECT username FROM students WHERE id = ? LIMIT 1')
+                        .bind(canonicalStudentId).first<any>();
+                if (progressStudent?.username) {
+                    const quizProgressMeta = await db.prepare('SELECT category FROM quizzes WHERE id = ? LIMIT 1')
+                        .bind(quizId).first<any>();
+                    await recordQuizActivity(db, String(progressStudent.username), {
+                        activityId: String(resultId),
+                        quizId: String(quizId),
+                        studentId: String(canonicalStudentId),
+                        classId: canonicalClassId,
+                        category: normalizeGameLoopCategory(String(quizProgressMeta?.category || '')),
+                        correctCount,
+                        totalQuestions,
+                    });
+                }
+            } catch (error) {
+                console.error('[GameLoop] result progress recording failed; client retry remains available', error);
+            }
+
             try {
                 await createParentNotification(db, {
                     studentId: canonicalStudentId,

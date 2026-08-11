@@ -25,14 +25,19 @@ export const appendRewardEvent = async (
 
 export const getRecentRewards = async (db: D1Database, username: string) => {
     const rows = await db.prepare(`
-        SELECT event_type, reward_type, payload_json, created_at
-        FROM student_reward_events
-        WHERE username = ?
-        ORDER BY created_at DESC
+        SELECT ledger.source_type AS event_type,
+               ledger.reward_type,
+               ledger.payload_json,
+               ledger.created_at
+        FROM student_reward_ledger ledger
+        JOIN students student ON student.id = ledger.student_id
+        WHERE student.username = ?
+          AND ledger.source_type <> 'BALANCE_OPENING'
+        ORDER BY ledger.created_at DESC, ledger.id DESC
         LIMIT 4
     `).bind(username).all<any>();
 
-    return rows.results.map((row: any) => ({
+    return (rows.results || []).map((row: any) => ({
         eventType: row.event_type,
         rewardType: row.reward_type,
         payload: safeJsonParse<Record<string, unknown>>(row.payload_json, {}),

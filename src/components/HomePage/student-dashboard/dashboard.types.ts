@@ -74,7 +74,10 @@ export interface WeeklyQuestViewModel {
   target: number;
   completed: boolean;
   claimed: boolean;
-  reward: { coins: number; exp: number; items: string[]; itemCount: number };
+  reward: {
+    coins: number;
+    items: Array<{ type: string; quantity: number; itemId?: string; title?: string }>;
+  };
 }
 
 export interface WeeklyQuestsPanelProps {

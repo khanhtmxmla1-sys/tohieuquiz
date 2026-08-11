@@ -222,8 +222,12 @@ export interface LiveExamResultsResponse {
   rewards: {
     coins: number;
     xp: number;
-    bonusCoins?: number;           // Top 3 bonus
+    bonusCoins?: number;
   };
+  awardedCoins: number;
+  awardedExp: number;
+  alreadyAwarded: boolean;
+  newCoins: number;
   leaderboardVisible?: boolean;
   leaderboard: Array<{
     rank: number;

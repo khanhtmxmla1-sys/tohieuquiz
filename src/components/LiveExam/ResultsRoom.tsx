@@ -67,6 +67,7 @@ export const ResultsRoom: React.FC<ResultsRoomProps> = ({
     const { participant, leaderboard } = results;
     const leaderboardVisible = results.leaderboardVisible !== false;
     const isTopThree = leaderboardVisible && participant.rank > 0 && participant.rank <= 3;
+    const rewardConfirmed = results.alreadyAwarded === true;
 
     // Medal colors
     const getMedalColor = (rank: number) => {
@@ -152,21 +153,25 @@ export const ResultsRoom: React.FC<ResultsRoomProps> = ({
                         </div>
                     </div>
 
-                    {/* Rewards */}
-                    {isTopThree && results.rewards && (
+                    {/* Server-confirmed rewards only. GET results never mutates the wallet. */}
+                    {rewardConfirmed ? (
                         <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
                             <div className="flex items-center justify-center gap-2 mb-2">
                                 <Award className="text-yellow-600" size={24} />
-                                <h3 className="font-bold text-yellow-900">Phần thưởng</h3>
+                                <h3 className="font-bold text-yellow-900">Phần thưởng đã cộng</h3>
                             </div>
                             <div className="text-center">
                                 <div className="text-3xl font-bold text-yellow-600 mb-1">
-                                    +{results.rewards.coins} 🪙
+                                    +{results.awardedCoins} 🪙 · +{results.awardedExp} EXP
                                 </div>
                                 <p className="text-sm text-yellow-700">
-                                    {participant.rank === 1 ? 'Nhất' : participant.rank === 2 ? 'Nhì' : 'Ba'} bảng vàng!
+                                    Số dư hiện tại: {results.newCoins} xu
                                 </p>
                             </div>
+                        </div>
+                    ) : (
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center text-sm text-slate-600">
+                            Phần thưởng đang chờ biên nhận từ máy chủ. Hệ thống sẽ không hiển thị số xu tạm tính.
                         </div>
                     )}
                 </div>

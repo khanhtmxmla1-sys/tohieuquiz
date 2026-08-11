@@ -1,5 +1,7 @@
 import { SYSTEM_CRON } from './scheduling/systemCron';
-import { getPreviousWeekKey, getWeekUtcRange } from './gameLoop/dateKeys';
+import { getPreviousWeekKey } from './gameLoop/dateKeys';
+import { awardWeeklyLeaderboardRewards } from './gamification/weeklyLeaderboardReward';
+import { retryMissingClosedLiveExamRewards } from './gamification/liveExamReward';
 // TôHiệuQuiz Workers API - Main Entry Point
 // Cloudflare Workers API entry point
 
@@ -149,79 +151,29 @@ export default {
 
         try {
             await checkAndAutoCloseExpiredExams(env.DB);
+            try {
+                const repairedSessions = await retryMissingClosedLiveExamRewards(env.DB);
+                if (repairedSessions > 0) {
+                    console.log(`[Cron] Repaired live-exam rewards for ${repairedSessions} closed session(s)`);
+                }
+            } catch (error) {
+                console.error('[Cron] Live-exam reward retry failed:', error);
+            }
+
             if (event.cron !== SYSTEM_CRON.WEEKLY_LEADERBOARD) return;
-            const db = env.DB;
             const lastWeekKey = getPreviousWeekKey();
-            const { startIso, endIsoExclusive } = getWeekUtcRange(lastWeekKey);
-            
-            // Get top 3 from last week
-            const topStudents = await db.prepare(`
-                SELECT 
-                    s.username,
-                    SUM(r.score) as total_score
-                FROM results r
-                JOIN students s ON s.id = r.student_id
-                WHERE r.submitted_at >= ?
-                  AND r.submitted_at < ?
-                GROUP BY s.username
-                ORDER BY total_score DESC
-                LIMIT 3
-            `).bind(startIso, endIsoExclusive).all();
-            
-            if (!topStudents.results || topStudents.results.length === 0) {
+            const awards = await awardWeeklyLeaderboardRewards(env.DB, lastWeekKey);
+            if (awards.length === 0) {
                 console.log('[Cron] No students found for last week');
                 return;
             }
-            
-            const rewards = [
-                { rank: 1, coins: 500, badge: 'weekly_champion_1st' },
-                { rank: 2, coins: 300, badge: 'weekly_champion_2nd' },
-                { rank: 3, coins: 150, badge: 'weekly_champion_3rd' },
-            ];
-            
-            const now = new Date().toISOString();
-            
-            for (let i = 0; i < topStudents.results.length; i++) {
-                const student = topStudents.results[i] as any;
-                const reward = rewards[i];
-                
-                // Award coins
-                await db.prepare('UPDATE students SET coins = coins + ? WHERE username = ?')
-                    .bind(reward.coins, student.username).run();
-                
-                // Unlock badge
-                const achId = `ach-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-                await db.prepare(`
-                    INSERT OR IGNORE INTO student_achievement_unlocks 
-                    (id, username, achievement_code, unlocked_at, metadata)
-                    VALUES (?, ?, ?, ?, ?)
-                `).bind(
-                    achId,
-                    student.username,
-                    reward.badge,
-                    now,
-                    JSON.stringify({ weekKey: lastWeekKey, rank: reward.rank })
-                ).run();
-                
-                // Log reward history
-                const rewardId = `lbrew-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-                await db.prepare(`
-                    INSERT INTO leaderboard_rewards_history
-                    (id, username, period, period_key, rank, coins_awarded, badge_code, awarded_at)
-                    VALUES (?, ?, 'weekly', ?, ?, ?, ?, ?)
-                `).bind(
-                    rewardId,
-                    student.username,
-                    lastWeekKey,
-                    reward.rank,
-                    reward.coins,
-                    reward.badge,
-                    now
-                ).run();
-                
-                console.log(`[Cron] Awarded rank ${reward.rank} to ${student.username}: ${reward.coins} coins + ${reward.badge}`);
+
+            for (const award of awards) {
+                console.log(
+                    `[Cron] Weekly rank ${award.rank} ${award.username}: ${award.coins} coins + ${award.badge}`
+                    + (award.alreadyClaimed ? ' (already awarded)' : '')
+                );
             }
-            
         } catch (error) {
             console.error('[Cron] Error awarding weekly rewards:', error);
         }

@@ -11,5 +11,6 @@ export const normalizeGameLoopCategory = (value: string): string => {
     const normalized = String(value || '').trim().toLowerCase();
     if (normalized === 'toan' || normalized.includes('toán')) return 'toan';
     if (normalized === 'tieng-viet' || normalized.includes('việt')) return 'tieng-viet';
+    if (normalized === 'tieng-anh' || normalized.includes('tiếng anh') || normalized.includes('english')) return 'tieng-anh';
     return normalized;
 };

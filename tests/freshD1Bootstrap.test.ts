@@ -61,6 +61,9 @@ describe('fresh D1 bootstrap contract', () => {
       'feature_flag_audit',
       'question_bank_items',
       'question_bank_audit',
+      'student_reward_ledger',
+      'student_weekly_subjects',
+      'student_weekly_state',
     ]) {
       expect(schema).toContain(`create table if not exists ${table}`);
     }
@@ -84,6 +87,9 @@ describe('fresh D1 bootstrap contract', () => {
       'class_id text references classes(id) on delete set null',
       'create index if not exists idx_results_class_submitted',
       'create index if not exists idx_results_class_quiz_submitted',
+      'total_exp integer not null default 0',
+      'unique(student_id, source_type, source_key)',
+      'create view if not exists student_reward_reconciliation',
     ]) {
       expect(schema).toContain(fragment);
     }
@@ -111,8 +117,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(64);
-    expect(migrationNames.at(-1)).toBe('0065_add_result_canonical_class_scope.sql');
+    expect(migrationNames).toHaveLength(65);
+    expect(migrationNames.at(-1)).toBe('0066_student_reward_ledger.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);

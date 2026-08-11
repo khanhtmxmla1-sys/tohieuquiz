@@ -32,7 +32,7 @@ describe('D1 migration layout', () => {
     expect(new Set(registered).size).toBe(registered.length);
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
-    expect(migrations.at(-1)).toBe('0065_add_result_canonical_class_scope.sql');
+    expect(migrations.at(-1)).toBe('0066_student_reward_ledger.sql');
     expect(EXPECTED_LATEST_MIGRATION).toBe(migrations.at(-1));
   });
 
@@ -56,6 +56,18 @@ describe('D1 migration layout', () => {
     expect(sql).toContain('ALTER TABLE results ADD COLUMN class_id TEXT REFERENCES classes(id) ON DELETE SET NULL');
     expect(sql).toContain('idx_results_class_submitted');
     expect(sql).toContain('idx_results_class_quiz_submitted');
+  });
+
+  it('stores the immutable student reward ledger in migration 0066', () => {
+    const sql = fs.readFileSync(
+      path.join(migrationsDir, '0066_student_reward_ledger.sql'),
+      'utf8',
+    );
+
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS student_reward_ledger');
+    expect(sql).toContain('UNIQUE(student_id, source_type, source_key)');
+    expect(sql).toContain("'BALANCE_OPENING'");
+    expect(sql).toContain('student_reward_reconciliation');
   });
 
   it('stores teacher AI quota and action reservations in migrations', () => {

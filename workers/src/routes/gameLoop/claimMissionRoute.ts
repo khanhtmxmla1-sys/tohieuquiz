@@ -1,3 +1,5 @@
+import { resolveStudentRewardIdentity } from '../../gamification/rewardIdentity';
+import { applyStudentReward } from '../../gamification/studentRewardLedger';
 import { buildDashboardResponse } from '../../gameLoop/dashboardService';
 import { getCurrentDateKey } from '../../gameLoop/dateKeys';
 import {
@@ -6,7 +8,6 @@ import {
     getMissionRows,
 } from '../../gameLoop/missionModel';
 import { ensureProfile, getOrCreateDailyProgress } from '../../gameLoop/progressRepository';
-import { appendRewardEvent } from '../../gameLoop/rewardService';
 import { syncDailyStreakIfNeeded } from '../../gameLoop/streakService';
 import type { MissionId } from '../../gameLoop/types';
 import { parseBody } from '../../utils/helpers';
@@ -29,29 +30,60 @@ export const handleClaimMissionRoute = async (
     const mission = missions.find((item) => item.id === missionId);
     if (!mission) return errorResponse('Mission not found', 404);
     if (!mission.completed) return errorResponse('Mission is not complete yet');
-    if (mission.claimed) return errorResponse('Mission has already been claimed');
+
+    const identity = await resolveStudentRewardIdentity(db, username);
+    if (!identity) return errorResponse('Student not found', 404);
+    const sourceKey = `${dateKey}:${missionId}`;
+
+    if (mission.claimed) {
+        const receipt = await db.prepare(`
+            SELECT id FROM student_reward_ledger
+            WHERE student_id = ? AND source_type = 'DAILY_MISSION' AND source_key = ?
+            LIMIT 1
+        `).bind(identity.studentId, sourceKey).first<any>();
+        if (!receipt) return errorResponse('Mission claim state is inconsistent', 409);
+    }
 
     const now = new Date().toISOString();
-    await db.batch([
-        db.prepare(`
-            UPDATE student_daily_progress
-            SET ${getMissionClaimColumn(missionId)} = 1, updated_at = ?
-            WHERE username = ? AND progress_date = ?
-        `).bind(now, username, dateKey),
-        db.prepare(`UPDATE students SET coins = coins + ? WHERE username = ?`)
-            .bind(mission.rewardCoins, username),
-    ]);
-    await appendRewardEvent(db, username, 'MISSION_CLAIM', 'COINS', {
-        missionId, coins: mission.rewardCoins,
+    const claimColumn = getMissionClaimColumn(missionId);
+    const rewardResult = await applyStudentReward(db, {
+        ...identity,
+        sourceType: 'DAILY_MISSION',
+        sourceKey,
+        rewardType: 'COINS',
+        coinsDelta: mission.rewardCoins,
+        expDelta: 0,
+        payload: { missionId, coins: mission.rewardCoins },
+        extraStatements: [
+            db.prepare(`
+                UPDATE student_daily_progress
+                SET ${claimColumn} = 1, updated_at = ?
+                WHERE username = ? AND progress_date = ?
+            `).bind(now, username, dateKey),
+            db.prepare(`
+                INSERT INTO student_reward_events
+                (id, username, event_type, reward_type, payload_json, created_at)
+                VALUES (?, ?, 'MISSION_CLAIM', 'COINS', ?, ?)
+            `).bind(
+                `reward-event-${crypto.randomUUID()}`,
+                username,
+                JSON.stringify({ missionId, coins: mission.rewardCoins }),
+                now,
+            ),
+        ],
     });
 
     const refreshed = getMissionRows(await getOrCreateDailyProgress(db, username, dateKey));
-    if (!areAllMissionsClaimed(missions) && areAllMissionsClaimed(refreshed)) {
+    if (!rewardResult.alreadyClaimed
+        && !areAllMissionsClaimed(missions)
+        && areAllMissionsClaimed(refreshed)) {
         await syncDailyStreakIfNeeded(db, profile, dateKey);
     }
     const data = await buildDashboardResponse(db, username);
     return jsonResponse({
-        status: 'success', data,
+        status: 'success',
+        alreadyClaimed: rewardResult.alreadyClaimed,
         reward: { type: 'COINS', coins: mission.rewardCoins, missionId },
+        data,
     });
 };

@@ -307,6 +307,59 @@ describe('live exam P0 authorization and integrity', () => {
   });
 });
 
+describe('live exam result rewards are read-only', () => {
+  beforeEach(() => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student' };
+  });
+
+  it('returns only server-confirmed reward receipts without mutating wallet state', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => {
+      if (sql.includes('FROM live_exam_sessions s')) {
+        return activeSessionRow({ status: 'closed', closed_at: '2026-07-15T00:30:00.000Z' });
+      }
+      if (sql.includes('FROM live_exam_participants')) {
+        return {
+          id: 'participant-a', live_exam_id: 'live-1', student_id: 'student-a', username: 'student-a',
+          score: 9.8, rank: 1, correct_count: 10, wrong_count: 0,
+          submitted_at: '2026-07-15T00:20:00.000Z',
+        };
+      }
+      if (sql.includes('FROM student_reward_ledger')) {
+        return {
+          id: 'reward-live-1', student_id: 'student-a', source_type: 'LIVE_EXAM', source_key: 'live-1',
+          reward_type: 'COINS_EXP', coins_delta: 509, exp_delta: 98,
+          payload_json: JSON.stringify({ awardedCoins: 509, awardedExp: 98, bonusCoins: 500 }),
+          created_at: '2026-07-15T00:30:01.000Z',
+        };
+      }
+      if (sql.includes('SELECT coins') && sql.includes('FROM students')) return { coins: 609 };
+      return null;
+    };
+    db.all = (sql) => sql.includes('SELECT username, score, rank')
+      ? [{ username: 'student-a', score: 9.8, rank: 1 }]
+      : [];
+
+    const response = await handleLiveExamRoutes(
+      new Request('https://test/api/live-exam/live-1/results'),
+      { DB: db, JWT_SECRET: 'test' } as any,
+      '/api/live-exam/live-1/results',
+      'GET',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      awardedCoins: 509,
+      awardedExp: 98,
+      alreadyAwarded: true,
+      newCoins: 609,
+      rewards: { coins: 509, xp: 98, bonusCoins: 500 },
+    });
+    expect(db.executed.some((statement) => /^\s*(UPDATE|INSERT|DELETE)/i.test(statement.sql))).toBe(false);
+  });
+});
+
 describe('live exam analytics route', () => {
   beforeEach(() => {
     currentUser = { id: 'teacher-a', username: 'teacher-a', role: 'teacher' };

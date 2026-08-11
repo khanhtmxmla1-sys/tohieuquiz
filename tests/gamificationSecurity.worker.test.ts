@@ -62,11 +62,14 @@ describe('gamification authentication and subject binding', () => {
     expect(query?.bindings[0]).toBe('student-a');
   });
 
-  it('forbids teachers from mutating a student game state', async () => {
-    currentUser = { username: 'teacher-a', role: 'teacher' };
+  it('retires the legacy game-state mutation endpoint without changing balances', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', classId: 'class-a' };
+    const db = new Database();
     const response = await handleGamificationRoutes(request('https://test/api/game-state', {
-      method: 'POST', body: JSON.stringify({ username: 'student-a', addExp: 999, addCoins: 999 }),
-    }), env(new Database()), '/api/game-state', 'POST');
-    expect(response.status).toBe(403);
+      method: 'POST', body: JSON.stringify({ username: 'student-a', addExp: 500, addCoins: 250 }),
+    }), env(db), '/api/game-state', 'POST');
+
+    expect(response.status).toBe(410);
+    expect(db.executed.some(statement => /UPDATE\s+students|UPDATE\s+user_pets/i.test(statement.sql))).toBe(false);
   });
 });

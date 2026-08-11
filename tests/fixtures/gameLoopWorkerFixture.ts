@@ -2,13 +2,17 @@ export class GameLoopStatement {
     bindings: unknown[] = [];
     constructor(readonly sql: string, private readonly db: GameLoopDatabase) {}
     bind(...values: unknown[]) { this.bindings = values; return this; }
-    async first<T>() { this.db.executed.push(this); return this.db.first(this.sql) as T; }
-    async all<T>() { this.db.executed.push(this); return { results: this.db.all(this.sql) as T[] }; }
+    async first<T>() { this.db.executed.push(this); return this.db.first(this.sql, this.bindings) as T; }
+    async all<T>() { this.db.executed.push(this); return { results: this.db.all(this.sql, this.bindings) as T[] }; }
     async run() { this.db.executed.push(this); return { success: true }; }
 }
 
 export class GameLoopDatabase {
     executed: GameLoopStatement[] = [];
+    result: any = {
+        id: '42', student_id: 'student-a', class_id: 'class-a', quiz_id: 'quiz-1',
+        correct_count: 8, total_questions: 10, category: 'toan',
+    };
     constructor(private readonly existingActivity = false) {}
     prepare(sql: string) { return new GameLoopStatement(sql, this); }
     async batch(statements: GameLoopStatement[]) {
@@ -16,7 +20,11 @@ export class GameLoopDatabase {
         return statements.map(() => ({ success: true }));
     }
 
-    first(sql: string) {
+    first(sql: string, bindings: unknown[] = []) {
+        if (sql.includes('FROM results')) {
+            return String(bindings[0] || '') === String(this.result?.id || '') ? { ...this.result } : null;
+        }
+        if (sql.includes('FROM students') && sql.includes('SELECT id')) return { id: 'student-a' };
         if (sql.includes('FROM student_game_activity_events')) {
             return this.existingActivity ? { activity_id: 'activity-1' } : null;
         }
@@ -42,7 +50,7 @@ export class GameLoopDatabase {
         return null;
     }
 
-    all(sql: string) {
+    all(sql: string, _bindings: unknown[] = []) {
         if (!sql.includes('FROM student_weekly_progress')) return [];
         return [
             { quest_id: 'weekly_20_quizzes', progress: 2, target: 20, claimed: 0 },

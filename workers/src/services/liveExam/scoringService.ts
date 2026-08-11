@@ -5,6 +5,7 @@ import { getParticipants } from './participantService';
 import { loadLiveExamQuiz } from './quizLoader';
 import { getLiveExamById } from './sessionRepository';
 import { now } from './utils';
+import { awardClosedLiveExamRewards } from '../../gamification/liveExamReward';
 
 const snapshotAnswersSql = `
   SELECT snapshots.answers
@@ -99,6 +100,12 @@ export async function calculateScoresAndClose(
     SET status = 'closed', closed_at = ?, updated_at = ?
     WHERE id = ?
   `).bind(now(), now(), sessionId).run();
+
+  try {
+    await awardClosedLiveExamRewards(db, sessionId);
+  } catch (error) {
+    console.error('[LiveExamReward] closed-session reward pass incomplete; scheduled retry will resume missing receipts', error);
+  }
 }
 
 export async function checkAndAutoCloseExpiredExams(db: D1Database): Promise<void> {

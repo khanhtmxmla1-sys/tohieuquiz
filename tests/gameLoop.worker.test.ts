@@ -55,7 +55,7 @@ describe('Game Loop route contracts', () => {
     });
 
     it.each([
-        ['/api/game-loop/track-quiz', 'Missing activityId'],
+        ['/api/game-loop/track-quiz', 'Missing resultId'],
         ['/api/game-loop/claim-mission', 'Missing missionId'],
         ['/api/game-loop/claim-weekly-quest', 'Missing questId'],
     ])('keeps validation for %s', async (path, message) => {
@@ -63,6 +63,67 @@ describe('Game Loop route contracts', () => {
         const response = await callRoute(path, 'POST', new GameLoopDatabase(), '{}');
         expect(response.status).toBe(400);
         await expect(response.json()).resolves.toMatchObject({ message });
+    });
+
+    it('rejects legacy client-scored quiz progress payloads', async () => {
+        asStudent();
+        const response = await callRoute('/api/game-loop/track-quiz', 'POST', new GameLoopDatabase(), JSON.stringify({
+            resultId: '42',
+            activityId: 'client-forged-activity',
+            correctCount: 999,
+            totalQuestions: 999,
+            category: 'toan',
+        }));
+        expect(response.status).toBe(400);
+        await expect(response.json()).resolves.toMatchObject({
+            message: 'Legacy quiz progress payload is not accepted',
+        });
+    });
+
+    it('derives quiz progress from the saved result owned by the JWT student', async () => {
+        asStudent();
+        const db = new GameLoopDatabase();
+        const response = await callRoute('/api/game-loop/track-quiz', 'POST', db, JSON.stringify({ resultId: '42' }));
+        const payload = await response.json() as any;
+
+        expect(response.status).toBe(200);
+        expect(payload.status).toBe('success');
+        expect(payload.alreadyRecorded).toBe(false);
+        const activityInsert = db.executed.find(statement => statement.sql.includes('INSERT INTO student_game_activity_events'));
+        expect(activityInsert?.bindings).toContain('42');
+        const activityPayload = JSON.parse(String(activityInsert?.bindings[3] || '{}'));
+        expect(activityPayload).toMatchObject({ correctCount: 8, totalQuestions: 10, category: 'toan' });
+    });
+
+    it('returns an idempotent retry when the result was already recorded', async () => {
+        asStudent();
+        const db = new GameLoopDatabase(true);
+        const response = await callRoute('/api/game-loop/track-quiz', 'POST', db, JSON.stringify({ resultId: '42' }));
+        const payload = await response.json() as any;
+
+        expect(response.status).toBe(200);
+        expect(payload.alreadyRecorded).toBe(true);
+        expect(db.executed.some(statement => statement.sql.includes('INSERT INTO student_game_activity_events'))).toBe(false);
+    });
+
+    it('does not record progress for a result owned by another student', async () => {
+        asStudent();
+        const db = new GameLoopDatabase();
+        db.result.student_id = 'student-b';
+        const response = await callRoute('/api/game-loop/track-quiz', 'POST', db, JSON.stringify({ resultId: '42' }));
+
+        expect(response.status).toBe(404);
+        expect(db.executed.some(statement => statement.sql.includes('INSERT INTO student_game_activity_events'))).toBe(false);
+    });
+
+    it('does not record progress for a missing saved result', async () => {
+        asStudent();
+        const db = new GameLoopDatabase();
+        db.result = null;
+        const response = await callRoute('/api/game-loop/track-quiz', 'POST', db, JSON.stringify({ resultId: 'missing' }));
+
+        expect(response.status).toBe(404);
+        expect(db.executed.some(statement => statement.sql.includes('INSERT INTO student_game_activity_events'))).toBe(false);
     });
 
     it('keeps invalid JSON validation for chest claims', async () => {
