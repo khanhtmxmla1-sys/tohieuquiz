@@ -1,9 +1,10 @@
-// @vitest-environment node
+﻿// @vitest-environment node
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   awardClosedLiveExamRewards,
   calculateLiveExamRewardAmounts,
+  retryMissingClosedLiveExamRewards,
 } from '../workers/src/gamification/liveExamReward';
 
 class Statement {
@@ -63,7 +64,9 @@ beforeEach(() => {
     );
     CREATE TABLE live_exam_sessions (
       id TEXT PRIMARY KEY,
-      status TEXT NOT NULL
+      status TEXT NOT NULL,
+      closed_at TEXT,
+      archived_at TEXT
     );
     CREATE TABLE live_exam_participants (
       id TEXT PRIMARY KEY,
@@ -78,12 +81,17 @@ beforeEach(() => {
     );
     INSERT INTO students VALUES
       ('student-a', 'student-a', 100),
-      ('student-b', 'student-b', 20);
-    INSERT INTO user_pets(username, total_exp) VALUES ('student-a', 0), ('student-b', 0);
-    INSERT INTO live_exam_sessions VALUES ('session-1', 'closed');
+      ('student-b', 'student-b', 20),
+      ('student-old', 'student-old', 10);
+    INSERT INTO user_pets(username, total_exp) VALUES
+      ('student-a', 0), ('student-b', 0), ('student-old', 0);
+    INSERT INTO live_exam_sessions VALUES
+      ('session-1', 'closed', '2026-08-11T07:00:00.000Z', NULL),
+      ('session-old', 'closed', '2026-08-06T13:29:07.885Z', NULL);
     INSERT INTO live_exam_participants VALUES
-      ('p-a', 'session-1', 'student-a', 'student-a', 9.8, 1, 10, 0, '2026-08-11T02:00:00.000Z'),
-      ('p-b', 'session-1', 'student-b', 'student-b', 7.4, 6, 7, 3, '2026-08-11T02:01:00.000Z');
+      ('p-a', 'session-1', 'student-a', 'student-a', 9.8, 1, 10, 0, '2026-08-11T07:00:00.000Z'),
+      ('p-b', 'session-1', 'student-b', 'student-b', 7.4, 6, 7, 3, '2026-08-11T07:01:00.000Z'),
+      ('p-old', 'session-old', 'student-old', 'student-old', 8.0, 1, 8, 2, '2026-08-06T13:28:36.804Z');
   `);
   db = new SqliteD1(sqlite);
 });
@@ -125,5 +133,16 @@ describe('live exam reward ledger', () => {
     sqlite.exec(`UPDATE live_exam_sessions SET status='active' WHERE id='session-1'`);
     await expect(awardClosedLiveExamRewards(db as any, 'session-1')).rejects.toThrow(/closed/i);
     expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger`).get()).toEqual({ count: 0 });
+  });
+
+  it('retries only sessions closed after the reward-ledger rollout cutoff', async () => {
+    const processed = await retryMissingClosedLiveExamRewards(db as any);
+
+    expect(processed).toBe(1);
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger
+      WHERE source_type='LIVE_EXAM' AND source_key='session-1'`).get()).toEqual({ count: 2 });
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger
+      WHERE source_type='LIVE_EXAM' AND source_key='session-old'`).get()).toEqual({ count: 0 });
+    expect(sqlite.prepare(`SELECT coins FROM students WHERE id='student-old'`).get()).toEqual({ coins: 10 });
   });
 });
