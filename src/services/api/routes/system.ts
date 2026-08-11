@@ -35,6 +35,10 @@ export const systemRoutes: RouteRegistry = {
         method: 'POST', auth: 'session',
         path: ({ id }) => `/api/admin/announcements/${encodeURIComponent(id)}/cancel`,
     },
+    end_announcement: {
+        method: 'POST', auth: 'session',
+        path: ({ id }) => `/api/admin/announcements/${encodeURIComponent(id)}/end`,
+    },
     archive_announcement: {
         method: 'POST', auth: 'session',
         path: ({ id }) => `/api/admin/announcements/${encodeURIComponent(id)}/archive`,
@@ -111,6 +115,15 @@ export const systemRoutes: RouteRegistry = {
         method: 'PATCH', auth: 'session',
         path: ({ key }) => `/api/system-settings/feature-flags/${encodeURIComponent(key)}`,
         body: (_action, payload) => ({ field: payload.field, value: payload.value, reason: payload.reason }),
+    },
+    patch_feature_flag_batch: {
+        method: 'PATCH', auth: 'session',
+        path: ({ key }) => `/api/system-settings/feature-flags/${encodeURIComponent(key)}/batch`,
+        body: (_action, payload) => ({
+            changes: payload.changes,
+            reason: payload.reason,
+            expectedVersion: payload.expectedVersion,
+        }),
     },
     rollback_feature_flag: {
         method: 'POST', auth: 'session',

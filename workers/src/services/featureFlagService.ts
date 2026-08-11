@@ -1,7 +1,10 @@
 import type {
   FeatureAudience,
+  FeatureFlagBatchChange,
+  FeatureFlagBatchPatch,
   FeatureFlagConfig,
   FeatureFlagPatch,
+  FeatureFlagPatchField,
   FeatureFlagResolution,
   FeatureFlagSubject,
   FeatureRolloutStopConditions,
@@ -24,6 +27,22 @@ interface FeatureFlagRow {
   updated_by: string;
   updated_at: string;
 }
+
+type FeatureFlagAuditField = FeatureFlagPatchField | '__batch__';
+type NormalizedBatchChange = { field: FeatureFlagPatchField; value: unknown };
+
+const PATCH_FIELDS: readonly FeatureFlagPatchField[] = [
+  'enabled',
+  'description',
+  'audience',
+  'percentage',
+  'allowUsers',
+  'allowClasses',
+  'startsAt',
+  'endsAt',
+  'owner',
+  'stopConditions',
+];
 
 const FLAG_SELECT = `
   SELECT f.flag_key, f.description, f.enabled, f.owner, f.version,
@@ -100,7 +119,12 @@ const normalizeStopConditions = (value: unknown): FeatureRolloutStopConditions =
   return output;
 };
 
-const normalizePatchValue = (patch: FeatureFlagPatch): unknown => {
+const isFeatureFlagPatchField = (value: unknown): value is FeatureFlagPatchField => (
+  typeof value === 'string' && PATCH_FIELDS.includes(value as FeatureFlagPatchField)
+);
+
+const normalizePatchValue = (patch: Pick<FeatureFlagPatch, 'field' | 'value'>): unknown => {
+  if (!isFeatureFlagPatchField(patch.field)) throw new Error('FEATURE_FLAG_INVALID_FIELD');
   switch (patch.field) {
     case 'enabled':
       if (typeof patch.value !== 'boolean') throw new Error('FEATURE_FLAG_INVALID_BOOLEAN');
@@ -132,6 +156,8 @@ const normalizePatchValue = (patch: FeatureFlagPatch): unknown => {
       return safeText(patch.value, 128);
     case 'stopConditions':
       return normalizeStopConditions(patch.value);
+    default:
+      throw new Error('FEATURE_FLAG_INVALID_FIELD');
   }
 };
 
@@ -222,6 +248,67 @@ const updateStatements = (
   ];
 };
 
+const normalizeBatch = (batch: FeatureFlagBatchPatch): {
+  changes: NormalizedBatchChange[];
+  reason: string;
+  expectedVersion: number;
+} => {
+  if (!Array.isArray(batch?.changes)) throw new Error('FEATURE_FLAG_BATCH_INVALID_CHANGES');
+  if (batch.changes.length === 0) throw new Error('FEATURE_FLAG_BATCH_EMPTY');
+  if (batch.changes.length > 10) throw new Error('FEATURE_FLAG_BATCH_TOO_LARGE');
+  if (!Number.isInteger(batch.expectedVersion) || batch.expectedVersion < 1) {
+    throw new Error('FEATURE_FLAG_INVALID_VERSION');
+  }
+  const reason = safeText(batch.reason, 500);
+  if (!reason) throw new Error('FEATURE_FLAG_PATCH_METADATA_REQUIRED');
+
+  const seen = new Set<FeatureFlagPatchField>();
+  const changes = batch.changes.map((change: FeatureFlagBatchChange) => {
+    if (!change || !isFeatureFlagPatchField(change.field)) throw new Error('FEATURE_FLAG_INVALID_FIELD');
+    if (seen.has(change.field)) throw new Error('FEATURE_FLAG_BATCH_DUPLICATE_FIELD');
+    seen.add(change.field);
+    return { field: change.field, value: normalizePatchValue(change) };
+  });
+  return { changes, reason, expectedVersion: batch.expectedVersion };
+};
+
+const batchChangeStatement = (
+  db: D1Database,
+  key: string,
+  change: NormalizedBatchChange,
+  expectedVersion: number,
+): D1PreparedStatement => {
+  const { field, value } = change;
+  if (field === 'enabled' || field === 'description' || field === 'owner') {
+    const column = field === 'enabled' ? 'enabled' : field;
+    const stored = field === 'enabled' ? (value ? 1 : 0) : value;
+    return db.prepare(`UPDATE feature_flags SET ${column} = ? WHERE flag_key = ? AND version = ?`)
+      .bind(stored, key, expectedVersion);
+  }
+
+  const column = ({
+    audience: 'audience',
+    percentage: 'percentage',
+    allowUsers: 'allow_users_json',
+    allowClasses: 'allow_classes_json',
+    startsAt: 'starts_at',
+    endsAt: 'ends_at',
+    stopConditions: 'stop_conditions_json',
+  } as const)[field as Exclude<FeatureFlagPatchField, 'enabled' | 'description' | 'owner'>];
+  const stored = ['allowUsers', 'allowClasses', 'stopConditions'].includes(field)
+    ? JSON.stringify(value)
+    : value;
+  return db.prepare(`
+    UPDATE feature_flag_rules
+    SET ${column} = ?
+    WHERE flag_key = ?
+      AND EXISTS (
+        SELECT 1 FROM feature_flags
+        WHERE flag_key = ? AND version = ?
+      )
+  `).bind(stored, key, key, expectedVersion);
+};
+
 export async function patchFeatureFlag(
   db: D1Database,
   keyInput: string,
@@ -256,6 +343,157 @@ export async function patchFeatureFlag(
   return after;
 }
 
+export async function patchFeatureFlagBatch(
+  db: D1Database,
+  keyInput: string,
+  batchInput: FeatureFlagBatchPatch,
+  actorInput: string,
+  requestIdInput: string,
+): Promise<FeatureFlagConfig> {
+  const key = safeText(keyInput, 128);
+  const actor = safeText(actorInput, 128);
+  const requestId = safeText(requestIdInput, 128);
+  if (!key || !actor || !requestId) throw new Error('FEATURE_FLAG_PATCH_METADATA_REQUIRED');
+
+  const batch = normalizeBatch(batchInput);
+  const before = await getFeatureFlag(db, key);
+  if (!before) throw new Error('FEATURE_FLAG_NOT_FOUND');
+  if (before.version !== batch.expectedVersion) throw new Error('FEATURE_FLAG_VERSION_CONFLICT');
+
+  const now = new Date().toISOString();
+  const projected = batch.changes.reduce<FeatureFlagConfig>(
+    (current, change) => ({ ...current, [change.field]: change.value }),
+    { ...before },
+  );
+  projected.reason = batch.reason;
+  projected.updatedBy = actor;
+  projected.updatedAt = now;
+  projected.version = before.version + 1;
+
+  await db.batch([
+    ...batch.changes.map((change) => batchChangeStatement(db, key, change, batch.expectedVersion)),
+    db.prepare(`
+      UPDATE feature_flag_rules
+      SET reason = ?, updated_by = ?, updated_at = ?
+      WHERE flag_key = ?
+        AND EXISTS (
+          SELECT 1 FROM feature_flags
+          WHERE flag_key = ? AND version = ?
+        )
+    `).bind(batch.reason, actor, now, key, key, batch.expectedVersion),
+    db.prepare(`
+      UPDATE feature_flags
+      SET version = version + 1, updated_at = ?
+      WHERE flag_key = ? AND version = ?
+    `).bind(now, key, batch.expectedVersion),
+    db.prepare(`
+      INSERT INTO feature_flag_audit (
+        id, flag_key, action, field_name, before_json, after_json,
+        actor_username, request_id, reason, created_at
+      )
+      SELECT ?, ?, 'UPDATED', '__batch__', ?, ?, ?, ?, ?, ?
+      WHERE EXISTS (
+        SELECT 1 FROM feature_flags
+        WHERE flag_key = ? AND version = ?
+      )
+    `).bind(
+      `flag-audit-${crypto.randomUUID()}`,
+      key,
+      JSON.stringify(before),
+      JSON.stringify(projected),
+      actor,
+      requestId,
+      batch.reason,
+      now,
+      key,
+      batch.expectedVersion + 1,
+    ),
+  ]);
+
+  const after = await getFeatureFlag(db, key);
+  if (!after) throw new Error('FEATURE_FLAG_NOT_FOUND');
+  if (after.version !== batch.expectedVersion + 1) throw new Error('FEATURE_FLAG_VERSION_CONFLICT');
+  return after;
+}
+
+const rollbackBatchStatements = (
+  db: D1Database,
+  key: string,
+  prior: FeatureFlagConfig,
+  currentVersion: number,
+  actor: string,
+  reason: string,
+  requestId: string,
+  current: FeatureFlagConfig,
+  now: string,
+): D1PreparedStatement[] => {
+  const projected: FeatureFlagConfig = {
+    ...prior,
+    version: currentVersion + 1,
+    reason,
+    updatedBy: actor,
+    updatedAt: now,
+  };
+  return [
+    db.prepare(`
+      UPDATE feature_flags
+      SET enabled = ?, description = ?, owner = ?
+      WHERE flag_key = ? AND version = ?
+    `).bind(prior.enabled ? 1 : 0, prior.description, prior.owner, key, currentVersion),
+    db.prepare(`
+      UPDATE feature_flag_rules
+      SET audience = ?, percentage = ?, allow_users_json = ?, allow_classes_json = ?,
+          starts_at = ?, ends_at = ?, stop_conditions_json = ?, reason = ?, updated_by = ?, updated_at = ?
+      WHERE flag_key = ?
+        AND EXISTS (
+          SELECT 1 FROM feature_flags
+          WHERE flag_key = ? AND version = ?
+        )
+    `).bind(
+      prior.audience,
+      prior.percentage,
+      JSON.stringify(prior.allowUsers),
+      JSON.stringify(prior.allowClasses),
+      prior.startsAt,
+      prior.endsAt,
+      JSON.stringify(prior.stopConditions),
+      reason,
+      actor,
+      now,
+      key,
+      key,
+      currentVersion,
+    ),
+    db.prepare(`
+      UPDATE feature_flags
+      SET version = version + 1, updated_at = ?
+      WHERE flag_key = ? AND version = ?
+    `).bind(now, key, currentVersion),
+    db.prepare(`
+      INSERT INTO feature_flag_audit (
+        id, flag_key, action, field_name, before_json, after_json,
+        actor_username, request_id, reason, created_at
+      )
+      SELECT ?, ?, 'ROLLED_BACK', '__batch__', ?, ?, ?, ?, ?, ?
+      WHERE EXISTS (
+        SELECT 1 FROM feature_flags
+        WHERE flag_key = ? AND version = ?
+      )
+    `).bind(
+      `flag-audit-${crypto.randomUUID()}`,
+      key,
+      JSON.stringify(current),
+      JSON.stringify(projected),
+      actor,
+      requestId,
+      reason,
+      now,
+      key,
+      currentVersion + 1,
+    ),
+  ];
+};
+
 export async function rollbackFeatureFlag(
   db: D1Database,
   keyInput: string,
@@ -274,13 +512,25 @@ export async function rollbackFeatureFlag(
     WHERE flag_key = ?
     ORDER BY created_at DESC, rowid DESC
     LIMIT 1
-  `).bind(key).first<{ action: 'UPDATED' | 'ROLLED_BACK'; field_name: FeatureFlagPatch['field']; before_json: string }>();
+  `).bind(key).first<{ action: 'UPDATED' | 'ROLLED_BACK'; field_name: FeatureFlagAuditField; before_json: string }>();
   if (!audit || audit.action !== 'UPDATED') throw new Error('FEATURE_FLAG_ROLLBACK_NOT_FOUND');
   const current = await getFeatureFlag(db, key);
   if (!current) throw new Error('FEATURE_FLAG_NOT_FOUND');
   const prior = parseJson<FeatureFlagConfig>(audit.before_json, current);
-  const value = prior[audit.field_name as keyof FeatureFlagConfig];
   const now = new Date().toISOString();
+
+  if (audit.field_name === '__batch__') {
+    await db.batch(rollbackBatchStatements(
+      db, key, prior, current.version, actor, reason, requestId, current, now,
+    ));
+    const afterBatchRollback = await getFeatureFlag(db, key);
+    if (!afterBatchRollback) throw new Error('FEATURE_FLAG_NOT_FOUND');
+    if (afterBatchRollback.version !== current.version + 1) throw new Error('FEATURE_FLAG_VERSION_CONFLICT');
+    return afterBatchRollback;
+  }
+
+  if (!isFeatureFlagPatchField(audit.field_name)) throw new Error('FEATURE_FLAG_ROLLBACK_NOT_FOUND');
+  const value = prior[audit.field_name as keyof FeatureFlagConfig];
   const projected = { ...current, [audit.field_name]: value, reason, updatedBy: actor, updatedAt: now, version: current.version + 1 };
   await db.batch([
     ...updateStatements(db, key, audit.field_name, value, actor, reason, now),

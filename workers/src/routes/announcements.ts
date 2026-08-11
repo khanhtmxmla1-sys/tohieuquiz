@@ -171,6 +171,9 @@ function validateBody(body: Record<string, any>, request: Request, env: Env): { 
     }
     const channels = [...new Set(channelsInput)] as AnnouncementChannel[];
     const requiresPublishValidation = status === 'PUBLISHED' || status === 'SCHEDULED';
+    if (requiresPublishValidation && !content) {
+        return { error: errorResponse('Thông báo xuất bản phải có nội dung.', 400) };
+    }
     if (requiresPublishValidation && channels.length === 0) {
         return { error: errorResponse('Thông báo xuất bản phải có ít nhất một kênh hiển thị.', 400) };
     }
@@ -313,7 +316,7 @@ export async function handleAnnouncementRoutes(request: Request, env: Env, path:
         return jsonResponse({ status: 'success', data: { id, updatedAt: now } }, existing ? 200 : 201);
     }
 
-    const match = path.match(/^\/api\/admin\/announcements\/([^/]+)(?:\/(publish|cancel|archive))?$/);
+    const match = path.match(/^\/api\/admin\/announcements\/([^/]+)(?:\/(publish|cancel|archive|end))?$/);
     if (!match) return errorResponse('Not found: ' + path, 404);
     const id = decodeURIComponent(match[1]);
     const action = match[2];
@@ -351,15 +354,39 @@ export async function handleAnnouncementRoutes(request: Request, env: Env, path:
     }
 
     if (method === 'POST' && action) {
-        const nextStatus: AnnouncementStatus = action === 'publish' ? 'PUBLISHED' : action === 'archive' ? 'ARCHIVED' : 'DRAFT';
+        if (action === 'publish') {
+            const channels = parseChannels(current);
+            const priority: NotificationPriority = isNotificationPriority(current.priority) ? current.priority : 'INFO';
+            const content = (current.content || '').trim();
+            const ctaLabel = (current.cta_label || '').trim();
+            const link = safeLink(current.banner_link);
+
+            if (!content) return errorResponse('Thông báo xuất bản phải có nội dung.', 400);
+            if (channels.length === 0) return errorResponse('Thông báo xuất bản phải có ít nhất một kênh hiển thị.', 400);
+            if (priority === 'URGENT' && !channels.includes('CRITICAL_STRIP')) {
+                return errorResponse('Cảnh báo khẩn phải dùng kênh Cảnh báo khẩn.', 400);
+            }
+            if (link === null || (ctaLabel && !link)) {
+                return errorResponse('Nhãn hành động phải đi kèm liên kết hợp lệ.', 400);
+            }
+        }
+
+        const nextStatus: AnnouncementStatus = action === 'publish'
+            ? (current.status === 'SCHEDULED' ? 'SCHEDULED' : 'PUBLISHED')
+            : action === 'archive'
+                ? 'ARCHIVED'
+                : action === 'end'
+                    ? 'EXPIRED'
+                    : 'DRAFT';
         const startsAt = action === 'publish' ? (current.starts_at || now) : current.starts_at;
+        const endsAt = action === 'end' ? now : current.ends_at;
         await db.batch([
-            db.prepare('UPDATE announcements SET status = ?, starts_at = ?, updated_at = ?, updated_by = ? WHERE id = ?')
-                .bind(nextStatus, startsAt, now, authResult.user.username, id),
+            db.prepare('UPDATE announcements SET status = ?, starts_at = ?, ends_at = ?, updated_at = ?, updated_by = ? WHERE id = ?')
+                .bind(nextStatus, startsAt, endsAt, now, authResult.user.username, id),
             auditStatement(db, {
                 actorUsername: authResult.user.username, action: `ANNOUNCEMENT_${action.toUpperCase()}`,
                 targetType: 'announcement', targetId: id, requestId: requestId(request),
-                before: { status: current.status }, after: { status: nextStatus },
+                before: { status: current.status, endsAt: current.ends_at }, after: { status: nextStatus, endsAt },
             }),
         ]);
         return jsonResponse({ status: 'success', data: { id, status: nextStatus, updatedAt: now } });

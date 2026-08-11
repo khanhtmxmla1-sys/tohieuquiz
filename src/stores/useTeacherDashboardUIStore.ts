@@ -11,6 +11,7 @@ const TEACHER_DASHBOARD_TABS = [
     'manage',
     'create',
     'announcements',
+    'feature-rollout',
     'classes',
     'assignments',
     'teachers',

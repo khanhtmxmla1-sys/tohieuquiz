@@ -181,6 +181,11 @@ describe('system announcement publishing validation', () => {
 
   it.each([
     [
+      'empty meaningful content',
+      { priority: 'INFO', channels: ['TICKER'], content: '   ', bannerTitle: '', bannerSubtitle: '' },
+      'nội dung',
+    ],
+    [
       'an empty channel selection',
       { priority: 'INFO', channels: [] },
       'ít nhất một kênh',
@@ -215,6 +220,35 @@ describe('system announcement publishing validation', () => {
       }, true),
       env(db),
       '/api/admin/announcements',
+      'POST',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(400);
+    expect(payload.message).toContain(expectedMessage);
+    expect(db.batches).toHaveLength(0);
+  });
+
+  it.each([
+    ['empty content', { content: '   ', channels_json: '["TICKER"]' }, 'nội dung'],
+    ['no channel', { channels_json: '[]' }, 'ít nhất một kênh'],
+    ['urgent without critical strip', { priority: 'URGENT', channels_json: '["TICKER"]' }, 'Cảnh báo khẩn'],
+    ['CTA without a safe link', { cta_label: 'Xem ngay', banner_link: '', channels_json: '["BANNER"]' }, 'liên kết'],
+  ])('rejects publish action for saved draft with %s', async (_label, overrides, expectedMessage) => {
+    const db = new FakeDatabase([
+      announcement('invalid-draft', {
+        status: 'DRAFT',
+        ...overrides,
+      }),
+    ]);
+
+    const response = await handleAnnouncementRoutes(
+      request('/api/admin/announcements/invalid-draft/publish', {
+        method: 'POST',
+        body: JSON.stringify({ expectedUpdatedAt: '2026-07-24T01:00:00.000Z' }),
+      }, true),
+      env(db),
+      '/api/admin/announcements/invalid-draft/publish',
       'POST',
     );
     const payload = await response.json() as any;

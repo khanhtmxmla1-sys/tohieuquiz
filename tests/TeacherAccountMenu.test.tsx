@@ -88,6 +88,7 @@ describe('TeacherAccountMenu', () => {
 
   it.each([
     ['Quản lý thông báo', 'announcements'],
+    ['Tính năng thử nghiệm', 'feature-rollout'],
     ['Quản lý giáo viên', 'teachers'],
     ['Kiểm tra lỗi công thức', 'math-audit'],
     ['Trạng thái hệ thống', 'operations'],

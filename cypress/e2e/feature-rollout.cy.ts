@@ -31,9 +31,17 @@ const baseFlag = {
   updatedAt: '2026-07-29T10:00:00.000Z',
 };
 
-describe('runtime feature rollout control plane', () => {
-  it('patches one field with a reason and rolls it back without a deploy', () => {
-    let flag = { ...baseFlag };
+const visitAsAdmin = (path: string) => {
+  cy.visit(path, {
+    onBeforeLoad(win) {
+      win.localStorage.setItem('auth-storage', adminStorage);
+    },
+  });
+};
+
+describe('runtime feature rollout route separation', () => {
+  it('keeps rollout off the announcement page and loads it only on the dedicated admin route', () => {
+    let featureFlagRequests = 0;
 
     cy.intercept({ method: 'GET', pathname: '/api/**' }, {
       statusCode: 200,
@@ -52,52 +60,28 @@ describe('runtime feature rollout control plane', () => {
     cy.intercept({ method: 'GET', pathname: '/api/announcements/current' }, {
       statusCode: 200,
       body: { status: 'success', data: { items: [] } },
-    }).as('announcements');
-    cy.intercept({ method: 'GET', pathname: '/api/system-settings/feature-flags' }, (request) => {
-      request.reply({ statusCode: 200, body: { status: 'success', data: [flag] } });
-    }).as('featureFlags');
-    cy.intercept({ method: 'GET', pathname: '/api/system-settings/feature-flags/resolve' }, {
-      statusCode: 200,
-      body: { status: 'success', data: { key: 'unified_notifications_v1', enabled: true, reason: 'percentage', bucket: 1, version: 1 } },
-    }).as('resolveFlag');
-    cy.intercept({ method: 'PATCH', pathname: '/api/system-settings/feature-flags/unified_notifications_v1' }, (request) => {
-      expect(request.body).to.deep.equal({
-        field: 'percentage', value: 25, reason: 'Pilot 25 percent',
-      });
-      flag = { ...flag, percentage: 25, version: 2, updatedBy: 'admin.rollout', reason: 'Pilot 25 percent' };
-      request.reply({ statusCode: 200, body: { status: 'success', data: flag } });
-    }).as('patchFlag');
-    cy.intercept({ method: 'POST', pathname: '/api/system-settings/feature-flags/unified_notifications_v1/rollback' }, (request) => {
-      expect(request.body).to.deep.equal({ reason: 'Stop condition breached' });
-      flag = { ...flag, percentage: 5, version: 3, updatedBy: 'admin.rollout', reason: 'Stop condition breached' };
-      request.reply({ statusCode: 200, body: { status: 'success', data: flag } });
-    }).as('rollbackFlag');
-
-    cy.visit('/teacher/announcements', {
-      onBeforeLoad(win) {
-        win.localStorage.setItem('auth-storage', adminStorage);
-      },
     });
+    cy.intercept({ method: 'GET', pathname: '/api/admin/announcements' }, {
+      statusCode: 200,
+      body: { status: 'success', data: [] },
+    }).as('announcementList');
+    cy.intercept({ method: 'GET', pathname: '/api/system-settings/feature-flags' }, (request) => {
+      featureFlagRequests += 1;
+      request.reply({ statusCode: 200, body: { status: 'success', data: [baseFlag] } });
+    }).as('featureFlags');
 
+    visitAsAdmin('/teacher/announcements');
+    cy.wait('@account');
+    cy.wait('@announcementList');
+    cy.contains('h2', 'Quản lý thông báo', { timeout: 20_000 }).should('be.visible');
+    cy.contains('Feature rollout').should('not.exist');
+    cy.then(() => expect(featureFlagRequests).to.equal(0));
+
+    visitAsAdmin('/teacher/feature-rollout');
     cy.wait('@account');
     cy.wait('@featureFlags');
-    cy.contains('h3', 'Feature rollout', { timeout: 20_000 }).should('be.visible');
-    cy.contains('Preview cohort:').parent().should('contain.text', 'teacher, 5%');
-
-    cy.contains('section', 'Feature rollout').within(() => {
-      cy.get('select').first().should('have.value', 'percentage');
-      cy.get('[data-testid="rollout-value"]').clear().type('25');
-      cy.get('[data-testid="rollout-reason"]').type('Pilot 25 percent');
-      cy.get('[data-testid="rollout-save"]').click();
-    });
-    cy.wait('@patchFlag');
-    cy.contains('section', 'Feature rollout').should('contain.text', 'teacher, 25%');
-
-    cy.contains('section', 'Feature rollout').within(() => {
-      cy.get('[data-testid="rollout-reason"]').type('Stop condition breached');
-      cy.get('[data-testid="rollout-rollback"]').click();
-    });
-    cy.wait('@rollbackFlag');
-    cy.contains('section', 'Feature rollout').should('contain.text', 'teacher, 5%');
+    cy.contains('h2', 'Tính năng thử nghiệm', { timeout: 20_000 }).should('be.visible');
+    cy.contains('button', 'Thông báo hợp nhất').should('be.visible');
+    cy.then(() => expect(featureFlagRequests).to.be.greaterThan(0));
   });
 });
