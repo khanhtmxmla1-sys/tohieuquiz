@@ -93,6 +93,8 @@ export const awardClosedLiveExamRewards = async (
   }
 };
 
+const LIVE_EXAM_REWARD_LEDGER_ROLLOUT_CUTOFF_ISO = '2026-08-11T06:51:37.000Z';
+
 export const retryMissingClosedLiveExamRewards = async (
   db: D1Database,
   limit = 25,
@@ -104,6 +106,8 @@ export const retryMissingClosedLiveExamRewards = async (
       ON participants.live_exam_id = sessions.id
     WHERE sessions.status = 'closed'
       AND sessions.archived_at IS NULL
+      AND sessions.closed_at IS NOT NULL
+      AND sessions.closed_at >= ?
       AND participants.score IS NOT NULL
       AND participants.rank IS NOT NULL
       AND participants.student_id IS NOT NULL
@@ -116,7 +120,10 @@ export const retryMissingClosedLiveExamRewards = async (
       )
     ORDER BY sessions.closed_at ASC, sessions.id ASC
     LIMIT ?
-  `).bind(Math.max(1, Math.min(100, Math.floor(limit)))).all<any>();
+  `).bind(
+    LIVE_EXAM_REWARD_LEDGER_ROLLOUT_CUTOFF_ISO,
+    Math.max(1, Math.min(100, Math.floor(limit))),
+  ).all<any>();
 
   let processed = 0;
   for (const row of rows.results || []) {
