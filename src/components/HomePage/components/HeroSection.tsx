@@ -19,9 +19,12 @@ const HeroSection: React.FC = () => {
     return (
         <section className="order-2 w-full max-w-[700px] lg:order-1 lg:pr-2" aria-labelledby="login-hero-title">
             <div className="login-page-reveal">
-                <div className="mb-3 inline-flex min-h-8 items-center gap-2 rounded-[10px] border border-[#bfdbfe] bg-[#eff6ff] px-3 text-[0.68rem] font-bold uppercase tracking-[0.17em] text-[#1d4ed8] sm:mb-4 sm:text-xs">
-                    <span className="h-2 w-2 rounded-[3px] bg-[#facc15]" aria-hidden="true" />
-                    Nền tảng giáo dục trực tuyến
+                <div className="relative mb-3 aspect-[1235/571] w-[min(72vw,300px)] overflow-hidden sm:mb-4">
+                    <img
+                        src="/images/online-education-platform.png"
+                        alt="Nền tảng giáo dục trực tuyến"
+                        className="absolute inset-x-0 top-[-53.9%] h-auto w-full max-w-none"
+                    />
                 </div>
 
                 <h1
