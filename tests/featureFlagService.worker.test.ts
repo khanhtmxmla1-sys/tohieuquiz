@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   getFeatureFlag,
   patchFeatureFlag,
+  patchFeatureFlagBatch,
   rollbackFeatureFlag,
 } from '../workers/src/services/featureFlagService';
 
@@ -104,5 +105,114 @@ describe('feature flag persistence and rollback', () => {
       field: 'percentage', value: 101, reason: 'Invalid',
     }, 'admin-a', 'req-invalid')).rejects.toThrow('FEATURE_FLAG_INVALID_PERCENTAGE');
     expect(sqlite!.prepare('SELECT COUNT(*) AS count FROM feature_flag_audit').get()).toEqual({ count: 0 });
+  });
+
+  it('applies a valid batch atomically and increments version exactly once', async () => {
+    const db = setup();
+    const after = await patchFeatureFlagBatch(db, 'unified_notifications_v1', {
+      changes: [
+        { field: 'enabled', value: true },
+        { field: 'audience', value: 'teacher' },
+        { field: 'percentage', value: 10 },
+      ],
+      reason: 'Pilot 10% teachers',
+      expectedVersion: 1,
+    }, 'admin-a', 'req-batch-1');
+
+    expect(after).toMatchObject({
+      enabled: true,
+      audience: 'teacher',
+      percentage: 10,
+      version: 2,
+      reason: 'Pilot 10% teachers',
+      updatedBy: 'admin-a',
+    });
+    expect(sqlite!.prepare('SELECT COUNT(*) AS count FROM feature_flag_audit').get()).toEqual({ count: 1 });
+    expect(sqlite!.prepare('SELECT field_name, request_id FROM feature_flag_audit').get()).toEqual({
+      field_name: '__batch__', request_id: 'req-batch-1',
+    });
+  });
+
+  it.each([
+    ['empty changes', { changes: [], reason: 'Empty', expectedVersion: 1 }, 'FEATURE_FLAG_BATCH_EMPTY'],
+    ['too many changes', {
+      changes: Array.from({ length: 11 }, (_, index) => ({ field: 'percentage', value: index })),
+      reason: 'Too many', expectedVersion: 1,
+    }, 'FEATURE_FLAG_BATCH_TOO_LARGE'],
+    ['duplicate field', {
+      changes: [{ field: 'enabled', value: true }, { field: 'enabled', value: false }],
+      reason: 'Duplicate', expectedVersion: 1,
+    }, 'FEATURE_FLAG_BATCH_DUPLICATE_FIELD'],
+    ['unknown field', {
+      changes: [{ field: 'unknownField', value: true }], reason: 'Unknown', expectedVersion: 1,
+    }, 'FEATURE_FLAG_INVALID_FIELD'],
+  ] as const)('rejects %s without any mutation', async (_label, batch, expectedError) => {
+    const db = setup();
+    const before = await getFeatureFlag(db, 'unified_notifications_v1');
+
+    await expect(patchFeatureFlagBatch(
+      db,
+      'unified_notifications_v1',
+      batch as any,
+      'admin-a',
+      'req-invalid-batch',
+    )).rejects.toThrow(expectedError);
+
+    expect(await getFeatureFlag(db, 'unified_notifications_v1')).toEqual(before);
+    expect(sqlite!.prepare('SELECT COUNT(*) AS count FROM feature_flag_audit').get()).toEqual({ count: 0 });
+  });
+
+  it('validates every value before writing any part of the batch', async () => {
+    const db = setup();
+    const before = await getFeatureFlag(db, 'unified_notifications_v1');
+
+    await expect(patchFeatureFlagBatch(db, 'unified_notifications_v1', {
+      changes: [
+        { field: 'enabled', value: true },
+        { field: 'percentage', value: 101 },
+      ],
+      reason: 'Invalid second value',
+      expectedVersion: 1,
+    }, 'admin-a', 'req-invalid-value')).rejects.toThrow('FEATURE_FLAG_INVALID_PERCENTAGE');
+
+    expect(await getFeatureFlag(db, 'unified_notifications_v1')).toEqual(before);
+    expect(sqlite!.prepare('SELECT COUNT(*) AS count FROM feature_flag_audit').get()).toEqual({ count: 0 });
+  });
+
+  it('rejects a version conflict without audit or mutation', async () => {
+    const db = setup();
+    const before = await getFeatureFlag(db, 'unified_notifications_v1');
+
+    await expect(patchFeatureFlagBatch(db, 'unified_notifications_v1', {
+      changes: [{ field: 'percentage', value: 25 }],
+      reason: 'Stale editor',
+      expectedVersion: 99,
+    }, 'admin-a', 'req-conflict')).rejects.toThrow('FEATURE_FLAG_VERSION_CONFLICT');
+
+    expect(await getFeatureFlag(db, 'unified_notifications_v1')).toEqual(before);
+    expect(sqlite!.prepare('SELECT COUNT(*) AS count FROM feature_flag_audit').get()).toEqual({ count: 0 });
+  });
+
+  it('rolls back the latest batch as one mutation', async () => {
+    const db = setup();
+    await patchFeatureFlagBatch(db, 'unified_notifications_v1', {
+      changes: [
+        { field: 'enabled', value: true },
+        { field: 'audience', value: 'teacher' },
+        { field: 'percentage', value: 10 },
+      ],
+      reason: 'Pilot 10%',
+      expectedVersion: 1,
+    }, 'admin-a', 'req-batch-rollback');
+
+    const rolledBack = await rollbackFeatureFlag(
+      db, 'unified_notifications_v1', 'admin-b', 'req-batch-rollback-action', 'Undo batch',
+    );
+    expect(rolledBack).toMatchObject({
+      enabled: false,
+      audience: 'all',
+      percentage: 100,
+      version: 3,
+    });
   });
 });

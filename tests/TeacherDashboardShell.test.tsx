@@ -152,6 +152,7 @@ vi.mock('../src/components/LiveExam/TeacherLiveExamDashboardContainer', () => si
 vi.mock('../src/features/certificates/TeacherCertificatesPage', () => simpleTab('certificates-tab'));
 vi.mock('../src/features/certificates/AdminTemplatesPage', () => simpleTab('admin-templates-tab'));
 vi.mock('../src/features/math-audit/MathAuditPage', () => simpleTab('math-audit-tab'));
+vi.mock('../src/features/feature-rollout/FeatureRolloutPage', () => simpleTab('feature-rollout-tab'));
 vi.mock('../src/components/TeacherDashboard/PersonalSettingsTab', () => simpleTab('personal-settings-tab'));
 
 const result = (id: string, studentName: string, studentClass: string) => ({
@@ -404,6 +405,20 @@ describe('TeacherDashboard shell contracts', () => {
     expect(await screen.findByRole('button', { name: /^Thông báo/ })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Quản lý thông báo' }));
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/announcements');
+  });
+
+  it('renders feature rollout only for admins and navigates through its canonical URL', async () => {
+    useAuthStore.setState({ isAdmin: true } as any);
+    mocks.location.pathname = '/teacher/feature-rollout';
+
+    render(<TeacherDashboard />);
+
+    expect(await screen.findByTestId('feature-rollout-tab')).toBeInTheDocument();
+    await click(screen.getByRole('button', { name: /Mở menu tài khoản của Cô An/i }));
+    const administration = screen.getByRole('menuitem', { name: 'Quản trị hệ thống' });
+    if (administration.getAttribute('aria-expanded') !== 'true') await click(administration);
+    await click(screen.getByRole('menuitem', { name: 'Tính năng thử nghiệm' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/feature-rollout');
   });
 
   it('navigates teachers to personal settings from the account menu', async () => {

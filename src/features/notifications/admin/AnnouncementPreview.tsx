@@ -19,14 +19,24 @@ export function AnnouncementPreview({
   surface,
   device,
 }: AnnouncementPreviewProps) {
+  const hasTextContent = Boolean(draft.content.trim());
+  const hasBannerContent = Boolean(
+    draft.bannerTitle.trim() || draft.bannerSubtitle.trim() || draft.content.trim(),
+  );
+  const hasRenderableContent = draft.channels.some((channel) => (
+    channel === 'BANNER' ? hasBannerContent
+      : channel === 'TICKER' || channel === 'CRITICAL_STRIP' ? hasTextContent
+        : false
+  ));
+
   const announcement: Announcement = {
     id: draft.id || 'preview',
-    content: draft.content || 'Nội dung thông báo sẽ hiển thị tại đây.',
-    bannerTitle: draft.bannerTitle || 'Tiêu đề thông báo',
+    content: draft.content,
+    bannerTitle: draft.bannerTitle,
     bannerSubtitle: draft.bannerSubtitle,
     bannerLink: draft.bannerLink,
     bannerImage: draft.bannerImage,
-    isActive: true,
+    isActive: draft.channels.includes('TICKER'),
     updatedAt: draft.updatedAt || 'preview',
     status: draft.status,
     audience: draft.audience,
@@ -34,7 +44,7 @@ export function AnnouncementPreview({
     endsAt: draft.endsAt || null,
     priority: draft.priority,
     channels: draft.channels,
-    dismissible: false,
+    dismissible: draft.dismissible,
     ctaLabel: draft.ctaLabel,
     surfaceOverrides: draft.surfaceOverrides,
   };
@@ -49,17 +59,25 @@ export function AnnouncementPreview({
         device === 'mobile' ? 'max-w-[390px]' : 'max-w-3xl',
       ].join(' ')}
     >
-      {draft.channels.includes('CRITICAL_STRIP') && (
-        <CriticalAlertStrip announcement={announcement} surface={surface} />
+      {!hasRenderableContent ? (
+        <div className="p-6 text-center text-sm text-slate-500">
+          Chưa có nội dung để xem trước.
+        </div>
+      ) : (
+        <>
+          {draft.channels.includes('CRITICAL_STRIP') && hasTextContent && (
+            <CriticalAlertStrip announcement={announcement} surface={surface} />
+          )}
+          {draft.channels.includes('TICKER') && hasTextContent && (
+            <AnnouncementTicker announcement={announcement} />
+          )}
+          {draft.channels.includes('BANNER') && hasBannerContent && (
+            <div className="p-4">
+              <InFlowAnnouncementBanner announcement={announcement} surface={surface} />
+            </div>
+          )}
+        </>
       )}
-      {draft.channels.includes('TICKER') && (
-        <AnnouncementTicker announcement={announcement} />
-      )}
-      <div className="min-h-36 p-4">
-        {draft.channels.includes('BANNER') && (
-          <InFlowAnnouncementBanner announcement={announcement} surface={surface} />
-        )}
-      </div>
     </div>
   );
 }

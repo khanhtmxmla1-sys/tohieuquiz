@@ -38,7 +38,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                         <SchoolLogo size={36} decorative />
                         <span className="text-lg font-extrabold tracking-tight">
                             <span className="text-[#1E3A8A]">TôHiệu</span>
-                            <span className="text-[#EAB308]">Quiz</span>
+                            <span className="text-[#A16207]">Quiz</span>
                         </span>
                     </button>
                     <p className="text-sm text-slate-500">© {currentYear} TôHiệuQuiz. Bảo lưu mọi quyền.</p>
@@ -76,7 +76,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                             <SchoolLogo size={44} decorative />
                             <span className="text-2xl font-extrabold tracking-tight">
                                 <span className="text-[#1E3A8A]">TôHiệu</span>
-                                <span className="text-[#EAB308]">Quiz</span>
+                                <span className="text-[#A16207]">Quiz</span>
                             </span>
                         </button>
                         <p className="mt-5 max-w-sm text-sm font-medium leading-7 text-slate-600">

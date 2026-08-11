@@ -42,6 +42,7 @@ const TAB_LABELS: Partial<Record<TeacherDashboardTab, string>> = {
   'admin-templates': 'Mẫu chứng nhận',
   'personal-settings': 'Cài đặt cá nhân',
   announcements: 'Thông báo',
+  'feature-rollout': 'Tính năng thử nghiệm',
   teachers: 'Giáo viên',
   'math-audit': 'Theo dõi lỗi công thức',
   operations: 'Trạng thái hệ thống',

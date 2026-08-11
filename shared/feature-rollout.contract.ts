@@ -50,6 +50,17 @@ export interface FeatureFlagPatch {
   reason: string;
 }
 
+export interface FeatureFlagBatchChange {
+  field: FeatureFlagPatchField;
+  value: unknown;
+}
+
+export interface FeatureFlagBatchPatch {
+  changes: FeatureFlagBatchChange[];
+  reason: string;
+  expectedVersion: number;
+}
+
 export interface FeatureFlagResolution {
   key: string;
   enabled: boolean;

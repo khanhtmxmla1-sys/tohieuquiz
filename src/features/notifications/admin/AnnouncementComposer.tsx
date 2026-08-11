@@ -3,14 +3,29 @@ import type {
   AnnouncementChannel,
   NotificationPriority,
 } from '../../../../shared/notifications.contract';
+import type { NotificationSurface } from '../selectAnnouncements';
+import { AnnouncementContentStep } from './AnnouncementContentStep';
 import { AnnouncementDistributionFields } from './AnnouncementDistributionFields';
-import { AnnouncementPreview } from './AnnouncementPreview';
+import { AnnouncementPresetChangeNotice } from './AnnouncementPresetChangeNotice';
+import { AnnouncementPublishDialog } from './AnnouncementPublishDialog';
+import {
+  AnnouncementReviewStep,
+  getAnnouncementReviewSurfaces,
+} from './AnnouncementReviewStep';
+import { AnnouncementTypePicker } from './AnnouncementTypePicker';
+import {
+  applyAnnouncementPreset,
+  hasAnnouncementContent,
+  inferAnnouncementPreset,
+  presetChangesDelivery,
+  type AnnouncementPresetId,
+} from './announcementPresets';
 import {
   validateAnnouncementDraft,
   type AnnouncementDraftErrors,
 } from './validateAnnouncementDraft';
 
-export type AnnouncementStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED';
+export type AnnouncementStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'EXPIRED' | 'ARCHIVED';
 export type AnnouncementAudience = 'ALL' | 'TEACHERS' | 'STUDENTS';
 
 export interface AnnouncementDraft {
@@ -54,48 +69,105 @@ export const createEmptyAnnouncementDraft = (): AnnouncementDraft => ({
 interface AnnouncementComposerProps {
   initialDraft?: AnnouncementDraft;
   saving?: boolean;
+  readOnly?: boolean;
   onChange?: (draft: AnnouncementDraft) => void;
   onSaveDraft?: (draft: AnnouncementDraft) => Promise<void> | void;
   onPublish?: (draft: AnnouncementDraft) => Promise<void> | void;
-  onSendTest?: (draft: AnnouncementDraft) => Promise<void> | void;
 }
 
 export function AnnouncementComposer({
   initialDraft,
   saving = false,
+  readOnly = false,
   onChange,
   onSaveDraft,
   onPublish,
-  onSendTest,
 }: AnnouncementComposerProps) {
   const [draft, setDraft] = useState(initialDraft ?? createEmptyAnnouncementDraft());
   const [errors, setErrors] = useState<AnnouncementDraftErrors>({});
-  const [surface, setSurface] = useState<'LOGIN' | 'TEACHER_DASHBOARD' | 'STUDENT_DASHBOARD'>('LOGIN');
+  const [surface, setSurface] = useState<NotificationSurface>('LOGIN');
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [pendingPreset, setPendingPreset] = useState<AnnouncementPresetId | null>(null);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
+  const availableSurfaces = getAnnouncementReviewSurfaces(draft.audience);
+
   useEffect(() => {
-    if (initialDraft) setDraft(initialDraft);
+    if (initialDraft) {
+      setDraft(initialDraft);
+      setPendingPreset(null);
+      setPublishDialogOpen(false);
+    }
   }, [initialDraft]);
 
+  useEffect(() => {
+    if (!availableSurfaces.includes(surface)) {
+      setSurface(availableSurfaces[0]);
+    }
+  }, [draft.audience, surface]);
+
   const updateDraft = (next: AnnouncementDraft) => {
+    if (readOnly) return;
     setDraft(next);
     onChange?.(next);
   };
+
+  const selectedPreset = inferAnnouncementPreset(draft);
+  const requestPreset = (preset: AnnouncementPresetId) => {
+    if (readOnly || preset === selectedPreset) return;
+    if (hasAnnouncementContent(draft) && presetChangesDelivery(draft, preset)) {
+      setPendingPreset(preset);
+      return;
+    }
+    updateDraft(applyAnnouncementPreset(draft, preset));
+  };
+
+  const applyPendingPreset = () => {
+    if (!pendingPreset) return;
+    updateDraft(applyAnnouncementPreset(draft, pendingPreset));
+    setPendingPreset(null);
+  };
+
   const saveDraft = async () => {
     const next = { ...draft, status: 'DRAFT' as const };
     updateDraft(next);
     await onSaveDraft?.(next);
   };
-  const publish = async () => {
+
+  const submitPublish = async () => {
+    await onPublish?.(draft);
+  };
+
+  const requestPublish = async () => {
     const nextErrors = validateAnnouncementDraft(draft, 'publish');
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       window.setTimeout(() => errorSummaryRef.current?.focus(), 0);
       return;
     }
-    await onPublish?.(draft);
+
+    if (draft.audience === 'ALL' || draft.priority === 'URGENT') {
+      setPublishDialogOpen(true);
+      return;
+    }
+
+    await submitPublish();
   };
+
+  const confirmPublish = async () => {
+    try {
+      await submitPublish();
+      setPublishDialogOpen(false);
+    } catch {
+      // The parent keeps the current draft and surfaces the mutation error.
+    }
+  };
+
+  const scheduled = draft.status === 'SCHEDULED';
+  const primaryLabel = saving
+    ? (scheduled ? 'Đang lên lịch…' : 'Đang công bố…')
+    : (scheduled ? 'Lên lịch' : 'Công bố ngay');
 
   return (
     <div className="space-y-5">
@@ -112,67 +184,29 @@ export function AnnouncementComposer({
           </ul>
         </div>
       )}
+
       <div
         data-testid="announcement-composer-layout"
         className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.72fr)]"
       >
         <section
           data-testid="announcement-content-panel"
-          className="min-w-0 space-y-4 rounded-2xl border bg-white p-5"
+          className="min-w-0 space-y-5 rounded-2xl border bg-white p-5"
         >
-          <h3 className="text-lg font-bold text-slate-900">Nội dung</h3>
-          <label className="block text-sm font-semibold">
-            Tiêu đề
-            <input
-              value={draft.bannerTitle}
-              onChange={(event) => updateDraft({ ...draft, bannerTitle: event.target.value })}
-              className="mt-1 h-11 w-full rounded-xl border px-3"
+          <AnnouncementTypePicker value={selectedPreset} readOnly={readOnly} onChange={requestPreset} />
+          {pendingPreset && (
+            <AnnouncementPresetChangeNotice
+              onApply={applyPendingPreset}
+              onCancel={() => setPendingPreset(null)}
             />
-          </label>
-          <label className="block text-sm font-semibold">
-            Nội dung chính
-            <textarea
-              aria-label="Nội dung chính"
-              value={draft.content}
-              onChange={(event) => updateDraft({ ...draft, content: event.target.value })}
-              className="mt-1 min-h-28 w-full rounded-xl border p-3"
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Mô tả banner
-            <input
-              value={draft.bannerSubtitle}
-              onChange={(event) => updateDraft({ ...draft, bannerSubtitle: event.target.value })}
-              className="mt-1 h-11 w-full rounded-xl border px-3"
-            />
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-sm font-semibold">
-              Nhãn CTA
-              <input
-                value={draft.ctaLabel}
-                onChange={(event) => updateDraft({ ...draft, ctaLabel: event.target.value })}
-                className="mt-1 h-11 w-full rounded-xl border px-3"
-              />
-            </label>
-            <label className="text-sm font-semibold">
-              Liên kết
-              <input
-                value={draft.bannerLink}
-                onChange={(event) => updateDraft({ ...draft, bannerLink: event.target.value })}
-                className="mt-1 h-11 w-full rounded-xl border px-3"
-              />
-              {errors.bannerLink && <span className="block text-red-700">{errors.bannerLink}</span>}
-            </label>
-          </div>
-          <label className="block text-sm font-semibold">
-            Ảnh
-            <input
-              value={draft.bannerImage}
-              onChange={(event) => updateDraft({ ...draft, bannerImage: event.target.value })}
-              className="mt-1 h-11 w-full rounded-xl border px-3"
-            />
-          </label>
+          )}
+          <AnnouncementContentStep
+            draft={draft}
+            preset={selectedPreset}
+            errors={errors}
+            readOnly={readOnly}
+            onChange={updateDraft}
+          />
         </section>
 
         <div
@@ -183,57 +217,49 @@ export function AnnouncementComposer({
             <AnnouncementDistributionFields
               draft={draft}
               errors={errors}
+              readOnly={readOnly}
               onChange={updateDraft}
             />
           </div>
 
-          <section className="space-y-4 rounded-2xl border bg-slate-50 p-5 xl:sticky xl:top-20">
-            <h3 className="text-lg font-bold text-slate-900">Xem trước</h3>
-            <div className="flex flex-wrap gap-2">
-              {([
-                ['LOGIN', 'Đăng nhập'],
-                ['TEACHER_DASHBOARD', 'Giáo viên'],
-                ['STUDENT_DASHBOARD', 'Học sinh'],
-              ] as const).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={surface === value}
-                  onClick={() => setSurface(value)}
-                  className="rounded-full border bg-white px-3 py-2 text-sm"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              {(['desktop', 'mobile'] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={device === value}
-                  onClick={() => setDevice(value)}
-                  className="rounded-full border bg-white px-3 py-2 text-sm capitalize"
-                >
-                  {value === 'desktop' ? 'Desktop' : 'Mobile'}
-                </button>
-              ))}
-            </div>
-            <AnnouncementPreview draft={draft} surface={surface} device={device} />
-          </section>
+          <AnnouncementReviewStep
+            draft={draft}
+            surface={surface}
+            device={device}
+            onSurfaceChange={setSurface}
+            onDeviceChange={setDevice}
+          />
         </div>
       </div>
-      <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
-        <button type="button" disabled={saving} onClick={() => void saveDraft()} className="rounded-xl border px-4 py-2 font-semibold">
-          Lưu nháp
-        </button>
-        <button type="button" disabled={saving} onClick={() => void onSendTest?.(draft)} className="rounded-xl border px-4 py-2 font-semibold">
-          Gửi thử
-        </button>
-        <button type="button" disabled={saving} onClick={() => void publish()} className="rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white">
-          Công bố
-        </button>
-      </div>
+
+      {!readOnly && (
+        <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void saveDraft()}
+            className="min-h-11 rounded-xl border px-4 font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-50"
+          >
+            {saving ? 'Đang lưu…' : 'Lưu nháp'}
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void requestPublish()}
+            className="min-h-11 rounded-xl bg-blue-600 px-4 font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:opacity-50"
+          >
+            {primaryLabel}
+          </button>
+        </div>
+      )}
+
+      <AnnouncementPublishDialog
+        draft={draft}
+        open={publishDialogOpen}
+        submitting={saving}
+        onCancel={() => setPublishDialogOpen(false)}
+        onConfirm={() => void confirmPublish()}
+      />
     </div>
   );
 }

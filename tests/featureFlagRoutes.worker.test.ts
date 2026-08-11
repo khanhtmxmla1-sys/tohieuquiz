@@ -2,7 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  verify: vi.fn(), requireAdmin: vi.fn(), parentAuth: vi.fn(), list: vi.fn(), get: vi.fn(), patch: vi.fn(), resolve: vi.fn(), rollback: vi.fn(),
+  verify: vi.fn(), requireAdmin: vi.fn(), parentAuth: vi.fn(), list: vi.fn(), get: vi.fn(),
+  patch: vi.fn(), patchBatch: vi.fn(), resolve: vi.fn(), rollback: vi.fn(),
 }));
 vi.mock('../workers/src/middleware/jwtAuth', () => ({
   verifyJWTMiddleware: mocks.verify,
@@ -13,6 +14,7 @@ vi.mock('../workers/src/services/featureFlagService', () => ({
   listFeatureFlags: mocks.list,
   getFeatureFlag: mocks.get,
   patchFeatureFlag: mocks.patch,
+  patchFeatureFlagBatch: mocks.patchBatch,
   resolveFeatureFlag: mocks.resolve,
   rollbackFeatureFlag: mocks.rollback,
 }));
@@ -35,6 +37,7 @@ beforeEach(() => {
   mocks.list.mockResolvedValue([flag]);
   mocks.get.mockResolvedValue(flag);
   mocks.patch.mockResolvedValue({ ...flag, percentage: 25, version: 2 });
+  mocks.patchBatch.mockResolvedValue({ ...flag, enabled: true, percentage: 10, version: 2 });
   mocks.rollback.mockResolvedValue({ ...flag, percentage: 100, version: 3 });
   mocks.resolve.mockResolvedValue({ key: 'flag-a', enabled: true, reason: 'percentage', bucket: 2, version: 1 });
 });
@@ -83,6 +86,69 @@ describe('feature flag routes', () => {
     expect(mocks.patch).toHaveBeenCalledWith(db, 'flag-a', {
       field: 'percentage', value: 25, reason: 'Open pilot',
     }, 'admin-a', 'req-flag-route');
+  });
+
+  it('accepts an admin batch patch with expectedVersion and request metadata', async () => {
+    mocks.verify.mockResolvedValueOnce({ user: { username: 'admin-a', role: 'admin' } });
+    const batch = {
+      changes: [
+        { field: 'enabled', value: true },
+        { field: 'percentage', value: 10 },
+      ],
+      reason: 'Pilot 10%',
+      expectedVersion: 1,
+    };
+    const request = new Request('https://api.test/api/system-settings/feature-flags/flag-a/batch', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', 'x-request-id': 'req-batch-route' },
+      body: JSON.stringify(batch),
+    });
+    const response = await handleFeatureFlagRoutes(
+      request, env, '/api/system-settings/feature-flags/flag-a/batch', 'PATCH',
+    );
+
+    expect(response?.status).toBe(200);
+    expect(mocks.patchBatch).toHaveBeenCalledWith(
+      db, 'flag-a', batch, 'admin-a', 'req-batch-route',
+    );
+  });
+
+  it.each([
+    [{ reason: 'Missing changes', expectedVersion: 1 }, 'changes'],
+    [{ changes: [], expectedVersion: 1 }, 'reason'],
+    [{ changes: [], reason: 'Missing version' }, 'expectedVersion'],
+  ])('rejects malformed batch payload %j before service mutation', async (body, expectedMessage) => {
+    mocks.verify.mockResolvedValueOnce({ user: { username: 'admin-a', role: 'admin' } });
+    const request = new Request('https://api.test/api/system-settings/feature-flags/flag-a/batch', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const response = await handleFeatureFlagRoutes(
+      request, env, '/api/system-settings/feature-flags/flag-a/batch', 'PATCH',
+    );
+    const payload = await response?.json() as any;
+
+    expect(response?.status).toBe(400);
+    expect(JSON.stringify(payload)).toContain(expectedMessage);
+    expect(mocks.patchBatch).not.toHaveBeenCalled();
+  });
+
+  it('maps a batch version conflict to HTTP 409', async () => {
+    mocks.verify.mockResolvedValueOnce({ user: { username: 'admin-a', role: 'admin' } });
+    mocks.patchBatch.mockRejectedValueOnce(new Error('FEATURE_FLAG_VERSION_CONFLICT'));
+    const request = new Request('https://api.test/api/system-settings/feature-flags/flag-a/batch', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        changes: [{ field: 'percentage', value: 10 }], reason: 'Stale', expectedVersion: 1,
+      }),
+    });
+    const response = await handleFeatureFlagRoutes(
+      request, env, '/api/system-settings/feature-flags/flag-a/batch', 'PATCH',
+    );
+
+    expect(response?.status).toBe(409);
   });
 
   it('rolls back only through the explicit endpoint with a required reason', async () => {

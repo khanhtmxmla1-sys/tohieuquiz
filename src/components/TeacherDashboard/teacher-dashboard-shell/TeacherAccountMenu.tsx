@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ChevronRight,
+  FlaskConical,
   LibraryBig,
   LogOut,
   Megaphone,
@@ -36,6 +37,7 @@ const ADMIN_MENU_ID = 'teacher-account-admin-menu';
 
 const ADMIN_ITEMS: readonly AdminMenuItem[] = [
   { id: 'announcements', label: 'Quản lý thông báo', icon: Megaphone },
+  { id: 'feature-rollout', label: 'Tính năng thử nghiệm', icon: FlaskConical },
   { id: 'teachers', label: 'Quản lý giáo viên', icon: Users },
   { id: 'math-audit', label: 'Kiểm tra lỗi công thức', icon: ScanSearch },
   { id: 'operations', label: 'Trạng thái hệ thống', icon: ServerCog },
@@ -125,7 +127,7 @@ export const TeacherAccountMenu = ({
       >
         <span className="hidden flex-col items-end sm:flex">
           <span className="text-sm font-semibold leading-tight text-[#172033]">{displayName}</span>
-          <span className="text-xs font-medium text-[#7A8796]">
+          <span className="text-xs font-medium text-[#64748B]">
             {isAdmin ? 'Quản trị viên' : 'Giáo viên'}
           </span>
         </span>
@@ -147,7 +149,7 @@ export const TeacherAccountMenu = ({
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[#172033]">{displayName}</p>
-              <p className="text-xs font-medium text-[#7A8796]">
+              <p className="text-xs font-medium text-[#64748B]">
                 {isAdmin ? 'Quản trị viên' : 'Giáo viên'}
               </p>
               {accountLabel && (

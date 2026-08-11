@@ -2,7 +2,7 @@ import { isSafeNotificationActionUrl } from '../../../../shared/notifications.co
 import type { AnnouncementDraft } from './AnnouncementComposer';
 
 export type AnnouncementDraftErrors = Partial<Record<
-  'channels' | 'bannerLink' | 'startsAt' | 'endsAt',
+  'content' | 'channels' | 'bannerLink' | 'startsAt' | 'endsAt',
   string
 >>;
 
@@ -12,6 +12,10 @@ export function validateAnnouncementDraft(
 ): AnnouncementDraftErrors {
   if (mode === 'draft') return {};
   const errors: AnnouncementDraftErrors = {};
+
+  if (!draft.content.trim()) {
+    errors.content = 'Nhập nội dung thông báo trước khi công bố.';
+  }
 
   if (draft.channels.length === 0) {
     errors.channels = 'Chọn ít nhất một kênh hiển thị.';

@@ -84,7 +84,9 @@ describe('URL navigation contracts', () => {
     expect(getTeacherRoute('live-exam')).toBe('/teacher/live-exams');
     expect(getTeacherRoute('gift-shop')).toBe('/teacher/gift-shop');
     expect(getTeacherRoute('system-question-bank')).toBe('/teacher/system-question-bank');
+    expect(getTeacherRoute('feature-rollout')).toBe('/teacher/feature-rollout');
     expect(resolveTeacherTabFromLocation('/teacher/system-question-bank', '')).toBe('system-question-bank');
+    expect(resolveTeacherTabFromLocation('/teacher/feature-rollout', '')).toBe('feature-rollout');
     expect(resolveTeacherTabFromLocation('/teacher/quizzes', '?mode=create')).toBe('create');
     expect(resolveTeacherTabFromLocation('/teacher/unknown', '')).toBe('overview');
   });
@@ -183,6 +185,35 @@ describe('URL navigation contracts', () => {
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/overview'));
     expect(screen.getByText('teacher-dashboard')).toBeInTheDocument();
+  });
+
+  it('redirects a non-admin teacher away from feature rollout', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'teacher.one',
+      teacherName: 'Giáo viên Một',
+      isAdmin: false,
+    });
+
+    renderRoutes('/teacher/feature-rollout');
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/overview'));
+  });
+
+  it('renders feature rollout for an administrator', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'admin.one',
+      teacherName: 'Quản trị viên',
+      isAdmin: true,
+    });
+
+    renderRoutes('/teacher/feature-rollout');
+
+    expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/teacher/feature-rollout');
   });
 
   it('renders the system question bank dashboard route for an administrator', async () => {
