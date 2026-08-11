@@ -1,7 +1,8 @@
 import React from 'react';
-import GeometryRenderer from './GeometryRenderer';
 import SafeRasterImage from './SafeRasterImage';
 import SafeSvgDiagram from './SafeSvgDiagram';
+
+const GeometryRenderer = React.lazy(() => import('./GeometryRenderer'));
 
 interface QuestionMediaProps {
     question: unknown;
@@ -60,7 +61,15 @@ const QuestionMedia: React.FC<QuestionMediaProps> = ({
 
             {geometryData ? (
                 <div className="flex w-full min-w-0 justify-center overflow-x-auto rounded-[10px] border border-slate-200 bg-white p-3">
-                    <GeometryRenderer data={geometryData as any} />
+                    <React.Suspense
+                        fallback={(
+                            <div role="status" className="py-6 text-sm text-slate-500">
+                                Đang tải hình học...
+                            </div>
+                        )}
+                    >
+                        <GeometryRenderer data={geometryData as any} />
+                    </React.Suspense>
                 </div>
             ) : null}
 
