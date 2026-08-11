@@ -12,6 +12,13 @@ const OrderingReview: React.FC<OrderingReviewProps> = memo(({ question, studentA
     // Helper to get text from ID or object
     const getItemText = (id: any) => {
         const items = (question.items || question.options || []) as any[];
+        const canonicalIdMatch = String(id ?? '').match(/^item-(\d+)$/i);
+        if (canonicalIdMatch) {
+            const indexedItem = items[Number(canonicalIdMatch[1])];
+            if (indexedItem !== undefined) {
+                return typeof indexedItem === 'string' ? indexedItem : indexedItem.text ?? indexedItem.content;
+            }
+        }
         const item = items.find((i: any) => {
             if (typeof i === 'string') return i === id;
             return i.id === id || i.value === id || i.text === id;
@@ -31,7 +38,18 @@ const OrderingReview: React.FC<OrderingReviewProps> = memo(({ question, studentA
     };
 
     const correctOrder = question.correctOrder || question.correctAnswer || [];
-    const studentOrder = Array.isArray(studentAnswer) ? studentAnswer : [];
+    const canonicalRanks = studentAnswer && typeof studentAnswer === 'object' && !Array.isArray(studentAnswer)
+        && studentAnswer.ranks && typeof studentAnswer.ranks === 'object'
+        ? studentAnswer.ranks as Record<string, unknown>
+        : null;
+    const studentOrder = Array.isArray(studentAnswer)
+        ? studentAnswer
+        : canonicalRanks
+            ? Object.entries(canonicalRanks)
+                .filter(([, rank]) => Number.isInteger(Number(rank)) && Number(rank) > 0)
+                .sort(([, leftRank], [, rightRank]) => Number(leftRank) - Number(rightRank))
+                .map(([itemId]) => itemId)
+            : [];
 
     return (
         <div className="ordering-review-template">

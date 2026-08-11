@@ -142,7 +142,7 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
                 <button
                     type="button"
                     onClick={() => onAnswerChange(q.id, { type: 'ORDERING', ranks: {} })}
-                    className="text-xs text-red-500 hover:underline flex items-center"
+                    className="flex min-h-11 items-center rounded-[8px] px-3 text-xs text-red-500 hover:bg-red-50 hover:underline"
                 >
                     <RefreshCcw className="w-3 h-3 mr-1" /> Làm lại câu này
                 </button>

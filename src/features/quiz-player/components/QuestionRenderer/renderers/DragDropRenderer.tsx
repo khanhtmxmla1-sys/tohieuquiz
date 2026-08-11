@@ -47,7 +47,7 @@ const DragDropRenderer: React.FC<BaseRendererProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => handleAssign(item.id, null)}
-                    className={`rounded-[8px] border px-3 py-2 text-sm font-medium transition-colors hover:border-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${selectedAnswerClass}`}
+                    className={`min-h-11 rounded-[8px] border px-3 py-2 text-sm font-medium transition-colors hover:border-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${selectedAnswerClass}`}
                   >
                     <SmartText content={item.content} />
                   </button>
@@ -88,7 +88,7 @@ const DragDropRenderer: React.FC<BaseRendererProps> = ({
                     key={category.id}
                     type="button"
                     onClick={() => handleAssign(item.id, category.id)}
-                    className="min-h-9 rounded-[8px] border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 transition-colors hover:border-sky-500 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="min-h-11 rounded-[8px] border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 transition-colors hover:border-sky-500 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
                     <SmartText content={category.name} />
                   </button>

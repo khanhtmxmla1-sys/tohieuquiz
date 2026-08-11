@@ -17,6 +17,19 @@ const props = (question: Record<string, unknown>, answers: Record<string, unknow
 });
 
 describe('QuestionRenderer coverage', () => {
+  it('renders the required main image for an image question with its authored alt text', () => {
+    render(<QuestionRenderer {...props({
+      id: 'image-main', type: 'IMAGE_QUESTION', question: 'Quan sát hình',
+      image: 'data:image/png;base64,ZmFrZQ==', imageAlt: 'Một hình vuông màu xanh',
+      options: ['Hình vuông', 'Hình tròn'], optionImages: ['', ''], correctAnswer: 'A',
+    })} />);
+
+    expect(screen.getByRole('img', { name: 'Một hình vuông màu xanh' })).toHaveAttribute(
+      'src',
+      'data:image/png;base64,ZmFrZQ==',
+    );
+  });
+
   it('renders word scramble as selectable letter indexes', () => {
     const rendererProps = props({
       id: 'word', type: 'WORD_SCRAMBLE', question: 'Ghép từ', letters: ['H', 'O', 'A'],

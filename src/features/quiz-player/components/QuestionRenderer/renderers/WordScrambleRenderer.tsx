@@ -50,7 +50,7 @@ const WordScrambleRenderer: React.FC<BaseRendererProps> = ({ question, answers, 
         <button
           type="button"
           onClick={() => onAnswerChange(question.id, [])}
-          className="mx-auto block text-sm font-medium text-slate-500 hover:text-red-600"
+          className="mx-auto min-h-11 rounded-[8px] px-3 text-sm font-medium text-slate-500 hover:bg-slate-50 hover:text-red-600"
         >
           Làm lại
         </button>

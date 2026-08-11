@@ -73,6 +73,17 @@ describe('QuestionReview Component', () => {
             expect(document.querySelector('.choice-indicator')).toBeTruthy();
             expect(document.querySelector('.correct-indicator')).toBeTruthy(); // Correct answer badge should appear
         });
+
+        it('đánh dấu phương án từ đáp án canonical optionId', () => {
+            render(<QuestionReview
+                index={0}
+                question={{ ...mockMCQ, options: ['4', '2', '9'] }}
+                studentAnswer={{ type: 'MCQ', optionId: 'option-1' }}
+                status="correct"
+            />);
+
+            expect(document.querySelector('.choice-indicator')?.parentElement).toHaveTextContent('B.');
+        });
     });
 
     describe('SHORT_ANSWER (Trả lời ngắn)', () => {
@@ -106,6 +117,59 @@ describe('QuestionReview Component', () => {
             // Đáp án học sinh gửi lên dạng mảng các index: [1, 2, 0] tương ứng Một, Hai, Ba
             render(<QuestionReview index={0} question={mockOrdering} studentAnswer={[1, 2, 0]} />);
             expect(screen.getByTestId('icon-correct')).toBeDefined();
+        });
+
+        it('hiển thị thứ tự từ đáp án canonical ranks', () => {
+            render(<QuestionReview
+                index={0}
+                question={mockOrdering}
+                studentAnswer={{ type: 'ORDERING', ranks: { 'item-0': 3, 'item-1': 1, 'item-2': 2 } }}
+                status="correct"
+            />);
+
+            const studentItems = Array.from(document.querySelectorAll('.student-order .order-item'));
+            expect(studentItems.map((item) => item.textContent)).toEqual(expect.arrayContaining([
+                expect.stringContaining('Một'),
+                expect.stringContaining('Hai'),
+                expect.stringContaining('Ba'),
+            ]));
+            expect(studentItems[0]).toHaveTextContent('Một');
+        });
+    });
+
+    describe('MULTIPLE_SELECT (Chọn nhiều)', () => {
+        it('đánh dấu các phương án từ canonical optionIds', () => {
+            render(<QuestionReview
+                index={0}
+                question={{
+                    type: 'MULTIPLE_SELECT', questionText: 'Chọn số lẻ',
+                    options: ['1', '2', '3'], correctAnswers: ['A', 'C'],
+                }}
+                studentAnswer={{ type: 'MULTIPLE_SELECT', optionIds: ['option-0', 'option-2'] }}
+                status="correct"
+            />);
+
+            expect(document.querySelectorAll('.multiple.student-choice')).toHaveLength(2);
+        });
+    });
+
+    describe('Question media', () => {
+        it('hiển thị ảnh chính và ảnh phương án trong màn hình xem bài', () => {
+            render(<QuestionReview
+                index={0}
+                question={{
+                    type: 'IMAGE_QUESTION', questionText: 'Quan sát',
+                    image: 'main.png', imageAlt: 'Ảnh chính',
+                    options: ['Tròn', 'Vuông'], optionImages: ['circle.png', 'square.png'],
+                    correctAnswer: 'A',
+                }}
+                studentAnswer={{ type: 'IMAGE_QUESTION', optionId: 'option-0' }}
+                status="correct"
+            />);
+
+            expect(screen.getByRole('img', { name: 'Ảnh chính' })).toBeInTheDocument();
+            expect(screen.getByRole('img', { name: 'Đáp án A: Tròn' })).toBeInTheDocument();
+            expect(screen.getByRole('img', { name: 'Đáp án B: Vuông' })).toBeInTheDocument();
         });
     });
 

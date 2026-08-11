@@ -16,6 +16,9 @@ import React from 'react';
 import { QuestionType } from '../../../../types';
 import type { Question } from '../../../../types';
 import { NewlineMathText } from '../../../../components/common';
+import GeometryRenderer from '../../../../components/common/GeometryRenderer';
+import QuestionRichTextRenderer from '../../../../components/common/QuestionRichTextRenderer';
+import SafeRasterImage from '../../../../components/common/SafeRasterImage';
 import SafeSvgDiagram from '../../../../components/common/SafeSvgDiagram';
 import { getTypeLabel, getDifficultyLabel, getDifficultyColorClass } from '../../utils/questionHelpers';
 import { fixReorderQuestion } from '../../utils/questionNormalizers';
@@ -72,6 +75,14 @@ const QuestionBodyRenderer: React.FC<{ question: Question }> = ({ question }) =>
             return <RiddleRenderer question={question} />;
         case QuestionType.ERROR_CORRECTION:
             return <ErrorCorrectionRenderer question={question} />;
+        case QuestionType.GEOMETRY: {
+            const geometryData = (question as unknown as Record<string, unknown>).geometryData;
+            return geometryData && typeof geometryData === 'object' ? (
+                <div className="ml-8 flex min-w-0 justify-center overflow-x-auto rounded-lg border border-gray-200 bg-white p-3">
+                    <GeometryRenderer data={geometryData as any} />
+                </div>
+            ) : null;
+        }
         default:
             return null;
     }
@@ -157,11 +168,19 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                         Câu {index + 1}:
                     </span>
                     <div className="flex-1">
-                        <NewlineMathText
-                            content={fixReorderQuestion(questionText)}
-                            as="div"
-                            className="text-gray-800 font-medium quiz-text-preserve-block"
-                        />
+                        {q.questionRichText ? (
+                            <QuestionRichTextRenderer
+                                value={q.questionRichText as any}
+                                fallback={fixReorderQuestion(questionText)}
+                                className="text-gray-800 font-medium quiz-text-preserve-block"
+                            />
+                        ) : (
+                            <NewlineMathText
+                                content={fixReorderQuestion(questionText)}
+                                as="div"
+                                className="text-gray-800 font-medium quiz-text-preserve-block"
+                            />
+                        )}
                     </div>
                 </div>
 
@@ -190,10 +209,12 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             {/* Optional attached image */}
             {showAttachedImage && (
                 <div className="ml-8 mt-2 mb-3">
-                    <img
+                    <SafeRasterImage
                         src={String(q.image)}
-                        alt="Attached"
-                        className="max-h-32 rounded-lg border object-contain bg-gray-50"
+                        alt={String(q.imageAlt ?? q.image_alt ?? `Hình minh họa câu ${index + 1}`)}
+                        loading="lazy"
+                        decoding="async"
+                        className="max-h-32 max-w-full rounded-lg border object-contain bg-gray-50"
                     />
                 </div>
             )}

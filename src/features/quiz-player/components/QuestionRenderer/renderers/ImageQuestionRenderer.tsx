@@ -8,6 +8,7 @@ import {
   unselectedAnswerClass,
   unselectedIndicatorClass,
 } from '../../answer-state/stateStyles';
+import SafeRasterImage from '../../../../../components/common/SafeRasterImage';
 
 const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -27,6 +28,9 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
             const optionId = optionIdAt(index);
             const isSelected = selectedOptionId(question, answers[question.id]) === optionId;
             const imageUrl = optionImages[index];
+            const optionText = typeof option === 'string'
+              ? option
+              : String(option?.text ?? option?.content ?? option?.label ?? '');
 
             return (
               <button
@@ -51,13 +55,12 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
                 </span>
 
                 {imageUrl ? (
-                  <img
+                  <SafeRasterImage
                     src={imageUrl}
-                    alt={`Đáp án ${label}`}
-                    className="h-40 w-full bg-slate-50 object-cover"
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none';
-                    }}
+                    alt={`Đáp án ${label}${optionText ? `: ${optionText}` : ''}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-40 w-full bg-slate-50 object-contain"
                   />
                 ) : null}
 

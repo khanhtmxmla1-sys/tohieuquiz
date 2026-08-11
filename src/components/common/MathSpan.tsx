@@ -18,9 +18,12 @@ const MathSpan: React.FC<MathSpanProps> = React.memo(({ content, className, as =
     const hasDisplayMath = /\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]/.test(source);
     const Tag = as;
     const body = <SafeFormattedText content={source} />;
+    const responsiveClassName = hasDisplayMath
+        ? `block min-w-0 max-w-full overflow-x-auto overflow-y-hidden ${className || ''}`
+        : className;
 
     return (
-        <Tag className={className} style={{ whiteSpace: 'pre-line' }}>
+        <Tag className={responsiveClassName} style={{ whiteSpace: 'pre-line' }}>
             {containsMath ? (
                 <MathJax key={source} inline={!hasDisplayMath} dynamic hideUntilTypeset="first">
                     <span>{body}</span>
