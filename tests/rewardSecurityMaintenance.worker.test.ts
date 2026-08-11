@@ -1,9 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const { recordQuizActivity } = vi.hoisted(() => ({ recordQuizActivity: vi.fn() }));
-vi.mock('../workers/src/gameLoop/activityService', () => ({ recordQuizActivity }));
-
+import { describe, expect, it } from 'vitest';
 import { getWeekUtcRange } from '../workers/src/gameLoop/dateKeys';
 import {
   getRewardReconciliationReport,
@@ -20,15 +16,18 @@ class Statement {
 
 class FakeDb {
   prepared: Statement[] = [];
+  batched: Statement[] = [];
   constructor(private readonly resolver: (sql: string) => any[]) {}
   prepare(sql: string) {
     const statement = new Statement(sql, this.resolver(sql));
     this.prepared.push(statement);
     return statement;
   }
+  async batch(statements: Statement[]) {
+    this.batched = statements;
+    return [];
+  }
 }
-
-beforeEach(() => recordQuizActivity.mockReset());
 
 describe('reward security maintenance', () => {
   it('rebuilds only the current Hanoi week from canonical saved results', async () => {
@@ -36,25 +35,29 @@ describe('reward security maintenance', () => {
     const db = new FakeDb((sql) => sql.includes('FROM results r') ? [
       {
         id: 'result-1', student_id: 'student-a', class_id: 'class-a', quiz_id: 'quiz-1',
-        correct_count: 8, total_questions: 10, username: 'student-a', category: 'Tiếng Anh',
+        score: 8, correct_count: 8, total_questions: 10, username: 'student-a', category: 'Tiếng Anh',
+        submitted_at: '2026-08-10T01:00:00.000Z',
       },
       {
         id: 'result-2', student_id: 'student-b', class_id: 'class-a', quiz_id: 'quiz-2',
-        correct_count: 10, total_questions: 10, username: 'student-b', category: 'Toán',
+        score: 10, correct_count: 10, total_questions: 10, username: 'student-b', category: 'Toán',
+        submitted_at: '2026-08-10T02:00:00.000Z',
       },
     ] : []);
-    recordQuizActivity.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
 
     const result = await rebuildCurrentWeekProgress(db as any, now);
     const range = getWeekUtcRange(result.weekKey);
     const query = db.prepared.find(statement => statement.sql.includes('FROM results r'))!;
 
     expect(query.bindings).toEqual([range.startIso, range.endIsoExclusive]);
-    expect(recordQuizActivity).toHaveBeenNthCalledWith(1, db, 'student-a', expect.objectContaining({
-      activityId: 'result-1', studentId: 'student-a', classId: 'class-a', category: 'tieng-anh',
-      correctCount: 8, totalQuestions: 10,
-    }));
-    expect(result).toMatchObject({ scanned: 2, recorded: 1, alreadyRecorded: 1 });
+    expect(result).toMatchObject({
+      scanned: 2,
+      recorded: 2,
+      alreadyRecorded: 0,
+      rebuiltStudents: 2,
+      rebuiltDays: 2,
+    });
+    expect(db.batched.length).toBeGreaterThan(4);
   });
 
   it('reports reconciliation drift without issuing any write statement', async () => {
