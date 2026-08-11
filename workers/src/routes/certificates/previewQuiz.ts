@@ -7,8 +7,6 @@ export async function loadPreviewQuiz(
   env: Env,
   user: JWTPayload,
   input: PreviewInput,
-  className: string,
-  studentName: string,
 ): Promise<Response | { quizTitle: string; score: number | null }> {
   if (!input.quizId) return { quizTitle: '', score: null };
   const quiz = await env.DB.prepare('SELECT id, title, created_by FROM quizzes WHERE id = ?')
@@ -26,10 +24,10 @@ export async function loadPreviewQuiz(
   }
   const result = await env.DB.prepare(`
     SELECT score, quiz_title FROM results
-    WHERE quiz_id = ? AND class_name = ? AND student_name = ?
+    WHERE quiz_id = ? AND class_id = ? AND student_id = ?
       AND answers != '{"status":"STARTED"}'
     ORDER BY submitted_at DESC LIMIT 1
-  `).bind(input.quizId, className, studentName)
+  `).bind(input.quizId, input.classId, input.studentId)
     .first<{ score: number | null; quiz_title: string | null }>();
   return {
     score: result?.score ?? null,

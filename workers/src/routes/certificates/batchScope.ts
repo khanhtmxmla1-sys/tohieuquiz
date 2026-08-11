@@ -50,7 +50,7 @@ export async function loadBatchScope(
     return certificateError('CERTIFICATE_TEMPLATE_FORBIDDEN', 'Template is outside your scope', 403);
   }
 
-  const quizScope = await loadBatchQuizScope(env, user, input, classroom.name);
+  const quizScope = await loadBatchQuizScope(env, user, input);
   if (quizScope instanceof Response) return quizScope;
   return { roster, ...quizScope };
 }

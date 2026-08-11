@@ -1,6 +1,5 @@
 import type { Env } from '../../types';
 import type { JWTPayload } from '../../utils/jwt';
-import { normalizeLookupText } from './normalize';
 import { certificateError } from './responses';
 import type { BatchInput, BatchQuiz, BatchResult } from './batchTypes';
 
@@ -8,10 +7,9 @@ export async function loadBatchQuizScope(
   env: Env,
   user: JWTPayload,
   input: BatchInput,
-  className: string,
-): Promise<Response | { quiz: BatchQuiz | null; latestResultByName: Map<string, BatchResult> }> {
+): Promise<Response | { quiz: BatchQuiz | null; latestResultByStudentId: Map<string, BatchResult> }> {
   if (!input.quizId) {
-    return { quiz: null, latestResultByName: new Map() };
+    return { quiz: null, latestResultByStudentId: new Map() };
   }
   const quiz = await env.DB.prepare('SELECT id, title FROM quizzes WHERE id = ?')
     .bind(input.quizId).first<BatchQuiz>();
@@ -27,18 +25,19 @@ export async function loadBatchQuizScope(
     if (!access) return certificateError('CERTIFICATE_QUIZ_FORBIDDEN', 'Quiz is outside your scope', 403);
   }
   const { results } = await env.DB.prepare(`
-    SELECT student_name, score, quiz_title FROM results
-    WHERE quiz_id = ? AND class_name = ? AND answers != '{"status":"STARTED"}'
+    SELECT student_id, score, quiz_title FROM results
+    WHERE quiz_id = ? AND class_id = ? AND student_id IS NOT NULL
+      AND answers != '{"status":"STARTED"}'
     ORDER BY submitted_at DESC
-  `).bind(quiz.id, className).all<{
-    student_name: string;
+  `).bind(quiz.id, input.classId).all<{
+    student_id: string;
     score: number | null;
     quiz_title: string | null;
   }>();
-  const latestResultByName = new Map<string, BatchResult>();
+  const latestResultByStudentId = new Map<string, BatchResult>();
   for (const result of results) {
-    const key = normalizeLookupText(result.student_name);
-    if (!latestResultByName.has(key)) latestResultByName.set(key, result);
+    const key = String(result.student_id || '');
+    if (key && !latestResultByStudentId.has(key)) latestResultByStudentId.set(key, result);
   }
-  return { quiz, latestResultByName };
+  return { quiz, latestResultByStudentId };
 }

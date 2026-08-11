@@ -32,7 +32,7 @@ describe('D1 migration layout', () => {
     expect(new Set(registered).size).toBe(registered.length);
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
-    expect(migrations.at(-1)).toBe('0064_add_question_rich_text.sql');
+    expect(migrations.at(-1)).toBe('0065_add_result_canonical_class_scope.sql');
     expect(EXPECTED_LATEST_MIGRATION).toBe(migrations.at(-1));
   });
 
@@ -45,6 +45,17 @@ describe('D1 migration layout', () => {
     expect(sql).toContain('ALTER TABLE results ADD COLUMN assignment_id TEXT');
     expect(sql).toContain('CREATE INDEX IF NOT EXISTS idx_results_assignment_student');
     expect(sql).toContain('UPDATE results');
+  });
+
+  it('stores canonical result class scope in migration 0065', () => {
+    const sql = fs.readFileSync(
+      path.join(migrationsDir, '0065_add_result_canonical_class_scope.sql'),
+      'utf8',
+    );
+
+    expect(sql).toContain('ALTER TABLE results ADD COLUMN class_id TEXT REFERENCES classes(id) ON DELETE SET NULL');
+    expect(sql).toContain('idx_results_class_submitted');
+    expect(sql).toContain('idx_results_class_quiz_submitted');
   });
 
   it('stores teacher AI quota and action reservations in migrations', () => {

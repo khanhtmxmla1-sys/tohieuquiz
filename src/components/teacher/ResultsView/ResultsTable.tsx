@@ -9,7 +9,6 @@ import React from 'react';
 import { StudentResult, Quiz } from '../../../types';
 import { ArrowUpDown, Eye, Trash2, Loader2, Printer } from 'lucide-react';
 import { ResponsiveDataView } from '../../common';
-import { checkAnswer } from '../../../utils/question/scoring.util';
 
 export interface ResultsTableProps {
     results: StudentResult[];
@@ -25,6 +24,28 @@ export interface ResultsTableProps {
     onPhieuClick?: (result: StudentResult) => void;
 }
 
+
+export interface ResultDisplayMetrics {
+    score: number;
+    correctCount: number;
+    totalQuestions: number;
+}
+
+const finiteNumberOr = (candidate: unknown, fallback: unknown): number => {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) return candidate;
+    if (typeof fallback === 'number' && Number.isFinite(fallback)) return fallback;
+    return 0;
+};
+
+export const resolveResultDisplayMetrics = (
+    result: StudentResult,
+    override?: { correctCount: number; totalQuestions: number; score?: number },
+): ResultDisplayMetrics => ({
+    score: finiteNumberOr(override?.score, result.score),
+    correctCount: finiteNumberOr(override?.correctCount, result.correctCount),
+    totalQuestions: finiteNumberOr(override?.totalQuestions, result.totalQuestions),
+});
+
 export const ResultsTable: React.FC<ResultsTableProps> = ({
     results,
     quizzes,
@@ -37,65 +58,9 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
     isLoading,
     onPhieuClick,
 }) => {
-    const isAnswerSkipped = (value: any): boolean => (
-        value === undefined ||
-        value === null ||
-        value === '' ||
-        (Array.isArray(value) && value.length === 0) ||
-        (typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length === 0)
+    const getDisplayMetrics = (result: StudentResult): ResultDisplayMetrics => (
+        resolveResultDisplayMetrics(result, resultOverrides?.[String(result.id)])
     );
-
-    const getDisplayedTotalQuestions = (result: StudentResult): number => {
-        if (result.totalQuestions && result.totalQuestions > 0) return result.totalQuestions;
-        return Object.keys(result.answers || {}).filter(key => !key.startsWith('_')).length;
-    };
-
-    const getDisplayedCorrectCount = (result: StudentResult): number => {
-        const answerEntries = Object.entries(result.answers || {}).filter(([key]) => !key.startsWith('_'));
-        if (answerEntries.length === 0) {
-            return result.correctCount || 0;
-        }
-
-        let correctCount = 0;
-
-        answerEntries.forEach(([questionId, answerData]) => {
-            if (answerData && typeof answerData === 'object' && ('selectedAnswer' in answerData || 'questionSnapshot' in answerData)) {
-                const selectedAnswer = (answerData as any).selectedAnswer;
-                if (isAnswerSkipped(selectedAnswer)) return;
-
-                const snapshot = (answerData as any).questionSnapshot;
-                if (snapshot?.type) {
-                    const { isCorrect } = checkAnswer(snapshot, selectedAnswer);
-                    if (isCorrect) correctCount++;
-                    return;
-                }
-
-                if ((answerData as any).isCorrect === true) {
-                    correctCount++;
-                }
-                return;
-            }
-
-            if (isAnswerSkipped(answerData)) return;
-            const validation = result.validationDetails?.find(v => v.questionId === questionId);
-            if (validation?.isCorrect) {
-                correctCount++;
-            }
-        });
-
-        return correctCount;
-    };
-
-    const getResolvedResult = (result: StudentResult): StudentResult => {
-        const override = resultOverrides?.[String(result.id)];
-        if (!override) return result;
-        return {
-            ...result,
-            correctCount: override.correctCount,
-            totalQuestions: override.totalQuestions,
-            score: typeof override.score === 'number' ? override.score : result.score,
-        };
-    };
 
     // Get quiz title by ID, prioritize quizTitle from result if available
     const getQuizTitle = (result: StudentResult) => {
@@ -176,7 +141,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {results.map((result) => {
-                                const displayResult = getResolvedResult(result);
+                                const metrics = getDisplayMetrics(result);
                                 return (
                                 <tr
                                     key={result.id}
@@ -193,13 +158,13 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                                         <span className="text-gray-600 text-sm">{getQuizTitle(result)}</span>
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`inline-flex px-2 py-1 rounded-full text-sm font-bold ${getScoreColor(displayResult.score)}`}>
-                                            {displayResult.score}
+                                        <span className={`inline-flex px-2 py-1 rounded-full text-sm font-bold ${getScoreColor(metrics.score)}`}>
+                                            {metrics.score}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-center">
                                         <span className="text-sm text-gray-500">
-                                            {getDisplayedCorrectCount(displayResult)}/{getDisplayedTotalQuestions(displayResult)} câu
+                                            {metrics.correctCount}/{metrics.totalQuestions} câu
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
@@ -264,7 +229,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                 </div>
             )}
             renderMobileCard={(result) => {
-                const displayResult = getResolvedResult(result);
+                const metrics = getDisplayMetrics(result);
                 return (
                 <div
                     className={`space-y-3 ${onRowClick ? 'cursor-pointer' : ''}`}
@@ -275,13 +240,13 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                             <p className="text-sm font-bold text-slate-800">{result.studentName}</p>
                             <p className="text-xs text-slate-500">{result.studentClass}</p>
                         </div>
-                        <span className={`inline-flex px-2 py-1 rounded-full text-sm font-bold ${getScoreColor(displayResult.score)}`}>
-                            {displayResult.score}
+                        <span className={`inline-flex px-2 py-1 rounded-full text-sm font-bold ${getScoreColor(metrics.score)}`}>
+                            {metrics.score}
                         </span>
                     </div>
                     <p className="text-sm text-slate-600 line-clamp-2">{getQuizTitle(result)}</p>
                     <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span>{getDisplayedCorrectCount(displayResult)}/{getDisplayedTotalQuestions(displayResult)} câu đúng</span>
+                        <span>{metrics.correctCount}/{metrics.totalQuestions} câu đúng</span>
                         <span>{formatDate(result.submittedAt)}</span>
                     </div>
                     {hasActions && (

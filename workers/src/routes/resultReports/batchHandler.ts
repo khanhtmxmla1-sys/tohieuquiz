@@ -94,6 +94,7 @@ export async function handleCreateResultReportBatch(
     })),
     scope.results.map((result) => ({
       id: String(result.id),
+      studentId: result.student_id ?? null,
       studentName: result.student_name,
       score: Number(result.score) || 0,
       correctCount: Number(result.correct_count) || 0,

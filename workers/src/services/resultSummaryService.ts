@@ -20,7 +20,7 @@ const SCORE_RANGES: Array<{
 
 export type ResultSummaryScope =
     | { role: 'admin' }
-    | { role: 'teacher'; username: string };
+    | { role: 'teacher'; classIds: string[] };
 
 interface ActivitySummaryRow {
     total_submissions: number | string | null;
@@ -111,9 +111,11 @@ export const getIctDayBounds = getSystemDayBounds;
 
 const buildScopedCte = (scope: ResultSummaryScope): { sql: string; bindings: unknown[] } => {
     const whereClause = scope.role === 'teacher'
-        ? ' WHERE class_name IN (SELECT name FROM classes WHERE teacher_username = ?)'
+        ? scope.classIds.length > 0
+            ? ` WHERE class_id IN (${scope.classIds.map(() => '?').join(', ')})`
+            : ' WHERE 1 = 0'
         : '';
-    const bindings = scope.role === 'teacher' ? [scope.username] : [];
+    const bindings = scope.role === 'teacher' ? [...scope.classIds] : [];
 
     return {
         sql: `
@@ -122,6 +124,7 @@ const buildScopedCte = (scope: ResultSummaryScope): { sql: string; bindings: unk
                     id,
                     student_id,
                     assignment_id,
+                    class_id,
                     student_name,
                     class_name,
                     quiz_id,

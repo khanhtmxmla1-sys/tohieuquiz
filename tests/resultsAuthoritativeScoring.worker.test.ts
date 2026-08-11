@@ -28,6 +28,7 @@ class Database {
     return null;
   }
   all(sql: string) {
+    if (sql.includes('FROM classes') && sql.includes('LOWER(TRIM(name))')) return [{ id: 'class-a', name: '4A', teacher_username: 'teacher-a' }];
     if (sql.includes('FROM students s')) return [{ id: 'student-a' }];
     if (sql.includes('FROM questions')) return [{
       id: 'q1', type: 'MCQ', question: '2 + 2?', options: '4|5', correct_answer: 'A',
@@ -66,11 +67,12 @@ describe('POST /api/results authoritative scoring', () => {
 
     const insert = db.executed.find((statement) => statement.sql.includes('INSERT INTO results'));
     expect(insert?.sql).toContain('grading_version');
-    expect(insert?.bindings[6]).toBe(0);
+    expect(insert?.bindings[2]).toBe('class-a');
     expect(insert?.bindings[7]).toBe(0);
-    expect(insert?.bindings[8]).toBe(1);
-    expect(insert?.bindings[9]).toBe(10);
-    expect(insert?.bindings[12]).toBe('2.0.0');
+    expect(insert?.bindings[8]).toBe(0);
+    expect(insert?.bindings[9]).toBe(1);
+    expect(insert?.bindings[10]).toBe(10);
+    expect(insert?.bindings[13]).toBe('2.0.0');
     expect(insert?.bindings).not.toContain(99);
   });
 });

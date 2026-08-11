@@ -1,6 +1,5 @@
 import type { Env } from '../../types';
 import type { CreateCertificateBatchResult } from '../../../../shared/certificates.contract';
-import { normalizeLookupText } from './normalize';
 import { certificateSuccess } from './responses';
 import type { BatchInput, BatchScope } from './batchTypes';
 
@@ -23,7 +22,7 @@ export async function persistCertificateBatch(
   )];
 
   for (const student of scope.roster) {
-    const result = scope.latestResultByName.get(normalizeLookupText(student.full_name));
+    const result = scope.latestResultByStudentId.get(student.id);
     statements.push(env.DB.prepare(`
       INSERT INTO certificates (
         id, batch_id, student_id, student_name, student_score, quiz_title,

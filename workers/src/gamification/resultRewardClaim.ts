@@ -21,8 +21,6 @@ interface NextGameState {
     mood: string;
 }
 
-const normalizeStudentIdentity = (value: unknown): string => String(value || '').trim().toLowerCase();
-
 const calculateNextGameState = (
     currentCoins: number,
     pet: any | null,
@@ -86,7 +84,7 @@ export const handleResultRewardClaim = async (
     if (existingReceipt) return receiptResponse(existingReceipt, true);
 
     const student = await db.prepare(`
-        SELECT students.full_name, students.coins, classes.name AS class_name
+        SELECT students.id, students.class_id, students.full_name, students.coins, classes.name AS class_name
         FROM students
         LEFT JOIN classes ON classes.id = students.class_id
         WHERE students.username = ?
@@ -95,15 +93,15 @@ export const handleResultRewardClaim = async (
     if (!student) return errorResponse('Student not found', 404);
 
     const savedResult = await db.prepare(`
-        SELECT id, student_name, class_name, score, correct_count, total_questions
+        SELECT id, student_id, class_id, student_name, class_name, score, correct_count, total_questions
         FROM results
         WHERE id = ?
         LIMIT 1
     `).bind(resultId).first<any>();
     if (!savedResult) return errorResponse('Result not found', 404);
 
-    const ownsResult = normalizeStudentIdentity(savedResult.student_name) === normalizeStudentIdentity(student.full_name)
-        && normalizeStudentIdentity(savedResult.class_name) === normalizeStudentIdentity(student.class_name);
+    const ownsResult = Boolean(savedResult.student_id)
+        && String(savedResult.student_id) === String(student.id);
     if (!ownsResult) return errorResponse('Forbidden: Result does not belong to this student', 403);
 
     const reward = calculateResultReward({

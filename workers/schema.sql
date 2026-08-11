@@ -204,6 +204,7 @@ CREATE TABLE IF NOT EXISTS results (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   student_id TEXT,
   assignment_id TEXT,
+  class_id TEXT REFERENCES classes(id) ON DELETE SET NULL,
   student_name TEXT NOT NULL,
   class_name TEXT DEFAULT '',
   quiz_id TEXT DEFAULT '',
@@ -238,6 +239,12 @@ CREATE TABLE IF NOT EXISTS assignments (
 
 CREATE INDEX IF NOT EXISTS idx_results_assignment_student
   ON results(assignment_id, student_id, submitted_at);
+
+CREATE INDEX IF NOT EXISTS idx_results_class_submitted
+  ON results(class_id, submitted_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_results_class_quiz_submitted
+  ON results(class_id, quiz_id, submitted_at DESC, id DESC);
 
 -- User Pets (Gamification)
 CREATE TABLE IF NOT EXISTS user_pets (

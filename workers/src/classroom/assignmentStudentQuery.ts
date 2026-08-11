@@ -37,10 +37,10 @@ export const getStudentAssignmentsResponse = async (
         `SELECT assignment_id, COUNT(*) as cnt
          FROM results
          WHERE assignment_id IN (${placeholders})
-           AND (student_id = ? OR (student_id IS NULL AND LOWER(TRIM(student_name)) = LOWER(TRIM(?))))
+           AND student_id = ?
            AND answers != '{"status":"STARTED"}'
          GROUP BY assignment_id`
-    ).bind(...assignmentIds, student.id, student.full_name).all();
+    ).bind(...assignmentIds, student.id).all();
     const countMap = new Map(
         (counts.results as any[]).map((row) => [String(row.assignment_id), Number(row.cnt) || 0])
     );

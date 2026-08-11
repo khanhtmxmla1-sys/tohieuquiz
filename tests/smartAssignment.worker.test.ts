@@ -59,6 +59,8 @@ function createAnswerEntry(selectedAnswer: any, isCorrect: boolean) {
 function createResult(overrides: Partial<ResultRowWithAnswers>): ResultRowWithAnswers {
     return {
         id: 1,
+        student_id: 's-001',
+        class_id: 'c-001',
         student_name: 'Lan',
         class_name: '2A',
         quiz_id: 'quiz-current',
@@ -133,6 +135,18 @@ function createFakeDb(
                             if (query.includes('FROM results WHERE id = ?')) {
                                 return (options.results.find((result) => String(result.id) === String(params[0])) || null) as T;
                             }
+                            if (query.includes('FROM students s') && query.includes('INNER JOIN classes c') && query.includes('s.id = ?')) {
+                                const [studentId, classId, teacherUsername] = params;
+                                const student = (options.students || []).find((row) => (
+                                    row.id === studentId && row.class_id === classId && row.teacher_username === teacherUsername
+                                ));
+                                return (student ? {
+                                    id: student.id,
+                                    full_name: student.full_name,
+                                    class_id: student.class_id,
+                                    class_name: student.class_name,
+                                } : null) as T;
+                            }
 
                             throw new Error(`Unhandled first query: ${query}`);
                         },
@@ -150,10 +164,10 @@ function createFakeDb(
                                 return { results: filtered as T[] };
                             }
 
-                            if (query.includes('FROM results') && query.includes('student_name = ? AND class_name = ?')) {
-                                const [studentName, className] = params;
+                            if (query.includes('FROM results') && query.includes('student_id = ? AND class_id = ?')) {
+                                const [studentId, classId] = params;
                                 const filtered = options.results
-                                    .filter((result) => result.student_name === studentName && result.class_name === className)
+                                    .filter((result) => result.student_id === studentId && result.class_id === classId)
                                     .sort((left, right) => right.submitted_at.localeCompare(left.submitted_at))
                                     .slice(0, 5);
                                 return { results: filtered as T[] };
@@ -412,7 +426,7 @@ describe('smart assignment preview route', () => {
         expect(json.code).toBe('STUDENT_NOT_FOUND');
     });
 
-    it('returns AMBIGUOUS_STUDENT_MATCH when multiple students match the same result context', async () => {
+    it('uses canonical student_id even when multiple students share the same display name', async () => {
         const db = createFakeDb({
             results: [createResult({ id: 402, answers: JSON.stringify({ q1: createAnswerEntry('B', false) }) })],
             questions: [createQuestion({ id: 'q1', subject: 'math', skill_code: 'phan_so' })],
@@ -441,8 +455,8 @@ describe('smart assignment preview route', () => {
 
         expect(response.status).toBe(200);
         expect(json.status).toBe('error');
-        expect(json.code).toBe('AMBIGUOUS_STUDENT_MATCH');
-        expect(json.data.candidates).toHaveLength(2);
+        expect(json.code).toBe('NO_RECOMMENDED_QUIZ');
+        expect(json.data?.candidates).toBeUndefined();
     });
 
     it('returns NO_RECOMMENDED_QUIZ when no quiz matches the top weak skill', async () => {

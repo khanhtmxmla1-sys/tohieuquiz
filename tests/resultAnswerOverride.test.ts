@@ -64,11 +64,58 @@ describe('calculateOverrideFromAnswers', () => {
       ...createResult(),
       score: 5,
       correctCount: 5,
+      gradingVersion: '2.0.0',
     }, answers)).toEqual({
       correctCount: 5,
       totalQuestions: 10,
       score: 5,
     });
+  });
+
+  it('preserves canonical voided denominators instead of using current quiz length', () => {
+    const canonical = {
+      ...createResult(),
+      gradingVersion: '2.0.0',
+      score: 10,
+      correctCount: 2,
+      totalQuestions: 2,
+      voidedCount: 1,
+    };
+    const answers = {
+      q1: { selectedAnswer: 'C', isCorrect: true, status: 'correct', gradingVersion: '2.0.0' },
+      q2: { selectedAnswer: 'C', isCorrect: true, status: 'correct', gradingVersion: '2.0.0' },
+      q3: { selectedAnswer: 'A', isCorrect: false, status: 'voided', gradingVersion: '2.0.0' },
+    };
+
+    expect(calculateOverrideFromAnswers(canonical, answers, createQuiz())).toEqual({
+      score: 10,
+      correctCount: 2,
+      totalQuestions: 2,
+    });
+  });
+
+  it('preserves canonical all-voided 0/0 metrics', () => {
+    expect(calculateOverrideFromAnswers({
+      ...createResult(),
+      gradingVersion: '2.0.0',
+      score: 0,
+      correctCount: 0,
+      totalQuestions: 0,
+      voidedCount: 3,
+    }, {
+      q1: { status: 'voided', isCorrect: false, gradingVersion: '2.0.0' },
+    }, createQuiz())).toEqual({ score: 0, correctCount: 0, totalQuestions: 0 });
+  });
+
+  it('treats a canonical answer envelope as authoritative even if the result lacks gradingVersion', () => {
+    expect(calculateOverrideFromAnswers({
+      ...createResult(),
+      score: 7.5,
+      correctCount: 3,
+      totalQuestions: 4,
+    }, {
+      q1: { selectedAnswer: 'A', isCorrect: false, status: 'wrong', gradingVersion: '2.0.0' },
+    }, createQuiz())).toEqual({ score: 7.5, correctCount: 3, totalQuestions: 4 });
   });
 
   it('uses the quiz question when a saved answer has no question snapshot', () => {

@@ -38,8 +38,9 @@ export const getResultAchievementStats = (db: D1Database, username: string) =>
             COALESCE(SUM(CASE WHEN CAST(strftime('%H', datetime(r.submitted_at, '${SYSTEM_SQLITE_TIME_MODIFIER}')) AS INTEGER) >= 21 THEN 1 ELSE 0 END), 0) AS night_owl_count,
             COALESCE(SUM(r.correct_count), 0) AS total_correct
         FROM results r
+        JOIN students s ON s.id = r.student_id
         LEFT JOIN quizzes q ON r.quiz_id = q.id
-        WHERE r.student_name = ?
+        WHERE s.username = ?
     `).bind(username).first<any>();
 
 export const insertAchievementCodes = async (

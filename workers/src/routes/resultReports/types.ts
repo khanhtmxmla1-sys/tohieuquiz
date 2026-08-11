@@ -27,6 +27,7 @@ export interface ResultReportRosterDbRow {
 
 export interface ResultReportSourceDbRow {
   id: string | number;
+  student_id: string | null;
   student_name: string;
   score: number | null;
   correct_count: number | null;

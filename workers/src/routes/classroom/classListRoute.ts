@@ -17,7 +17,7 @@ export async function handleClassListRoute(context: ClassroomRouteContext): Prom
                     t.full_name AS teacher_full_name,
                     (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id AND COALESCE(s.archived_at, '') = '') AS student_count,
                     (SELECT COUNT(*) FROM assignments a WHERE a.class_id = c.id) AS assignment_count,
-                    (SELECT MAX(r.submitted_at) FROM results r WHERE LOWER(TRIM(r.class_name)) = LOWER(TRIM(c.name))) AS last_activity_at
+                    (SELECT MAX(r.submitted_at) FROM results r WHERE r.class_id = c.id) AS last_activity_at
                 FROM classes c
                 LEFT JOIN teachers t ON t.username = c.teacher_username
             `;

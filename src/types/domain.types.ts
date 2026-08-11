@@ -355,6 +355,8 @@ export interface StudentResult {
     id: string; // UUID
     submissionId?: string; // Alias for id, used by phieu flow
     quizId: string;
+    studentId?: string; // Canonical student identity from the backend
+    classId?: string; // Canonical class scope from the backend
     assignmentId?: string; // Exact assignment that authorized this attempt
     quizTitle?: string; // Optional quiz title from Google Sheets
     studentName: string;

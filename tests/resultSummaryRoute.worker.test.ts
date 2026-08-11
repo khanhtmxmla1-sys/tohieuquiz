@@ -46,7 +46,18 @@ const summary: ResultDashboardSummary = {
 };
 
 const request = new Request('https://example.test/api/results/summary');
-const db = { prepare: vi.fn(() => { throw new Error('route test must use summary service'); }) };
+const db = {
+    prepare: vi.fn((sql: string) => {
+        if (!sql.includes('FROM classes')) throw new Error(`Unexpected query: ${sql}`);
+        return {
+            bind: (...bindings: unknown[]) => ({
+                all: async () => ({
+                    results: bindings[0] === 'teacher-a' ? [{ id: 'class-a' }, { id: 'class-b' }] : [],
+                }),
+            }),
+        };
+    }),
+};
 
 describe('GET /api/results/summary', () => {
     beforeEach(() => {
@@ -72,7 +83,7 @@ describe('GET /api/results/summary', () => {
         expect(loadResultDashboardSummaryMock).toHaveBeenCalledWith(db, { role: 'admin' });
     });
 
-    it('scopes a teacher summary by the authenticated username', async () => {
+    it('scopes a teacher summary by canonical managed class ids', async () => {
         currentUser = {
             username: 'teacher-a',
             role: 'teacher',
@@ -89,7 +100,7 @@ describe('GET /api/results/summary', () => {
         expect(response.status).toBe(200);
         expect(loadResultDashboardSummaryMock).toHaveBeenCalledWith(db, {
             role: 'teacher',
-            username: 'teacher-a',
+            classIds: ['class-a', 'class-b'],
         });
     });
 

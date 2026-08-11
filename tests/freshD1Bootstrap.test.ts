@@ -81,6 +81,9 @@ describe('fresh D1 bootstrap contract', () => {
       'create unique index if not exists idx_achievement_user_code',
       'create index if not exists idx_reward_events_user_date',
       'create index if not exists idx_activity_events_user_date',
+      'class_id text references classes(id) on delete set null',
+      'create index if not exists idx_results_class_submitted',
+      'create index if not exists idx_results_class_quiz_submitted',
     ]) {
       expect(schema).toContain(fragment);
     }
@@ -108,8 +111,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(63);
-    expect(migrationNames.at(-1)).toBe('0064_add_question_rich_text.sql');
+    expect(migrationNames).toHaveLength(64);
+    expect(migrationNames.at(-1)).toBe('0065_add_result_canonical_class_scope.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);

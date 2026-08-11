@@ -14,11 +14,37 @@ const isAnswerSkipped = (value: unknown): boolean => {
   return false;
 };
 
+const isCanonicalGradingVersion = (value: unknown): boolean => {
+  const version = String(value ?? '').trim();
+  return version.length > 0 && version.toLowerCase() !== 'legacy';
+};
+
+const hasCanonicalAnswerEnvelope = (answers: Record<string, unknown>): boolean => Object.values(answers || {})
+  .some((entry) => Boolean(
+    entry
+    && typeof entry === 'object'
+    && !Array.isArray(entry)
+    && isCanonicalGradingVersion((entry as Record<string, unknown>).gradingVersion),
+  ));
+
+const canonicalMetrics = (result: StudentResult): ResultDisplayOverride | null => {
+  if (![result.score, result.correctCount, result.totalQuestions].every(Number.isFinite)) return null;
+  return {
+    score: result.score,
+    correctCount: result.correctCount,
+    totalQuestions: result.totalQuestions,
+  };
+};
+
 export const calculateOverrideFromAnswers = (
   result: StudentResult,
   answers: Record<string, unknown>,
   quiz?: Quiz,
 ): ResultDisplayOverride | null => {
+  const isCanonical = isCanonicalGradingVersion(result.gradingVersion)
+    || hasCanonicalAnswerEnvelope(answers);
+  if (isCanonical) return canonicalMetrics(result);
+
   const answerEntries = Object.entries(answers || {}).filter(([key]) => !key.startsWith('_'));
   if (answerEntries.length === 0) return null;
 
