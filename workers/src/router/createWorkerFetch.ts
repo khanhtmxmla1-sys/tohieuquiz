@@ -305,7 +305,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     try {
       let response: Response | null = null;
 
-      if (path === '/api/admin/operations') {
+      if (path === '/api/admin/operations' || path.startsWith('/api/admin/operations/')) {
         response = await handleOperationsRoutes(request, env, path, method);
       } else if (path.startsWith('/api/account/passkeys')
         || path.startsWith('/api/passkeys/authenticate')) {
