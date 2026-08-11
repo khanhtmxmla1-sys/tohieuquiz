@@ -38,7 +38,9 @@ Apply one stage at a time:
 4. `teachers-25` — teacher audience, 25%, observe for at least 24 hours.
 5. `full` — all audiences, 100%, observe for at least 48 hours.
 
-The script uses the Task 35 API and sends exactly one field per PATCH. If a later PATCH fails, it compensates already-applied fields back to the captured pre-stage values. Every change and compensation remains audited by the control plane.
+The staged-rollout CLI currently uses the backward-compatible single-field PATCH API and sends exactly one field per PATCH. If a later PATCH fails, it compensates already-applied fields back to the captured pre-stage values. Every change and compensation remains audited by the control plane.
+
+The admin Feature Rollout page uses a different write path for one logical manual edit: `PATCH /api/system-settings/feature-flags/:key/batch`. That endpoint accepts the complete `changes` set plus an audit `reason` and `expectedVersion`, validates the whole batch before mutation, increments the version once, and writes one `__batch__` before/after audit record. Do not emulate an unavailable batch endpoint from the UI by firing several single-field PATCH requests; reload/report the failure instead. The existing single-field endpoint remains intentionally supported for this staged-rollout script and backward compatibility.
 
 ## Stop conditions
 
@@ -55,6 +57,8 @@ A healthy stage remains `observing` until its minimum 24–48 hour window is com
 ## Rollback
 
 Use the workflow action `rollout-rollback` with the current stage. The script deterministically applies the previous stage configuration through audited single-field PATCH requests. For an evaluation run, `auto_rollback=true` applies the same rollback when a stop condition is breached.
+
+For a manual rollback initiated from the admin Feature Rollout page, use the control-plane endpoint `POST /api/system-settings/feature-flags/:key/rollback` with a required audit reason. This restores the audited prior configuration for that flag and is separate from the staged-rollout CLI's stage-based rollback logic.
 
 After rollback:
 
