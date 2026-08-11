@@ -245,7 +245,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         <nav
           aria-label="Các khu vực chức năng"
-          className="custom-scrollbar flex-1 overflow-y-auto bg-slate-50/70 px-3 py-3"
+          className="flex-1 overflow-y-auto bg-slate-50/70 px-3 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <NavGroup title="Đề thi" items={examItems} groupKey="exams" />
           <NavGroup title="Dạy và giao bài" items={teachingItems} groupKey="teaching" />
