@@ -8,6 +8,7 @@ import {
 } from '../../../../domain/quiz-scoring';
 import MathSpan from '../../../common/MathSpan';
 import QuestionRichTextRenderer from '../../../common/QuestionRichTextRenderer';
+import QuestionMedia from '../../../common/QuestionMedia';
 import {
     getStoredAnswerOutcome,
     type AnswerOutcome,
@@ -138,6 +139,7 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFil
                                     className="mt-3 font-semibold leading-relaxed text-slate-900"
                                 />
                             )}
+                            <QuestionMedia question={question} className="mt-4" />
                             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                                 <div className="rounded-[9px] bg-slate-50 p-3">
                                     <dt className="font-semibold text-slate-500">Câu trả lời của em</dt>

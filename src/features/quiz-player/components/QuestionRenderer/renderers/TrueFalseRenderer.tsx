@@ -27,7 +27,7 @@ const TrueFalseRenderer: React.FC<BaseRendererProps> = ({
                 type="button"
                 onClick={() => onAnswerChange(question.id, true, itemKey)}
                 aria-pressed={value === true}
-                className={`min-h-10 min-w-16 rounded-[8px] border px-3 text-sm font-semibold transition-colors ${
+                className={`min-h-11 min-w-16 rounded-[8px] border px-3 text-sm font-semibold transition-colors ${
                   value === true
                     ? selectedAnswerClass
                     : unselectedAnswerClass + ' text-slate-500'
@@ -39,7 +39,7 @@ const TrueFalseRenderer: React.FC<BaseRendererProps> = ({
                 type="button"
                 onClick={() => onAnswerChange(question.id, false, itemKey)}
                 aria-pressed={value === false}
-                className={`min-h-10 min-w-16 rounded-[8px] border px-3 text-sm font-semibold transition-colors ${
+                className={`min-h-11 min-w-16 rounded-[8px] border px-3 text-sm font-semibold transition-colors ${
                   value === false
                     ? selectedAnswerClass
                     : unselectedAnswerClass + ' text-slate-500'

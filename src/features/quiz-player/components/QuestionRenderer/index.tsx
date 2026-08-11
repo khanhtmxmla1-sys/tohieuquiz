@@ -4,6 +4,7 @@ import SmartText from './utils/SmartText';
 import { getQuestionProgress } from '../../../../domain/quiz-progress';
 import { QuestionProgressBadge } from '../answer-state';
 import SafeSvgDiagram from '../../../../components/common/SafeSvgDiagram';
+import SafeRasterImage from '../../../../components/common/SafeRasterImage';
 import QuestionRichTextRenderer from '../../../../components/common/QuestionRichTextRenderer';
 import type { QuestionRichTextEnvelopeV1 } from '../../../../../shared/question-rich-text.contract';
 
@@ -105,12 +106,14 @@ const QuestionRenderer: React.FC<BaseRendererProps> = (props) => {
           />
         ) : null}
 
-        {question.image && normalizedType !== 'IMAGE' && normalizedType !== 'IMAGE_QUESTION' ? (
+        {question.image ? (
           <div className="mb-6 flex justify-center">
-            <img
+            <SafeRasterImage
               src={question.image}
-              alt={`Câu ${index + 1}`}
-              className="max-h-72 rounded-[10px] border border-slate-200 object-contain"
+              alt={String(questionRecord.imageAlt ?? questionRecord.image_alt ?? `Hình minh họa câu ${index + 1}`)}
+              loading="lazy"
+              decoding="async"
+              className="max-h-72 max-w-full rounded-[10px] border border-slate-200 object-contain"
             />
           </div>
         ) : null}

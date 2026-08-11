@@ -1,6 +1,7 @@
 import React from 'react';
 import MathContent from './MathContent';
 import QuestionRichTextRenderer from '../QuestionRichTextRenderer';
+import QuestionMedia from '../QuestionMedia';
 import { checkAnswer, AnswerStatus } from '../../../utils/question/scoring.util';
 import { CheckCircle, XCircle, MinusCircle } from 'lucide-react';
 import type { QuestionAnswerReview } from '../../../domain/quiz-scoring';
@@ -107,6 +108,8 @@ const QuestionReview: React.FC<QuestionReviewProps> = ({
                     </span>
                 </div>
             </div>
+
+            <QuestionMedia question={question} className="mb-4" />
 
             <div className="question-body">
                 <div className="answer-section">

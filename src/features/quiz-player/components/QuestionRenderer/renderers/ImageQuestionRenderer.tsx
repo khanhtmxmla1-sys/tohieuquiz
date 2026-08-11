@@ -8,6 +8,17 @@ import {
   unselectedAnswerClass,
   unselectedIndicatorClass,
 } from '../../answer-state/stateStyles';
+import SafeRasterImage from '../../../../../components/common/SafeRasterImage';
+
+const optionTextFor = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return String(value ?? '');
+  }
+
+  const option = value as Record<string, unknown>;
+  return String(option.text ?? option.content ?? option.label ?? '');
+};
 
 const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
   question: question,
@@ -16,17 +27,20 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
 }) => {
   const optionImages: string[] = (question as any).optionImages || [];
   const hasOptionImages = optionImages.some((image: string) => image && image.trim());
-  const options = (question as any).options || [];
+  const options: unknown[] = Array.isArray((question as any).options)
+    ? (question as any).options
+    : [];
 
   return (
     <div className="space-y-4">
       {hasOptionImages ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {options.map((option: string, index: number) => {
+          {options.map((option: unknown, index: number) => {
             const label = String.fromCharCode(65 + index);
             const optionId = optionIdAt(index);
             const isSelected = selectedOptionId(question, answers[question.id]) === optionId;
             const imageUrl = optionImages[index];
+            const optionText = optionTextFor(option);
 
             return (
               <button
@@ -51,19 +65,18 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
                 </span>
 
                 {imageUrl ? (
-                  <img
+                  <SafeRasterImage
                     src={imageUrl}
-                    alt={`Đáp án ${label}`}
-                    className="h-40 w-full bg-slate-50 object-cover"
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none';
-                    }}
+                    alt={`Đáp án ${label}${optionText ? `: ${optionText}` : ''}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-40 w-full bg-slate-50 object-contain"
                   />
                 ) : null}
 
-                {option && option.trim() ? (
+                {optionText.trim() ? (
                   <div className={`w-full flex-1 p-3 ${imageUrl ? 'border-t border-slate-100 bg-white' : 'pt-10'}`}>
-                    <MathSpan content={option} className="text-sm font-medium text-slate-800" />
+                    <MathSpan content={optionText} className="text-sm font-medium text-slate-800" />
                   </div>
                 ) : null}
               </button>
@@ -72,10 +85,11 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {options.map((option: string, index: number) => {
+          {options.map((option: unknown, index: number) => {
             const label = String.fromCharCode(65 + index);
             const optionId = optionIdAt(index);
             const isSelected = selectedOptionId(question, answers[question.id]) === optionId;
+            const optionText = optionTextFor(option);
 
             return (
               <button
@@ -98,7 +112,7 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
                 >
                   {label}
                 </span>
-                <MathSpan content={option} className="flex-1" />
+                <MathSpan content={optionText} className="flex-1" />
               </button>
             );
           })}

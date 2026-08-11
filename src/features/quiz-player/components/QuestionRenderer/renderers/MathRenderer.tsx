@@ -17,13 +17,25 @@ const MathRenderer: React.FC<BaseRendererProps> = ({
 
   if (mathType === 'fraction') {
     const storedValue = answers[question.id];
-    const value: FractionAnswer = storedValue && typeof storedValue === 'object' && !Array.isArray(storedValue)
+    const storedRecord = storedValue && typeof storedValue === 'object' && !Array.isArray(storedValue)
       ? storedValue as FractionAnswer
       : { numerator: '', denominator: '' };
-    const numerator = String(value.numerator ?? '');
-    const denominator = String(value.denominator ?? '');
+    const canonicalValue = storedValue && typeof storedValue === 'object' && !Array.isArray(storedValue)
+      ? String((storedValue as Record<string, unknown>).value ?? '')
+      : '';
+    const [canonicalNumerator = '', canonicalDenominator = ''] = canonicalValue.split('/', 2);
+    const numerator = String(storedRecord.numerator ?? canonicalNumerator);
+    const denominator = String(storedRecord.denominator ?? canonicalDenominator);
     const numeratorId = `math-numerator-${question.id}`;
     const denominatorId = `math-denominator-${question.id}`;
+    const updateFraction = (nextNumerator: string, nextDenominator: string) => {
+      onAnswerChange(question.id, {
+        type: 'SHORT_ANSWER',
+        value: nextNumerator || nextDenominator ? `${nextNumerator}/${nextDenominator}` : '',
+        numerator: nextNumerator,
+        denominator: nextDenominator,
+      });
+    };
 
     return (
       <div className="flex flex-col items-center justify-center rounded-[10px] border border-slate-200 bg-slate-50 p-6">
@@ -33,7 +45,7 @@ const MathRenderer: React.FC<BaseRendererProps> = ({
             id={numeratorId}
             type="text"
             value={numerator}
-            onChange={(event) => onAnswerChange(question.id, { ...value, numerator: event.target.value })}
+            onChange={(event) => updateFraction(event.target.value, denominator)}
             className={`h-12 w-16 rounded-[8px] border text-center text-xl font-semibold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${answerInputClasses(Boolean(numerator.trim()))}`}
             placeholder="?"
           />
@@ -43,7 +55,7 @@ const MathRenderer: React.FC<BaseRendererProps> = ({
             id={denominatorId}
             type="text"
             value={denominator}
-            onChange={(event) => onAnswerChange(question.id, { ...value, denominator: event.target.value })}
+            onChange={(event) => updateFraction(numerator, event.target.value)}
             className={`h-12 w-16 rounded-[8px] border text-center text-xl font-semibold outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${answerInputClasses(Boolean(denominator.trim()))}`}
             placeholder="?"
           />

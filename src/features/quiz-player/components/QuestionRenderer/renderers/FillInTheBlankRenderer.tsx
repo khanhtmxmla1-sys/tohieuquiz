@@ -122,7 +122,7 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
                     type="button"
                     aria-label={currentValue ? `Xóa đáp án ô ${blankId}` : `Ô trống ${blankId}`}
                     onClick={() => currentValue && handleFill(blankId, '')}
-                    className={`mx-1 inline-flex min-w-[72px] items-center justify-center rounded-[8px] border px-3 py-1 text-center align-middle outline-none transition-colors focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${answerInputClasses(Boolean(currentValue.trim()))}`}
+                    className={`mx-1 inline-flex min-h-11 min-w-[72px] items-center justify-center rounded-[8px] border px-3 py-1 text-center align-middle outline-none transition-colors focus:border-sky-500 focus:ring-2 focus:ring-sky-100 ${answerInputClasses(Boolean(currentValue.trim()))}`}
                 >
                     {currentValue ? <SmartText content={currentValue} /> : <span className="text-slate-400">...</span>}
                 </button>
@@ -136,7 +136,7 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
                 value={currentValue}
                 onChange={(event) => handleFill(blankId, event.target.value)}
                 placeholder="..."
-                className={`mx-1 inline-block w-20 min-w-[72px] rounded-[8px] border px-2 py-1 text-center align-middle outline-none transition-colors ${answerInputClasses(Boolean(currentValue.trim()))} focus:border-sky-500 focus:ring-2 focus:ring-sky-100`}
+                className={`mx-1 inline-block min-h-11 w-20 min-w-[72px] rounded-[8px] border px-2 py-1 text-center align-middle outline-none transition-colors ${answerInputClasses(Boolean(currentValue.trim()))} focus:border-sky-500 focus:ring-2 focus:ring-sky-100`}
             />
         );
     }, [answers, handleFill, isDragDrop, q.id, resolveBlankOptions]);
@@ -173,7 +173,7 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
                                         if (firstEmptyId !== undefined) handleFill(firstEmptyId, option);
                                     }}
                                     disabled={isUsed}
-                                    className={`rounded-[8px] border px-4 py-2 font-medium transition-colors ${
+                                    className={`min-h-11 rounded-[8px] border px-4 py-2 font-medium transition-colors ${
                                         isUsed
                                             ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-300'
                                             : 'border-slate-300 bg-white text-slate-700 hover:border-sky-400 hover:bg-sky-50'
@@ -188,7 +188,7 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
                         <button
                             type="button"
                             onClick={() => onAnswerChange(q.id, {})}
-                            className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                            className="min-h-11 rounded-[8px] px-3 text-xs text-gray-400 transition-colors hover:bg-white hover:text-red-500"
                         >
                             Xóa hết đáp án đã chọn
                         </button>

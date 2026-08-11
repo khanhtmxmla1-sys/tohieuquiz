@@ -12,10 +12,12 @@ import type { ImageQuestion } from '../../../../../types';
 import { NewlineMathText } from '../../../../../components/common';
 import GeometryPreview from '../../../../../components/TeacherDashboard/GeometryPreview';
 import TikZPreview from '../../../../../components/common/TikZPreview';
+import SafeRasterImage from '../../../../../components/common/SafeRasterImage';
 
 // Legacy field not in the typed interface — safe extension
 type ImageQuestionWithLegacy = ImageQuestion & {
     geometry?: string | object;
+    imageAlt?: string;
 };
 
 interface ImageQuestionRendererProps {
@@ -39,7 +41,15 @@ const ImageRenderer: React.FC<{ question: ImageQuestionWithLegacy }> = ({ questi
         if (image.includes('\\begin{tikzpicture}')) {
             return <TikZPreview code={image} />;
         }
-        return <img src={image} alt="Question" className="max-h-32 rounded-lg border" />;
+        return (
+            <SafeRasterImage
+                src={image}
+                alt={question.imageAlt || 'Hình minh họa câu hỏi'}
+                loading="lazy"
+                decoding="async"
+                className="max-h-32 max-w-full rounded-lg border object-contain"
+            />
+        );
     }
 
     return null;
@@ -55,6 +65,7 @@ const ImageQuestionRenderer: React.FC<ImageQuestionRendererProps> = ({ question 
                 const letter = String.fromCharCode(65 + i);
                 const isCorrect = letter === question.correctAnswer;
                 const cleanOpt = opt.replace(/^[A-Da-d][.)]\s*/, '');
+                const optionImage = question.optionImages?.[i];
                 return (
                     <div
                         key={i}
@@ -65,6 +76,15 @@ const ImageQuestionRenderer: React.FC<ImageQuestionRendererProps> = ({ question 
                         }`}
                     >
                         <span className="font-bold">{letter}.</span>
+                        {optionImage ? (
+                            <SafeRasterImage
+                                src={optionImage}
+                                alt={`Đáp án ${letter}: ${cleanOpt}`}
+                                loading="lazy"
+                                decoding="async"
+                                className="h-20 w-24 shrink-0 rounded-md border border-gray-200 bg-white object-contain"
+                            />
+                        ) : null}
                         <NewlineMathText
                             content={cleanOpt}
                             as="span"

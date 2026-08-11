@@ -24,6 +24,8 @@ const MultipleSelectReview: React.FC<MultipleSelectReviewProps> = memo(({ questi
 
         const normalized = String(raw ?? '').trim().toUpperCase();
         if (!normalized) return '';
+        const optionIdMatch = normalized.match(/^OPTION-(\d+)$/);
+        if (optionIdMatch) return String.fromCharCode(65 + Number(optionIdMatch[1]));
         if (/^[A-Z]$/.test(normalized)) return normalized;
 
         const optionIndex = options.findIndex((option: any) => normalizeOptionText(option) === normalized);
@@ -32,7 +34,13 @@ const MultipleSelectReview: React.FC<MultipleSelectReviewProps> = memo(({ questi
 
     // Normalize student choices
     let studentChoices: string[] = [];
-    if (Array.isArray(studentAnswer)) {
+    const canonicalOptionIds = studentAnswer && typeof studentAnswer === 'object' && !Array.isArray(studentAnswer)
+        && Array.isArray(studentAnswer.optionIds)
+        ? studentAnswer.optionIds
+        : null;
+    if (canonicalOptionIds) {
+        studentChoices = canonicalOptionIds.map(normalizeChoice);
+    } else if (Array.isArray(studentAnswer)) {
         studentChoices = studentAnswer.map(normalizeChoice);
     } else if (typeof studentAnswer === 'object' && studentAnswer !== null) {
         // Handle format: { "item-0": true, "A": true }

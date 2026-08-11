@@ -53,6 +53,7 @@ export function mapLiveExamQuestionRow(row: any): Question {
         options: parsePipeList(row.options),
         correctAnswer: parsedCorrectAnswer,
         image: String(row.image || ''),
+        imageAlt: String(row.imageAlt ?? row.image_alt ?? '') || undefined,
         svgContent: String(row.svgContent ?? row.svg_content ?? '') || undefined,
         svgAlt: String(row.svgAlt ?? row.svg_alt ?? '') || undefined,
         svgVersion: String(row.svgContent ?? row.svg_content ?? '')

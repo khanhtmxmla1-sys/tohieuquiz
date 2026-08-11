@@ -79,6 +79,16 @@ describe('live exam question mapper — đáp án dạng số', () => {
         expect(question.correctAnswer).toBe('A');
     });
 
+    it('chuyển mô tả ảnh sang imageAlt cho giao diện thi trực tiếp', () => {
+        const question = mapLiveExamQuestionRow({
+            ...mcqRow('q-image-alt', 'A', 'A|B'),
+            image: 'https://example.test/question.png',
+            image_alt: 'Biểu đồ hai cột',
+        }) as any;
+
+        expect(question.imageAlt).toBe('Biểu đồ hai cột');
+    });
+
     it('không nhận nhầm chuỗi mở đầu bằng dấu ngoặc thành JSON hỏng', () => {
         // Đáp án văn bản có thể chứa dấu ngoặc; nếu parse thất bại phải giữ nguyên chuỗi gốc.
         const question = mapLiveExamQuestionRow(
