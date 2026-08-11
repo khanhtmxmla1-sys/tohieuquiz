@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addInterventionNote,
   createInterventionAssignments,
+  previewInterventionAssignments,
 } from '../workers/src/services/interventionService';
 
 class SQLiteStatement {
@@ -149,6 +150,94 @@ describe('Results Intervention persistence', () => {
     )).rejects.toThrow('not found');
   });
 
+  it('previews assignable and already-open member counts without mutating assignments', async () => {
+    const { sqlite, db } = setup();
+
+    await expect(previewInterventionAssignments(
+      db,
+      teacher('teacher-b') as any,
+      'group-1',
+      'quiz-1',
+      '2026-07-29T09:00:00.000Z',
+    )).rejects.toThrow('not found');
+
+    const initial = await previewInterventionAssignments(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      'quiz-1',
+      '2026-07-29T09:00:00.000Z',
+    );
+    expect(initial).toEqual({
+      groupId: 'group-1',
+      quizId: 'quiz-1',
+      memberCount: 2,
+      openAssignmentCount: 0,
+      assignableCount: 2,
+    });
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM assignments').get()).toEqual({ count: 0 });
+
+    sqlite.prepare(`
+      INSERT INTO assignments(
+        id, quiz_id, class_id, student_id, deadline, max_attempts,
+        intervention_group_id, status, created_at
+      ) VALUES (?, ?, ?, '', ?, 1, NULL, 'OPEN', ?)
+    `).run(
+      'assignment-class-wide-preview',
+      'quiz-1',
+      'class-1',
+      '2026-08-06T16:59:00.000Z',
+      '2026-07-29T08:30:00.000Z',
+    );
+
+    const withOpenAssignment = await previewInterventionAssignments(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      'quiz-1',
+      '2026-07-29T09:00:00.000Z',
+    );
+    expect(withOpenAssignment).toEqual({
+      groupId: 'group-1',
+      quizId: 'quiz-1',
+      memberCount: 2,
+      openAssignmentCount: 2,
+      assignableCount: 0,
+    });
+  });
+  it('rejects invalid assignment deadline and max attempts before creating assignments', async () => {
+    const { sqlite, db } = setup();
+
+    await expect(createInterventionAssignments(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      {
+        quizId: 'quiz-1',
+        deadline: '2026-08-06T16:59:00.000Z',
+        maxAttempts: 11,
+        idempotencyKey: 'invalid-attempts',
+      },
+      'req-invalid-attempts',
+      '2026-07-29T09:00:00.000Z',
+    )).rejects.toThrow('maxAttempts must be an integer from 1 to 10');
+
+    await expect(createInterventionAssignments(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      {
+        quizId: 'quiz-1',
+        deadline: '2026-07-29T08:00:00.000Z',
+        maxAttempts: 1,
+        idempotencyKey: 'invalid-deadline',
+      },
+      'req-invalid-deadline',
+      '2026-07-29T09:00:00.000Z',
+    )).rejects.toThrow('deadline must be in the future');
+
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM assignments').get()).toEqual({ count: 0 });
+  });
   it('creates one personal assignment per member and replays the same idempotency key safely', async () => {
     const { sqlite, db } = setup();
     const payload = {

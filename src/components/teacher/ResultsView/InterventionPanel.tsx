@@ -51,6 +51,7 @@ export const InterventionPanel = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [busyAction, setBusyAction] = useState('');
+  const [pendingFocusGroupId, setPendingFocusGroupId] = useState('');
   const filters = useMemo(() => ({
     className: classNameFilter && classNameFilter !== 'All' ? classNameFilter : undefined,
     quizId: quizId && quizId !== 'all' ? quizId : undefined,
@@ -58,15 +59,18 @@ export const InterventionPanel = ({
   const hasActiveFilters = Boolean(filters.className || filters.quizId);
   const windowDays = dashboard?.criteria.windowDays || 28;
 
-  const load = async () => {
-    if (!isOnline) return;
+  const load = async (): Promise<InterventionDashboard | null> => {
+    if (!isOnline) return null;
     setIsLoading(true);
     setError('');
     try {
-      setDashboard(await getInterventionDashboard(filters));
+      const nextDashboard = await getInterventionDashboard(filters);
+      setDashboard(nextDashboard);
+      return nextDashboard;
     } catch (loadError) {
       const normalized = loadError instanceof Error ? loadError : new Error(String(loadError));
       setError(normalized.message || 'Không thể tải nhóm hỗ trợ.');
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -76,23 +80,48 @@ export const InterventionPanel = ({
     void load();
   }, [filters.className, filters.quizId, isOnline]);
 
-  const createGroup = async (suggestion: InterventionSuggestion) => {
+  const createGroup = async (
+    suggestion: InterventionSuggestion,
+    input: { name: string; studentIds: string[] },
+  ): Promise<'created' | 'stale' | 'failed'> => {
+    if (busyAction) return 'failed';
     setBusyAction(`group:${suggestion.key}`);
     try {
-      await createInterventionGroup({
+      const created = await createInterventionGroup({
         suggestionKey: suggestion.key,
+        name: input.name,
         className: filters.className,
         quizId: filters.quizId,
-        studentIds: suggestion.students.map((student) => student.studentId),
+        studentIds: input.studentIds,
       });
-      toast.success('Đã tạo nhóm hỗ trợ.');
+      setPendingFocusGroupId(created.id);
+      toast.success(`Đã tạo nhóm hỗ trợ với ${input.studentIds.length} học sinh.`);
       await load();
+      return 'created';
     } catch (createError) {
-      toast.error(createError instanceof Error ? createError.message : 'Không thể tạo nhóm hỗ trợ.');
+      const status = typeof createError === 'object' && createError !== null && 'status' in createError
+        ? Number((createError as { status?: unknown }).status)
+        : 0;
+      const message = createError instanceof Error ? createError.message : 'Không thể tạo nhóm hỗ trợ.';
+      if (status === 409 || /no longer available|không còn/i.test(message)) {
+        toast.error('Gợi ý đã thay đổi theo dữ liệu mới. Đã tải lại để bạn kiểm tra thành viên còn phù hợp.');
+        await load();
+        return 'stale';
+      }
+      toast.error(message);
+      return 'failed';
     } finally {
       setBusyAction('');
     }
   };
+
+  useEffect(() => {
+    if (!pendingFocusGroupId || !dashboard?.groups.some((group) => group.id === pendingFocusGroupId)) return;
+    const element = document.getElementById(`intervention-group-${pendingFocusGroupId}`);
+    if (!element) return;
+    element.focus();
+    setPendingFocusGroupId('');
+  }, [dashboard, pendingFocusGroupId]);
 
   const showReadiness = Boolean(dashboard && dashboard.suggestions.length === 0);
   const showSuggestions = Boolean(dashboard && dashboard.suggestions.length > 0);
@@ -159,7 +188,7 @@ export const InterventionPanel = ({
                       key={suggestion.key}
                       suggestion={suggestion}
                       busy={busyAction === `group:${suggestion.key}`}
-                      onCreate={() => void createGroup(suggestion)}
+                      onCreate={(input) => createGroup(suggestion, input)}
                     />
                   ))}
                 </div>
@@ -179,7 +208,7 @@ export const InterventionPanel = ({
                       key={group.id}
                       group={group}
                       quizzes={quizzes}
-                      onSaved={load}
+                      onSaved={async () => { await load(); }}
                     />
                   ))}
                 </div>

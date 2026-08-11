@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ChevronDown,
   ChevronUp,
@@ -7,13 +7,11 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { formatSystemDateTime, getSystemDefaultDeadline, systemDateTimeLocalToIso } from '../../../../utils/dateTime';
+import { formatSystemDateTime } from '../../../../utils/dateTime';
 import type { Quiz } from '../../../../types';
 import type { InterventionGroup } from '../../../../../shared/intervention.contract';
-import {
-  addInterventionNote,
-  createInterventionAssignments,
-} from '../../../../services/results/interventionService';
+import { addInterventionNote } from '../../../../services/results/interventionService';
+import { InterventionAssignmentForm } from './InterventionAssignmentForm';
 
 export interface InterventionGroupCardProps {
   group: InterventionGroup;
@@ -21,7 +19,6 @@ export interface InterventionGroupCardProps {
   onSaved: () => Promise<void>;
 }
 
-const defaultDeadline = (): string => getSystemDefaultDeadline(7);
 const percentage = (value: number): string => `${Math.round(value * 100)}%`;
 
 export const InterventionGroupCard: React.FC<InterventionGroupCardProps> = ({
@@ -32,29 +29,7 @@ export const InterventionGroupCard: React.FC<InterventionGroupCardProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [note, setNote] = useState('');
   const [showAssignment, setShowAssignment] = useState(false);
-  const [quizId, setQuizId] = useState('');
-  const [deadline, setDeadline] = useState(defaultDeadline);
-  const [maxAttempts, setMaxAttempts] = useState(1);
-  const [idempotencyKey, setIdempotencyKey] = useState('');
   const [savingNote, setSavingNote] = useState(false);
-  const [creatingAssignments, setCreatingAssignments] = useState(false);
-  const recommendedQuizIds = useMemo(
-    () => new Set(group.recommendedQuizzes.map((quiz) => quiz.quizId)),
-    [group.recommendedQuizzes],
-  );
-  const orderedQuizzes = useMemo(() => [...quizzes].sort((left, right) => {
-    const leftRecommended = recommendedQuizIds.has(left.id);
-    const rightRecommended = recommendedQuizIds.has(right.id);
-    if (leftRecommended !== rightRecommended) return leftRecommended ? -1 : 1;
-    return left.title.localeCompare(right.title);
-  }), [quizzes, recommendedQuizIds]);
-
-  const openAssignment = () => {
-    setQuizId((current) => current || orderedQuizzes[0]?.id || '');
-    setDeadline(defaultDeadline());
-    setIdempotencyKey(`intervention-${group.id}-${crypto.randomUUID()}`);
-    setShowAssignment(true);
-  };
 
   const saveNote = async () => {
     if (!note.trim() || savingNote) return;
@@ -62,50 +37,33 @@ export const InterventionGroupCard: React.FC<InterventionGroupCardProps> = ({
     try {
       await addInterventionNote(group.id, { note: note.trim() });
       setNote('');
-      toast.success('Đã lưu ghi chú riêng cho giáo viên.');
+      toast.success('Đã lưu ghi chú nội bộ.');
       await onSaved();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể lưu ghi chú riêng.');
+      toast.error(error instanceof Error ? error.message : 'Không thể lưu ghi chú nội bộ.');
     } finally {
       setSavingNote(false);
     }
   };
 
-  const assign = async () => {
-    if (!quizId || !deadline || !idempotencyKey || creatingAssignments) return;
-    setCreatingAssignments(true);
-    try {
-      const result = await createInterventionAssignments(group.id, {
-        quizId,
-        deadline: systemDateTimeLocalToIso(deadline),
-        maxAttempts,
-        idempotencyKey,
-      });
-      toast.success(result.assignmentIds.length
-        ? `Đã tạo ${result.assignmentIds.length} bài luyện tập cá nhân.`
-        : 'Các học sinh trong nhóm đã có bài luyện tập đang mở.');
-      setShowAssignment(false);
-      await onSaved();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể giao bài cho nhóm.');
-    } finally {
-      setCreatingAssignments(false);
-    }
-  };
-
   return (
-    <article className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
+    <article
+      id={`intervention-group-${group.id}`}
+      tabIndex={-1}
+      className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h4 className="font-semibold text-slate-900">{group.name}</h4>
           <p className="mt-1 text-sm text-slate-600">
-            {group.className} · {group.members.length} học sinh · độ tin cậy {percentage(group.confidence)}
+            {group.className} · {group.members.length} học sinh · độ tin cậy dữ liệu {percentage(group.confidence)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={openAssignment}
+            onClick={() => setShowAssignment((value) => !value)}
+            aria-expanded={showAssignment}
             className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
             <ClipboardPlus size={16} aria-hidden="true" /> Tạo bài luyện
@@ -123,43 +81,12 @@ export const InterventionGroupCard: React.FC<InterventionGroupCardProps> = ({
       </div>
 
       {showAssignment && (
-        <div className="mt-4 rounded-xl border border-blue-200 bg-white p-4" aria-label={`Tạo bài luyện cho ${group.name}`}>
-          <p className="mb-3 text-sm font-semibold text-slate-800">Bước cuối: kiểm tra bài luyện và xác nhận giao</p>
-          <div className="grid gap-3 md:grid-cols-3">
-            <label className="text-sm font-medium text-slate-700">
-              Bài kiểm tra
-              <select value={quizId} onChange={(event) => setQuizId(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2">
-                <option value="">Chọn bài</option>
-                {orderedQuizzes.map((quiz) => (
-                  <option key={quiz.id} value={quiz.id}>
-                    {recommendedQuizIds.has(quiz.id) ? '★ ' : ''}{quiz.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm font-medium text-slate-700">
-              Hạn hoàn thành
-              <input type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2" />
-              <span className="mt-1 block text-xs font-normal text-slate-500">Giờ Hà Nội (GMT+7)</span>
-            </label>
-            <label className="text-sm font-medium text-slate-700">
-              Số lượt làm
-              <input type="number" min={1} max={10} value={maxAttempts} onChange={(event) => setMaxAttempts(Number(event.target.value))} className="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3 py-2" />
-            </label>
-          </div>
-          <div className="mt-3 flex flex-wrap justify-end gap-2">
-            <button type="button" onClick={() => setShowAssignment(false)} className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Hủy</button>
-            <button
-              type="button"
-              onClick={assign}
-              disabled={!quizId || !deadline || creatingAssignments}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {creatingAssignments && <RefreshCw size={16} className="animate-spin" aria-hidden="true" />}
-              Giao bài cho nhóm
-            </button>
-          </div>
-        </div>
+        <InterventionAssignmentForm
+          group={group}
+          quizzes={quizzes}
+          onSaved={onSaved}
+          onClose={() => setShowAssignment(false)}
+        />
       )}
 
       {expanded && (
@@ -171,13 +98,16 @@ export const InterventionGroupCard: React.FC<InterventionGroupCardProps> = ({
                 <p className="mt-1 text-slate-600">
                   Lần đầu {member.firstAttemptScore.toFixed(1)} → gần nhất {member.latestAttemptScore.toFixed(1)}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">Mức chính xác kỹ năng: {member.skillAccuracy}% · {member.skillSampleSize} mẫu</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Mức chính xác kỹ năng: {member.skillAccuracy}% · {member.skillSampleSize} mẫu
+                </p>
               </div>
             ))}
           </div>
           <div className="rounded-lg border border-violet-200 bg-violet-50 p-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-violet-900">
-              <ShieldCheck size={16} aria-hidden="true" /> Ghi chú riêng — chỉ giáo viên nhìn thấy
+              <ShieldCheck size={16} aria-hidden="true" />
+              Ghi chú nội bộ — giáo viên phụ trách và quản trị viên có quyền truy cập
             </div>
             <textarea
               value={note}
@@ -190,7 +120,7 @@ export const InterventionGroupCard: React.FC<InterventionGroupCardProps> = ({
             <div className="mt-2 flex justify-end">
               <button
                 type="button"
-                onClick={saveNote}
+                onClick={() => void saveNote()}
                 disabled={!note.trim() || savingNote}
                 className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-violet-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
               >

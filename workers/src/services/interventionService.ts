@@ -6,13 +6,17 @@ import {
 import type { JWTPayload } from '../utils/jwt';
 import type { Question } from '../types';
 import {
+  INTERVENTION_DECLINING_SCORE_DELTA_THRESHOLD,
   INTERVENTION_MAX_NOTE_LENGTH,
   INTERVENTION_MIN_CONFIDENCE,
   INTERVENTION_MIN_SAMPLE_SIZE,
+  INTERVENTION_PERSISTENT_ACCURACY_THRESHOLD,
+  INTERVENTION_PERSISTENT_ATTEMPT_THRESHOLD,
   buildInterventionSuggestionKey,
   isInterventionSignalEligible,
   type CreateInterventionAssignmentsRequest,
   type CreateInterventionAssignmentsResponse,
+  type InterventionAssignmentPreview,
   type InterventionDashboard,
   type InterventionDataReadiness,
   type InterventionGroup,
@@ -301,6 +305,50 @@ const buildRecommendations = (
     .slice(0, 3);
 };
 
+const buildSuggestionEvidence = (
+  students: InterventionStudentSignal[],
+): InterventionSuggestion['evidence'] => {
+  const count = Math.max(1, students.length);
+  const averageSkillAccuracy = round(
+    students.reduce((sum, student) => sum + student.skillAccuracy, 0) / count,
+    1,
+  );
+  const minimumSkillAccuracy = students.length > 0
+    ? round(Math.min(...students.map((student) => student.skillAccuracy)), 1)
+    : 0;
+  const recentAttemptCount = students.reduce((sum, student) => sum + student.skillSampleSize, 0);
+  const averageScoreDelta = round(
+    students.reduce((sum, student) => sum + student.scoreDelta, 0) / count,
+    1,
+  );
+  const improvingStudentCount = students.filter((student) => student.scoreDelta > 0).length;
+  const decliningStudentCount = students.filter((student) => student.scoreDelta < 0).length;
+  const unchangedStudentCount = Math.max(
+    0,
+    students.length - improvingStudentCount - decliningStudentCount,
+  );
+
+  let reason: InterventionSuggestion['evidence']['reason'] = 'LOW_ACCURACY';
+  if (averageScoreDelta <= INTERVENTION_DECLINING_SCORE_DELTA_THRESHOLD) {
+    reason = 'DECLINING_TREND';
+  } else if (
+    recentAttemptCount >= INTERVENTION_PERSISTENT_ATTEMPT_THRESHOLD
+    && averageSkillAccuracy <= INTERVENTION_PERSISTENT_ACCURACY_THRESHOLD
+  ) {
+    reason = 'PERSISTENT_WEAKNESS';
+  }
+
+  return {
+    reason,
+    averageSkillAccuracy,
+    minimumSkillAccuracy,
+    recentAttemptCount,
+    improvingStudentCount,
+    unchangedStudentCount,
+    decliningStudentCount,
+  };
+};
+
 export function buildInterventionSuggestionsFromData(
   input: BuildSuggestionInput,
 ): InterventionSuggestion[] {
@@ -408,6 +456,7 @@ export function buildInterventionSuggestionsFromData(
         averageFirstScore: average((student) => student.firstAttemptScore),
         averageLatestScore: average((student) => student.latestAttemptScore),
         averageScoreDelta: average((student) => student.scoreDelta),
+        evidence: buildSuggestionEvidence(bucket.students),
         students: bucket.students.sort((left, right) => {
           if (left.skillAccuracy !== right.skillAccuracy) return left.skillAccuracy - right.skillAccuracy;
           return left.studentName.localeCompare(right.studentName);
@@ -797,6 +846,86 @@ export async function addInterventionNote(
   };
 }
 
+interface InterventionAssignmentMemberRow {
+  student_id: string;
+  full_name: string;
+}
+
+interface InterventionAssignmentEligibility {
+  quiz: { id: string; title: string };
+  members: InterventionAssignmentMemberRow[];
+  existingByStudent: Map<string, string>;
+}
+
+const loadInterventionAssignmentEligibility = async (
+  db: D1Database,
+  group: InterventionGroupRow,
+  groupId: string,
+  quizId: string,
+  nowIso: string,
+): Promise<InterventionAssignmentEligibility> => {
+  const quiz = await db.prepare('SELECT id, title FROM quizzes WHERE id = ?')
+    .bind(quizId)
+    .first<{ id: string; title: string }>();
+  if (!quiz) throw new Error('Quiz not found');
+
+  const memberRows = await db.prepare(`
+    SELECT m.student_id, s.full_name
+    FROM intervention_group_members m
+    JOIN students s ON s.id = m.student_id
+    WHERE m.group_id = ?
+    ORDER BY s.full_name COLLATE NOCASE
+  `).bind(groupId).all<InterventionAssignmentMemberRow>();
+  const members = memberRows.results || [];
+  if (members.length === 0) throw new Error('Intervention group has no members');
+
+  const studentIds = members.map((member) => member.student_id);
+  const placeholders = studentIds.map(() => '?').join(',');
+  const existingRows = await db.prepare(`
+    SELECT id, student_id FROM assignments
+    WHERE quiz_id = ? AND class_id = ?
+      AND (COALESCE(student_id, '') = '' OR student_id IN (${placeholders}))
+      AND status = 'OPEN' AND deadline > ?
+  `).bind(quizId, group.class_id, ...studentIds, nowIso).all<{ id: string; student_id: string }>();
+  const existingAssignments = existingRows.results || [];
+  const classWideAssignmentId = existingAssignments.find((row) => !String(row.student_id || '').trim())?.id;
+  const existingByStudent = new Map<string, string>();
+  for (const member of members) {
+    const personal = existingAssignments.find((row) => String(row.student_id) === member.student_id);
+    const assignmentId = personal?.id || classWideAssignmentId;
+    if (assignmentId) existingByStudent.set(member.student_id, String(assignmentId));
+  }
+
+  return { quiz, members, existingByStudent };
+};
+
+export async function previewInterventionAssignments(
+  db: D1Database,
+  user: JWTPayload,
+  groupId: string,
+  quizIdInput: string,
+  nowIso: string,
+): Promise<InterventionAssignmentPreview> {
+  const group = await loadGroupAccess(db, user, groupId);
+  if (!group) throw new Error('Intervention group not found');
+  const quizId = String(quizIdInput || '').trim();
+  if (!quizId) throw new Error('quizId is required');
+  const { members, existingByStudent } = await loadInterventionAssignmentEligibility(
+    db,
+    group,
+    groupId,
+    quizId,
+    nowIso,
+  );
+  return {
+    groupId,
+    quizId,
+    memberCount: members.length,
+    openAssignmentCount: existingByStudent.size,
+    assignableCount: Math.max(0, members.length - existingByStudent.size),
+  };
+}
+
 export async function createInterventionAssignments(
   db: D1Database,
   user: JWTPayload,
@@ -839,35 +968,13 @@ export async function createInterventionAssignments(
       replayed: true,
     };
   }
-  const quiz = await db.prepare('SELECT id, title FROM quizzes WHERE id = ?')
-    .bind(quizId)
-    .first<{ id: string; title: string }>();
-  if (!quiz) throw new Error('Quiz not found');
-  const memberRows = await db.prepare(`
-    SELECT m.student_id, s.full_name
-    FROM intervention_group_members m
-    JOIN students s ON s.id = m.student_id
-    WHERE m.group_id = ?
-    ORDER BY s.full_name COLLATE NOCASE
-  `).bind(groupId).all<{ student_id: string; full_name: string }>();
-  const members = memberRows.results || [];
-  if (members.length === 0) throw new Error('Intervention group has no members');
-  const studentIds = members.map((member) => member.student_id);
-  const placeholders = studentIds.map(() => '?').join(',');
-  const existingRows = await db.prepare(`
-    SELECT id, student_id FROM assignments
-    WHERE quiz_id = ? AND class_id = ?
-      AND (COALESCE(student_id, '') = '' OR student_id IN (${placeholders}))
-      AND status = 'OPEN' AND deadline > ?
-  `).bind(quizId, group.class_id, ...studentIds, nowIso).all<{ id: string; student_id: string }>();
-  const existingAssignments = existingRows.results || [];
-  const classWideAssignmentId = existingAssignments.find((row) => !String(row.student_id || '').trim())?.id;
-  const existingByStudent = new Map<string, string>();
-  for (const member of members) {
-    const personal = existingAssignments.find((row) => String(row.student_id) === member.student_id);
-    const assignmentId = personal?.id || classWideAssignmentId;
-    if (assignmentId) existingByStudent.set(member.student_id, String(assignmentId));
-  }
+  const { quiz, members, existingByStudent } = await loadInterventionAssignmentEligibility(
+    db,
+    group,
+    groupId,
+    quizId,
+    nowIso,
+  );
   const deadline = new Date(deadlineMs).toISOString();
   const created = members
     .filter((member) => !existingByStudent.has(member.student_id))

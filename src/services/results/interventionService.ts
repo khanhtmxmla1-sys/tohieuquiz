@@ -3,6 +3,7 @@ import type {
   CreateInterventionAssignmentsRequest,
   CreateInterventionAssignmentsResponse,
   CreateInterventionGroupRequest,
+  InterventionAssignmentPreview,
   InterventionDashboard,
   InterventionGroup,
   InterventionPrivateNote,
@@ -50,6 +51,17 @@ export const addInterventionNote = async (
     { groupId, ...request },
   );
   return unwrap(response, 'Không thể lưu ghi chú riêng.');
+};
+
+export const previewInterventionAssignments = async (
+  groupId: string,
+  quizId: string,
+): Promise<InterventionAssignmentPreview> => {
+  const response = await callApi<ApiResponse<InterventionAssignmentPreview>>(
+    'preview_intervention_assignments',
+    { groupId, quizId },
+  );
+  return unwrap(response, 'Không thể kiểm tra trạng thái giao bài của nhóm.');
 };
 
 export const createInterventionAssignments = async (

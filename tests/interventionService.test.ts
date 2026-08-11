@@ -212,4 +212,51 @@ describe('Results Intervention suggestion model', () => {
       'quiz-fair',
     ]);
   });
-});
+
+  it('returns deterministic evidence for low accuracy, declining trend, and persistent weakness', () => {
+    const buildSuggestion = (results: ReturnType<typeof result>[]) => buildInterventionSuggestionsFromData({
+      now: new Date('2026-07-29T08:00:00.000Z'),
+      students: [{ id: 'student-1', full_name: 'Lan', class_id: 'class-4a', class_name: '4A' }],
+      results: results as any,
+      questions: [question('q1')],
+      recommendationRows: [],
+    })[0] as any;
+
+    const lowAccuracy = buildSuggestion([
+      result({ id: 'low-1', submitted_at: '2026-07-10T08:00:00.000Z', score: 4 }),
+      result({ id: 'low-2', submitted_at: '2026-07-17T08:00:00.000Z', score: 4 }),
+      result({ id: 'low-3', submitted_at: '2026-07-24T08:00:00.000Z', score: 4 }),
+    ]);
+    expect(lowAccuracy.evidence).toEqual(expect.objectContaining({
+      reason: 'LOW_ACCURACY',
+      averageSkillAccuracy: 0,
+      minimumSkillAccuracy: 0,
+      recentAttemptCount: 3,
+      improvingStudentCount: 0,
+      unchangedStudentCount: 1,
+      decliningStudentCount: 0,
+    }));
+
+    const declining = buildSuggestion([
+      result({ id: 'decline-1', submitted_at: '2026-07-10T08:00:00.000Z', score: 7 }),
+      result({ id: 'decline-2', submitted_at: '2026-07-17T08:00:00.000Z', score: 6 }),
+      result({ id: 'decline-3', submitted_at: '2026-07-24T08:00:00.000Z', score: 5 }),
+    ]);
+    expect(declining.evidence.reason).toBe('DECLINING_TREND');
+    expect(declining.evidence.decliningStudentCount).toBe(1);
+
+    const persistent = buildSuggestion([
+      result({ id: 'persistent-1', submitted_at: '2026-07-03T08:00:00.000Z', score: 4 }),
+      result({ id: 'persistent-2', submitted_at: '2026-07-08T08:00:00.000Z', score: 4 }),
+      result({ id: 'persistent-3', submitted_at: '2026-07-13T08:00:00.000Z', score: 4 }),
+      result({ id: 'persistent-4', submitted_at: '2026-07-18T08:00:00.000Z', score: 4 }),
+      result({ id: 'persistent-5', submitted_at: '2026-07-23T08:00:00.000Z', score: 4 }),
+    ]);
+    expect(persistent.evidence).toEqual(expect.objectContaining({
+      reason: 'PERSISTENT_WEAKNESS',
+      averageSkillAccuracy: 0,
+      recentAttemptCount: 5,
+    }));
+    expect(Number.isFinite(persistent.evidence.averageSkillAccuracy)).toBe(true);
+    expect(Number.isFinite(persistent.evidence.minimumSkillAccuracy)).toBe(true);
+  });});
