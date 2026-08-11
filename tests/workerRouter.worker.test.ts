@@ -316,6 +316,20 @@ describe('Worker root route dispatch', () => {
     );
   });
 
+  it.each([
+    ['/api/admin/operations/rewards', 'GET'],
+    ['/api/admin/operations/rewards/rebuild-current-week', 'POST'],
+  ] as const)('dispatches the admin operations subroute %s', async (path, method) => {
+    verifyTokenMock.mockReturnValueOnce(null);
+    routeMocks.handleOperationsRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request(path, method), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handleOperationsRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, path, method,
+    );
+  });
   it('dispatches passkey routes before the teacher account handler', async () => {
     verifyTokenMock.mockReturnValueOnce(null);
     routeMocks.handlePasskeyRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
