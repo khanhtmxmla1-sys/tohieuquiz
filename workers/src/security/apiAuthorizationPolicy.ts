@@ -106,7 +106,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('quiz-write', '/api/quizzes', 'teacher-owned', ['quizId'], 'quiz creator/admin ownership'),
   policy('question-write', '/api/questions', 'teacher-owned', ['quizId'], 'quiz creator/admin ownership'),
 
-  policy('game-state', '/api/game-state', 'student-owned', ['session', 'studentId', 'resultId'], 'JWT student identity'),
+  policy('game-state', '/api/game-state', 'student-owned', ['session', 'studentId', 'resultId'], 'JWT student identity plus canonical result ownership for reward claims'),
   policy('pets', '/api/pets', 'student-owned', ['session', 'studentId'], 'JWT student identity'),
   policy('shop', '/api/shop', 'student-owned', ['session', 'studentId'], 'JWT student identity'),
   policy('leaderboard', '/api/leaderboard', 'authenticated', ['session'], 'authenticated gamification route'),
@@ -118,7 +118,8 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('gift-shop-catalog-write', '/api/gift-shop/catalog', 'admin-only', ['route-handler'], 'gift catalog requireAdmin guard', { methods: ['PUT', 'DELETE'] }),
   policy('gift-shop-orders-write', '/api/gift-shop/orders', 'teacher-owned', ['session', 'classId', 'route-handler'], 'conditional order transition and teacher class guard', { methods: ['PATCH'] }),
   policy('gift-shop', '/api/gift-shop', 'authenticated', ['studentId', 'classId', 'route-handler'], 'scoped catalog and order reads'),
-  policy('game-loop', '/api/game-loop', 'student-owned', ['session', 'studentId', 'quizId'], 'JWT student identity'),
+  policy('game-loop-track-quiz', '/api/game-loop/track-quiz', 'student-owned', ['session', 'studentId', 'resultId'], 'JWT student identity plus results.student_id ownership', { match: 'exact', methods: ['POST'] }),
+  policy('game-loop', '/api/game-loop', 'student-owned', ['session', 'studentId'], 'JWT student identity; reward/progress sources are derived server-side'),
   policy('live-exam', '/api/live-exam', 'authenticated', ['studentId', 'quizId', 'classId', 'route-handler'], 'role and session ownership checks'),
   policy('certificates', '/api/certificates', 'authenticated', ['studentId', 'classId', 'batchId', 'route-handler'], 'certificate ownership checks'),
   policy('certificate-batches', '/api/certificate-batches', 'teacher-owned', ['studentId', 'classId', 'batchId'], 'certificate batch ownership'),

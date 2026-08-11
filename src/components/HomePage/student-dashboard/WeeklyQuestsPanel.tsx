@@ -93,8 +93,9 @@ export function WeeklyQuestsPanel({
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-xs font-medium text-slate-500">
                       Thưởng {quest.reward.coins} xu
-                      {quest.reward.exp > 0 ? ` · ${quest.reward.exp} EXP` : ''}
-                      {quest.reward.items.length > 0 ? ` · ${quest.reward.itemCount} vật phẩm` : ''}
+                      {quest.reward.items.length > 0
+                        ? ` · ${quest.reward.items.reduce((sum, item) => sum + item.quantity, 0)} vật phẩm`
+                        : ''}
                     </p>
                     <button
                       type="button"

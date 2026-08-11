@@ -42,10 +42,10 @@ describe('Game Loop pure domain contracts', () => {
         });
     });
 
-    it('normalizes the existing Toán and Tiếng Việt aliases only', () => {
+    it('normalizes supported subject aliases to canonical server keys', () => {
         expect(normalizeGameLoopCategory('Toán lớp 4')).toBe('toan');
         expect(normalizeGameLoopCategory('TIẾNG VIỆT')).toBe('tieng-viet');
-        expect(normalizeGameLoopCategory('English')).toBe('english');
+        expect(normalizeGameLoopCategory('English')).toBe('tieng-anh');
     });
 
     it('maps daily question, accuracy, and subject missions without changing thresholds', () => {

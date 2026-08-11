@@ -396,16 +396,8 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
             setRewardData(completionReward);
             setShowReward(true);
 
-            if (classroomStore.studentSession?.username) {
-                void useGameLoopStore.getState().trackQuizActivity({
-                    username: classroomStore.studentSession.username,
-                    activityId: finalResult.id,
-                    quizId: quiz.id,
-                    category: quiz.category,
-                    subject: quiz.topic,
-                    correctCount: authoritativeCorrectCount,
-                    totalQuestions: authoritativeTotalQuestions,
-                });
+            if (!quiz.isPractice && classroomStore.studentSession?.username) {
+                void useGameLoopStore.getState().trackQuizActivity({ resultId: finalResult.id });
             }
 
             setStep('result');

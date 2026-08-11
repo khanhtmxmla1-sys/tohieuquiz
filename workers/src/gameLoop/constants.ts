@@ -32,27 +32,33 @@ export const WEEKLY_QUESTS = [
     {
         id: 'weekly_20_quizzes', title: 'Hoàn thành 20 bài quiz',
         description: 'Làm xong 20 bài quiz bất kỳ trong tuần này.', target: 20,
-        reward: { coins: 200, items: ['hint_token'], itemCount: 1 }, icon: '📚',
+        reward: { coins: 200, items: [{ type: 'hint_token', quantity: 1 }] }, icon: '📚',
     },
     {
         id: 'weekly_top_5', title: 'Đạt top 5 lớp',
         description: 'Lọt vào top 5 bảng xếp hạng lớp học.', target: 1,
-        reward: { coins: 300, items: ['streak_shield'], itemCount: 1 }, icon: '🏆',
+        reward: { coins: 300, items: [{ type: 'streak_shield', quantity: 1 }] }, icon: '🏆',
     },
     {
         id: 'weekly_100_correct', title: 'Trả lời đúng 100 câu',
         description: 'Tích lũy 100 câu trả lời đúng trong tuần.', target: 100,
-        reward: { coins: 150, items: [], itemCount: 0 }, icon: '✅',
+        reward: { coins: 150, items: [] }, icon: '✅',
     },
     {
         id: 'weekly_subject_master', title: 'Chinh phục 3 môn',
         description: 'Hoàn thành ít nhất 1 bài Toán, Tiếng Việt và Tiếng Anh.', target: 3,
-        reward: { coins: 250, items: ['pet_accessory_random'], itemCount: 1 }, icon: '🎯',
+        reward: { coins: 250, items: [{ type: 'pet_accessory_random', quantity: 1 }] }, icon: '🎯',
     },
     {
         id: 'weekly_perfect_streak', title: 'Chuỗi hoàn hảo',
-        description: 'Đạt 100% điểm trong 3 bài quiz.', target: 3,
-        reward: { coins: 400, items: ['hint_token', 'streak_shield'], itemCount: 2 }, icon: '💯',
+        description: 'Đạt 100% điểm trong 3 bài quiz liên tiếp.', target: 3,
+        reward: {
+            coins: 400,
+            items: [
+                { type: 'hint_token', quantity: 1 },
+                { type: 'streak_shield', quantity: 1 },
+            ],
+        }, icon: '💯',
     },
 ] as const;
 

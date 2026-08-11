@@ -13,12 +13,7 @@ export const gamificationRoutes: RouteRegistry = {
         },
     },
 
-    // Game state
-    update_game_state: {
-        method: 'POST',
-        auth: 'session',
-        path: () => '/api/game-state',
-    },
+    // Server-issued rewards
     claim_result_reward: {
         method: 'POST',
         auth: 'session',

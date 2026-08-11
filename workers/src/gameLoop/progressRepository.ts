@@ -32,23 +32,14 @@ export const getOrCreateDailyProgress = async (
     username: string,
     dateKey: string
 ): Promise<DailyProgressRow> => {
-    let progress = await db.prepare(`
-        SELECT *
-        FROM student_daily_progress
-        WHERE username = ? AND progress_date = ?
-        LIMIT 1
-    `).bind(username, dateKey).first<DailyProgressRow>();
-
-    if (progress) return progress;
-
     const now = new Date().toISOString();
     await db.prepare(`
-        INSERT INTO student_daily_progress
+        INSERT OR IGNORE INTO student_daily_progress
         (username, progress_date, created_at, updated_at)
         VALUES (?, ?, ?, ?)
     `).bind(username, dateKey, now, now).run();
 
-    progress = await db.prepare(`
+    const progress = await db.prepare(`
         SELECT *
         FROM student_daily_progress
         WHERE username = ? AND progress_date = ?

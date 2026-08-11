@@ -19,7 +19,7 @@ describe('Game Loop activity persistence', () => {
             sql.includes('INSERT INTO student_game_activity_events'));
         expect(insert?.bindings[1]).toBe('student-from-jwt');
         expect(JSON.parse(String(insert?.bindings[3]))).toEqual({
-            quizId: 'quiz-1', category: 'toan', correctCount: 8, totalQuestions: 10,
+            resultId: 'activity-1', quizId: 'quiz-1', category: 'toan', correctCount: 8, totalQuestions: 10,
         });
         expect(db.executed.some(({ sql }) =>
             sql.includes('UPDATE student_weekly_progress'))).toBe(true);

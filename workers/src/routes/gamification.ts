@@ -6,6 +6,8 @@ import { jsonResponse, errorResponse } from '../utils/response';
 import { mapPetData, mapShopItem, parseBody } from '../utils/helpers';
 import { verifyJWTMiddleware, isStudent } from '../middleware/jwtAuth';
 import { handleResultRewardClaim } from '../gamification/resultRewardClaim';
+import { resolveStudentRewardIdentity } from '../gamification/rewardIdentity';
+import { applyStudentReward, parseRewardPayload } from '../gamification/studentRewardLedger';
 
 const ATTENDANCE_BASE_REWARD = { exp: 50, coins: 50 };
 
@@ -90,58 +92,6 @@ const getWeekClaimDates = async (
     `).bind(username, weekStartDateKey, todayDateKey).all<any>();
 
     return rows.results.map((r: any) => String(r.claim_date || '').trim()).filter(Boolean);
-};
-
-const applyGameStateReward = async (
-    db: D1Database,
-    username: string,
-    addExp: number,
-    addCoins: number
-): Promise<{
-    newLevel: number;
-    newExp: number;
-    newExpToNext: number;
-    newCoins: number;
-    leveledUp: boolean;
-    mood: string;
-} | null> => {
-    const student = await db.prepare('SELECT coins FROM students WHERE username = ?').bind(username).first<any>();
-    if (!student) return null;
-
-    await db.prepare('UPDATE students SET coins = coins + ? WHERE username = ?').bind(addCoins, username).run();
-    const updatedStu = await db.prepare('SELECT coins FROM students WHERE username = ?').bind(username).first<any>();
-
-    let petRow = await db.prepare('SELECT * FROM user_pets WHERE username = ?').bind(username).first<any>();
-    if (!petRow) {
-        await db.prepare(
-            'INSERT INTO user_pets (username, pet_id, pet_name, level, exp, exp_to_next, mood, items, last_active) VALUES (?, ?, ?, 1, 0, 100, ?, ?, ?)'
-        ).bind(username, 'cat_01', 'Mèo Con', 'happy', '[]', new Date().toISOString()).run();
-        petRow = { level: 1, exp: 0, exp_to_next: 100 };
-    }
-
-    let newExp = Number(petRow.exp) + addExp;
-    let newLevel = Number(petRow.level) || 1;
-    let leveledUp = false;
-    let newExpToNext = Number(petRow.exp_to_next) || 100;
-
-    while (newExp >= newExpToNext) {
-        newExp -= newExpToNext;
-        newLevel += 1;
-        leveledUp = true;
-        newExpToNext = 100 + (newLevel - 1) * 20;
-    }
-
-    await db.prepare('UPDATE user_pets SET level = ?, exp = ?, exp_to_next = ?, mood = ?, last_active = ? WHERE username = ?')
-        .bind(newLevel, newExp, newExpToNext, 'excited', new Date().toISOString(), username).run();
-
-    return {
-        newLevel,
-        newExp,
-        newExpToNext,
-        newCoins: Number(updatedStu?.coins) || 0,
-        leveledUp,
-        mood: 'excited',
-    };
 };
 
 export async function handleGamificationRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
@@ -231,33 +181,62 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
         const username = subject;
 
         await ensureAttendanceTable(db);
+        const identity = await resolveStudentRewardIdentity(db, username);
+        if (!identity) return errorResponse('Student not found', 404);
 
         const todayDateKey = getCurrentDateKey();
         const weekStartDateKey = getWeekStartDateKey(todayDateKey);
-
         const existingClaim = await db.prepare(`
-            SELECT id
+            SELECT id, reward_exp, reward_coins
             FROM attendance_claims
-            WHERE username = ?
-              AND claim_date = ?
+            WHERE username = ? AND claim_date = ?
             LIMIT 1
         `).bind(username, todayDateKey).first<any>();
 
         if (existingClaim) {
+            const ledger = await db.prepare(`
+                SELECT id, student_id, source_type, source_key, reward_type,
+                       coins_delta, exp_delta, payload_json, created_at
+                FROM student_reward_ledger
+                WHERE student_id = ? AND source_type = 'DAILY_ATTENDANCE' AND source_key = ?
+                LIMIT 1
+            `).bind(identity.studentId, todayDateKey).first<any>();
+            if (!ledger) return errorResponse('Attendance claim state is inconsistent', 409);
+
+            const stored = parseRewardPayload<any>(ledger, {});
+            const awardedExp = Number(stored.awardedExp ?? stored.historicalExp ?? existingClaim.reward_exp) || 0;
+            const awardedCoins = Number(stored.awardedCoins ?? stored.historicalCoins ?? existingClaim.reward_coins) || 0;
             const weekClaimDates = await getWeekClaimDates(db, username, weekStartDateKey, todayDateKey);
             const streakDays = calculateAttendanceStreak(weekClaimDates, todayDateKey);
+            const attendanceDayNumber = Number(stored.attendanceDayNumber) || weekClaimDates.length;
+            const multiplier = Number(stored.multiplier) || getAttendanceMultiplier(attendanceDayNumber);
+            const wallet = await db.prepare(`
+                SELECT s.coins, COALESCE(p.level, 1) AS level, COALESCE(p.exp, 0) AS exp,
+                       COALESCE(p.exp_to_next, 100) AS exp_to_next, COALESCE(p.mood, 'happy') AS mood
+                FROM students s
+                LEFT JOIN user_pets p ON p.username = s.username
+                WHERE s.id = ?
+                LIMIT 1
+            `).bind(identity.studentId).first<any>();
 
             return jsonResponse({
                 status: 'success',
+                alreadyClaimed: true,
+                reward: { type: 'COINS_EXP', coins: awardedCoins, exp: awardedExp },
                 data: {
                     claimed: false,
                     alreadyClaimed: true,
                     claimDates: weekClaimDates,
                     streakDays,
-                    attendanceDayNumber: weekClaimDates.length,
-                    multiplier: getAttendanceMultiplier(weekClaimDates.length),
-                    awardedExp: 0,
-                    awardedCoins: 0,
+                    attendanceDayNumber,
+                    multiplier,
+                    awardedExp,
+                    awardedCoins,
+                    newLevel: Number(wallet?.level) || 1,
+                    newExp: Number(wallet?.exp) || 0,
+                    newExpToNext: Number(wallet?.exp_to_next) || 100,
+                    newCoins: Number(wallet?.coins) || 0,
+                    mood: String(wallet?.mood || 'happy'),
                     message: 'Hôm nay bạn đã điểm danh rồi.',
                     todayDateKey,
                     weekStartDateKey,
@@ -271,37 +250,66 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
         const awardedExp = ATTENDANCE_BASE_REWARD.exp * multiplier;
         const awardedCoins = ATTENDANCE_BASE_REWARD.coins * multiplier;
         const claimId = `att-${crypto.randomUUID()}`;
+        const createdAt = new Date().toISOString();
 
-        await db.prepare(`
-            INSERT INTO attendance_claims (id, username, claim_date, reward_exp, reward_coins, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).bind(claimId, username, todayDateKey, awardedExp, awardedCoins, new Date().toISOString()).run();
+        try {
+            const rewardResult = await applyStudentReward(db, {
+                ...identity,
+                sourceType: 'DAILY_ATTENDANCE',
+                sourceKey: todayDateKey,
+                rewardType: 'COINS_EXP',
+                coinsDelta: awardedCoins,
+                expDelta: awardedExp,
+                payload: {
+                    awardedExp,
+                    awardedCoins,
+                    attendanceDayNumber,
+                    multiplier,
+                    todayDateKey,
+                    weekStartDateKey,
+                },
+                extraStatements: [
+                    db.prepare(`
+                        INSERT INTO attendance_claims
+                        (id, username, claim_date, reward_exp, reward_coins, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    `).bind(claimId, username, todayDateKey, awardedExp, awardedCoins, createdAt),
+                ],
+            });
+            const stored = parseRewardPayload<any>(rewardResult.ledger, {});
+            const storedAwardedExp = Number(stored.awardedExp ?? stored.historicalExp ?? rewardResult.ledger.exp_delta) || 0;
+            const storedAwardedCoins = Number(stored.awardedCoins ?? stored.historicalCoins ?? rewardResult.ledger.coins_delta) || 0;
+            const storedAttendanceDayNumber = Number(stored.attendanceDayNumber) || attendanceDayNumber;
+            const storedMultiplier = Number(stored.multiplier) || multiplier;
+            const weekClaimDates = await getWeekClaimDates(db, username, weekStartDateKey, todayDateKey);
+            const streakDays = calculateAttendanceStreak(weekClaimDates, todayDateKey);
 
-        const gameState = await applyGameStateReward(db, username, awardedExp, awardedCoins);
-        if (!gameState) {
-            await db.prepare('DELETE FROM attendance_claims WHERE id = ?').bind(claimId).run();
-            return errorResponse('Student not found', 404);
+            return jsonResponse({
+                status: 'success',
+                alreadyClaimed: rewardResult.alreadyClaimed,
+                reward: { type: 'COINS_EXP', coins: storedAwardedCoins, exp: storedAwardedExp },
+                data: {
+                    claimed: !rewardResult.alreadyClaimed,
+                    alreadyClaimed: rewardResult.alreadyClaimed,
+                    claimDates: weekClaimDates,
+                    streakDays,
+                    attendanceDayNumber: storedAttendanceDayNumber,
+                    multiplier: storedMultiplier,
+                    awardedExp: storedAwardedExp,
+                    awardedCoins: storedAwardedCoins,
+                    newLevel: rewardResult.wallet.level,
+                    newExp: rewardResult.wallet.exp,
+                    newExpToNext: rewardResult.wallet.expToNext,
+                    newCoins: rewardResult.wallet.coins,
+                    mood: rewardResult.wallet.mood,
+                    todayDateKey,
+                    weekStartDateKey,
+                },
+            });
+        } catch (error) {
+            console.error('[Attendance] Atomic claim failed:', error);
+            return errorResponse('Could not apply attendance reward', 500);
         }
-
-        const weekClaimDates = await getWeekClaimDates(db, username, weekStartDateKey, todayDateKey);
-        const streakDays = calculateAttendanceStreak(weekClaimDates, todayDateKey);
-
-        return jsonResponse({
-            status: 'success',
-            data: {
-                ...gameState,
-                claimed: true,
-                alreadyClaimed: false,
-                claimDates: weekClaimDates,
-                streakDays,
-                attendanceDayNumber,
-                multiplier,
-                awardedExp,
-                awardedCoins,
-                todayDateKey,
-                weekStartDateKey,
-            },
-        });
     }
 
     // POST /api/game-state/result-reward - Claim an idempotent reward for a saved result
@@ -314,23 +322,9 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
         return handleResultRewardClaim(db, body, subject);
     }
 
-    // POST /api/game-state - Update game state (add exp + coins)
+    // POST /api/game-state - Retired: rewards must come from server-verified sources.
     if (path === '/api/game-state' && method === 'POST') {
-        const body = await parseBody(request);
-        if (!body) return errorResponse('Invalid JSON body');
-        const subject = requireStudentSubject(body.username);
-        if (subject instanceof Response) return subject;
-
-        const addExp = Number(body.addExp) || 0;
-        const addCoins = Number(body.addCoins) || 0;
-        if (!Number.isFinite(addExp) || !Number.isFinite(addCoins) || addExp < 0 || addCoins < 0 || addExp > 500 || addCoins > 250) {
-            return errorResponse('Invalid reward amount', 400);
-        }
-
-        const result = await applyGameStateReward(db, subject, addExp, addCoins);
-        if (!result) return errorResponse('Student not found', 404);
-
-        return jsonResponse({ status: 'success', data: result });
+        return errorResponse('Legacy game-state mutation endpoint has been retired', 410);
     }
 
     // POST /api/shop/buy
@@ -340,15 +334,44 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
         if (!body.itemId) return errorResponse('Missing itemId');
         const subject = requireStudentSubject(body.username);
         if (subject instanceof Response) return subject;
+        const itemId = String(body.itemId || '').trim();
+        const identity = await resolveStudentRewardIdentity(db, subject);
+        if (!identity) return jsonResponse({ status: 'error', message: 'Student not found' });
 
-        const item = await db.prepare('SELECT * FROM shop_items WHERE item_id = ?').bind(body.itemId).first<any>();
+        const existingReceipt = await db.prepare(`
+            SELECT id, student_id, source_type, source_key, reward_type,
+                   coins_delta, exp_delta, payload_json, created_at
+            FROM student_reward_ledger
+            WHERE student_id = ? AND source_type = 'PET_SHOP_PURCHASE' AND source_key = ?
+            LIMIT 1
+        `).bind(identity.studentId, itemId).first<any>();
+        if (existingReceipt) {
+            const stored = parseRewardPayload<any>(existingReceipt, {});
+            const pet = await db.prepare('SELECT items FROM user_pets WHERE username = ?').bind(subject).first<any>();
+            const wallet = await db.prepare('SELECT coins FROM students WHERE id = ?').bind(identity.studentId).first<any>();
+            let items: string[] = [];
+            try { items = JSON.parse(pet?.items || '[]'); } catch { items = []; }
+            return jsonResponse({
+                status: 'success',
+                alreadyClaimed: true,
+                reward: { type: 'ITEM_PURCHASE', item: stored.purchasedItem || { itemId } },
+                data: {
+                    wallet: { coins: Number(wallet?.coins) || 0 },
+                    newCoins: Number(wallet?.coins) || 0,
+                    items,
+                    purchasedItem: stored.purchasedItem || { itemId },
+                },
+            });
+        }
+
+        const item = await db.prepare('SELECT * FROM shop_items WHERE item_id = ?').bind(itemId).first<any>();
         if (!item) return jsonResponse({ status: 'error', message: 'Item not found' });
 
-        const stu = await db.prepare('SELECT coins FROM students WHERE username = ?').bind(subject).first<any>();
+        const stu = await db.prepare('SELECT coins FROM students WHERE id = ?').bind(identity.studentId).first<any>();
         if (!stu) return jsonResponse({ status: 'error', message: 'Student not found' });
 
         const currentCoins = Number(stu.coins) || 0;
-        const price = Number(item.price) || 0;
+        const price = Math.max(0, Math.floor(Number(item.price) || 0));
         if (currentCoins < price) {
             return jsonResponse({ status: 'error', message: `Không đủ vàng! Cần ${price} nhưng chỉ có ${currentCoins}` });
         }
@@ -358,19 +381,63 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
         let currentItems: string[] = [];
         try { currentItems = JSON.parse(petForBuy?.items || '[]'); } catch { currentItems = []; }
 
-        if (currentItems.includes(body.itemId)) {
+        if (currentItems.includes(itemId)) {
             return jsonResponse({ status: 'error', message: 'Bé đã có món đồ này rồi!' });
         }
 
-        // Deduct coins and add item
-        await db.prepare('UPDATE students SET coins = coins - ? WHERE username = ?').bind(price, subject).run();
-        currentItems.push(body.itemId);
-        await db.prepare('UPDATE user_pets SET items = ? WHERE username = ?').bind(JSON.stringify(currentItems), subject).run();
-
-        return jsonResponse({
-            status: 'success',
-            data: { newCoins: currentCoins - price, items: currentItems, purchasedItem: { itemId: body.itemId, name: item.name, price } },
-        });
+        const now = new Date().toISOString();
+        const purchasedItem = { itemId, name: String(item.name || itemId), price };
+        try {
+            const rewardResult = await applyStudentReward(db, {
+                ...identity,
+                sourceType: 'PET_SHOP_PURCHASE',
+                sourceKey: itemId,
+                rewardType: 'ITEM_PURCHASE',
+                coinsDelta: -price,
+                expDelta: 0,
+                payload: { purchasedItem },
+                extraStatements: [
+                    db.prepare(`
+                        INSERT OR IGNORE INTO user_pets (
+                          username, pet_id, pet_name, level, exp, exp_to_next, total_exp,
+                          mood, items, last_active
+                        ) VALUES (?, 'cat_01', 'Mèo Con', 1, 0, 100, 0, 'happy', '[]', ?)
+                    `).bind(subject, now),
+                    db.prepare(`
+                        UPDATE user_pets
+                        SET items = json_insert(
+                              CASE WHEN json_valid(items) THEN items ELSE '[]' END,
+                              '$[#]', ?
+                            ),
+                            last_active = ?
+                        WHERE username = ?
+                    `).bind(itemId, now, subject),
+                ],
+            });
+            const stored = parseRewardPayload<any>(rewardResult.ledger, { purchasedItem });
+            const pet = await db.prepare('SELECT items FROM user_pets WHERE username = ?').bind(subject).first<any>();
+            let items: string[] = [];
+            try { items = JSON.parse(pet?.items || '[]'); } catch { items = []; }
+            return jsonResponse({
+                status: 'success',
+                alreadyClaimed: rewardResult.alreadyClaimed,
+                reward: { type: 'ITEM_PURCHASE', item: stored.purchasedItem || purchasedItem },
+                data: {
+                    wallet: { coins: rewardResult.wallet.coins },
+                    newCoins: rewardResult.wallet.coins,
+                    items,
+                    purchasedItem: stored.purchasedItem || purchasedItem,
+                },
+            });
+        } catch (error) {
+            if (String((error as Error)?.message || error).includes('INSUFFICIENT_COIN_BALANCE')) {
+                const wallet = await db.prepare('SELECT coins FROM students WHERE id = ?').bind(identity.studentId).first<any>();
+                const available = Number(wallet?.coins) || 0;
+                return jsonResponse({ status: 'error', message: `Không đủ vàng! Cần ${price} nhưng chỉ có ${available}` });
+            }
+            console.error('[PetShop] Atomic purchase failed:', error);
+            return errorResponse('Could not complete purchase', 500);
+        }
     }
 
     // GET /api/leaderboard

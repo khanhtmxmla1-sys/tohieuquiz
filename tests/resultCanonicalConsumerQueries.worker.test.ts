@@ -7,7 +7,7 @@ const read = (path: string) => readFileSync(path, 'utf8');
 const resultConsumers = [
   'workers/src/classroom/assignmentStudentQuery.ts',
   'workers/src/gameLoop/achievementRepository.ts',
-  'workers/src/index.ts',
+  'workers/src/gamification/weeklyLeaderboardReward.ts',
   'workers/src/routes/gamification.ts',
   'workers/src/routes/classroom/assignmentStartRoute.ts',
   'workers/src/routes/classroom/classListRoute.ts',
@@ -42,7 +42,7 @@ describe('canonical result consumer queries', () => {
   it('uses canonical ids in the uncovered leaderboard and assignment-counter consumers', () => {
     expect(read('workers/src/classroom/assignmentStudentQuery.ts')).toContain('AND student_id = ?');
     expect(read('workers/src/gameLoop/achievementRepository.ts')).toContain('JOIN students s ON s.id = r.student_id');
-    expect(read('workers/src/index.ts')).toContain('JOIN students s ON s.id = r.student_id');
+    expect(read('workers/src/gamification/weeklyLeaderboardReward.ts')).toContain('JOIN students s ON s.id = r.student_id');
     expect(read('workers/src/routes/gamification.ts')).toContain('JOIN students s ON s.id = r.student_id');
   });
 });
