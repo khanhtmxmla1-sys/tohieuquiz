@@ -26,6 +26,7 @@ import { handleGiftShopRoutes } from './routes/giftShop';
 import { handleGameLoopRoutes } from './routes/gameLoop';
 import { handleHelpRagRoutes } from './routes/helpRag';
 import { handleSystemSettingsRoutes } from './routes/systemSettings';
+import { handleLoginMediaRoutes } from './routes/loginMedia';
 import { handleAnalyticsRoutes } from './routes/analytics';
 import { handleMathObservabilityRoutes } from './routes/mathObservability';
 import { handleHomeworkRoutes } from './routes/homework';
@@ -90,6 +91,7 @@ const fetch = createWorkerFetch({
     handleGameLoopRoutes,
     handleHelpRagRoutes,
     handleSystemSettingsRoutes,
+    handleLoginMediaRoutes,
     handleResultReportRoutes,
     handlePhieuRoutes,
     handleHomeworkRoutes,

@@ -474,7 +474,15 @@ WITH checks(migration, check_name, ok) AS (
         FROM test_bank AS legacy
         LEFT JOIN question_bank_items AS current ON current.id=legacy.id
         WHERE current.id IS NULL
-      ))
+      )),
+
+    ('0068_login_media.sql', 'login media tables',
+      (SELECT COUNT(*)=2 FROM sqlite_master WHERE type='table'
+       AND name IN ('login_media_settings','login_media_slides'))),
+    ('0068_login_media.sql', 'login media settings seed',
+      EXISTS(SELECT 1 FROM login_media_settings WHERE id='default' AND display_mode IN ('CONTENT','SLIDER'))),
+    ('0068_login_media.sql', 'login media delivery index',
+      EXISTS(SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_login_media_slides_active_order'))
 
 ), summary AS (
   SELECT
