@@ -42,3 +42,13 @@ This project is indexed by GitNexus as **tohieuquiz** (18261 symbols, 38988 rela
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+## Repository delivery workflow
+
+`AGENTS.md` is the source of truth for the repository delivery process. Claude MUST read and follow its **Required delivery workflow** before making changes.
+
+The mandatory order is:
+
+`plan → worktree → GitNexus → TDD → review/verify → approve → commit → push/PR → CI + PR approval → merge → production smoke → cleanup`
+
+Do not bypass approval, CI, review, merge, migration/deployment, or production-smoke gates. If a step is not applicable, explicitly mark it `N/A` with the reason.
