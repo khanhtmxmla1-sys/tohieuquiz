@@ -8,6 +8,7 @@ import {
   createInterventionAssignments,
   createInterventionGroup,
   loadInterventionDashboard,
+  previewInterventionAssignments,
 } from '../services/interventionService';
 
 interface InterventionRouteContext {
@@ -74,6 +75,19 @@ export async function handleInterventionRoutes(
         studentId: body.studentId ? String(body.studentId) : undefined,
       }, requestId, nowIso);
       return jsonResponse({ status: 'success', data: note }, 201);
+    }
+
+    const assignmentPreviewMatch = path.match(/^\/api\/results\/interventions\/groups\/([^/]+)\/assignments\/preview$/);
+    if (assignmentPreviewMatch && method === 'GET') {
+      const url = new URL(request.url);
+      const preview = await previewInterventionAssignments(
+        env.DB,
+        user,
+        assignmentPreviewMatch[1],
+        url.searchParams.get('quizId') || '',
+        nowIso,
+      );
+      return jsonResponse({ status: 'success', data: preview });
     }
 
     const assignmentMatch = path.match(/^\/api\/results\/interventions\/groups\/([^/]+)\/assignments$/);

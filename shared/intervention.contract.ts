@@ -1,6 +1,9 @@
 export const INTERVENTION_MIN_SAMPLE_SIZE = 3;
 export const INTERVENTION_MIN_CONFIDENCE = 0.55;
 export const INTERVENTION_MAX_NOTE_LENGTH = 2_000;
+export const INTERVENTION_DECLINING_SCORE_DELTA_THRESHOLD = -1;
+export const INTERVENTION_PERSISTENT_ATTEMPT_THRESHOLD = 5;
+export const INTERVENTION_PERSISTENT_ACCURACY_THRESHOLD = 50;
 
 export type InterventionGroupStatus = 'ACTIVE' | 'ARCHIVED';
 export type InterventionAuditAction =
@@ -39,6 +42,21 @@ export interface InterventionQuizRecommendation {
   confidence: number;
 }
 
+export type InterventionSuggestionReason =
+  | 'LOW_ACCURACY'
+  | 'DECLINING_TREND'
+  | 'PERSISTENT_WEAKNESS';
+
+export interface InterventionSuggestionEvidence {
+  reason: InterventionSuggestionReason;
+  averageSkillAccuracy: number;
+  minimumSkillAccuracy: number;
+  recentAttemptCount: number;
+  improvingStudentCount: number;
+  unchangedStudentCount: number;
+  decliningStudentCount: number;
+}
+
 export interface InterventionSuggestion {
   key: string;
   title: string;
@@ -54,6 +72,7 @@ export interface InterventionSuggestion {
   averageFirstScore: number;
   averageLatestScore: number;
   averageScoreDelta: number;
+  evidence: InterventionSuggestionEvidence;
   students: InterventionStudentSignal[];
   recommendedQuizzes: InterventionQuizRecommendation[];
 }
@@ -126,6 +145,14 @@ export interface CreateInterventionGroupRequest {
 export interface AddInterventionNoteRequest {
   note: string;
   studentId?: string;
+}
+
+export interface InterventionAssignmentPreview {
+  groupId: string;
+  quizId: string;
+  memberCount: number;
+  openAssignmentCount: number;
+  assignableCount: number;
 }
 
 export interface CreateInterventionAssignmentsRequest {

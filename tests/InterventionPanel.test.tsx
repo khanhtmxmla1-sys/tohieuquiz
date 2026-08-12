@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   createGroup: vi.fn(),
   addNote: vi.fn(),
   createAssignments: vi.fn(),
+  previewAssignments: vi.fn(),
 }));
 
 vi.mock('../src/services/results/interventionService', () => ({
@@ -16,6 +17,7 @@ vi.mock('../src/services/results/interventionService', () => ({
   createInterventionGroup: mocks.createGroup,
   addInterventionNote: mocks.addNote,
   createInterventionAssignments: mocks.createAssignments,
+  previewInterventionAssignments: mocks.previewAssignments,
 }));
 
 const student = {
@@ -33,6 +35,16 @@ const student = {
   skillSampleSize: 3,
   confidence: 0.6,
   fourWeekTrend: [],
+};
+
+const secondStudent = {
+  ...student,
+  studentId: 'student-2',
+  studentName: 'Minh',
+  latestResultId: 'result-4',
+  skillAccuracy: 45,
+  skillSampleSize: 4,
+  confidence: 0.65,
 };
 
 const baseReadiness: InterventionDataReadiness = {
@@ -71,6 +83,15 @@ const dashboard: InterventionDashboard = {
     averageFirstScore: 4,
     averageLatestScore: 6,
     averageScoreDelta: 2,
+    evidence: {
+      reason: 'LOW_ACCURACY',
+      averageSkillAccuracy: 33,
+      minimumSkillAccuracy: 33,
+      recentAttemptCount: 3,
+      improvingStudentCount: 1,
+      unchangedStudentCount: 0,
+      decliningStudentCount: 0,
+    },
     students: [student],
     recommendedQuizzes: [{
       quizId: 'quiz-recommended',
@@ -130,6 +151,9 @@ describe('InterventionPanel', () => {
     mocks.createAssignments.mockResolvedValue({
       groupId: 'group-1', assignmentIds: ['a-1'], skippedAssignmentIds: [], replayed: false,
     });
+    mocks.previewAssignments.mockResolvedValue({
+      groupId: 'group-1', quizId: 'quiz-recommended', memberCount: 1, openAssignmentCount: 0, assignableCount: 1,
+    });
   });
 
   it('uses the new supportive title, shows scope and keeps a 44px accessible refresh target', async () => {
@@ -141,18 +165,119 @@ describe('InterventionPanel', () => {
     expect(refresh).toHaveClass('min-h-11');
   });
 
-  it('uses supportive language and creates a persisted group from an eligible suggestion', async () => {
+  it('explains suggestion evidence with data-confidence copy', async () => {
+    mocks.getDashboard.mockResolvedValue({
+      ...dashboard,
+      suggestions: [{
+        ...dashboard.suggestions[0],
+        evidence: {
+          reason: 'LOW_ACCURACY',
+          averageSkillAccuracy: 39,
+          minimumSkillAccuracy: 33,
+          recentAttemptCount: 7,
+          improvingStudentCount: 0,
+          unchangedStudentCount: 1,
+          decliningStudentCount: 1,
+        },
+      } as any],
+    });
+
     render(<InterventionPanel classNameFilter="4A" quizId="all" quizzes={quizzes} isOnline />);
 
-    expect((await screen.findAllByText('Cần hỗ trợ ở Phân số'))[0]).toBeVisible();
-    expect(screen.queryByText(/học sinh yếu/i)).not.toBeInTheDocument();
+    expect(await screen.findByText('Vì sao được gợi ý?')).toBeVisible();
+    expect(screen.getByText(/Độ chính xác kỹ năng trung bình 39%/)).toBeVisible();
+    expect(screen.getByText('Độ tin cậy dữ liệu 60%')).toBeVisible();
+    expect(screen.queryByText(/^Tin cậy 60%$/)).not.toBeInTheDocument();
+  });
+
+  it('reviews members and submits only selected students with an editable group name', async () => {
+    mocks.getDashboard.mockResolvedValue({
+      ...dashboard,
+      suggestions: [{
+        ...dashboard.suggestions[0],
+        studentCount: 2,
+        sampleSize: 7,
+        students: [student, secondStudent],
+      }],
+    });
+    render(<InterventionPanel classNameFilter="4A" quizId="all" quizzes={quizzes} isOnline />);
+
+    await screen.findAllByText('Cần hỗ trợ ở Phân số');
     fireEvent.click(screen.getByRole('button', { name: 'Tạo nhóm hỗ trợ' }));
+    expect(mocks.createGroup).not.toHaveBeenCalled();
+
+    const groupName = screen.getByLabelText('Tên nhóm hỗ trợ');
+    expect(groupName).toHaveValue('Hỗ trợ Phân số — 4A');
+    expect(screen.getByRole('checkbox', { name: /Lan/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Minh/ })).toBeChecked();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Chọn tất cả học sinh' }));
+    expect(screen.getByRole('button', { name: 'Xác nhận tạo nhóm' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Chọn tất cả học sinh' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Minh/ }));
+    fireEvent.change(groupName, { target: { value: 'Nhóm phân số cần theo dõi' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tạo nhóm' }));
 
     await waitFor(() => expect(mocks.createGroup).toHaveBeenCalledWith(expect.objectContaining({
       suggestionKey: 'class-1:math:phan_so',
       className: '4A',
+      name: 'Nhóm phân số cần theo dõi',
       studentIds: ['student-1'],
     })));
+  });
+
+  it('reloads a stale suggestion and keeps still-valid member selection', async () => {
+    const suggestion = {
+      ...dashboard.suggestions[0],
+      studentCount: 2,
+      sampleSize: 7,
+      students: [student, secondStudent],
+    };
+    mocks.getDashboard.mockResolvedValue({ ...dashboard, suggestions: [suggestion] });
+    mocks.createGroup.mockRejectedValueOnce(Object.assign(
+      new Error('Intervention suggestion is no longer available'),
+      { status: 409 },
+    ));
+    render(<InterventionPanel classNameFilter="4A" quizId="all" quizzes={quizzes} isOnline />);
+
+    await screen.findAllByText('Cần hỗ trợ ở Phân số');
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo nhóm hỗ trợ' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Minh/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tạo nhóm' }));
+
+    await waitFor(() => expect(mocks.getDashboard).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('checkbox', { name: /Lan/ })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Minh/ })).not.toBeChecked();
+  });
+
+  it('prevents double-submit while group creation is in flight', async () => {
+    mocks.createGroup.mockReturnValue(new Promise(() => {}));
+    render(<InterventionPanel classNameFilter="4A" quizId="all" quizzes={quizzes} isOnline />);
+
+    await screen.findAllByText('Cần hỗ trợ ở Phân số');
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo nhóm hỗ trợ' }));
+    const confirm = screen.getByRole('button', { name: 'Xác nhận tạo nhóm' });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+
+    expect(mocks.createGroup).toHaveBeenCalledTimes(1);
+    expect(confirm).toBeDisabled();
+  });
+
+  it('moves focus to the newly created group after reload', async () => {
+    const createdGroup = { ...dashboard.groups[0], id: 'group-new', name: 'Nhóm mới' };
+    mocks.createGroup.mockResolvedValue(createdGroup);
+    mocks.getDashboard
+      .mockResolvedValueOnce(dashboard)
+      .mockResolvedValueOnce({ ...dashboard, groups: [...dashboard.groups, createdGroup] });
+    render(<InterventionPanel classNameFilter="4A" quizId="all" quizzes={quizzes} isOnline />);
+
+    await screen.findAllByText('Cần hỗ trợ ở Phân số');
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo nhóm hỗ trợ' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tạo nhóm' }));
+
+    await screen.findByText('Nhóm mới');
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('id', 'intervention-group-group-new'));
   });
 
   it('renders one compact readiness state instead of two large empty sections', async () => {
@@ -296,12 +421,32 @@ describe('InterventionPanel', () => {
     expect(await screen.findByRole('status', { name: 'Đang phân tích dữ liệu hỗ trợ học sinh' })).toBeVisible();
   });
 
-  it('keeps notes explicitly private and reaches assignment confirmation in two actions', async () => {
+  it('keeps assignment validation in the UI and explains when no recommended quiz exists', async () => {
+    mocks.getDashboard.mockResolvedValue({
+      ...dashboard,
+      groups: [{ ...dashboard.groups[0], recommendedQuizzes: [] }],
+    });
+    render(<InterventionPanel classNameFilter="4A" quizId="all" quizzes={quizzes} isOnline />);
+    await screen.findByText('Nhóm đang theo dõi');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bài luyện' }));
+    expect(await screen.findByText('Chưa có bài luyện khớp trực tiếp kỹ năng này; bạn vẫn có thể chọn bài khác.')).toBeVisible();
+
+    fireEvent.change(screen.getByLabelText('Hạn hoàn thành'), { target: { value: '2020-01-01T00:00' } });
+    expect(screen.getByText('Hạn hoàn thành phải ở tương lai.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Giao bài cho nhóm' })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Số lượt làm'), { target: { value: '11' } });
+    expect(screen.getByText('Số lượt làm phải từ 1 đến 10.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Giao bài cho nhóm' })).toBeDisabled();
+  });
+
+  it('keeps notes permission copy accurate and reaches assignment confirmation in two actions', async () => {
     render(<InterventionPanel classNameFilter="4A" quizId="all" quizzes={quizzes} isOnline />);
     await screen.findAllByText('Cần hỗ trợ ở Phân số');
 
     fireEvent.click(screen.getByRole('button', { name: 'Chi tiết' }));
-    expect(screen.getByText('Ghi chú riêng — chỉ giáo viên nhìn thấy')).toBeVisible();
+    expect(screen.getByText('Ghi chú nội bộ — giáo viên phụ trách và quản trị viên có quyền truy cập')).toBeVisible();
     fireEvent.change(screen.getByPlaceholderText(/Ghi lại hoàn cảnh/), {
       target: { value: 'Cần thêm đồ dùng trực quan.' },
     });
@@ -313,6 +458,9 @@ describe('InterventionPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tạo bài luyện' }));
     const quizSelect = screen.getByLabelText('Bài kiểm tra') as HTMLSelectElement;
     expect(quizSelect.value).toBe('quiz-recommended');
+    await waitFor(() => expect(mocks.previewAssignments).toHaveBeenCalledWith('group-1', 'quiz-recommended'));
+    expect(screen.getByText('8/10 câu khớp kỹ năng · 80% mức khớp')).toBeVisible();
+    expect(screen.getByText('Có thể tạo mới cho 1/1 học sinh · 0 học sinh đã có bài đang mở')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Giao bài cho nhóm' }));
 
     await waitFor(() => expect(mocks.createAssignments).toHaveBeenCalledWith(
@@ -324,4 +472,27 @@ describe('InterventionPanel', () => {
       }),
     ));
   });
-});
+
+  it('retries assignment creation with the same idempotency key and shows created/skipped counts', async () => {
+    mocks.createAssignments
+      .mockRejectedValueOnce(new Error('Lỗi tạm thời khi giao bài.'))
+      .mockResolvedValueOnce({
+        groupId: 'group-1', assignmentIds: ['a-1'], skippedAssignmentIds: ['a-open'], replayed: false,
+      });
+    render(<InterventionPanel classNameFilter="4A" quizId="all" quizzes={quizzes} isOnline />);
+    await screen.findByText('Nhóm đang theo dõi');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bài luyện' }));
+    await waitFor(() => expect(mocks.previewAssignments).toHaveBeenCalledWith('group-1', 'quiz-recommended'));
+    const submit = screen.getByRole('button', { name: 'Giao bài cho nhóm' });
+    fireEvent.click(submit);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Lỗi tạm thời khi giao bài.');
+    expect(screen.getByLabelText('Bài kiểm tra')).toBeVisible();
+
+    const firstKey = mocks.createAssignments.mock.calls[0][1].idempotencyKey;
+    fireEvent.click(screen.getByRole('button', { name: 'Giao bài cho nhóm' }));
+    await waitFor(() => expect(mocks.createAssignments).toHaveBeenCalledTimes(2));
+    const secondKey = mocks.createAssignments.mock.calls[1][1].idempotencyKey;
+    expect(secondKey).toBe(firstKey);
+    expect(await screen.findByText('Đã tạo 1 bài mới · Bỏ qua 1 bài đang mở.')).toBeVisible();
+  });});

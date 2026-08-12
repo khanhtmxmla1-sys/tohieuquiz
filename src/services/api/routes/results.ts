@@ -43,6 +43,16 @@ export const resultRoutes: RouteRegistry = {
             return body;
         },
     },
+    preview_intervention_assignments: {
+        method: 'GET',
+        auth: 'session',
+        path: ({ groupId }) => `/api/results/interventions/groups/${groupId}/assignments/preview`,
+        query: ({ quizId }) => {
+            const query = new URLSearchParams();
+            if (quizId) query.set('quizId', String(quizId));
+            return query;
+        },
+    },
     create_intervention_assignments: {
         method: 'POST',
         auth: 'session',
