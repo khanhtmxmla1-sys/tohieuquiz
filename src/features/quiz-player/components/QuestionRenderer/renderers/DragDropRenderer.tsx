@@ -4,110 +4,113 @@ import SmartText from '../utils/SmartText';
 import { selectedAnswerClass } from '../../answer-state/stateStyles';
 
 const DragDropRenderer: React.FC<BaseRendererProps> = ({
-  question: question,
+  question,
   answers,
   onAnswerChange,
 }) => {
   const categories = (question as any).categories || [];
   const items = (question as any).items || [];
   const currentAssignments = (answers[question.id] as Record<string, string>) || {};
+  const [editingItemId, setEditingItemId] = React.useState<string | null>(null);
 
-  const getItemsInCategory = (categoryId: string) => (
-    items.filter((item: any) => currentAssignments[item.id] === categoryId)
-  );
-  const unassignedItems = items.filter((item: any) => !currentAssignments[item.id]);
+  const assignedCount = items.filter((item: any) => Boolean(currentAssignments[item.id])).length;
 
-  const handleAssign = (itemId: string, categoryId: string | null) => {
-    const newAssignments = { ...currentAssignments };
-    if (categoryId === null) {
-      delete newAssignments[itemId];
-    } else {
-      newAssignments[itemId] = categoryId;
-    }
+  const handleAssign = (itemId: string, categoryId: string) => {
+    const newAssignments = {
+      ...currentAssignments,
+      [itemId]: categoryId,
+    };
+
     onAnswerChange(question.id, newAssignments);
+    setEditingItemId(null);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {categories.map((category: any) => {
-          const assignedItems = getItemsInCategory(category.id);
-          return (
-            <section
-              key={category.id}
-              className="flex min-h-[180px] flex-col rounded-[10px] border border-dashed border-sky-300 bg-sky-50/40 p-4"
-            >
-              <h3 className="border-b border-sky-100 pb-3 text-center text-base font-semibold text-sky-800">
-                <SmartText content={category.name} />
-              </h3>
+    <div className="space-y-4">
+      <section className="rounded-[10px] border border-slate-200 bg-white p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-slate-800">Phân loại các mục</h3>
+          <span className="text-xs font-medium text-slate-500" aria-live="polite">
+            Đã làm {assignedCount}/{items.length}
+          </span>
+        </div>
 
-              <div className="flex flex-1 flex-wrap content-start gap-2 pt-4">
-                {assignedItems.map((item: any) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleAssign(item.id, null)}
-                    className={`min-h-11 rounded-[8px] border px-3 py-2 text-sm font-medium transition-colors hover:border-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${selectedAnswerClass}`}
-                  >
-                    <SmartText content={item.content} />
-                  </button>
-                ))}
-                {assignedItems.length === 0 ? (
-                  <div className="flex w-full flex-1 items-center justify-center py-8 text-sm text-slate-400">
-                    Chưa có mục nào
-                  </div>
-                ) : null}
+        <div className="mt-3 flex flex-wrap gap-2" aria-label="Các nhóm phân loại">
+          {categories.map((category: any) => (
+            <span
+              key={category.id}
+              className="max-w-full rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-medium leading-5 text-sky-800"
+            >
+              <SmartText content={category.name} />
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <div className="space-y-3">
+        {items.map((item: any) => {
+          const assignedCategoryId = currentAssignments[item.id];
+          const assignedCategory = categories.find((category: any) => category.id === assignedCategoryId);
+          const isEditing = !assignedCategory || editingItemId === item.id;
+          const itemLabel = String(item.content ?? '');
+
+          return (
+            <article
+              key={item.id}
+              className="rounded-[10px] border border-slate-200 bg-white p-4"
+            >
+              <div className="min-w-0 text-sm font-medium leading-6 text-slate-800">
+                <SmartText content={item.content} />
               </div>
-            </section>
+
+              {isEditing ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {categories.map((category: any) => {
+                    const categoryLabel = String(category.name ?? '');
+
+                    return (
+                      <button
+                        key={category.id}
+                        type="button"
+                        aria-label={`Chọn nhóm ${categoryLabel} cho ${itemLabel}`}
+                        aria-pressed={assignedCategoryId === category.id}
+                        onClick={() => handleAssign(item.id, category.id)}
+                        className="min-h-11 max-w-full rounded-[8px] border border-sky-200 bg-sky-50 px-3 py-2 text-left text-xs font-semibold leading-5 text-sky-700 transition-colors hover:border-sky-500 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                      >
+                        <SmartText content={category.name} />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <span
+                    aria-label={`Đã chọn nhóm ${String(assignedCategory.name ?? '')}`}
+                    className={`inline-flex min-h-9 max-w-full items-center rounded-[8px] border px-3 py-1.5 text-xs font-semibold leading-5 ${selectedAnswerClass}`}
+                  >
+                    <span aria-hidden="true" className="mr-1">✓</span>
+                    <SmartText content={assignedCategory.name} />
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Đổi nhóm cho ${itemLabel}`}
+                    onClick={() => setEditingItemId(item.id)}
+                    className="min-h-11 rounded-[8px] px-3 text-xs font-semibold text-sky-700 transition-colors hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  >
+                    Đổi
+                  </button>
+                </div>
+              )}
+            </article>
           );
         })}
       </div>
 
-      <section className="rounded-[10px] border border-slate-200 bg-white p-5">
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <h3 className="text-sm font-semibold text-slate-700">
-            Danh sách chưa phân loại ({unassignedItems.length})
-          </h3>
-          {unassignedItems.length > 0 ? (
-            <span className="text-xs text-slate-500">Chọn nhóm cho từng mục</span>
-          ) : null}
-        </div>
-
-        <div className="space-y-3">
-          {unassignedItems.map((item: any) => (
-            <div
-              key={item.id}
-              className="flex flex-col gap-3 rounded-[10px] border border-slate-200 p-4 sm:flex-row sm:items-center"
-            >
-              <div className="min-w-0 flex-1 text-sm font-medium text-slate-800">
-                <SmartText content={item.content} />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category: any) => (
-                  <button
-                    key={category.id}
-                    type="button"
-                    onClick={() => handleAssign(item.id, category.id)}
-                    className="min-h-11 rounded-[8px] border border-sky-200 bg-sky-50 px-3 text-xs font-semibold text-sky-700 transition-colors hover:border-sky-500 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-                  >
-                    <SmartText content={category.name} />
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          {unassignedItems.length === 0 ? (
-            <p className="py-4 text-center text-sm font-medium text-sky-700">
-              Đã phân loại xong tất cả.
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      <p className="text-center text-xs leading-5 text-slate-500">
-        Nhấn vào mục đã phân loại để đưa mục đó trở lại danh sách.
-      </p>
+      {items.length > 0 && assignedCount === items.length ? (
+        <p className="text-center text-sm font-medium text-sky-700" role="status">
+          Đã phân loại xong tất cả.
+        </p>
+      ) : null}
     </div>
   );
 };
