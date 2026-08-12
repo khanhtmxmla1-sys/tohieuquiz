@@ -6,20 +6,26 @@ import {
 import type { JWTPayload } from '../utils/jwt';
 import type { Question } from '../types';
 import {
+  INTERVENTION_ARCHIVE_REASONS,
   INTERVENTION_DECLINING_SCORE_DELTA_THRESHOLD,
   INTERVENTION_MAX_NOTE_LENGTH,
   INTERVENTION_MIN_CONFIDENCE,
   INTERVENTION_MIN_SAMPLE_SIZE,
   INTERVENTION_PERSISTENT_ACCURACY_THRESHOLD,
   INTERVENTION_PERSISTENT_ATTEMPT_THRESHOLD,
+  INTERVENTION_PROGRESS_ACCURACY_DELTA_THRESHOLD,
   buildInterventionSuggestionKey,
   isInterventionSignalEligible,
+  type ArchiveInterventionGroupRequest,
+  type ArchiveInterventionGroupResponse,
   type CreateInterventionAssignmentsRequest,
   type CreateInterventionAssignmentsResponse,
   type InterventionAssignmentPreview,
   type InterventionDashboard,
   type InterventionDataReadiness,
   type InterventionGroup,
+  type InterventionGroupProgress,
+  type InterventionMemberProgress,
   type InterventionPrivateNote,
   type InterventionQuizRecommendation,
   type InterventionStudentSignal,
@@ -36,6 +42,11 @@ import {
   parseStoredAnswers,
   type ResultRowWithAnswers,
 } from './weaknessProfile';
+import {
+  buildInterventionGroupProgressFromData,
+  type InterventionProgressAssignmentRow,
+  type InterventionProgressResultRow,
+} from './interventionProgress';
 import { createNotifications } from './notificationWriter';
 
 interface InterventionStudentRow {
@@ -523,8 +534,9 @@ const loadPersistedGroups = async (
   db: D1Database,
   user: JWTPayload,
   filters: InterventionScopeFilters,
+  evaluatedAt: string,
 ): Promise<InterventionGroup[]> => {
-  const where = ["g.status = 'ACTIVE'"];
+  const where = ["g.status IN ('ACTIVE', 'ARCHIVED')"];
   const bindings: unknown[] = [];
   if (user.role === 'teacher') {
     where.push('g.teacher_username = ?');
@@ -561,6 +573,57 @@ const loadPersistedGroups = async (
     ORDER BY datetime(created_at) DESC
   `).bind(...groupIds).all<Record<string, unknown>>();
 
+  const assignmentRows = await db.prepare(`
+    SELECT id, intervention_group_id, student_id, status, deadline, created_at
+    FROM assignments
+    WHERE intervention_group_id IN (${placeholders})
+  `).bind(...groupIds).all<InterventionProgressAssignmentRow>();
+  const assignments = assignmentRows.results || [];
+  const progressAssignmentIds = assignments
+    .filter((assignment) => String(assignment.status || 'OPEN').toUpperCase() !== 'REVOKED')
+    .map((assignment) => assignment.id);
+  let progressResults: InterventionProgressResultRow[] = [];
+  if (progressAssignmentIds.length > 0) {
+    const assignmentPlaceholders = progressAssignmentIds.map(() => '?').join(',');
+    const resultRows = await db.prepare(`
+      SELECT r.id, r.assignment_id, r.student_id, r.class_id, r.student_name, r.class_name,
+             r.quiz_id, r.quiz_title, r.score, r.correct_count, r.total_questions,
+             r.time_taken, r.submitted_at, r.answers
+      FROM results r
+      WHERE r.assignment_id IN (${assignmentPlaceholders})
+        AND r.answers != '{"status":"STARTED"}'
+      ORDER BY datetime(r.submitted_at) ASC
+    `).bind(...progressAssignmentIds).all<InterventionProgressResultRow>();
+    progressResults = resultRows.results || [];
+  }
+  const progressQuestions = await getQuestionsForQuizIds(
+    db,
+    progressResults.map((result) => result.quiz_id),
+  );
+  const membersByGroupId = new Map<string, InterventionStudentSignal[]>();
+  for (const row of memberRows.results || []) {
+    const group = groups.find((item) => item.id === String(row.group_id));
+    if (!group) continue;
+    const members = membersByGroupId.get(group.id) || [];
+    members.push({
+      studentId: String(row.student_id),
+      studentName: String(row.full_name || ''),
+      classId: group.class_id,
+      className: String(row.class_name || group.class_name),
+      latestResultId: String(row.latest_result_id || ''),
+      latestSubmittedAt: String(row.latest_submitted_at || ''),
+      firstAttemptScore: Number(row.first_attempt_score) || 0,
+      latestAttemptScore: Number(row.latest_attempt_score) || 0,
+      scoreDelta: Number(row.score_delta) || 0,
+      attemptCount: Number(row.attempt_count) || 0,
+      skillAccuracy: Number(row.skill_accuracy) || 0,
+      skillSampleSize: Number(row.skill_sample_size) || 0,
+      confidence: Number(row.confidence) || 0,
+      fourWeekTrend: safeJson<InterventionTrendPoint[]>(row.trend_json, []),
+    });
+    membersByGroupId.set(group.id, members);
+  }
+
   return groups.map((group) => ({
     id: group.id,
     name: group.name,
@@ -577,24 +640,7 @@ const loadPersistedGroups = async (
       group.source_filter_json,
       {},
     ).recommendedQuizzes || [],
-    members: (memberRows.results || [])
-      .filter((row) => String(row.group_id) === group.id)
-      .map((row): InterventionStudentSignal => ({
-        studentId: String(row.student_id),
-        studentName: String(row.full_name || ''),
-        classId: group.class_id,
-        className: String(row.class_name || group.class_name),
-        latestResultId: String(row.latest_result_id || ''),
-        latestSubmittedAt: String(row.latest_submitted_at || ''),
-        firstAttemptScore: Number(row.first_attempt_score) || 0,
-        latestAttemptScore: Number(row.latest_attempt_score) || 0,
-        scoreDelta: Number(row.score_delta) || 0,
-        attemptCount: Number(row.attempt_count) || 0,
-        skillAccuracy: Number(row.skill_accuracy) || 0,
-        skillSampleSize: Number(row.skill_sample_size) || 0,
-        confidence: Number(row.confidence) || 0,
-        fourWeekTrend: safeJson<InterventionTrendPoint[]>(row.trend_json, []),
-      })),
+    members: membersByGroupId.get(group.id) || [],
     notes: (noteRows.results || [])
       .filter((row) => String(row.group_id) === group.id)
       .map((row): InterventionPrivateNote => ({
@@ -605,6 +651,16 @@ const loadPersistedGroups = async (
         createdAt: String(row.created_at || ''),
         updatedAt: String(row.updated_at || ''),
       })),
+    progress: buildInterventionGroupProgressFromData({
+      groupId: group.id,
+      subject: group.subject,
+      skillCode: group.skill_code,
+      members: membersByGroupId.get(group.id) || [],
+      assignments,
+      results: progressResults,
+      questions: progressQuestions,
+      evaluatedAt,
+    }),
     createdAt: group.created_at,
     updatedAt: group.updated_at,
   }));
@@ -628,6 +684,7 @@ export async function loadInterventionDashboard(
       readiness: createEmptyInterventionReadiness(),
       suggestions: [],
       groups: [],
+      archivedGroups: [],
     };
   }
   const classIds = classes.map((classroom) => classroom.id);
@@ -668,7 +725,7 @@ export async function loadInterventionDashboard(
   const questions = await getQuestionsForQuizIds(db, results.map((result) => result.quiz_id));
   const recommendationRows = await loadRecommendationRows(db, user);
   const readiness = buildInterventionReadinessFromData(students, results, questions);
-  const [suggestions, groups] = await Promise.all([
+  const [suggestions, persistedGroups] = await Promise.all([
     Promise.resolve(buildInterventionSuggestionsFromData({
       students,
       results,
@@ -676,7 +733,7 @@ export async function loadInterventionDashboard(
       recommendationRows,
       now,
     })),
-    loadPersistedGroups(db, user, filters),
+    loadPersistedGroups(db, user, filters, now.toISOString()),
   ]);
   return {
     generatedAt: now.toISOString(),
@@ -687,7 +744,8 @@ export async function loadInterventionDashboard(
     },
     readiness,
     suggestions,
-    groups,
+    groups: persistedGroups.filter((group) => group.status === 'ACTIVE'),
+    archivedGroups: persistedGroups.filter((group) => group.status === 'ARCHIVED'),
   };
 }
 
@@ -787,10 +845,95 @@ export async function createInterventionGroup(
     ),
   ];
   await db.batch(statements);
-  const groups = await loadPersistedGroups(db, user, { className: suggestion.className });
+  const groups = await loadPersistedGroups(db, user, { className: suggestion.className }, nowIso);
   const created = groups.find((group) => group.id === groupId);
   if (!created) throw new Error('Created intervention group could not be reloaded');
   return created;
+}
+
+const assertActiveInterventionGroup = (group: InterventionGroupRow): void => {
+  if (String(group.status).toUpperCase() !== 'ACTIVE') {
+    throw new Error('Archived intervention group is read-only');
+  }
+};
+
+const assertResponsibleTeacher = (group: InterventionGroupRow, user: JWTPayload): void => {
+  if (user.role !== 'teacher' || group.teacher_username !== user.username) {
+    throw new Error('Forbidden: responsible teacher required');
+  }
+};
+
+export async function archiveInterventionGroup(
+  db: D1Database,
+  user: JWTPayload,
+  groupId: string,
+  input: ArchiveInterventionGroupRequest,
+  requestId: string,
+  nowIso: string,
+): Promise<ArchiveInterventionGroupResponse> {
+  const group = await loadGroupAccess(db, user, groupId);
+  if (!group) throw new Error('Intervention group not found');
+  assertResponsibleTeacher(group, user);
+  assertActiveInterventionGroup(group);
+
+  const reason = String(input.reason || '').trim();
+  if (!INTERVENTION_ARCHIVE_REASONS.includes(reason as typeof INTERVENTION_ARCHIVE_REASONS[number])) {
+    throw new Error('Invalid intervention archive reason');
+  }
+  const note = String(input.note || '').trim();
+  if (note.length > INTERVENTION_MAX_NOTE_LENGTH) {
+    throw new Error(`Archive note must not exceed ${INTERVENTION_MAX_NOTE_LENGTH} characters`);
+  }
+  const archiveReason = reason as ArchiveInterventionGroupResponse['reason'];
+  const metadata = JSON.stringify({
+    beforeStatus: 'ACTIVE',
+    afterStatus: 'ARCHIVED',
+    reason: archiveReason,
+    note: note || null,
+  });
+  const auditId = `ia-${crypto.randomUUID()}`;
+  const results = await db.batch([
+    db.prepare(`
+      UPDATE intervention_groups
+      SET status = 'ARCHIVED', updated_at = ?
+      WHERE id = ? AND status = 'ACTIVE'
+    `).bind(nowIso, groupId),
+    db.prepare(`
+      INSERT INTO intervention_audit (
+        id, teacher_username, action, group_id, request_id, metadata_json, created_at
+      )
+      SELECT ?, ?, 'GROUP_ARCHIVED', ?, ?, ?, ?
+      WHERE EXISTS (
+        SELECT 1 FROM intervention_groups
+        WHERE id = ? AND status = 'ARCHIVED' AND updated_at = ?
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM intervention_audit
+        WHERE group_id = ? AND action = 'GROUP_ARCHIVED'
+      )
+    `).bind(
+      auditId,
+      user.username,
+      groupId,
+      requestId,
+      metadata,
+      nowIso,
+      groupId,
+      nowIso,
+      groupId,
+    ),
+  ]);
+  if (Number(results[0]?.meta?.changes || 0) !== 1) {
+    throw new Error('Intervention group is already archived');
+  }
+
+  return {
+    groupId,
+    status: 'ARCHIVED',
+    reason: archiveReason,
+    note: note || null,
+    archivedAt: nowIso,
+  };
 }
 
 export async function addInterventionNote(
@@ -803,6 +946,8 @@ export async function addInterventionNote(
 ): Promise<InterventionPrivateNote> {
   const group = await loadGroupAccess(db, user, groupId);
   if (!group) throw new Error('Intervention group not found');
+  assertActiveInterventionGroup(group);
+  assertResponsibleTeacher(group, user);
   const note = String(input.note || '').trim();
   if (!note || note.length > INTERVENTION_MAX_NOTE_LENGTH) {
     throw new Error(`Note must be between 1 and ${INTERVENTION_MAX_NOTE_LENGTH} characters`);
@@ -936,6 +1081,7 @@ export async function createInterventionAssignments(
 ): Promise<CreateInterventionAssignmentsResponse> {
   const group = await loadGroupAccess(db, user, groupId);
   if (!group) throw new Error('Intervention group not found');
+  assertActiveInterventionGroup(group);
   const quizId = String(input.quizId || '').trim();
   const idempotencyKey = String(input.idempotencyKey || '').trim();
   const deadlineMs = Date.parse(String(input.deadline || ''));

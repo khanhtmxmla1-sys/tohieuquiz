@@ -1,5 +1,7 @@
 import type {
   AddInterventionNoteRequest,
+  ArchiveInterventionGroupRequest,
+  ArchiveInterventionGroupResponse,
   CreateInterventionAssignmentsRequest,
   CreateInterventionAssignmentsResponse,
   CreateInterventionGroupRequest,
@@ -40,6 +42,17 @@ export const createInterventionGroup = async (
     request,
   );
   return unwrap(response, 'Không thể tạo nhóm hỗ trợ.');
+};
+
+export const archiveInterventionGroup = async (
+  groupId: string,
+  request: ArchiveInterventionGroupRequest,
+): Promise<ArchiveInterventionGroupResponse> => {
+  const response = await callApi<ApiResponse<ArchiveInterventionGroupResponse>>(
+    'archive_intervention_group',
+    { groupId, ...request },
+  );
+  return unwrap(response, 'Không thể lưu trữ nhóm hỗ trợ.');
 };
 
 export const addInterventionNote = async (

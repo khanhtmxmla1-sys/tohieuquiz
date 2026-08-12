@@ -27,6 +27,12 @@ const getQuizScopeLabel = (quizId: string, quizzes: QuizScopeOption[]): string =
   return quizzes.find((quiz) => quiz.id === quizId)?.title || 'Bài kiểm tra đã chọn';
 };
 
+const ScopeChip = ({ children }: { children: React.ReactNode }) => (
+  <span className="inline-flex min-h-8 items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
+    {children}
+  </span>
+);
+
 export const InterventionHeader: React.FC<InterventionHeaderProps> = ({
   classNameFilter,
   quizId,
@@ -43,9 +49,11 @@ export const InterventionHeader: React.FC<InterventionHeaderProps> = ({
         <span>Gợi ý hỗ trợ học sinh</span>
       </h3>
       <p className="mt-1 text-sm text-slate-600">Phân tích từ kết quả học tập</p>
-      <p className="mt-1 text-xs leading-5 text-slate-500">
-        {getClassScopeLabel(classNameFilter)} · {getQuizScopeLabel(quizId, quizzes)} · {windowDays} ngày
-      </p>
+      <div className="mt-2 flex flex-wrap gap-2" aria-label="Phạm vi phân tích">
+        <ScopeChip>{getClassScopeLabel(classNameFilter)}</ScopeChip>
+        <ScopeChip>{getQuizScopeLabel(quizId, quizzes)}</ScopeChip>
+        <ScopeChip>{windowDays} ngày</ScopeChip>
+      </div>
     </div>
     <button
       type="button"

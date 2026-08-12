@@ -34,6 +34,15 @@ export const resultRoutes: RouteRegistry = {
         auth: 'session',
         path: () => '/api/results/interventions/groups',
     },
+    archive_intervention_group: {
+        method: 'POST',
+        auth: 'session',
+        path: ({ groupId }) => `/api/results/interventions/groups/${groupId}/archive`,
+        body: (_action, payload) => {
+            const { groupId: _groupId, ...body } = payload;
+            return body;
+        },
+    },
     add_intervention_note: {
         method: 'POST',
         auth: 'session',

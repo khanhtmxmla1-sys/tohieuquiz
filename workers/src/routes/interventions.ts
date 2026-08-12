@@ -1,10 +1,12 @@
 import type { Env } from '../types';
 import type { JWTPayload } from '../utils/jwt';
+import type { InterventionArchiveReason } from '../../../shared/intervention.contract';
 import { parseBody } from '../utils/helpers';
 import { errorResponse, jsonResponse } from '../utils/response';
 import { requireTeacher } from '../middleware/jwtAuth';
 import {
   addInterventionNote,
+  archiveInterventionGroup,
   createInterventionAssignments,
   createInterventionGroup,
   loadInterventionDashboard,
@@ -25,7 +27,7 @@ const requestIdFrom = (request: Request): string => (
 
 const failure = (error: unknown): Response => {
   const message = error instanceof Error ? error.message : String(error);
-  const status = /not found/i.test(message) ? 404 : 400;
+  const status = /forbidden/i.test(message) ? 403 : /not found/i.test(message) ? 404 : 400;
   return errorResponse(message || 'Intervention request failed', status);
 };
 
@@ -64,6 +66,17 @@ export async function handleInterventionRoutes(
         studentIds: Array.isArray(body.studentIds) ? body.studentIds.map(String) : undefined,
       }, requestId, nowIso);
       return jsonResponse({ status: 'success', data: group }, 201);
+    }
+
+    const archiveMatch = path.match(/^\/api\/results\/interventions\/groups\/([^/]+)\/archive$/);
+    if (archiveMatch && method === 'POST') {
+      const body = await parseBody(request);
+      if (!body) return errorResponse('Invalid JSON body');
+      const archived = await archiveInterventionGroup(env.DB, user, archiveMatch[1], {
+        reason: String(body.reason || '') as InterventionArchiveReason,
+        note: body.note ? String(body.note) : undefined,
+      }, requestId, nowIso);
+      return jsonResponse({ status: 'success', data: archived });
     }
 
     const noteMatch = path.match(/^\/api\/results\/interventions\/groups\/([^/]+)\/notes$/);
