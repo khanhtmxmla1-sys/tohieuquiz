@@ -3,7 +3,7 @@ import {
   Archive,
   ChevronDown,
   ChevronUp,
-  ClipboardPlus,
+  BookOpenCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Quiz } from '../../../../types';
@@ -58,7 +58,7 @@ export const InterventionGroupCard: React.FC<InterventionGroupCardProps> = ({
               aria-expanded={showAssignment}
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
             >
-              <ClipboardPlus size={16} aria-hidden="true" /> Tạo bài luyện
+              <BookOpenCheck size={16} aria-hidden="true" /> Tạo bài luyện
             </button>
           )}
           {!archived && (

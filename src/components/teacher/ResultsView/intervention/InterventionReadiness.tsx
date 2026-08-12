@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, CheckCircle2, ChevronDown, FilterX } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
 import type { InterventionDataReadiness } from '../../../../../shared/intervention.contract';
 import { getInterventionReadinessCopy } from './interventionReadinessCopy';
 
@@ -90,7 +90,6 @@ export const InterventionReadiness: React.FC<InterventionReadinessProps> = ({
               onClick={onClearFilters}
               className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
-              <FilterX size={16} aria-hidden="true" />
               Xóa bộ lọc
             </button>
           )}
