@@ -1889,7 +1889,7 @@ CREATE TABLE IF NOT EXISTS intervention_assignment_batches (
 CREATE TABLE IF NOT EXISTS intervention_audit (
   id TEXT PRIMARY KEY,
   teacher_username TEXT NOT NULL,
-  action TEXT NOT NULL CHECK (action IN ('GROUP_CREATED', 'NOTE_CREATED', 'ASSIGNMENT_BATCH_CREATED')),
+  action TEXT NOT NULL CHECK (action IN ('GROUP_CREATED', 'GROUP_ARCHIVED', 'NOTE_CREATED', 'ASSIGNMENT_BATCH_CREATED')),
   group_id TEXT,
   student_id TEXT,
   assignment_id TEXT,

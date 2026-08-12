@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import {
   addInterventionNote,
+  archiveInterventionGroup,
   createInterventionAssignments,
   previewInterventionAssignments,
 } from '../workers/src/services/interventionService';
@@ -88,6 +89,7 @@ const setup = () => {
     );
   `);
   sqlite.exec(readFileSync('workers/migrations/0047_results_intervention_center.sql', 'utf8'));
+  sqlite.exec(readFileSync('workers/migrations/0067_intervention_group_archive_audit.sql', 'utf8'));
   sqlite.exec(`
     INSERT INTO teachers(username) VALUES ('teacher-a'), ('teacher-b');
     INSERT INTO classes(id, name, teacher_username, archived_at) VALUES ('class-1', '4A', 'teacher-a', NULL);
@@ -140,6 +142,23 @@ describe('Results Intervention persistence', () => {
     expect(sqlite.prepare("SELECT action FROM intervention_audit WHERE action = 'NOTE_CREATED'").get())
       .toEqual({ action: 'NOTE_CREATED' });
 
+    await expect(addInterventionNote(
+      db,
+      { username: 'admin-a', role: 'admin' } as any,
+      'group-1',
+      { note: 'Admin chỉ được xem theo policy hiện tại.' },
+      'request-admin-note',
+      '2026-07-29T09:00:30.000Z',
+    )).rejects.toThrow('responsible teacher');
+
+    await expect(addInterventionNote(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      { note: 'Không hợp lệ.', studentId: 'student-outside' },
+      'request-outside-student',
+      '2026-07-29T09:00:45.000Z',
+    )).rejects.toThrow('not a member');
     await expect(addInterventionNote(
       db,
       teacher('teacher-b') as any,
@@ -316,4 +335,102 @@ describe('Results Intervention persistence', () => {
     expect(result.skippedAssignmentIds).toEqual(['assignment-class-wide']);
     expect(sqlite.prepare('SELECT COUNT(*) AS count FROM assignments').get()).toEqual({ count: 1 });
   });
-});
+
+  it('archives only an owned active group and writes a GROUP_ARCHIVED audit record', async () => {
+    const { sqlite, db } = setup();
+
+    await expect(archiveInterventionGroup(
+      db,
+      { username: 'admin-a', role: 'admin' } as any,
+      'group-1',
+      { reason: 'GOAL_REACHED' },
+      'request-admin',
+      '2026-08-12T00:00:00.000Z',
+    )).rejects.toThrow('responsible teacher');
+    await expect(archiveInterventionGroup(
+      db,
+      teacher('teacher-b') as any,
+      'group-1',
+      { reason: 'GOAL_REACHED', note: 'Không thuộc quyền quản lý.' },
+      'request-other-teacher',
+      '2026-08-12T00:00:00.000Z',
+    )).rejects.toThrow('not found');
+
+    const archived = await archiveInterventionGroup(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      { reason: 'GOAL_REACHED', note: 'Nhóm đã đạt mục tiêu hỗ trợ.' },
+      'request-archive',
+      '2026-08-12T00:01:00.000Z',
+    );
+
+    expect(archived).toEqual({
+      groupId: 'group-1',
+      status: 'ARCHIVED',
+      reason: 'GOAL_REACHED',
+      note: 'Nhóm đã đạt mục tiêu hỗ trợ.',
+      archivedAt: '2026-08-12T00:01:00.000Z',
+    });
+    expect(sqlite.prepare("SELECT status, updated_at FROM intervention_groups WHERE id = 'group-1'").get()).toEqual({
+      status: 'ARCHIVED',
+      updated_at: '2026-08-12T00:01:00.000Z',
+    });
+    const audit = sqlite.prepare("SELECT action, request_id, metadata_json FROM intervention_audit WHERE action = 'GROUP_ARCHIVED'").get() as any;
+    expect(audit.action).toBe('GROUP_ARCHIVED');
+    expect(audit.request_id).toBe('request-archive');
+    expect(JSON.parse(audit.metadata_json)).toEqual({
+      beforeStatus: 'ACTIVE',
+      afterStatus: 'ARCHIVED',
+      reason: 'GOAL_REACHED',
+      note: 'Nhóm đã đạt mục tiêu hỗ trợ.',
+    });
+  });
+
+  it('requires an allowlisted archive reason and makes archived groups read-only for mutations', async () => {
+    const { sqlite, db } = setup();
+
+    await expect(archiveInterventionGroup(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      { reason: 'DELETE_FOREVER' as any },
+      'request-invalid-reason',
+      '2026-08-12T00:00:00.000Z',
+    )).rejects.toThrow('archive reason');
+
+    await archiveInterventionGroup(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      { reason: 'OTHER', note: 'Chuyển sang cách hỗ trợ khác.' },
+      'request-archive',
+      '2026-08-12T00:01:00.000Z',
+    );
+
+    await expect(addInterventionNote(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      { note: 'Không được ghi thêm.' },
+      'request-note-after-archive',
+      '2026-08-12T00:02:00.000Z',
+    )).rejects.toThrow('read-only');
+
+    await expect(createInterventionAssignments(
+      db,
+      teacher('teacher-a') as any,
+      'group-1',
+      {
+        quizId: 'quiz-1',
+        deadline: '2026-08-20T00:00:00.000Z',
+        maxAttempts: 1,
+        idempotencyKey: 'archive-read-only',
+      },
+      'request-assignment-after-archive',
+      '2026-08-12T00:02:00.000Z',
+    )).rejects.toThrow('read-only');
+
+    expect(sqlite.prepare("SELECT COUNT(*) AS count FROM intervention_notes WHERE group_id = 'group-1'").get()).toEqual({ count: 0 });
+    expect(sqlite.prepare("SELECT COUNT(*) AS count FROM assignments WHERE intervention_group_id = 'group-1'").get()).toEqual({ count: 0 });
+  });});

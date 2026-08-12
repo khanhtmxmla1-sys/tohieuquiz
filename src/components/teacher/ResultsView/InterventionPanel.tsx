@@ -1,20 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BookOpenCheck, RefreshCw, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Quiz } from '../../../types';
-import type {
-  InterventionDashboard,
-  InterventionSuggestion,
-} from '../../../../shared/intervention.contract';
-import {
-  createInterventionGroup,
-  getInterventionDashboard,
-} from '../../../services/results/interventionService';
+import type { InterventionSuggestion } from '../../../../shared/intervention.contract';
+import { createInterventionGroup } from '../../../services/results/interventionService';
 import { Card } from '../../common';
 import { InterventionHeader } from './intervention/InterventionHeader';
 import { InterventionReadiness } from './intervention/InterventionReadiness';
 import { InterventionSuggestionCard } from './intervention/InterventionSuggestionCard';
-import { InterventionGroupCard } from './intervention/InterventionGroupCard';
+import { InterventionArchivedGroups } from './intervention/InterventionArchivedGroups';
+import { InterventionGroupList } from './intervention/InterventionGroupList';
+import { useInterventionDashboard } from './intervention/useInterventionDashboard';
 
 interface InterventionPanelProps {
   classNameFilter: string;
@@ -47,38 +43,18 @@ export const InterventionPanel = ({
   isOnline,
   onClearFilters,
 }: InterventionPanelProps) => {
-  const [dashboard, setDashboard] = useState<InterventionDashboard | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [busyAction, setBusyAction] = useState('');
   const [pendingFocusGroupId, setPendingFocusGroupId] = useState('');
-  const filters = useMemo(() => ({
-    className: classNameFilter && classNameFilter !== 'All' ? classNameFilter : undefined,
-    quizId: quizId && quizId !== 'all' ? quizId : undefined,
-  }), [classNameFilter, quizId]);
+  const {
+    dashboard,
+    filters,
+    isLoading,
+    error,
+    isStale,
+    reload: load,
+  } = useInterventionDashboard({ classNameFilter, quizId, isOnline });
   const hasActiveFilters = Boolean(filters.className || filters.quizId);
   const windowDays = dashboard?.criteria.windowDays || 28;
-
-  const load = async (): Promise<InterventionDashboard | null> => {
-    if (!isOnline) return null;
-    setIsLoading(true);
-    setError('');
-    try {
-      const nextDashboard = await getInterventionDashboard(filters);
-      setDashboard(nextDashboard);
-      return nextDashboard;
-    } catch (loadError) {
-      const normalized = loadError instanceof Error ? loadError : new Error(String(loadError));
-      setError(normalized.message || 'Không thể tải nhóm hỗ trợ.');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void load();
-  }, [filters.className, filters.quizId, isOnline]);
 
   const createGroup = async (
     suggestion: InterventionSuggestion,
@@ -146,6 +122,11 @@ export const InterventionPanel = ({
           </p>
         )}
 
+        {isStale && dashboard && (
+          <p role="status" className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
+            Dữ liệu có thể đã cũ
+          </p>
+        )}
         {error && (
           <div role="alert" className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
             <span>{error}</span>
@@ -202,18 +183,19 @@ export const InterventionPanel = ({
                   <h3 id="intervention-groups-heading" className="font-semibold text-slate-900">Nhóm đang theo dõi</h3>
                   <span className="text-xs text-slate-500">{dashboard.groups.length} nhóm</span>
                 </div>
-                <div className="space-y-3">
-                  {dashboard.groups.map((group) => (
-                    <InterventionGroupCard
-                      key={group.id}
-                      group={group}
-                      quizzes={quizzes}
-                      onSaved={async () => { await load(); }}
-                    />
-                  ))}
-                </div>
+                <InterventionGroupList
+                  groups={dashboard.groups}
+                  quizzes={quizzes}
+                  onSaved={async () => { await load(); }}
+                />
               </section>
             )}
+
+            <InterventionArchivedGroups
+              groups={dashboard.archivedGroups}
+              quizzes={quizzes}
+              onSaved={async () => { await load(); }}
+            />
           </div>
         )}
       </div>

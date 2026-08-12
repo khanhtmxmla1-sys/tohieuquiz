@@ -49,6 +49,7 @@ describe('Results Intervention routes', () => {
       data: {
         suggestions: [],
         groups: [],
+        archivedGroups: [],
       },
     });
     expect(prepare).toHaveBeenCalledTimes(1);
@@ -117,4 +118,66 @@ describe('Results Intervention routes', () => {
         assignableCount: 1,
       },
     });
+  });
+  it('archives a teacher-owned group through the lifecycle route and rejects admin mutation', async () => {
+    const prepare = vi.fn((sql: string) => {
+      const statement: any = {
+        bind: vi.fn(() => statement),
+        first: vi.fn(async () => {
+          if (sql.includes('FROM intervention_groups')) {
+            return {
+              id: 'group-1',
+              teacher_username: 'teacher-a',
+              status: 'ACTIVE',
+              class_id: 'class-1',
+              class_name: '4A',
+            };
+          }
+          return null;
+        }),
+      };
+      return statement;
+    });
+    const batch = vi.fn().mockResolvedValue([
+      { success: true, meta: { changes: 1 } },
+      { success: true, meta: { changes: 1 } },
+    ]);
+    const request = new Request('https://example.test/api/results/interventions/groups/group-1/archive', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-request-id': 'req-archive-route' },
+      body: JSON.stringify({ reason: 'GOAL_REACHED', note: 'Đã đạt mục tiêu.' }),
+    });
+
+    const response = await handleInterventionRoutes({
+      request,
+      env: { DB: { prepare, batch } } as any,
+      user: { username: 'teacher-a', role: 'teacher' } as any,
+      path: '/api/results/interventions/groups/group-1/archive',
+      method: 'POST',
+    });
+
+    expect(response?.status).toBe(200);
+    await expect(response?.json()).resolves.toMatchObject({
+      status: 'success',
+      data: {
+        groupId: 'group-1',
+        status: 'ARCHIVED',
+        reason: 'GOAL_REACHED',
+        note: 'Đã đạt mục tiêu.',
+      },
+    });
+    expect(batch).toHaveBeenCalledTimes(1);
+
+    const adminResponse = await handleInterventionRoutes({
+      request: new Request('https://example.test/api/results/interventions/groups/group-1/archive', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reason: 'OTHER' }),
+      }),
+      env: { DB: { prepare, batch } } as any,
+      user: { username: 'admin-a', role: 'admin' } as any,
+      path: '/api/results/interventions/groups/group-1/archive',
+      method: 'POST',
+    });
+    expect(adminResponse?.status).toBe(403);
   });});

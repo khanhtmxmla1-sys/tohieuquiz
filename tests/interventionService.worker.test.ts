@@ -13,21 +13,21 @@ function createDashboardDb() {
   const activeGroup = {
     id: 'group-active',
     teacher_username: 'teacher-a',
-    name: 'Nhóm đang hỗ trợ',
+    name: 'NhÃ³m Ä‘ang há»— trá»£',
     status: 'ACTIVE',
     class_id: 'class-a',
     class_name: '4A',
     subject: 'math',
-    subject_label: 'Toán',
+    subject_label: 'ToÃ¡n',
     skill_code: 'phan_so',
-    skill_label: 'Phân số',
+    skill_label: 'PhÃ¢n sá»‘',
     sample_size: 3,
     confidence: 0.6,
     source_filter_json: '{}',
     created_at: '2026-08-01T00:00:00.000Z',
     updated_at: '2026-08-01T00:00:00.000Z',
   };
-  const archivedGroup = { ...activeGroup, id: 'group-archived', status: 'ARCHIVED', name: 'Nhóm đã kết thúc' };
+  const archivedGroup = { ...activeGroup, id: 'group-archived', status: 'ARCHIVED', name: 'NhÃ³m Ä‘Ã£ káº¿t thÃºc' };
   const completedResult = {
     id: 'result-1',
     student_id: 'student-a',
@@ -35,7 +35,7 @@ function createDashboardDb() {
     student_name: 'Lan',
     class_name: '4A',
     quiz_id: 'quiz-a',
-    quiz_title: 'Phân số',
+    quiz_title: 'PhÃ¢n sá»‘',
     score: 4,
     correct_count: 0,
     total_questions: 1,
@@ -47,7 +47,7 @@ function createDashboardDb() {
     id: 'q1',
     quiz_id: 'quiz-a',
     type: 'MCQ',
-    question: 'Phân số nào lớn hơn?',
+    question: 'PhÃ¢n sá»‘ nÃ o lá»›n hÆ¡n?',
     correct_answer: 'A',
     options: 'A|B|C|D',
     items: '',
@@ -89,13 +89,15 @@ function createDashboardDb() {
                 return { results: [] as T[] };
               }
               if (query.includes('FROM intervention_groups g')) {
-                const rows = [activeGroup, archivedGroup].filter((group) => group.status === 'ACTIVE');
-                return { results: rows as T[] };
+                return { results: [activeGroup, archivedGroup] as T[] };
               }
               if (query.includes('FROM intervention_group_members m')) {
                 return { results: [] as T[] };
               }
               if (query.includes('FROM intervention_notes')) {
+                return { results: [] as T[] };
+              }
+              if (query.includes('FROM assignments')) {
                 return { results: [] as T[] };
               }
               throw new Error(`Unhandled query: ${query}`);
@@ -117,9 +119,9 @@ function createDashboardDb() {
 function createReadinessMatrixDb() {
   const students = [
     { id: 'eligible', full_name: 'An', class_id: 'class-a', class_name: '4A' },
-    { id: 'low-confidence', full_name: 'Bình', class_id: 'class-a', class_name: '4A' },
+    { id: 'low-confidence', full_name: 'BÃ¬nh', class_id: 'class-a', class_name: '4A' },
     { id: 'stable', full_name: 'Chi', class_id: 'class-a', class_name: '4A' },
-    { id: 'insufficient', full_name: 'Dũng', class_id: 'class-a', class_name: '4A' },
+    { id: 'insufficient', full_name: 'DÅ©ng', class_id: 'class-a', class_name: '4A' },
   ];
   const answerEntry = (isCorrect: boolean) => ({ selectedAnswer: isCorrect ? 'A' : 'B', isCorrect });
   const makeResult = (studentId: string, answers: Record<string, unknown>) => ({
@@ -129,7 +131,7 @@ function createReadinessMatrixDb() {
     student_name: students.find((student) => student.id === studentId)?.full_name || studentId,
     class_name: '4A',
     quiz_id: 'quiz-a',
-    quiz_title: 'Phân số',
+    quiz_title: 'PhÃ¢n sá»‘',
     score: 4,
     correct_count: 0,
     total_questions: Object.keys(answers).length,
@@ -147,7 +149,7 @@ function createReadinessMatrixDb() {
     id,
     quiz_id: 'quiz-a',
     type: 'MCQ',
-    question: 'Phân số nào lớn hơn?',
+    question: 'PhÃ¢n sá»‘ nÃ o lá»›n hÆ¡n?',
     correct_answer: 'A',
     options: 'A|B|C|D',
     items: '',
@@ -226,7 +228,7 @@ describe('intervention dashboard worker service', () => {
     expect(resultCall?.bindings[0]).toBe('2026-07-14T08:00:00.000Z');
 
     const groupCall = calls.find((call) => call.query.includes('FROM intervention_groups g'));
-    expect(groupCall?.query).toContain("g.status = 'ACTIVE'");
+    expect(groupCall?.query).toContain("g.status IN ('ACTIVE', 'ARCHIVED')");
     expect(groupCall?.query).toContain('g.teacher_username = ?');
     expect(groupCall?.bindings).toContain('teacher-a');
   });
@@ -241,8 +243,26 @@ describe('intervention dashboard worker service', () => {
     );
 
     expect(dashboard.groups.map((group) => group.id)).toEqual(['group-active']);
+    expect(dashboard.archivedGroups.map((group) => group.id)).toEqual(['group-archived']);
   });
 
+  it('loads persisted-group progress dependencies in dashboard-sized batches', async () => {
+    const { db, calls } = createDashboardDb();
+    await loadInterventionDashboard(
+      db,
+      { username: 'teacher-a', role: 'teacher' } as any,
+      {},
+      new Date('2026-08-11T08:00:00.000Z'),
+    );
+
+    const assignmentCalls = calls.filter((call) => call.query.includes('FROM assignments'));
+    const memberCalls = calls.filter((call) => call.query.includes('FROM intervention_group_members m'));
+    const noteCalls = calls.filter((call) => call.query.includes('FROM intervention_notes'));
+    expect(assignmentCalls).toHaveLength(1);
+    expect(memberCalls).toHaveLength(1);
+    expect(noteCalls).toHaveLength(1);
+    expect(assignmentCalls[0]?.bindings).toEqual(['group-active', 'group-archived']);
+  });
   it('returns readiness counts for the current dashboard scope', async () => {
     const { db } = createDashboardDb();
     const dashboard = await loadInterventionDashboard(

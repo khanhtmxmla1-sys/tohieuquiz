@@ -4,12 +4,24 @@ export const INTERVENTION_MAX_NOTE_LENGTH = 2_000;
 export const INTERVENTION_DECLINING_SCORE_DELTA_THRESHOLD = -1;
 export const INTERVENTION_PERSISTENT_ATTEMPT_THRESHOLD = 5;
 export const INTERVENTION_PERSISTENT_ACCURACY_THRESHOLD = 50;
+export const INTERVENTION_PROGRESS_MIN_SAMPLE_SIZE = INTERVENTION_MIN_SAMPLE_SIZE;
+export const INTERVENTION_PROGRESS_ACCURACY_DELTA_THRESHOLD = 5;
 
 export type InterventionGroupStatus = 'ACTIVE' | 'ARCHIVED';
 export type InterventionAuditAction =
   | 'GROUP_CREATED'
+  | 'GROUP_ARCHIVED'
   | 'NOTE_CREATED'
   | 'ASSIGNMENT_BATCH_CREATED';
+
+export const INTERVENTION_ARCHIVE_REASONS = [
+  'GOAL_REACHED',
+  'MOVED_TO_OTHER_SUPPORT',
+  'CREATED_BY_MISTAKE',
+  'OTHER',
+] as const;
+
+export type InterventionArchiveReason = typeof INTERVENTION_ARCHIVE_REASONS[number];
 
 export interface InterventionTrendPoint {
   weekStart: string;
@@ -77,6 +89,42 @@ export interface InterventionSuggestion {
   recommendedQuizzes: InterventionQuizRecommendation[];
 }
 
+export type InterventionProgressStatus =
+  | 'NO_ASSIGNMENT'
+  | 'WAITING_FOR_RESULTS'
+  | 'IMPROVING'
+  | 'NEEDS_ATTENTION'
+  | 'STABLE';
+
+export interface InterventionMemberProgress {
+  studentId: string;
+  baselineSkillAccuracy: number;
+  currentSkillAccuracy: number | null;
+  skillAccuracyDelta: number | null;
+  baselineScore: number;
+  currentScore: number | null;
+  scoreDelta: number | null;
+  assignedCount: number;
+  completedCount: number;
+  postInterventionSampleSize: number;
+  lastResultAt: string | null;
+  status: InterventionProgressStatus;
+}
+
+export interface InterventionGroupProgress {
+  status: InterventionProgressStatus;
+  assignedCount: number;
+  completedCount: number;
+  completionPercent: number;
+  improvingCount: number;
+  needsAttentionCount: number;
+  waitingCount: number;
+  averageSkillAccuracyDelta: number | null;
+  averageScoreDelta: number | null;
+  evaluatedAt: string;
+  members: InterventionMemberProgress[];
+}
+
 export interface InterventionPrivateNote {
   id: string;
   groupId: string;
@@ -101,6 +149,7 @@ export interface InterventionGroup {
   recommendedQuizzes: InterventionQuizRecommendation[];
   members: InterventionStudentSignal[];
   notes: InterventionPrivateNote[];
+  progress: InterventionGroupProgress;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,6 +181,7 @@ export interface InterventionDashboard {
   readiness: InterventionDataReadiness;
   suggestions: InterventionSuggestion[];
   groups: InterventionGroup[];
+  archivedGroups: InterventionGroup[];
 }
 
 export interface CreateInterventionGroupRequest {
@@ -140,6 +190,19 @@ export interface CreateInterventionGroupRequest {
   className?: string;
   quizId?: string;
   studentIds?: string[];
+}
+
+export interface ArchiveInterventionGroupRequest {
+  reason: InterventionArchiveReason;
+  note?: string;
+}
+
+export interface ArchiveInterventionGroupResponse {
+  groupId: string;
+  status: 'ARCHIVED';
+  reason: InterventionArchiveReason;
+  note: string | null;
+  archivedAt: string;
 }
 
 export interface AddInterventionNoteRequest {

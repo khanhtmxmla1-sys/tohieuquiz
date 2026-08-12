@@ -117,8 +117,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(65);
-    expect(migrationNames.at(-1)).toBe('0066_student_reward_ledger.sql');
+    expect(migrationNames).toHaveLength(66);
+    expect(migrationNames.at(-1)).toBe('0067_intervention_group_archive_audit.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);

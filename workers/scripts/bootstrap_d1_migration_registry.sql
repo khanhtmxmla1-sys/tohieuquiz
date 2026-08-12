@@ -72,4 +72,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0063_certificate_footer_safe_zone.sql'),
   ('0064_add_question_rich_text.sql'),
   ('0065_add_result_canonical_class_scope.sql'),
-  ('0066_student_reward_ledger.sql');
+  ('0066_student_reward_ledger.sql'),
+  ('0067_intervention_group_archive_audit.sql');
