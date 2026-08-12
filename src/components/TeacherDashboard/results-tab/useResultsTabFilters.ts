@@ -94,6 +94,9 @@ export const useResultsTabFilters = (
   const resetFilters = useCallback(() => {
     updateParams({ q: null, quiz: null, class: null, from: null, to: null, range: null });
   }, [updateParams]);
+  const clearInterventionFilters = useCallback(() => {
+    updateParams({ quiz: null, class: null });
+  }, [updateParams]);
 
   return {
     resultsHook,
@@ -111,5 +114,6 @@ export const useResultsTabFilters = (
     statistics: useMemo(() => calculateResultsStatistics(filteredResults), [filteredResults]),
     availableQuizzes: useMemo(() => getAvailableQuizzes(results, quizzes), [results, quizzes]),
     resetFilters,
+    clearInterventionFilters,
   };
 };

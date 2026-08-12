@@ -110,6 +110,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) 
           quizId={filters.activeQuizId}
           quizzes={quizzes}
           isOnline={filters.resultsHook.isOnline}
+          onClearFilters={filters.clearInterventionFilters}
         />
         <QuestionAnalysisSection
           activeQuizId={filters.activeQuizId}

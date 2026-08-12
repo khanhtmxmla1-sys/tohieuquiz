@@ -92,8 +92,11 @@ vi.mock('../src/components/teacher/ResultsView', () => ({
       {JSON.stringify({ cohortSize, attemptMode, isLoading, error })}
     </div>
   ),
-  InterventionPanel: ({ classNameFilter, quizId }: any) => (
-    <div data-testid="intervention-panel">{JSON.stringify({ classNameFilter, quizId })}</div>
+  InterventionPanel: ({ classNameFilter, quizId, onClearFilters }: any) => (
+    <div data-testid="intervention-panel">
+      <span>{JSON.stringify({ classNameFilter, quizId })}</span>
+      {onClearFilters && <button onClick={onClearFilters}>Xóa bộ lọc hỗ trợ</button>}
+    </div>
   ),
 }));
 
@@ -273,6 +276,25 @@ describe('TeacherDashboard ResultsTab contracts', () => {
     expect(screen.getByText('Hà')).toBeTruthy();
     expect(screen.getByText('Minh')).toBeTruthy();
     expect(screen.getByTestId('question-analysis')).toBeTruthy();
+  });
+
+  it('clears the intervention class and quiz scope together', async () => {
+    renderResults(<ResultsTab results={results} quizzes={quizzes} />);
+
+    const selects = screen.getAllByRole('combobox');
+    await change(selects[0], 'quiz-1');
+    await change(selects[1], '3A');
+    expect(screen.getByTestId('intervention-panel')).toHaveTextContent(JSON.stringify({
+      classNameFilter: '3A', quizId: 'quiz-1',
+    }));
+
+    await click(screen.getByRole('button', { name: 'Xóa bộ lọc hỗ trợ' }));
+
+    expect(selects[0]).toHaveValue('all');
+    expect(selects[1]).toHaveValue('All');
+    expect(screen.getByTestId('intervention-panel')).toHaveTextContent(JSON.stringify({
+      classNameFilter: 'All', quizId: 'all',
+    }));
   });
 
   it('requires one class and one quiz before opening the class delivery wizard', async () => {
