@@ -62,6 +62,7 @@ export interface WorkerFetchDependencies {
   handleGameLoopRoutes: RouteHandler;
   handleHelpRagRoutes: RouteHandler;
   handleSystemSettingsRoutes: RouteHandler;
+  handleLoginMediaRoutes: RouteHandler;
   handleResultReportRoutes: RouteHandler;
   handlePhieuRoutes: RouteHandler;
   handleHomeworkRoutes: RouteHandler;
@@ -121,6 +122,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     handleGameLoopRoutes,
     handleHelpRagRoutes,
     handleSystemSettingsRoutes,
+    handleLoginMediaRoutes,
     handleResultReportRoutes,
     handlePhieuRoutes,
     handleHomeworkRoutes,
@@ -299,6 +301,11 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
       if (rateLimitResponse) return addCors(rateLimitResponse, request, env);
     }
 
+    if (path === '/api/login-media' && method === 'GET') {
+      const loginMediaResponse = await handleLoginMediaRoutes(request, env, path, method);
+      if (loginMediaResponse) return addCors(loginMediaResponse, request, env);
+    }
+
     const authError = verifyToken(request, env);
     if (authError) return addCors(authError, request, env);
 
@@ -369,6 +376,8 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
         response = await handleGameLoopRoutes(request, env, path, method);
       } else if (path.startsWith('/api/help')) {
         response = await handleHelpRagRoutes(request, env, path, method);
+      } else if (path === '/api/login-media' || path.startsWith('/api/admin/login-media')) {
+        response = await handleLoginMediaRoutes(request, env, path, method);
       } else if (path.startsWith('/api/system-settings')) {
         response = await handleSystemSettingsRoutes(request, env, path, method);
       } else if (path.startsWith('/api/result-reports')) {

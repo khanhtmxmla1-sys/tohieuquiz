@@ -7,7 +7,7 @@ import type {
 } from '../../../shared/operations.contract';
 import type { Env } from '../types';
 
-export const EXPECTED_LATEST_MIGRATION = '0067_intervention_group_archive_audit.sql';
+export const EXPECTED_LATEST_MIGRATION = '0068_login_media.sql';
 const DEFAULT_TIMEOUT_MS = 1_000;
 const STALE_CERTIFICATE_MS = 10 * 60 * 1_000;
 const BACKUP_STALE_MS = 26 * 60 * 60 * 1_000;

@@ -61,6 +61,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('current-announcement', '/api/announcements/current', 'public', ['none'], 'announcement read handler', { match: 'exact', methods: ['GET'] }),
   policy('announcement-list', '/api/announcements', 'public', ['none'], 'announcement read handler', { match: 'exact', methods: ['GET'] }),
   policy('settings-read', '/api/system-settings', 'public', ['none'], 'settings read handler', { match: 'exact', methods: ['GET'] }),
+  policy('login-media-read', '/api/login-media', 'public', ['none'], 'login media safe public read handler', { match: 'exact', methods: ['GET'] }),
   policy('feature-flag-resolve', '/api/system-settings/feature-flags/resolve', 'authenticated', ['session', 'parentSession'], 'server-derived rollout subject', { match: 'exact', methods: ['GET'] }),
   policy('feature-flag-admin', '/api/system-settings/feature-flags', 'admin-only', ['route-handler'], 'feature flag requireAdmin checks'),
   policy('practice', '/api/practice', 'public', ['none'], 'practice route validation'),
@@ -71,6 +72,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('client-telemetry-ingest', '/api/client-telemetry', 'internal-only', ['none'], 'origin guard, sampling, rate limit and telemetry sanitizer', { match: 'exact', methods: ['POST'] }),
 
   policy('admin-operations', '/api/admin/operations', 'admin-only', ['none'], 'admin identity and dependency-safe probes', { match: 'exact', methods: ['GET'] }),
+  policy('admin-login-media', '/api/admin/login-media', 'admin-only', ['route-handler'], 'login media requireAdmin checks'),
   policy('admin-all', '/api/admin/', 'admin-only', ['route-handler'], 'route-specific requireAdmin checks'),
   policy('admin-teachers', '/api/admin/teachers', 'admin-only', ['route-handler'], 'teacher requireAdmin checks'),
   policy('admin-notification-metrics', '/api/admin/notification-metrics', 'admin-only', ['route-handler'], 'notification metrics requireAdmin checks', { match: 'exact', methods: ['GET'] }),

@@ -12,6 +12,7 @@ const TEACHER_DASHBOARD_TABS = [
     'create',
     'announcements',
     'feature-rollout',
+    'login-media',
     'classes',
     'assignments',
     'teachers',

@@ -86,6 +86,36 @@ describe('D1 backup table classification', () => {
     expect(schemaFingerprint(migrated)).toBe(schemaFingerprint(canonical));
     expect(schemaFingerprint(migrated)).not.toBe(schemaFingerprint(changed));
   });
+  it('normalizes equivalent quoted table names and CHECK-list spacing', () => {
+    const { schemaFingerprint } = require('../workers/scripts/list-backup-tables.cjs');
+    const remote = [{
+      name: 'intervention_audit',
+      type: 'table',
+      tbl_name: 'intervention_audit',
+      sql: `CREATE TABLE "intervention_audit" (
+        id TEXT PRIMARY KEY,
+        action TEXT NOT NULL CHECK (action IN ( 'GROUP_CREATED', 'GROUP_ARCHIVED' ))
+      )`,
+    }];
+    const local = [{
+      ...remote[0],
+      sql: `CREATE TABLE intervention_audit (
+        action TEXT NOT NULL CHECK (action IN ('GROUP_CREATED', 'GROUP_ARCHIVED')),
+        id TEXT PRIMARY KEY
+      )`,
+    }];
+    const changed = [{
+      ...remote[0],
+      sql: `CREATE TABLE intervention_audit (
+        action TEXT NOT NULL CHECK (action IN ('GROUP_CREATED', 'GROUP_DELETED')),
+        id TEXT PRIMARY KEY
+      )`,
+    }];
+
+    expect(schemaFingerprint(remote)).toBe(schemaFingerprint(local));
+    expect(schemaFingerprint(remote)).not.toBe(schemaFingerprint(changed));
+  });
+
   it('fingerprints indexes and triggers as part of the restorable schema', () => {
     const { classifyTableEntries, schemaFingerprint } = require('../workers/scripts/list-backup-tables.cjs');
     const base = [
@@ -253,6 +283,37 @@ describe('D1 restore verification', () => {
 
     expect(RESTORE_REGISTRY_SQL).toContain('CREATE TABLE IF NOT EXISTS d1_migrations');
     expect(RESTORE_REGISTRY_SQL).not.toMatch(/INSERT/i);
+  });
+
+  it('builds a trigger-safe snapshot reset before importing backup rows', () => {
+    const {
+      buildClearSnapshotTablesSql,
+      buildDropTriggersSql,
+      buildRestoreTriggersSql,
+    } = require('../workers/scripts/verify-d1-restore.cjs');
+
+    expect(buildDropTriggersSql([
+      { name: 'trg_reward', sql: 'CREATE TRIGGER trg_reward AFTER INSERT ON gift_orders BEGIN SELECT 1; END' },
+      { name: 'trg_audit', sql: 'CREATE TRIGGER trg_audit AFTER UPDATE ON teachers BEGIN SELECT 1; END' },
+    ])).toBe([
+      'DROP TRIGGER IF EXISTS "trg_reward";',
+      'DROP TRIGGER IF EXISTS "trg_audit";',
+    ].join('\n'));
+
+    expect(buildClearSnapshotTablesSql(['feature_flags', 'student_reward_ledger'])).toBe([
+      'PRAGMA foreign_keys=OFF;',
+      'DELETE FROM "feature_flags";',
+      'DELETE FROM "student_reward_ledger";',
+      'PRAGMA foreign_keys=ON;',
+    ].join('\n'));
+
+    expect(buildRestoreTriggersSql([
+      { name: 'trg_reward', sql: 'CREATE TRIGGER trg_reward AFTER INSERT ON gift_orders BEGIN SELECT 1; END' },
+      { name: 'trg_audit', sql: 'CREATE TRIGGER trg_audit AFTER UPDATE ON teachers BEGIN SELECT 1; END;' },
+    ])).toBe([
+      'CREATE TRIGGER trg_reward AFTER INSERT ON gift_orders BEGIN SELECT 1; END;',
+      'CREATE TRIGGER trg_audit AFTER UPDATE ON teachers BEGIN SELECT 1; END;',
+    ].join('\n'));
   });
 
   it('reports missing tables and row-count mismatches without exposing row contents', () => {

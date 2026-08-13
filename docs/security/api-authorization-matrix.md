@@ -28,6 +28,7 @@ The central gate classifies routes. It does **not** replace route-level JWT, rol
 | `/api/math/telemetry` | `POST` | public | none | Rate limit + sanitizer |
 | `/api/announcements`, `/api/announcements/current` | `GET` | public | none | Announcement read handler |
 | `/api/system-settings` | `GET` | public | none | Settings read handler |
+| `/api/login-media` | `GET` | public | none | Safe Login Media read; only active scheduled slides, no admin metadata |
 | `/api/practice/*` | supported methods | public | none | Practice validation |
 | `/api/questions/*` | `GET` | public | `quizId` | Quiz handler strips answer material |
 | `/api/quizzes` | catalogue `GET` | public | `quizId` | Quiz catalogue handler |
@@ -61,6 +62,7 @@ The central gate classifies routes. It does **not** replace route-level JWT, rol
 | `/api/analytics*` | all | teacher-owned | `classId`, `quizId` | Teacher/admin scope |
 | `/api/phieu*` excluding public | all | teacher-owned | `resultId`, `classId`, `batchId` | Teacher/admin ownership |
 | `/api/announcements*`, `/api/system-settings*` | mutations | admin-only | route-specific | `requireAdmin` |
+| `/api/admin/login-media*` | all | admin-only | route-specific | `verifyJWTMiddleware` + `requireAdmin`; audited writes |
 | `/api/ai-tutor*` | all | student-owned | session, `resultId` | Server-derived result ownership |
 | `/api/ai/*` | all | teacher-owned | session, route-specific | AI proxy role checks |
 | `/api/help*` | all | authenticated | session | JWT checks |

@@ -39,6 +39,7 @@ export const DASHBOARD_SEARCH_ITEMS: DashboardSearchDestination[] = [
   { id: 'certificates', kind: 'tab', tab: 'certificates', label: 'Cấp chứng nhận', keywords: 'giấy khen chứng chỉ' },
   { id: 'announcements', kind: 'tab', tab: 'announcements', label: 'Thông báo', keywords: 'cài đặt hệ thống' },
   { id: 'feature-rollout', kind: 'tab', tab: 'feature-rollout', label: 'Tính năng thử nghiệm', keywords: 'feature rollout bật tắt tính năng thử nghiệm' },
+  { id: 'login-media', kind: 'tab', tab: 'login-media', label: 'Banner đăng nhập', keywords: 'banner đăng nhập truyền thông hình ảnh login media' },
   { id: 'operations', kind: 'tab', tab: 'operations', label: 'Operations Center', keywords: 'health dependency operations request id release' },
 ];
 

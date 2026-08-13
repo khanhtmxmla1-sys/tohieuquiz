@@ -29,6 +29,7 @@ const routeMocks = {
   handleGameLoopRoutes: vi.fn(async () => null as Response | null),
   handleHelpRagRoutes: vi.fn(async () => null as Response | null),
   handleSystemSettingsRoutes: vi.fn(async () => null as Response | null),
+  handleLoginMediaRoutes: vi.fn(async () => null as Response | null),
   handleResultReportRoutes: vi.fn(async () => null as Response | null),
   handlePhieuRoutes: vi.fn(async () => null as Response | null),
   handleHomeworkRoutes: vi.fn(async () => null as Response | null),
@@ -229,6 +230,31 @@ describe('Worker root route dispatch', () => {
     expect(response.status).toBe(401);
     expect(routeMocks.handleMathObservabilityRoutes).toHaveBeenCalledOnce();
     expect(routeMocks.handlePhieuSubdomain).not.toHaveBeenCalled();
+  });
+
+  it('dispatches public login media before shared authentication', async () => {
+    routeMocks.handleLoginMediaRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/login-media'), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handleLoginMediaRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/login-media', 'GET',
+    );
+    expect(verifyTokenMock).not.toHaveBeenCalled();
+  });
+
+  it('dispatches admin login media through the authenticated route chain', async () => {
+    verifyTokenMock.mockReturnValueOnce(null);
+    routeMocks.handleLoginMediaRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/admin/login-media'), env);
+
+    expect(response.status).toBe(200);
+    expect(verifyTokenMock).toHaveBeenCalledOnce();
+    expect(routeMocks.handleLoginMediaRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/admin/login-media', 'GET',
+    );
   });
 
   it('routes authenticated media uploads through a fail-closed limiter', async () => {

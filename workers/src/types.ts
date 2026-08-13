@@ -19,6 +19,11 @@ export interface Env {
     LAST_D1_RESTORE_DRILL_AT?: string;
     ALLOWED_ORIGINS?: string;
     ANNOUNCEMENT_IMAGE_HOSTS?: string;
+    CLOUDINARY_CLOUD_NAME?: string;
+    CLOUDINARY_API_KEY?: string;
+    CLOUDINARY_API_SECRET?: string;
+    CLOUDINARY_LOGIN_MEDIA_FOLDER?: string;
+    CLOUDINARY_LOGIN_MEDIA_UPLOAD_PRESET?: string;
     PARENT_EMAIL_PROVIDER?: 'disabled' | 'http';
     PARENT_EMAIL_API_URL?: string;
     PARENT_EMAIL_API_TOKEN?: string;
