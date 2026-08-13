@@ -37,6 +37,11 @@ describe('Vercel Parent Portal security configuration', () => {
     expect(headerValue('/(.*)', 'X-Robots-Tag')).toBeUndefined();
   });
 
+  it('allows signed Cloudinary uploads from the admin login-media editor', () => {
+    const csp = headerValue('/(.*)', 'Content-Security-Policy');
+    expect(csp).toContain("connect-src 'self'");
+    expect(csp).toContain('https://api.cloudinary.com');
+  });
   it('anchors the local repository ignore rule so nested brand assets are deployed', () => {
     expect(vercelIgnoreRules).toContain('/tohieuquiz/');
     expect(vercelIgnoreRules).not.toContain('tohieuquiz/');
