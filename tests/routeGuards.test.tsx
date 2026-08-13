@@ -85,8 +85,10 @@ describe('URL navigation contracts', () => {
     expect(getTeacherRoute('gift-shop')).toBe('/teacher/gift-shop');
     expect(getTeacherRoute('system-question-bank')).toBe('/teacher/system-question-bank');
     expect(getTeacherRoute('feature-rollout')).toBe('/teacher/feature-rollout');
+    expect(getTeacherRoute('login-media')).toBe('/teacher/login-media');
     expect(resolveTeacherTabFromLocation('/teacher/system-question-bank', '')).toBe('system-question-bank');
     expect(resolveTeacherTabFromLocation('/teacher/feature-rollout', '')).toBe('feature-rollout');
+    expect(resolveTeacherTabFromLocation('/teacher/login-media', '')).toBe('login-media');
     expect(resolveTeacherTabFromLocation('/teacher/quizzes', '?mode=create')).toBe('create');
     expect(resolveTeacherTabFromLocation('/teacher/unknown', '')).toBe('overview');
   });
@@ -214,6 +216,35 @@ describe('URL navigation contracts', () => {
 
     expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/teacher/feature-rollout');
+  });
+
+  it('redirects a non-admin teacher away from login media administration', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'teacher.one',
+      teacherName: 'Giáo viên Một',
+      isAdmin: false,
+    });
+
+    renderRoutes('/teacher/login-media');
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/teacher/overview'));
+  });
+
+  it('renders login media administration for an administrator', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'admin.one',
+      teacherName: 'Quản trị viên',
+      isAdmin: true,
+    });
+
+    renderRoutes('/teacher/login-media');
+
+    expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/teacher/login-media');
   });
 
   it('renders the system question bank dashboard route for an administrator', async () => {

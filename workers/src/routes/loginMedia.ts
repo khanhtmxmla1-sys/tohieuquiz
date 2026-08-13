@@ -3,6 +3,11 @@ import { requireAdmin, verifyJWTMiddleware } from '../middleware/jwtAuth';
 import { auditStatement } from '../utils/audit';
 import { withD1Retry } from '../utils/d1';
 import { errorResponse, jsonResponse } from '../utils/response';
+import {
+  createLoginMediaUploadSignature,
+  isCloudinaryImageUrlAllowed,
+  isLoginMediaPublicIdAllowed,
+} from '../services/loginMediaCloudinary';
 
 type DisplayMode = 'CONTENT' | 'SLIDER';
 type Transition = 'FADE' | 'SLIDE';
@@ -200,7 +205,7 @@ async function handlePublicRead(env: Env): Promise<Response> {
         mode: 'SLIDER',
         settings: mapPublicSettings(row),
         slides: slides
-          .map(mapPublicSlide)
+          .map((slide) => mapPublicSlide(slide, env))
           .filter((slide): slide is NonNullable<typeof slide> => slide !== null),
       },
     }, 200, 60);
@@ -224,21 +229,14 @@ function safeLink(value: unknown): string | null | undefined {
   }
 }
 
-function safeCloudinaryImage(value: unknown): string | null {
+function safeCloudinaryImage(value: unknown, env: Env, publicId: string | null = null): string | null {
   if (typeof value !== 'string' || value.length > 2048) return null;
-  try {
-    const url = new URL(value.trim());
-    if (url.protocol !== 'https:' || url.hostname !== 'res.cloudinary.com') return null;
-    if (url.username || url.password || (url.port && url.port !== '443')) return null;
-    if (!url.pathname.includes('/image/upload/')) return null;
-    return url.toString();
-  } catch {
-    return null;
-  }
+  const normalized = value.trim();
+  return isCloudinaryImageUrlAllowed(normalized, publicId, env) ? normalized : null;
 }
 
-function mapPublicSlide(row: LoginMediaSlideRow) {
-  const imageUrl = safeCloudinaryImage(row.image_url);
+function mapPublicSlide(row: LoginMediaSlideRow, env: Env) {
+  const imageUrl = safeCloudinaryImage(row.image_url, env, row.cloudinary_public_id);
   if (!imageUrl) return null;
   const safeStoredLink = safeLink(row.link_url);
   const linkUrl = safeStoredLink === undefined || (safeStoredLink && !row.alt_text.trim())
@@ -253,15 +251,12 @@ function mapPublicSlide(row: LoginMediaSlideRow) {
   };
 }
 
-function safePublicId(value: unknown): string | null {
+function safePublicId(value: unknown, env: Env): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
-  if (normalized.length < 1 || normalized.length > 512) return null;
-  if (!normalized.startsWith('tohieuquiz/login-media/')) return null;
+  if (normalized.length < 1 || normalized.length > 255) return null;
   if (!/^[A-Za-z0-9._/-]+$/.test(normalized)) return null;
-  const segments = normalized.split('/');
-  if (segments.some((segment) => !segment || segment === '.' || segment === '..')) return null;
-  return normalized;
+  return isLoginMediaPublicIdAllowed(normalized, env) ? normalized : null;
 }
 
 function positiveDimension(value: unknown): number | null | undefined {
@@ -277,9 +272,11 @@ function optionalIsoDate(value: unknown): string | null | undefined {
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
 }
 
-function parseSlideInput(body: Record<string, unknown>): SlideInput | null {
-  const cloudinaryPublicId = safePublicId(body.cloudinaryPublicId);
-  const imageUrl = safeCloudinaryImage(body.imageUrl);
+function parseSlideInput(body: Record<string, unknown>, env: Env): SlideInput | null {
+  const cloudinaryPublicId = safePublicId(body.cloudinaryPublicId, env);
+  const imageUrl = typeof body.imageUrl === 'string' && cloudinaryPublicId
+    ? safeCloudinaryImage(body.imageUrl, env, cloudinaryPublicId)
+    : null;
   const imageWidth = positiveDimension(body.imageWidth);
   const imageHeight = positiveDimension(body.imageHeight);
   const linkUrl = safeLink(body.linkUrl);
@@ -442,7 +439,7 @@ async function handleSettingsPatch(request: Request, env: Env, actor: string): P
 
 async function handleSlideCreate(request: Request, env: Env, actor: string): Promise<Response> {
   const body = await jsonBody(request);
-  const input = body ? parseSlideInput(body) : null;
+  const input = body ? parseSlideInput(body, env) : null;
   if (!input) return errorResponse('Dữ liệu banner không hợp lệ.', 400);
   const id = `login-slide-${crypto.randomUUID()}`;
   const now = new Date().toISOString();
@@ -490,7 +487,7 @@ async function handleSlideUpdate(
   if (!body || typeof body.expectedUpdatedAt !== 'string' || !body.expectedUpdatedAt) {
     return errorResponse('expectedUpdatedAt là bắt buộc khi cập nhật banner.', 400);
   }
-  const input = parseSlideInput(body);
+  const input = parseSlideInput(body, env);
   if (!input) return errorResponse('Dữ liệu banner không hợp lệ.', 400);
   const before = await slideById(env.DB, id);
   if (!before) return errorResponse('Không tìm thấy banner.', 404);
@@ -635,6 +632,14 @@ async function handleAdminRoutes(
   }
   if (path === '/api/admin/login-media/settings' && method === 'PATCH') {
     return handleSettingsPatch(request, env, actor);
+  }
+  if (path === '/api/admin/login-media/upload-signature' && method === 'POST') {
+    const upload = await createLoginMediaUploadSignature(env);
+    if (!upload) {
+      console.warn('[Login Media] Cloudinary upload signing is not configured');
+      return noStore(errorResponse('Dịch vụ tải ảnh banner chưa được cấu hình.', 503));
+    }
+    return noStore(jsonResponse({ status: 'success', data: upload }));
   }
   if (path === '/api/admin/login-media/slides' && method === 'POST') {
     return handleSlideCreate(request, env, actor);

@@ -6,6 +6,7 @@ export const ManageTab = React.lazy(() => import('../ManageTab'));
 export const CreateTab = React.lazy(() => import('../CreateTab'));
 export const AnnouncementSettings = React.lazy(() => import('../AnnouncementSettings'));
 export const FeatureRolloutPage = React.lazy(() => import('../../../features/feature-rollout/FeatureRolloutPage'));
+export const LoginMediaAdminPage = React.lazy(() => import('../../../features/login-media/admin/LoginMediaAdminPage'));
 export const ClassManagementTab = React.lazy(() => import('../ClassManagementTab'));
 export const AssignmentTab = React.lazy(() => import('../AssignmentTab'));
 export const TeacherManagementTab = React.lazy(() => import('../TeacherManagementTab'));

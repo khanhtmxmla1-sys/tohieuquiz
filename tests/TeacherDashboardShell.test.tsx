@@ -153,6 +153,7 @@ vi.mock('../src/features/certificates/TeacherCertificatesPage', () => simpleTab(
 vi.mock('../src/features/certificates/AdminTemplatesPage', () => simpleTab('admin-templates-tab'));
 vi.mock('../src/features/math-audit/MathAuditPage', () => simpleTab('math-audit-tab'));
 vi.mock('../src/features/feature-rollout/FeatureRolloutPage', () => simpleTab('feature-rollout-tab'));
+vi.mock('../src/features/login-media/admin/LoginMediaAdminPage', () => simpleTab('login-media-tab'));
 vi.mock('../src/components/TeacherDashboard/PersonalSettingsTab', () => simpleTab('personal-settings-tab'));
 
 const result = (id: string, studentName: string, studentClass: string) => ({
@@ -419,6 +420,20 @@ describe('TeacherDashboard shell contracts', () => {
     if (administration.getAttribute('aria-expanded') !== 'true') await click(administration);
     await click(screen.getByRole('menuitem', { name: 'Tính năng thử nghiệm' }));
     expect(mocks.navigate).toHaveBeenCalledWith('/teacher/feature-rollout');
+  });
+
+  it('renders login media only for admins and navigates through its canonical URL', async () => {
+    useAuthStore.setState({ isAdmin: true } as any);
+    mocks.location.pathname = '/teacher/login-media';
+
+    render(<TeacherDashboard />);
+
+    expect(await screen.findByTestId('login-media-tab')).toBeInTheDocument();
+    await click(screen.getByRole('button', { name: /Mở menu tài khoản của Cô An/i }));
+    const administration = screen.getByRole('menuitem', { name: 'Quản trị hệ thống' });
+    if (administration.getAttribute('aria-expanded') !== 'true') await click(administration);
+    await click(screen.getByRole('menuitem', { name: 'Banner đăng nhập' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/login-media');
   });
 
   it('navigates teachers to personal settings from the account menu', async () => {

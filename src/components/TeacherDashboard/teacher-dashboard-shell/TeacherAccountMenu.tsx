@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ChevronRight,
   FlaskConical,
+  Images,
   LibraryBig,
   LogOut,
   Megaphone,
@@ -38,6 +39,7 @@ const ADMIN_MENU_ID = 'teacher-account-admin-menu';
 const ADMIN_ITEMS: readonly AdminMenuItem[] = [
   { id: 'announcements', label: 'Quản lý thông báo', icon: Megaphone },
   { id: 'feature-rollout', label: 'Tính năng thử nghiệm', icon: FlaskConical },
+  { id: 'login-media', label: 'Banner đăng nhập', icon: Images },
   { id: 'teachers', label: 'Quản lý giáo viên', icon: Users },
   { id: 'math-audit', label: 'Kiểm tra lỗi công thức', icon: ScanSearch },
   { id: 'operations', label: 'Trạng thái hệ thống', icon: ServerCog },

@@ -305,9 +305,10 @@ CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET
 CLOUDINARY_LOGIN_MEDIA_FOLDER   (optional var, default tohieuquiz/login-media)
+CLOUDINARY_LOGIN_MEDIA_UPLOAD_PRESET (signed preset, default tohieuquiz_login_media_signed)
 ```
 
-`CLOUDINARY_API_SECRET` phải là secret binding, không commit value.
+`CLOUDINARY_API_SECRET` phải là secret binding, không commit value. Preset Cloudinary phải ở chế độ **signed**. Worker ký `allowed_formats=jpg,jpeg,png,webp` cùng namespace/public ID do server tạo nên client không thể đổi whitelist định dạng mà vẫn giữ chữ ký hợp lệ. UI Admin từ chối file lớn hơn 5 MB trước khi xin chữ ký; giới hạn kích thước cấp tài khoản Cloudinary vẫn là lớp backstop phía nhà cung cấp.
 
 ### 5.2 Hướng upload đề xuất
 

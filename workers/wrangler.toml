@@ -16,7 +16,7 @@ binding = "AI_GATEWAY"
 service = "tohieuquiz-ai-gateway"
 
 [secrets]
-required = ["JWT_SECRET", "CLIPROXY_TOKEN"]
+required = ["JWT_SECRET", "CLIPROXY_TOKEN", "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"]
 
 [[d1_databases]]
 binding = "DB"
@@ -39,6 +39,8 @@ AUTH_SESSION_MODE = "compat"
 ENVIRONMENT = "production"
 ALLOWED_ORIGINS = "https://thtohieu.com,https://www.thtohieu.com,https://app.thtohieu.com,https://phuhuynh.thtohieu.com"
 ANNOUNCEMENT_IMAGE_HOSTS = "thtohieu.com,www.thtohieu.com,app.thtohieu.com,assets.thtohieu.com"
+CLOUDINARY_LOGIN_MEDIA_FOLDER = "tohieuquiz/login-media"
+CLOUDINARY_LOGIN_MEDIA_UPLOAD_PRESET = "tohieuquiz_login_media_signed"
 PARENT_EMAIL_PROVIDER = "disabled"
 PARENT_EMAIL_PUBLIC_BASE_URL = "https://phuhuynh.thtohieu.com"
 PARENT_EMAIL_SPF_READY = "false"

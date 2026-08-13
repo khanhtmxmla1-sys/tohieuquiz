@@ -4,6 +4,7 @@ import {
   AdminTemplatesPage,
   AnnouncementSettings,
   FeatureRolloutPage,
+  LoginMediaAdminPage,
   AssignmentTab,
   ClassManagementTab,
   GiftShopTab,
@@ -40,6 +41,7 @@ export const TeacherDashboardFeatureTabs = (props: TeacherDashboardFeatureTabsPr
       <div className="mx-auto w-full max-w-[1440px]"><AnnouncementSettings /></div>
     )}
     {props.activeTab === 'feature-rollout' && props.isAdmin && <FeatureRolloutPage />}
+    {props.activeTab === 'login-media' && props.isAdmin && <LoginMediaAdminPage />}
     {props.activeTab === 'classes' && (
       <ClassManagementTab isAdmin={props.isAdmin || false} username={props.username || null} />
     )}

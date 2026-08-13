@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { createHash } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 
@@ -104,9 +105,10 @@ const slide = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const env = (db: FakeDatabase) => ({
+const env = (db: FakeDatabase, overrides: Record<string, unknown> = {}) => ({
   DB: db,
   JWT_SECRET: 'test-secret',
+  ...overrides,
 }) as any;
 
 const request = (path: string, init: RequestInit = {}) => new Request(`https://api.thtohieu.com${path}`, {
@@ -178,6 +180,119 @@ describe('login media public delivery', () => {
     expect(response!.status).toBe(200);
     expect(payload.data).toMatchObject({ mode: 'CONTENT', slides: [], degraded: true });
     expect(payload.data.settings.intervalMs).toBe(5000);
+  });
+});
+
+describe('login media Cloudinary upload signing', () => {
+  it('forbids non-admin users before issuing an upload signature', async () => {
+    currentUser = { id: 'teacher-1', username: 'teacher-1', role: 'teacher' };
+    const db = new FakeDatabase();
+
+    const response = await handleLoginMediaRoutes(
+      request('/api/admin/login-media/upload-signature', { method: 'POST' }),
+      env(db, {
+        CLOUDINARY_CLOUD_NAME: 'demo-cloud',
+        CLOUDINARY_API_KEY: 'public-key',
+        CLOUDINARY_API_SECRET: 'super-secret',
+      }),
+      '/api/admin/login-media/upload-signature',
+      'POST',
+    );
+
+    expect(response!.status).toBe(403);
+  });
+
+  it('returns 503 without exposing config details when Cloudinary signing is not configured', async () => {
+    const response = await handleLoginMediaRoutes(
+      request('/api/admin/login-media/upload-signature', { method: 'POST' }),
+      env(new FakeDatabase()),
+      '/api/admin/login-media/upload-signature',
+      'POST',
+    );
+    const payload = await response!.json() as any;
+
+    expect(response!.status).toBe(503);
+    expect(JSON.stringify(payload)).not.toContain('CLOUDINARY_API_SECRET');
+    expect(JSON.stringify(payload)).not.toContain('apiSecret');
+  });
+
+  it('issues a deterministic SHA-256 signature over server-controlled upload parameters', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-13T00:42:30.000Z'));
+    const response = await handleLoginMediaRoutes(
+      request('/api/admin/login-media/upload-signature', {
+        method: 'POST',
+        body: JSON.stringify({
+          folder: 'evil/folder',
+          publicId: 'attacker-controlled',
+        }),
+      }),
+      env(new FakeDatabase(), {
+        CLOUDINARY_CLOUD_NAME: 'tohieu-demo',
+        CLOUDINARY_API_KEY: '123456789',
+        CLOUDINARY_API_SECRET: 'secret-value',
+        CLOUDINARY_LOGIN_MEDIA_FOLDER: 'tohieuquiz/login-media',
+      }),
+      '/api/admin/login-media/upload-signature',
+      'POST',
+    );
+    const payload = await response!.json() as any;
+    vi.useRealTimers();
+
+    expect(response!.status).toBe(200);
+    expect(payload.data).toMatchObject({
+      cloudName: 'tohieu-demo',
+      apiKey: '123456789',
+      timestamp: 1786581750,
+      uploadUrl: 'https://api.cloudinary.com/v1_1/tohieu-demo/image/upload',
+      allowedFormats: 'jpg,jpeg,png,webp',
+      uploadPreset: 'tohieuquiz_login_media_signed',
+      overwrite: 'false',
+    });
+    expect(payload.data.assetFolder).toBe('tohieuquiz/login-media/2026/08');
+    expect(payload.data.publicId).toMatch(/^tohieuquiz\/login-media\/2026\/08\/[0-9a-f-]{36}$/i);
+    expect(payload.data.publicId).not.toContain('attacker-controlled');
+    expect(payload.data.assetFolder).not.toContain('evil');
+
+    const serialized = [
+      `allowed_formats=${payload.data.allowedFormats}`,
+      `asset_folder=${payload.data.assetFolder}`,
+      `overwrite=${payload.data.overwrite}`,
+      `public_id=${payload.data.publicId}`,
+      `timestamp=${payload.data.timestamp}`,
+      `upload_preset=${payload.data.uploadPreset}`,
+    ].join('&');
+    const expected = createHash('sha256').update(`${serialized}secret-value`).digest('hex');
+    expect(payload.data.signature).toBe(expected);
+    expect(JSON.stringify(payload)).not.toContain('secret-value');
+  });
+
+  it('rejects slide metadata that does not match the configured Cloudinary account or signed namespace', async () => {
+    const cloudinaryEnv = env(new FakeDatabase(), {
+      CLOUDINARY_CLOUD_NAME: 'expected-cloud',
+      CLOUDINARY_LOGIN_MEDIA_FOLDER: 'tohieuquiz/login-media',
+    });
+
+    const wrongAccount = await handleLoginMediaRoutes(request('/api/admin/login-media/slides', {
+      method: 'POST',
+      body: JSON.stringify({
+        cloudinaryPublicId: 'tohieuquiz/login-media/2026/08/banner-1',
+        imageUrl: 'https://res.cloudinary.com/other-cloud/image/upload/v1/tohieuquiz/login-media/2026/08/banner-1.webp',
+        altText: 'Banner',
+      }),
+    }), cloudinaryEnv, '/api/admin/login-media/slides', 'POST');
+
+    const mismatchedId = await handleLoginMediaRoutes(request('/api/admin/login-media/slides', {
+      method: 'POST',
+      body: JSON.stringify({
+        cloudinaryPublicId: 'tohieuquiz/login-media/2026/08/banner-1',
+        imageUrl: 'https://res.cloudinary.com/expected-cloud/image/upload/v1/tohieuquiz/login-media/2026/08/different.webp',
+        altText: 'Banner',
+      }),
+    }), cloudinaryEnv, '/api/admin/login-media/slides', 'POST');
+
+    expect(wrongAccount!.status).toBe(400);
+    expect(mismatchedId!.status).toBe(400);
   });
 });
 
