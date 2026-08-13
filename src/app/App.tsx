@@ -15,7 +15,7 @@ import { useSessionBootstrap } from './useSessionBootstrap';
 import { isDedicatedParentHost, resolveHostContext } from './hostContext';
 import { isParentPortalEnabled } from '../config/featureFlags';
 import { ParentPortalApp } from './lazyViews';
-import { ParentPortalFallback } from '../features/parent-portal/layout/ParentPortalLayout';
+import { ParentPortalFallback } from '../features/parent-portal/layout/ParentPortalFallback';
 import { useClassroomStore } from '../stores/useClassroomStore';
 import { OfflineBanner, ReducedExperienceBanner } from '../components/common';
 
