@@ -246,6 +246,61 @@ function splitTopLevelDefinitions(source) {
   return definitions;
 }
 
+function normalizeStructuralSpacing(sql) {
+  const source = normalizeSchemaSql(sql);
+  let output = '';
+  let quoteEnd = '';
+
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    const next = source[index + 1];
+
+    if (quoteEnd) {
+      output += character;
+      if (character !== quoteEnd) continue;
+      if (next === quoteEnd) {
+        output += next;
+        index += 1;
+      } else {
+        quoteEnd = '';
+      }
+      continue;
+    }
+
+    if (character === "'" || character === '"' || character === '`') {
+      quoteEnd = character;
+      output += character;
+      continue;
+    }
+    if (character === '[') {
+      quoteEnd = ']';
+      output += character;
+      continue;
+    }
+
+    if (character === ' ' && (output.endsWith('(') || next === ')' || next === ',')) {
+      continue;
+    }
+    if ((character === ')' || character === ',') && output.endsWith(' ')) {
+      output = output.slice(0, -1);
+    }
+    output += character;
+  }
+
+  return output.trim();
+}
+
+function normalizeCreateTablePrefix(prefix) {
+  const normalized = prefix.trim();
+  const doubleQuoted = normalized.match(/^(CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+"([A-Za-z_][A-Za-z0-9_]*)"$/i);
+  if (doubleQuoted) return `${doubleQuoted[1]} ${doubleQuoted[2]}`;
+  const backtickQuoted = normalized.match(/^(CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+`([A-Za-z_][A-Za-z0-9_]*)`$/i);
+  if (backtickQuoted) return `${backtickQuoted[1]} ${backtickQuoted[2]}`;
+  const bracketQuoted = normalized.match(/^(CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?)\s+\[([A-Za-z_][A-Za-z0-9_]*)\]$/i);
+  if (bracketQuoted) return `${bracketQuoted[1]} ${bracketQuoted[2]}`;
+  return normalized;
+}
+
 function normalizeCreateTableSql(sql) {
   const normalized = normalizeSchemaSql(sql);
   if (!/^CREATE\s+(?:VIRTUAL\s+)?TABLE\b/i.test(normalized)) return normalized;
@@ -255,9 +310,10 @@ function normalizeCreateTableSql(sql) {
   const closeIndex = normalized.lastIndexOf(')');
   if (openIndex < 0 || closeIndex <= openIndex) return normalized;
 
-  const prefix = normalized.slice(0, openIndex).trim();
+  const prefix = normalizeCreateTablePrefix(normalized.slice(0, openIndex));
   const suffix = normalized.slice(closeIndex + 1).trim();
   const definitions = splitTopLevelDefinitions(normalized.slice(openIndex + 1, closeIndex))
+    .map((definition) => normalizeStructuralSpacing(definition))
     .sort((left, right) => left.localeCompare(right));
   if (definitions.length === 0) return normalized;
 

@@ -38,6 +38,39 @@ const RESTORE_SMOKE_QUERY = [
   "(SELECT COUNT(*) FROM results) AS results_count",
 ].join(' ');
 
+function quoteSqlIdentifier(value) {
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
+function buildDropTriggersSql(triggers) {
+  return (Array.isArray(triggers) ? triggers : [])
+    .map((trigger) => String(trigger?.name || '').trim())
+    .filter(Boolean)
+    .map((name) => `DROP TRIGGER IF EXISTS ${quoteSqlIdentifier(name)};`)
+    .join('\n');
+}
+
+function buildClearSnapshotTablesSql(tables) {
+  const uniqueTables = [...new Set(
+    (Array.isArray(tables) ? tables : [])
+      .map((table) => String(table || '').trim())
+      .filter(Boolean),
+  )];
+  return [
+    'PRAGMA foreign_keys=OFF;',
+    ...uniqueTables.map((table) => `DELETE FROM ${quoteSqlIdentifier(table)};`),
+    'PRAGMA foreign_keys=ON;',
+  ].join('\n');
+}
+
+function buildRestoreTriggersSql(triggers) {
+  return (Array.isArray(triggers) ? triggers : [])
+    .map((trigger) => String(trigger?.sql || '').trim())
+    .filter(Boolean)
+    .map((sql) => `${sql.replace(/;+\s*$/, '')};`)
+    .join('\n');
+}
+
 function compareRestoreSnapshot(expected, actual) {
   const missingTables = Object.keys(expected)
     .filter((table) => !(table in actual))
@@ -72,6 +105,17 @@ function localExecuteArgs(options) {
 
 function executeLocal(options) {
   return runWrangler(localExecuteArgs(options), { cwd: options.cwd });
+}
+
+function readLocalTriggers(options) {
+  return parseWranglerJson(executeLocal({
+    ...options,
+    command: "SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND sql IS NOT NULL ORDER BY name;",
+    json: true,
+  })).map((row) => ({
+    name: String(row.name || ''),
+    sql: String(row.sql || ''),
+  })).filter((trigger) => trigger.name && trigger.sql);
 }
 
 function runRestoreSmoke(options) {
@@ -125,7 +169,30 @@ async function verifyD1Restore(options) {
     });
     executeLocal({ ...options, file: options.schemaPath });
     executeLocal({ ...options, command: RESTORE_REGISTRY_SQL });
+    const triggers = readLocalTriggers(options);
+    const dropTriggersSql = buildDropTriggersSql(triggers);
+    if (dropTriggersSql) {
+      executeLocal({ ...options, command: dropTriggersSql });
+    }
+
+    const snapshotReset = path.join(tempDir, 'reset-snapshot.sql');
+    await fsp.writeFile(
+      snapshotReset,
+      `${buildClearSnapshotTablesSql(Object.keys(manifest.tables))}\n`,
+      { encoding: 'utf8', mode: 0o600 },
+    );
+    executeLocal({ ...options, file: snapshotReset });
     executeLocal({ ...options, file: plaintext });
+
+    const restoreTriggersSql = buildRestoreTriggersSql(triggers);
+    if (restoreTriggersSql) {
+      const triggerRestore = path.join(tempDir, 'restore-triggers.sql');
+      await fsp.writeFile(triggerRestore, `${restoreTriggersSql}\n`, {
+        encoding: 'utf8',
+        mode: 0o600,
+      });
+      executeLocal({ ...options, file: triggerRestore });
+    }
     executeLocal({ ...options, command: FTS_REBUILD_SQL });
 
     const targetInfo = listBackupTables({
@@ -232,6 +299,9 @@ module.exports = {
   FTS_REBUILD_SQL,
   RESTORE_REGISTRY_SQL,
   RESTORE_SMOKE_QUERY,
+  buildClearSnapshotTablesSql,
+  buildDropTriggersSql,
+  buildRestoreTriggersSql,
   compareRestoreSnapshot,
   localExecuteArgs,
   runRestoreSmoke,

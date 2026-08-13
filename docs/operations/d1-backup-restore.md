@@ -24,9 +24,11 @@ The exporter:
 7. deletes the plaintext SQL;
 8. writes an encrypted archive and manifest outside the repository.
 
-The restore verifier creates the canonical schema first, imports regular table data, rebuilds `rag_chunks_fts`, compares every row count and schema fingerprint, and runs auth/API database-contract smoke queries.
+The restore verifier creates the selected schema first, captures and temporarily drops triggers, clears the snapshot tables with foreign keys disabled, imports the regular-table snapshot, restores the captured triggers, rebuilds `rag_chunks_fts`, compares every row count and schema fingerprint, and runs auth/API database-contract smoke queries. Dropping triggers during replay prevents restore-time side effects from generating duplicate ledger/audit rows that are already present in the snapshot.
 
-Schema fingerprints ignore SQL comments because remote D1 can preserve comments in `sqlite_master` while a local SQLite import omits them. Quoted string and identifier content remains part of the fingerprint.
+When verifying a **pre-migration production backup from a feature branch whose `schema.sql` is already ahead of production**, pass `--schema <deployed-base-schema.sql>` and materialize that schema outside the repository from the deployed/base commit. Do not verify a pre-migration snapshot against a feature-branch schema that contains unapplied migrations.
+
+Schema fingerprints ignore SQL comments and normalize semantically equivalent simple table-name quoting plus structural whitespace around parentheses/commas, because remote D1 and local SQLite can preserve those forms differently. String-literal content remains significant, and table/index/trigger contract changes remain fingerprinted.
 
 ## Local isolated rehearsal
 
