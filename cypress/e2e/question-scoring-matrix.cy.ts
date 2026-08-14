@@ -187,10 +187,10 @@ describe('Canonical scoring browser matrix', () => {
       cy.get('button').eq(3).click();
     });
     withinQuestion('matching', () => {
-      cy.get('button').eq(0).click();
-      cy.get('button').eq(2).click();
-      cy.get('button').eq(1).click();
-      cy.get('button').eq(3).click();
+      cy.contains('button', /^A$/).click();
+      cy.contains('button', /^1$/).click();
+      cy.contains('button', /^B$/).click();
+      cy.contains('button', /^2$/).click();
     });
     withinQuestion('drag', () => {
       cy.contains('button', /^xanh$/i).click();
