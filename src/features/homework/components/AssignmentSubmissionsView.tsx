@@ -17,6 +17,35 @@ interface AssignmentSubmissionsViewProps {
   onBack: () => void;
 }
 
+type GradingSubmission = HomeworkSubmission & {
+  ai_flagged_reason?: string | null;
+};
+
+function readAiEvidence(submission: GradingSubmission | null) {
+  const fallback = {
+    feedback: submission?.ai_feedback || submission?.ai_evaluation || '',
+    flaggedReason: submission?.ai_flagged_reason || null,
+  };
+  if (!submission?.ai_evaluation) return fallback;
+  try {
+    const parsed = JSON.parse(submission.ai_evaluation) as Record<string, unknown>;
+    if (parsed?.version !== 1) return fallback;
+    return {
+      feedback: String(parsed.feedback || fallback.feedback),
+      flaggedReason: parsed.flaggedReason == null ? fallback.flaggedReason : String(parsed.flaggedReason),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function scoreFromBreakdown(breakdown: GradingSubmission['gradingBreakdown']): number | null {
+  if (!breakdown?.length) return null;
+  const earned = breakdown.reduce((total, item) => total + item.score, 0);
+  const available = breakdown.reduce((total, item) => total + item.maxScore, 0);
+  return available > 0 ? (earned / available) * 10 : null;
+}
+
 export const AssignmentSubmissionsView: React.FC<AssignmentSubmissionsViewProps> = ({
   assignment,
   onBack
@@ -24,9 +53,9 @@ export const AssignmentSubmissionsView: React.FC<AssignmentSubmissionsViewProps>
   const { submissions, fetchClassAssignments } = useHomeworkStore();
   const students = useRosterStore((state) => state.students);
   const fetchStudents = useRosterStore((state) => state.fetchStudents);
-  const [localSubmissions, setLocalSubmissions] = useState<HomeworkSubmission[]>([]);
+  const [localSubmissions, setLocalSubmissions] = useState<GradingSubmission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSubmission, setSelectedSubmission] = useState<HomeworkSubmission | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<GradingSubmission | null>(null);
   const [isGrading, setIsGrading] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'GRADING' | 'ANALYTICS' | 'PHIEU'>('GRADING');
@@ -59,26 +88,31 @@ export const AssignmentSubmissionsView: React.FC<AssignmentSubmissionsViewProps>
 
   const classStudents = students[assignment.class_id] || [];
 
-  const handleSelectSubmission = (sub: HomeworkSubmission) => {
+  const handleSelectSubmission = (sub: GradingSubmission) => {
     setSelectedSubmission(sub);
-    setEditScore(sub.score || 0);
+    setEditScore(sub.status === 'GRADED' ? sub.score : (sub.ai_score ?? sub.score ?? 0));
     setEditFeedback(sub.teacher_feedback || '');
   };
 
   const handleGrade = async () => {
     if (!selectedSubmission) return;
+    const breakdownScore = scoreFromBreakdown(selectedSubmission.gradingBreakdown);
+    const publishBreakdown = breakdownScore !== null && Math.abs(breakdownScore - editScore) <= 0.01
+      ? selectedSubmission.gradingBreakdown || []
+      : [];
     setIsGrading(true);
     try {
       const published = await homeworkBackendService.publishGrade(
         selectedSubmission.id,
         editScore,
         editFeedback,
-        selectedSubmission.gradingBreakdown || []
+        publishBreakdown
       );
       const updatedSubmission: HomeworkSubmission = {
         ...selectedSubmission,
         score: editScore,
         teacher_feedback: editFeedback,
+        gradingBreakdown: publishBreakdown,
         status: 'GRADED',
         published_at: published.publishedAt,
         graded_at: published.publishedAt,
@@ -109,12 +143,12 @@ export const AssignmentSubmissionsView: React.FC<AssignmentSubmissionsViewProps>
       // Update local object to show AI part (optional, but good for immediate feedback)
       setSelectedSubmission({
         ...selectedSubmission,
-        ai_evaluation: result.feedback,
+        ai_evaluation: JSON.stringify({ version: 1, feedback: result.feedback, flaggedReason: result.flaggedReason || null }),
         ai_feedback: result.feedback,
+        ai_flagged_reason: result.flaggedReason || null,
         ai_score: result.score,
         ai_confidence: result.confidence,
         gradingBreakdown: result.criteriaBreakdown.map((item, index) => ({ questionId: String(index + 1), ...item })),
-        score: result.score
       });
     } catch (err) {
       console.error(err);
@@ -123,6 +157,8 @@ export const AssignmentSubmissionsView: React.FC<AssignmentSubmissionsViewProps>
       setIsAILoading(false);
     }
   };
+
+  const aiEvidence = readAiEvidence(selectedSubmission);
 
   if (loading) {
     return (
@@ -329,20 +365,51 @@ export const AssignmentSubmissionsView: React.FC<AssignmentSubmissionsViewProps>
                           size="sm" 
                           variant="secondary"
                           onClick={handleAIGrade}
-                          disabled={isAILoading}
+                          disabled={isAILoading || selectedSubmission.status === 'GRADED'}
                           className="bg-white hover:bg-indigo-600 hover:text-white border-indigo-200 text-blue-700 font-black text-[10px] px-3 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-2"
                         >
                           {isAILoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                          {isAILoading ? 'ĐANG PHÂN TÍCH...' : 'GỢI Ý CHẤM ĐIỂM'}
+                          {isAILoading ? 'ĐANG PHÂN TÍCH...' : selectedSubmission.status === 'GRADED' ? 'ĐIỂM ĐÃ CHỐT' : 'GỢI Ý CHẤM ĐIỂM'}
                         </Button>
                       </div>
                       
                       <div className="text-slate-700 text-sm leading-relaxed prose prose-slate max-w-none">
-                        <MathSpan content={selectedSubmission.ai_evaluation || 'Chưa có đánh giá. Bấm nút "Gợi ý chấm điểm" để bắt đầu.'} />
+                        <MathSpan content={aiEvidence.feedback || 'Chưa có đánh giá. Bấm nút "Gợi ý chấm điểm" để bắt đầu.'} />
                       </div>
+                      {selectedSubmission.ai_confidence != null && (
+                        <p className="mt-3 text-xs font-bold text-indigo-500">
+                          Độ tin cậy: {Math.round(selectedSubmission.ai_confidence * 100)}%
+                        </p>
+                      )}
+                      {aiEvidence.flaggedReason && (
+                        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-amber-700">Cần giáo viên lưu ý</p>
+                          <p className="mt-1 text-sm text-amber-900">{aiEvidence.flaggedReason}</p>
+                        </div>
+                      )}
+                      {(selectedSubmission.gradingBreakdown || []).length > 0 && (
+                        <div className="mt-4 space-y-2" aria-label="Chi tiết tiêu chí AI">
+                          {(selectedSubmission.gradingBreakdown || []).map((criterion) => (
+                            <div key={criterion.questionId} className="rounded-xl border border-indigo-100 bg-white/80 p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <MathSpan content={criterion.label} className="text-sm font-bold text-slate-700" />
+                                <span className="shrink-0 text-sm font-black text-blue-700">
+                                  {criterion.score}/{criterion.maxScore}
+                                </span>
+                              </div>
+                              {criterion.comment && <p className="mt-1 text-xs text-slate-500">{criterion.comment}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className="mt-4 flex items-center justify-between pt-4 border-t border-indigo-100">
                         <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Điểm AI đề xuất:</span>
-                        <span className="text-2xl font-black text-blue-700">{selectedSubmission.score || '?'}/10</span>
+                        <span className="text-2xl font-black text-blue-700">{selectedSubmission.ai_score ?? '?'}/10</span>
+                        {selectedSubmission.published_at && (
+                          <span className="text-xs font-black text-emerald-700">
+                            Điểm đã công bố: {selectedSubmission.score}/10
+                          </span>
+                        )}
                       </div>
                     </div>
 
