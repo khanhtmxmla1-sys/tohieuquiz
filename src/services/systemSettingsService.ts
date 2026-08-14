@@ -1,8 +1,13 @@
 import { callApi } from './apiAdapter';
+import {
+    normalizeRandomizationPolicy,
+    type RandomizationPolicy,
+} from '../../shared/randomization-policy.contract';
 
 export interface SystemSettings {
     aiAssistantEnabled: boolean;
     unifiedNotificationsEnabled: boolean;
+    randomization: RandomizationPolicy;
     updatedAt?: string;
     degraded?: boolean;
 }
@@ -14,9 +19,24 @@ export const getSystemSettings = async (): Promise<SystemSettings> => {
         aiAssistantEnabled: Boolean(data.data.aiAssistantEnabled),
         unifiedNotificationsEnabled: data.data.unified_notifications_v1 === true
             || data.data.unifiedNotificationsEnabled === true,
+        randomization: normalizeRandomizationPolicy(data.data.randomization),
         updatedAt: data.data.updatedAt || '',
         degraded: Boolean(data.data.degraded),
     };
+};
+
+export const saveRandomizationSettings = async (randomization: RandomizationPolicy): Promise<RandomizationPolicy> => {
+    const data = await callApi<any>('save_randomization_settings', randomization);
+    if (data?.status !== 'success' || !data?.data?.randomization) {
+        throw new Error(data?.message || 'Không thể lưu cấu hình random.');
+    }
+    const saved = normalizeRandomizationPolicy(data.data.randomization);
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('tohieuquiz:system-settings-updated', {
+            detail: { randomization: saved },
+        }));
+    }
+    return saved;
 };
 
 export const saveSystemSettings = async (payload: {

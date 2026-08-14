@@ -2,15 +2,18 @@ import React, { useMemo } from 'react';
 import { BaseRendererProps } from '../types';
 import MathSpan from '../atoms/MathSpan';
 import { selectedAnswerClass, unselectedAnswerClass } from '../../answer-state/stateStyles';
+import { seededShuffle } from '../../../../randomization/randomization';
 
 const MatchingRenderer: React.FC<BaseRendererProps> = ({
   question: question,
   answers,
   onAnswerChange,
   onMatchingClick,
+  randomizationPolicy,
 }) => {
   const currentAnswers = (answers[question.id] as Record<string, any>) || {};
   const selectedLeft = currentAnswers.selectedLeft;
+  const shouldShuffleMatching = randomizationPolicy?.shuffleMatching ?? true;
 
   const currentPairs = useMemo(() => {
     const pairs: Record<string, string> = {};
@@ -54,6 +57,8 @@ const MatchingRenderer: React.FC<BaseRendererProps> = ({
       ? [...rawRightItems]
       : rawPairs.map((pair: any, index: number) => ({ id: `r-${index}`, content: pair.right }));
 
+    if (!shouldShuffleMatching) return rawItems;
+
     const savedOrder = currentAnswers.__shuffledIds;
     if (savedOrder && Array.isArray(savedOrder)) {
       return savedOrder
@@ -61,20 +66,15 @@ const MatchingRenderer: React.FC<BaseRendererProps> = ({
         .filter(Boolean);
     }
 
-    const shuffled = [...rawItems];
-    for (let index = shuffled.length - 1; index > 0; index -= 1) {
-      const swapIndex = Math.floor(Math.random() * (index + 1));
-      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-    }
-    return shuffled;
-  }, [rawRightItems, rawPairs, currentAnswers.__shuffledIds]);
+    return seededShuffle(rawItems, `${question.id}:matching`);
+  }, [rawRightItems, rawPairs, currentAnswers.__shuffledIds, question.id, shouldShuffleMatching]);
 
   React.useEffect(() => {
-    if (!currentAnswers.__shuffledIds && itemsRight.length > 0) {
+    if (shouldShuffleMatching && !currentAnswers.__shuffledIds && itemsRight.length > 0) {
       const ids = itemsRight.map((item: any) => item.id);
       onAnswerChange(question.id, { ...currentAnswers, __shuffledIds: ids });
     }
-  }, [question.id, itemsRight, currentAnswers.__shuffledIds, onAnswerChange]);
+  }, [question.id, itemsRight, currentAnswers.__shuffledIds, onAnswerChange, shouldShuffleMatching]);
 
   const getPairNumber = (itemId: string, side: 'left' | 'right') => {
     const pairs = Object.entries(currentPairs);

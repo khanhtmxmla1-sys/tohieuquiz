@@ -1,4 +1,5 @@
 import { FeatureRolloutPanel } from './FeatureRolloutPanel';
+import { RandomizationSettingsPanel } from '../randomization/admin/RandomizationSettingsPanel';
 
 const FeatureRolloutPage = () => (
   <div className="mx-auto w-full max-w-[1440px] space-y-5">
@@ -8,6 +9,7 @@ const FeatureRolloutPage = () => (
         Bật, tắt hoặc thử nghiệm theo từng nhóm người dùng mà không cần deploy lại; mọi thay đổi đều có phiên bản, lý do và khả năng hoàn tác.
       </p>
     </div>
+    <RandomizationSettingsPanel />
     <FeatureRolloutPanel />
   </div>
 );

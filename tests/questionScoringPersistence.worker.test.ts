@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mapQuestionForSave } from '../workers/src/utils/helpers';
 import { sanitizeQuestionForStudent } from '../workers/src/routes/quizzes';
 import { QuestionScoringContractValidationError } from '../workers/src/services/questionScoringContract';
@@ -52,7 +52,11 @@ describe('canonical scoring persistence', () => {
     } as any, 'quiz-a')).toThrow(QuestionScoringContractValidationError);
   });
 
-  it('gives student matching DTOs stable IDs independent of content', () => {
+  it('gives student matching DTOs stable IDs in canonical order independent of content', () => {
+    const randomSpy = vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation(((array: Uint32Array) => {
+      array[0] = 0;
+      return array;
+    }) as any);
     const safe = sanitizeQuestionForStudent({
       id: 'match', type: 'MATCHING',
       items: JSON.stringify([{ left: 'A', right: '1' }, { left: 'A', right: '2' }]),
@@ -61,10 +65,15 @@ describe('canonical scoring persistence', () => {
       { id: 'left-0', content: 'A' },
       { id: 'left-1', content: 'A' },
     ]);
-    expect(JSON.parse(safe.right_items).map((item: any) => item.id).sort()).toEqual(['right-0', 'right-1']);
+    expect(JSON.parse(safe.right_items).map((item: any) => item.id)).toEqual(['right-0', 'right-1']);
+    randomSpy.mockRestore();
   });
 
-  it('preserves drag-drop blank IDs without exposing correct answers', () => {
+  it('preserves drag-drop blank IDs and canonical choice order without exposing correct answers', () => {
+    const randomSpy = vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation(((array: Uint32Array) => {
+      array[0] = 0;
+      return array;
+    }) as any);
     const safe = sanitizeQuestionForStudent({
       id: 'drag', type: 'DRAG_DROP', text_field: '[a] và [b]',
       blanks: JSON.stringify([

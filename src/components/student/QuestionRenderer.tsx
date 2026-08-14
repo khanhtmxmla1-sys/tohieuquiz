@@ -1,5 +1,6 @@
 import React from 'react';
 import { Question } from '../../types';
+import type { RandomizationPolicy } from '../../../shared/randomization-policy.contract';
 import NewQuestionRenderer from '../../features/quiz-player/components/QuestionRenderer';
 
 interface QuestionRendererProps {
@@ -9,6 +10,7 @@ interface QuestionRendererProps {
     answers: Record<string, any>;
     onAnswerChange: (questionId: string, value: any, subId?: string) => void;
     onMatchingClick: (questionId: string, item: string, type: 'left' | 'right') => void;
+    randomizationPolicy?: RandomizationPolicy;
 }
 
 /**

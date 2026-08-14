@@ -5,6 +5,7 @@ import MathSpan from '../atoms/MathSpan';
 import { orderingItemIdAt, selectedOrderingRanks } from '../utils/answerState';
 import { answerInputClasses } from '../../answer-state/stateStyles';
 import { updateOrderingRanks } from '../../../utils/structuredAnswerUpdates';
+import { seededShuffle } from '../../../../randomization/randomization';
 
 /**
  * Robust helper: extract text from any item format (String, Number, Object).
@@ -41,9 +42,11 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
     question: q,
     answers,
     onAnswerChange,
+    randomizationPolicy,
 }) => {
     const currentRanks = selectedOrderingRanks(q, answers[q.id]);
     const items = (q as any).items || [];
+    const shouldShuffleOrdering = randomizationPolicy?.shuffleOrdering ?? true;
     const duplicateRanks = new Set(
         Object.entries(
             Object.values(currentRanks).reduce<Record<number, number>>((counts, rank) => {
@@ -62,14 +65,11 @@ const OrderingRenderer: React.FC<BaseRendererProps> = ({
             content: extractItemText(item),
             idx
         }));
-        
-        // Fisher-Yates shuffle
-        for (let i = itemsWithIndex.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [itemsWithIndex[i], itemsWithIndex[j]] = [itemsWithIndex[j], itemsWithIndex[i]];
-        }
-        return itemsWithIndex;
-    }, [q.id, items]);
+
+        return shouldShuffleOrdering
+            ? seededShuffle(itemsWithIndex, `${q.id}:ordering`)
+            : itemsWithIndex;
+    }, [q.id, items, shouldShuffleOrdering]);
 
     const handleOrderChange = (originalIndex: number, orderValue: string) => {
         const num = parseInt(orderValue, 10);

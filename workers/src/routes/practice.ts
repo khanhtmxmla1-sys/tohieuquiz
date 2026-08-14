@@ -1,6 +1,7 @@
 import { Env } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
 import { deserializeQuestionRichText } from '../../../shared/question-rich-text.contract';
+import { loadRandomizationPolicy } from '../services/randomizationPolicyService';
 
 export async function handlePracticeRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
     const db = env.DB;
@@ -70,9 +71,11 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
             // Using LIKE to match variations, e.g. multiple tags in the same string "#Toan, #Phep_Nhan"
             // We pad with % to allow matching anywhere in the tags string
             const searchPattern = `%${topic}%`;
+            const randomizationPolicy = await loadRandomizationPolicy(db);
+            const questionOrder = randomizationPolicy.randomizePracticeSelection ? 'RANDOM()' : 'rowid ASC';
 
             const rows = await db.prepare(
-                'SELECT id, quiz_id, type, question, question_rich_text, options, correct_answer, items, text_field, blanks, distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, tags FROM questions WHERE tags LIKE ? ORDER BY RANDOM() LIMIT ?'
+                `SELECT id, quiz_id, type, question, question_rich_text, options, correct_answer, items, text_field, blanks, distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, tags FROM questions WHERE tags LIKE ? ORDER BY ${questionOrder} LIMIT ?`
             ).bind(searchPattern, limit).all<import('../types').Question>();
 
             // Map D1 snake_case and JSON string fields to frontend camelCase objects

@@ -8,25 +8,32 @@ import {
   unselectedAnswerClass,
   unselectedIndicatorClass,
 } from '../../answer-state/stateStyles';
+import { buildDisplayEntries } from '../../../../randomization/randomization';
 
 const MultipleSelectRenderer: React.FC<BaseRendererProps> = ({
   question: question,
   answers,
   onAnswerChange,
+  randomizationPolicy,
 }) => {
   const options = (question as any).options ?? [];
   const currentOptionIds = selectedOptionIds(question, answers[question.id]);
+  const displayOptions = buildDisplayEntries(
+    options,
+    `${question.id}:choices`,
+    randomizationPolicy?.shuffleChoices === true,
+  );
 
   return (
     <div className="grid grid-cols-1 gap-3">
-      {options.map((option: unknown, index: number) => {
-        const label = String.fromCharCode(65 + index);
-        const optionId = optionIdAt(index);
+      {displayOptions.map(({ value: option, originalIndex }, displayIndex) => {
+        const label = String.fromCharCode(65 + displayIndex);
+        const optionId = optionIdAt(originalIndex);
         const isSelected = currentOptionIds.includes(optionId);
 
         return (
           <button
-            key={index}
+            key={originalIndex}
             type="button"
             aria-pressed={isSelected}
             onClick={() => {

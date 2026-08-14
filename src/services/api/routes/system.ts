@@ -130,6 +130,9 @@ export const systemRoutes: RouteRegistry = {
         path: ({ key }) => `/api/system-settings/feature-flags/${encodeURIComponent(key)}/rollback`,
         body: (_action, payload) => ({ reason: payload.reason }),
     },
+    save_randomization_settings: {
+        method: 'POST', auth: 'session', path: () => '/api/system-settings/randomization',
+    },
     save_system_settings: {
         method: 'POST',
         auth: 'session',

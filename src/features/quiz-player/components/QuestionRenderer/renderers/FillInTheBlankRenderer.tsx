@@ -5,35 +5,17 @@ import LatexDropdown from '../atoms/LatexDropdown';
 import InteractiveMathText, { getInteractiveBlankIds } from '../atoms/InteractiveMathText';
 import { getBlankId } from '../../../../../domain/quiz-scoring';
 import { answerInputClasses } from '../../answer-state/stateStyles';
-
-const seededShuffle = <T,>(values: T[], seedText: string): T[] => {
-    const output = [...values];
-    let seed = 2166136261;
-    for (const char of seedText) {
-        seed ^= char.charCodeAt(0);
-        seed = Math.imul(seed, 16777619);
-    }
-    const random = () => {
-        seed += 0x6D2B79F5;
-        let value = seed;
-        value = Math.imul(value ^ (value >>> 15), value | 1);
-        value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-        return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-    };
-    for (let i = output.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [output[i], output[j]] = [output[j], output[i]];
-    }
-    return output;
-};
+import { seededShuffle } from '../../../../randomization/randomization';
 
 /** Fill/dropdown renderer that keeps interactive blanks outside invalid TeX fragments. */
 const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
     question: q,
     answers,
     onAnswerChange,
+    randomizationPolicy,
 }) => {
     const isDragDrop = q.type === 'DRAG_DROP' || (q as any).mathType === 'drag_drop';
+    const shouldShuffleDragDrop = randomizationPolicy?.shuffleDragDrop ?? true;
     const text = String((q as any).text || (q as any).content || '');
     const blanksData = (q as any).blanks;
     const distractors = Array.isArray((q as any).distractors) ? (q as any).distractors : [];
@@ -59,11 +41,10 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
         distractors.map((value: unknown) => String(value)).filter(Boolean).forEach((value: string) => {
             if (!values.includes(value)) values.push(value);
         });
-        return seededShuffle(
-            values,
-            `${q.id}:${JSON.stringify(blankAnswers)}:${JSON.stringify(distractors)}`,
-        );
-    }, [q.id, isDragDrop, blanksData, distractors]);
+        return shouldShuffleDragDrop
+            ? seededShuffle(values, `${q.id}:drag-drop`)
+            : values;
+    }, [q.id, isDragDrop, blanksData, distractors, shouldShuffleDragDrop]);
 
     const handleFill = useCallback((blankId: string, value: string) => {
         onAnswerChange(q.id, value, blankId);

@@ -4,11 +4,13 @@ import MathSpan from '../atoms/MathSpan';
 import ChoiceIndicator from '../atoms/ChoiceIndicator';
 import { optionIdAt, selectedOptionId } from '../utils/answerState';
 import { selectedAnswerClass, unselectedAnswerClass } from '../../answer-state/stateStyles';
+import { buildDisplayEntries } from '../../../../randomization/randomization';
 
 const MCQRenderer: React.FC<BaseRendererProps> = ({
   question: question,
   answers,
   onAnswerChange,
+  randomizationPolicy,
 }) => {
   const rawOptions = (question as any).options ?? [];
   const isGrouped = Array.isArray(rawOptions[0]) && rawOptions.length > 0;
@@ -54,16 +56,22 @@ const MCQRenderer: React.FC<BaseRendererProps> = ({
     );
   }
 
+  const displayOptions = buildDisplayEntries(
+    rawOptions,
+    `${question.id}:choices`,
+    randomizationPolicy?.shuffleChoices === true,
+  );
+
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-      {rawOptions.map((option: unknown, index: number) => {
-        const label = String.fromCharCode(65 + index);
-        const optionId = optionIdAt(index);
+      {displayOptions.map(({ value: option, originalIndex }, displayIndex) => {
+        const label = String.fromCharCode(65 + displayIndex);
+        const optionId = optionIdAt(originalIndex);
         const isSelected = selectedOptionId(question, answers[question.id]) === optionId;
 
         return (
           <button
-            key={index}
+            key={originalIndex}
             type="button"
             aria-pressed={isSelected}
             onClick={() => onAnswerChange(question.id, { type: 'MCQ', optionId })}

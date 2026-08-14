@@ -84,7 +84,7 @@ export const useQuizPersistence = ({
                             duration: quizToSave.timeLimit,
                             maxAttempts: form.maxAttempts,
                             viewAnswers: true,
-                            shuffleQuestions: true,
+
                         },
                     });
                 } catch {

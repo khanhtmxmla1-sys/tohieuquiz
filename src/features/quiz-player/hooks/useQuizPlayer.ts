@@ -15,11 +15,13 @@ import {
 } from '../quizAttemptDraft';
 import { createQuizDeadline, remainingSeconds, useQuizDeadline } from './useQuizDeadline';
 import { updateMatchingAnswer } from '../utils/structuredAnswerUpdates';
+import type { RandomizationPolicy } from '../../../../shared/randomization-policy.contract';
 
 interface UseQuizPlayerProps {
     quiz: Quiz;
     onExit: () => void;
     onSaveResult: (result: StudentResult) => void | StudentResult | Promise<void | StudentResult>;
+    randomizationPolicy?: RandomizationPolicy;
 }
 
 export type QuizStep = 'code' | 'info' | 'notice' | 'quiz' | 'result';
@@ -43,7 +45,7 @@ export interface CompletionRewardData {
     isPractice: boolean;
 }
 
-export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps) => {
+export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy }: UseQuizPlayerProps) => {
     const classroomStore = useClassroomStore();
     const session = classroomStore.studentSession;
     const isLoggedIn = !!session;
@@ -200,7 +202,11 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
             }
 
             const hasLevels = quiz.questions.some((q: any) => q.difficultyLevel);
-            const finalQuestions = hasLevels ? shuffleWithinLevel(quiz.questions) : shuffleArray(quiz.questions);
+            const finalQuestions = randomizationPolicy?.shuffleQuestions === false
+                ? [...quiz.questions]
+                : hasLevels
+                    ? shuffleWithinLevel(quiz.questions)
+                    : shuffleArray(quiz.questions);
             const startedAt = Date.now();
 
             submissionTriggeredRef.current = false;
@@ -222,6 +228,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult }: UseQuizPlayerProps
         quiz._assignmentData?.id,
         quiz.questions,
         quiz.timeLimit,
+        randomizationPolicy?.shuffleQuestions,
         session?.studentId,
         shuffleArray,
         shuffleWithinLevel,

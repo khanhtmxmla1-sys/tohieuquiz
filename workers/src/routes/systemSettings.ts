@@ -5,6 +5,12 @@ import { isTransientD1Error, withD1Retry } from '../utils/d1';
 import { requireAdmin, verifyJWTMiddleware } from '../middleware/jwtAuth';
 import { auditStatement } from '../utils/audit';
 import { handleFeatureFlagRoutes } from './featureFlags';
+import {
+    DEFAULT_RANDOMIZATION_POLICY,
+    RANDOMIZATION_FIELDS,
+    RANDOMIZATION_SETTING_KEY_BY_FIELD,
+    type RandomizationPolicy,
+} from '../../../shared/randomization-policy.contract';
 
 type SystemSettingRow = {
     setting_key: string;
@@ -14,6 +20,7 @@ type SystemSettingRow = {
 
 const AI_ASSISTANT_KEY = 'ai_assistant_enabled';
 const UNIFIED_NOTIFICATIONS_KEY = 'unified_notifications_v1';
+const RANDOMIZATION_KEYS = RANDOMIZATION_FIELDS.map((field) => RANDOMIZATION_SETTING_KEY_BY_FIELD[field]);
 
 const parseBool = (value: unknown, fallback = false): boolean => {
     if (typeof value === 'boolean') return value;
@@ -29,9 +36,49 @@ const parseBool = (value: unknown, fallback = false): boolean => {
 export async function handleSystemSettingsRoutes(request: Request, env: Env, path: string, method: string): Promise<Response | null> {
     const featureFlagResponse = await handleFeatureFlagRoutes(request, env, path, method);
     if (featureFlagResponse) return featureFlagResponse;
-    if (path !== '/api/system-settings') return null;
+    const randomizationPath = path === '/api/system-settings/randomization';
+    if (path !== '/api/system-settings' && !randomizationPath) return null;
 
     const db = env.DB;
+    if (randomizationPath) {
+        if (method !== 'POST') return errorResponse('Method not allowed', 405);
+        const authResult = await verifyJWTMiddleware(request, env);
+        if (authResult instanceof Response) return authResult;
+        if (!requireAdmin(authResult.user)) return errorResponse('Forbidden', 403);
+
+        const body = await parseBody(request);
+        if (!body) return errorResponse('Invalid JSON body');
+        for (const field of RANDOMIZATION_FIELDS) {
+            if (typeof body[field] !== 'boolean') return errorResponse(`${field} must be a boolean`, 400);
+        }
+
+        const randomization = Object.fromEntries(
+            RANDOMIZATION_FIELDS.map((field) => [field, body[field]]),
+        ) as unknown as RandomizationPolicy;
+        const now = new Date().toISOString();
+        const statements = RANDOMIZATION_FIELDS.map((field) => db.prepare(`
+            INSERT INTO system_settings (setting_key, setting_value, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(setting_key) DO UPDATE SET
+                setting_value = excluded.setting_value,
+                updated_at = excluded.updated_at
+        `).bind(
+            RANDOMIZATION_SETTING_KEY_BY_FIELD[field],
+            randomization[field] ? 'true' : 'false',
+            now,
+        ));
+        statements.push(auditStatement(db, {
+            actorUsername: authResult.user.username,
+            action: 'SYSTEM_SETTINGS_UPDATED',
+            targetType: 'system_setting',
+            targetId: 'quiz_randomization_policy',
+            requestId: request.headers.get('cf-ray') || request.headers.get('x-request-id') || crypto.randomUUID(),
+            before: null,
+            after: { randomization },
+        }));
+        await db.batch(statements);
+        return jsonResponse({ status: 'success', data: { randomization, updatedAt: now } });
+    }
 
     if (method === 'GET') {
         let rows: SystemSettingRow[] = [];
@@ -40,8 +87,8 @@ export async function handleSystemSettingsRoutes(request: Request, env: Env, pat
                 () => db.prepare(`
                     SELECT setting_key, setting_value, updated_at
                     FROM system_settings
-                    WHERE setting_key IN (?, ?)
-                `).bind(AI_ASSISTANT_KEY, UNIFIED_NOTIFICATIONS_KEY).all<SystemSettingRow>(),
+                    WHERE setting_key IN (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).bind(AI_ASSISTANT_KEY, UNIFIED_NOTIFICATIONS_KEY, ...RANDOMIZATION_KEYS).all<SystemSettingRow>(),
                 'GET /api/system-settings'
             );
             rows = result.results || [];
@@ -57,6 +104,10 @@ export async function handleSystemSettingsRoutes(request: Request, env: Env, pat
         const unifiedRow = settings.get(UNIFIED_NOTIFICATIONS_KEY);
         const aiAssistantEnabled = parseBool(aiRow?.setting_value ?? 'false', false);
         const unifiedNotificationsEnabled = parseBool(unifiedRow?.setting_value ?? 'false', false);
+        const randomization = Object.fromEntries(RANDOMIZATION_FIELDS.map((field) => {
+            const row = settings.get(RANDOMIZATION_SETTING_KEY_BY_FIELD[field]);
+            return [field, parseBool(row?.setting_value, DEFAULT_RANDOMIZATION_POLICY[field])];
+        })) as unknown as RandomizationPolicy;
         const updatedAt = rows
             .map((row) => row.updated_at)
             .filter(Boolean)
@@ -69,6 +120,7 @@ export async function handleSystemSettingsRoutes(request: Request, env: Env, pat
                 unified_notifications_v1: unifiedNotificationsEnabled,
                 unifiedNotificationsEnabled,
                 updatedAt,
+                randomization,
                 degraded: rows.length === 0,
             },
         });
