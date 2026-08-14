@@ -9,6 +9,7 @@ import {
   unselectedIndicatorClass,
 } from '../../answer-state/stateStyles';
 import SafeRasterImage from '../../../../../components/common/SafeRasterImage';
+import { buildDisplayEntries } from '../../../../randomization/randomization';
 
 const optionTextFor = (value: unknown): string => {
   if (typeof value === 'string') return value;
@@ -24,27 +25,33 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
   question: question,
   answers,
   onAnswerChange,
+  randomizationPolicy,
 }) => {
   const optionImages: string[] = (question as any).optionImages || [];
   const hasOptionImages = optionImages.some((image: string) => image && image.trim());
   const options: unknown[] = Array.isArray((question as any).options)
     ? (question as any).options
     : [];
+  const displayOptions = buildDisplayEntries(
+    options,
+    `${question.id}:choices`,
+    randomizationPolicy?.shuffleChoices === true,
+  );
 
   return (
     <div className="space-y-4">
       {hasOptionImages ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {options.map((option: unknown, index: number) => {
-            const label = String.fromCharCode(65 + index);
-            const optionId = optionIdAt(index);
+          {displayOptions.map(({ value: option, originalIndex }, displayIndex) => {
+            const label = String.fromCharCode(65 + displayIndex);
+            const optionId = optionIdAt(originalIndex);
             const isSelected = selectedOptionId(question, answers[question.id]) === optionId;
-            const imageUrl = optionImages[index];
+            const imageUrl = optionImages[originalIndex];
             const optionText = optionTextFor(option);
 
             return (
               <button
-                key={index}
+                key={originalIndex}
                 type="button"
                 aria-pressed={isSelected}
                 onClick={() => onAnswerChange(question.id, { type: 'IMAGE_QUESTION', optionId })}
@@ -85,15 +92,15 @@ const ImageQuestionRenderer: React.FC<BaseRendererProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {options.map((option: unknown, index: number) => {
-            const label = String.fromCharCode(65 + index);
-            const optionId = optionIdAt(index);
+          {displayOptions.map(({ value: option, originalIndex }, displayIndex) => {
+            const label = String.fromCharCode(65 + displayIndex);
+            const optionId = optionIdAt(originalIndex);
             const isSelected = selectedOptionId(question, answers[question.id]) === optionId;
             const optionText = optionTextFor(option);
 
             return (
               <button
-                key={index}
+                key={originalIndex}
                 type="button"
                 aria-pressed={isSelected}
                 onClick={() => onAnswerChange(question.id, { type: 'IMAGE_QUESTION', optionId })}

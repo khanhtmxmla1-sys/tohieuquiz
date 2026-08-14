@@ -261,4 +261,40 @@ describe('useQuizPlayer resume', () => {
     });
     unmount();
   });
+
+  it('keeps canonical question order when question shuffle is disabled', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const orderedQuiz = {
+      ...quiz,
+      id: 'quiz-no-shuffle',
+      questions: [
+        { id: 'q1', type: QuestionType.MCQ, question: '1?', options: ['A', 'B'], correctAnswer: 'A' },
+        { id: 'q2', type: QuestionType.MCQ, question: '2?', options: ['A', 'B'], correctAnswer: 'A' },
+        { id: 'q3', type: QuestionType.MCQ, question: '3?', options: ['A', 'B'], correctAnswer: 'A' },
+        { id: 'q4', type: QuestionType.MCQ, question: '4?', options: ['A', 'B'], correctAnswer: 'A' },
+      ],
+    } as Quiz;
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz: orderedQuiz,
+      onExit: vi.fn(),
+      onSaveResult: vi.fn(),
+      randomizationPolicy: {
+        enabled: false,
+        shuffleQuestions: false,
+        shuffleChoices: false,
+        shuffleMatching: false,
+        shuffleOrdering: false,
+        shuffleDragDrop: false,
+        randomizePracticeSelection: false,
+      },
+    } as any));
+
+    await act(async () => {
+      await result.current.handleStart();
+    });
+
+    expect(result.current.shuffledQuestions.map((question) => question.id)).toEqual(['q1', 'q2', 'q3', 'q4']);
+    randomSpy.mockRestore();
+  });
+
 });

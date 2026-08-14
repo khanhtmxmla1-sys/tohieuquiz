@@ -16,6 +16,7 @@ import QuizPagination from '../features/quiz-player/components/QuizPagination';
 import QuizSubmitButton from '../features/quiz-player/components/QuizSubmitButton';
 import MobileQuizNavigator from '../features/quiz-player/components/MobileQuizNavigator';
 import { useQuizPageNavigation } from '../features/quiz-player/hooks/useQuizPageNavigation';
+import { useRandomizationPolicy } from '../features/randomization/useRandomizationPolicy';
 
 interface Props {
   quiz: Quiz;
@@ -24,6 +25,7 @@ interface Props {
 }
 
 const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
+  const randomizationPolicy = useRandomizationPolicy();
   const {
     step, studentName, setStudentName, studentClass, setStudentClass, studentAvatar,
     enteredCode, setEnteredCode, codeError, isVerifyingCode, answers, timeLeft, result,
@@ -31,7 +33,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
     showSubmitConfirm, setShowSubmitConfirm,
     rewardData, currentPage, setCurrentPage, totalPages, questionsOnCurrentPage, quizProgress,
     handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward,
-  } = useQuizPlayer({ quiz, onExit, onSaveResult });
+  } = useQuizPlayer({ quiz, onExit, onSaveResult, randomizationPolicy });
 
   const QUESTIONS_PER_PAGE = 10;
   const { activeQuestionId, changePage } = useQuizPageNavigation({
@@ -157,6 +159,7 @@ const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {
                       answers={answers}
                       onAnswerChange={handleAnswerChange}
                       onMatchingClick={handleMatchingClick}
+                      randomizationPolicy={randomizationPolicy}
                     />
                   </div>
                 ))}

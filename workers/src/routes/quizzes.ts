@@ -93,15 +93,6 @@ export const sanitizeQuizForStudent = (
     return safeQuiz;
 };
 
-const shuffle = <T>(values: T[]): T[] => {
-    const output = [...values];
-    for (let i = output.length - 1; i > 0; i--) {
-        const j = crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1);
-        [output[i], output[j]] = [output[j], output[i]];
-    }
-    return output;
-};
-
 const buildQuestionInsertStatement = (db: D1Database) => db.prepare(
     `INSERT INTO questions (
         id, quiz_id, type, question, question_rich_text, options, correct_answer, items, text_field,
@@ -343,10 +334,10 @@ export const sanitizeQuestionForStudent = (question: any): any => {
             id: `left-${index}`,
             content: String(item.left),
         })));
-        safe.right_items = JSON.stringify(shuffle(items.map((item, index) => ({
+        safe.right_items = JSON.stringify(items.map((item, index) => ({
             id: `right-${index}`,
             content: String(item.right),
-        }))));
+        })));
     } else if (items.length > 0) {
         safe.items = JSON.stringify(items.map((item) => {
             if (!item || typeof item !== 'object') return item;
@@ -374,7 +365,7 @@ export const sanitizeQuestionForStudent = (question: any): any => {
         safe.text_field = safeText;
         if ('text' in safe) safe.text = safeText;
         safe.blanks = JSON.stringify(normalizedBlanks.map((blank) => ({ id: blank.id })));
-        safe.distractors = JSON.stringify(shuffle([...correctChoices, ...distractors]));
+        safe.distractors = JSON.stringify([...correctChoices, ...distractors]);
     } else if (blanks.length > 0 && blanks.some((blank) => blank && typeof blank === 'object')) {
         safe.blanks = JSON.stringify(blanks.map((blank) => {
             if (!blank || typeof blank !== 'object') return blank;
@@ -464,7 +455,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
 
         const [quiz, questions, usage] = await Promise.all([
             db.prepare('SELECT * FROM quizzes WHERE id = ?').bind(quizId).first<import('../types').Quiz>(),
-            db.prepare('SELECT * FROM questions WHERE quiz_id = ?').bind(quizId).all<import('../types').Question>(),
+            db.prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY rowid ASC').bind(quizId).all<import('../types').Question>(),
             loadQuizUsage(db, quizId),
         ]);
         if (!quiz) return errorResponse('Quiz not found', 404);
@@ -497,6 +488,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
                     JOIN quizzes z ON z.id = q.quiz_id
                     WHERE q.quiz_id = ?
                       AND UPPER(COALESCE(z.show_on_home, 'FALSE')) = 'TRUE'
+                    ORDER BY q.rowid ASC
                 `).bind(quizId).all<any>(),
                 'GET /api/questions public quiz',
             );
@@ -512,7 +504,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             );
         } else if (quizId) {
             rows = await withD1Retry(
-                () => db.prepare('SELECT * FROM questions WHERE quiz_id = ?').bind(quizId).all<any>(),
+                () => db.prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY rowid ASC').bind(quizId).all<any>(),
                 'GET /api/questions by quizId',
             );
         } else if (requireAdmin(user)) {
@@ -748,7 +740,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             if (!originalQuiz) return errorResponse('Quiz not found', 404);
 
             const [originalQuestions, body] = await Promise.all([
-                db.prepare('SELECT * FROM questions WHERE quiz_id = ?')
+                db.prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY rowid ASC')
                     .bind(quizId)
                     .all<import('../types').Question>(),
                 parseBody(request),
@@ -831,7 +823,7 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
                 .first<import('../types').Quiz>();
             if (!originalQuiz) return errorResponse('Quiz not found', 404);
 
-            const originalQuestions = await db.prepare('SELECT * FROM questions WHERE quiz_id = ?')
+            const originalQuestions = await db.prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY rowid ASC')
                 .bind(quizId)
                 .all<import('../types').Question>();
             const newQuizId = generateId('quiz');

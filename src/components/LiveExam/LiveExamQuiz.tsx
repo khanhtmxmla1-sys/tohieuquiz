@@ -5,7 +5,7 @@
  * Simplified version that works with actual API.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useLiveExamTimer, useLiveExamActivity } from '../../hooks';
 import { getAnswerSnapshot, saveAnswerSnapshot, submitAnswers } from '../../services/liveExamService';
@@ -36,6 +36,7 @@ import {
     type LiveExamSyncStatus,
 } from '../../features/live-exam/liveExamAutosaveQueue';
 import { updateMatchingAnswer } from '../../features/quiz-player/utils/structuredAnswerUpdates';
+import { useRandomizationPolicy } from '../../features/randomization/useRandomizationPolicy';
 
 interface LiveExamQuizProps {
     sessionId: string;
@@ -65,6 +66,12 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
     const submissionAttemptRef = useRef<LiveExamSubmissionAttempt | null>(null);
     const autosaveQueueRef = useRef<LiveExamAutosaveQueue | null>(null);
     const { isOnline } = useOnlineStatus();
+    const randomizationPolicy = useRandomizationPolicy();
+    const liveExamRandomizationPolicy = useMemo(() => ({
+        ...randomizationPolicy,
+        shuffleQuestions: false,
+        shuffleChoices: false,
+    }), [randomizationPolicy]);
     const onlineRef = useRef(isOnline);
     onlineRef.current = isOnline;
 
@@ -274,6 +281,7 @@ export const LiveExamQuiz: React.FC<LiveExamQuizProps> = ({
                                         answers={answers}
                                         onAnswerChange={handleAnswerChange}
                                         onMatchingClick={handleMatchingClick}
+                                        randomizationPolicy={liveExamRandomizationPolicy}
                                     />
                                 </div>
                             ))}

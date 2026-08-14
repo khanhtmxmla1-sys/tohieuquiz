@@ -7,6 +7,12 @@ import StudentView from '../src/components/StudentView';
 const mocks = vi.hoisted(() => ({
   setShowSubmitConfirm: vi.fn(),
   changePage: vi.fn(),
+  useQuizPlayerArgs: vi.fn(),
+  questionPolicy: vi.fn(),
+  policy: {
+    enabled: false, shuffleQuestions: false, shuffleChoices: false, shuffleMatching: false,
+    shuffleOrdering: false, shuffleDragDrop: false, randomizePracticeSelection: false,
+  },
 }));
 
 const question = {
@@ -17,7 +23,9 @@ const question = {
 } as unknown as Question;
 
 vi.mock('../src/features/quiz-player/hooks/useQuizPlayer', () => ({
-  useQuizPlayer: () => ({
+  useQuizPlayer: (args: unknown) => {
+    mocks.useQuizPlayerArgs(args);
+    return ({
     step: 'quiz',
     studentName: 'An',
     setStudentName: vi.fn(),
@@ -57,7 +65,14 @@ vi.mock('../src/features/quiz-player/hooks/useQuizPlayer', () => ({
     handleMatchingClick: vi.fn(),
     handleSubmit: vi.fn(),
     handleRetryReward: vi.fn(),
-  }),
+  });
+  },
+}));
+
+
+
+vi.mock('../src/features/randomization/useRandomizationPolicy', () => ({
+  useRandomizationPolicy: () => mocks.policy,
 }));
 
 vi.mock('../src/features/quiz-player/hooks/useQuizPageNavigation', () => ({
@@ -73,7 +88,10 @@ vi.mock('../src/components/student', () => ({
   QuizStartNotice: () => null,
   SubmitConfirmModal: () => null,
   ResultScreen: () => null,
-  QuestionRenderer: ({ index }: { index: number }) => <div>Câu hiển thị {index + 1}</div>,
+  QuestionRenderer: ({ index, randomizationPolicy }: { index: number; randomizationPolicy?: unknown }) => {
+    mocks.questionPolicy(randomizationPolicy);
+    return <div>Câu hiển thị {index + 1}</div>;
+  },
 }));
 
 const quiz = {
@@ -87,6 +105,8 @@ describe('StudentView desktop quiz layout', () => {
   beforeEach(() => {
     mocks.setShowSubmitConfirm.mockReset();
     mocks.changePage.mockReset();
+    mocks.useQuizPlayerArgs.mockReset();
+    mocks.questionPolicy.mockReset();
   });
 
   it('keeps the desktop controls stationary and makes only the question column scrollable', () => {
@@ -128,4 +148,14 @@ describe('StudentView desktop quiz layout', () => {
     const main = screen.getByRole('main', { name: 'Nội dung câu hỏi' });
     expect(within(main).getByRole('button', { name: 'Nộp bài' })).toHaveClass('lg:hidden');
   });
+
+  it('passes the effective randomization policy into quiz state and question renderers', () => {
+    render(<StudentView quiz={quiz} onExit={vi.fn()} onSaveResult={vi.fn()} />);
+
+    expect(mocks.useQuizPlayerArgs).toHaveBeenCalledWith(expect.objectContaining({
+      randomizationPolicy: mocks.policy,
+    }));
+    expect(mocks.questionPolicy).toHaveBeenCalledWith(mocks.policy);
+  });
+
 });
