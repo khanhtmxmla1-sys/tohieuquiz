@@ -300,15 +300,49 @@ async function submitHomework(db: D1Database, user: JWTPayload, assignmentId: st
     return jsonResponse({ status: 'success', data: mapSubmission(created || { id }) }, 201);
 }
 
-function normalizeBreakdown(value: unknown) {
-    if (!Array.isArray(value)) return [];
-    return value.slice(0, 100).map((item: any, index) => ({
-        questionId: String(item.questionId ?? item.id ?? index + 1),
-        label: String(item.label || `Câu ${index + 1}`).slice(0, 160),
-        score: Math.max(0, Number(item.score || 0)),
-        maxScore: Math.max(0.01, Number(item.maxScore || 1)),
-        comment: String(item.comment || '').slice(0, 1000),
-    }));
+type GradingBreakdownItem = {
+    questionId: string;
+    label: string;
+    score: number;
+    maxScore: number;
+    comment: string;
+};
+
+function normalizeBreakdown(value: unknown): GradingBreakdownItem[] | null {
+    if (!Array.isArray(value) || value.length > 100) return null;
+    const normalized: GradingBreakdownItem[] = [];
+    const questionIds = new Set<string>();
+    for (let index = 0; index < value.length; index++) {
+        const item = value[index];
+        if (!item || typeof item !== 'object') return null;
+        const record = item as Record<string, unknown>;
+        const questionId = String(record.questionId ?? record.id ?? index + 1).trim().slice(0, 128);
+        const label = String(record.label || `Câu ${index + 1}`).trim().slice(0, 160);
+        const score = Number(record.score);
+        const maxScore = Number(record.maxScore);
+        if (!questionId || !label || questionIds.has(questionId)
+            || !Number.isFinite(score) || !Number.isFinite(maxScore)
+            || score < 0 || maxScore <= 0 || score > maxScore) {
+            return null;
+        }
+        questionIds.add(questionId);
+        normalized.push({
+            questionId,
+            label,
+            score,
+            maxScore,
+            comment: String(record.comment || '').slice(0, 1000),
+        });
+    }
+    return normalized;
+}
+
+function breakdownMatchesScore(score: number, breakdown: GradingBreakdownItem[]): boolean {
+    if (breakdown.length === 0) return true;
+    const earned = breakdown.reduce((total, item) => total + item.score, 0);
+    const available = breakdown.reduce((total, item) => total + item.maxScore, 0);
+    const breakdownScore = (earned / available) * 10;
+    return Math.abs(breakdownScore - score) <= 0.01;
 }
 
 async function callHomeworkAi(env: Env, media: string | string[], prompt: string): Promise<any> {
@@ -378,6 +412,9 @@ async function suggestGrade(db: D1Database, env: Env, user: JWTPayload, submissi
     `).bind(submissionId).first<any>();
     if (!row) return errorResponse('Submission not found', 404);
     if (!teacherOwnsAssignment(user, row)) return errorResponse('Forbidden', 403);
+    if (row.status === 'GRADED' || row.published_at) {
+        return errorResponse('Published grades cannot be replaced by an AI draft', 409);
+    }
     const urls = validateMediaUrls(parseJson(row.file_urls, []));
     if (!urls) return errorResponse('Submission media is invalid', 400);
     const rubric = parseJson(row.rubric_json, []);
@@ -387,19 +424,29 @@ async function suggestGrade(db: D1Database, env: Env, user: JWTPayload, submissi
         const score = Number(result.score);
         const confidence = Number(result.confidence);
         if (!Number.isFinite(score) || score < 0 || score > 10 || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
-            await db.prepare("UPDATE hw_submissions SET status='NEEDS_REVIEW', ai_feedback=? WHERE id=?")
-                .bind('Phản hồi AI không hợp lệ; giáo viên cần chấm thủ công.', submissionId).run();
             return errorResponse('AI response failed validation', 422);
         }
         const breakdown = normalizeBreakdown(result.criteriaBreakdown);
+        if (!breakdown || !breakdownMatchesScore(score, breakdown)) {
+            return errorResponse('AI response failed breakdown validation', 422);
+        }
         const feedback = String(result.feedback || '').slice(0, 5000);
-        await db.prepare(`UPDATE hw_submissions SET status='AI_REVIEW', ai_score=?, ai_confidence=?, ai_feedback=?, ai_evaluation=?, grading_breakdown_json=? WHERE id=?`)
-            .bind(score, confidence, feedback, feedback, JSON.stringify(breakdown), submissionId).run();
-        return jsonResponse({ status: 'success', data: { score, confidence, feedback, criteriaBreakdown: breakdown, flaggedReason: result.flaggedReason || null } });
+        const flaggedReason = result.flaggedReason == null
+            ? null
+            : String(result.flaggedReason).trim().slice(0, 1000) || null;
+        const aiEvaluation = JSON.stringify({ version: 1, feedback, flaggedReason });
+        const update = await db.prepare(`
+            UPDATE hw_submissions
+            SET status='AI_REVIEW', ai_score=?, ai_confidence=?, ai_feedback=?, ai_evaluation=?, grading_breakdown_json=?
+            WHERE id=? AND status <> 'GRADED' AND published_at IS NULL
+        `)
+            .bind(score, confidence, feedback, aiEvaluation, JSON.stringify(breakdown), submissionId).run();
+        if (Number(update.meta?.changes || 0) !== 1) {
+            return errorResponse('Grade was published while AI analysis was running', 409);
+        }
+        return jsonResponse({ status: 'success', data: { score, confidence, feedback, criteriaBreakdown: breakdown, flaggedReason } });
     } catch (error) {
         console.error('[Homework AI grading]', error);
-        await db.prepare("UPDATE hw_submissions SET status='NEEDS_REVIEW', ai_feedback=? WHERE id=?")
-            .bind('Dịch vụ AI tạm thời không khả dụng; giáo viên cần chấm thủ công.', submissionId).run();
         return errorResponse('AI grading temporarily unavailable', 502);
     }
 }
@@ -412,8 +459,14 @@ async function publishGrade(db: D1Database, user: JWTPayload, submissionId: stri
     const score = Number(body.score);
     if (!Number.isFinite(score) || score < 0 || score > 10) return errorResponse('Score must be between 0 and 10', 400);
     const breakdown = normalizeBreakdown(body.gradingBreakdown || body.criteriaBreakdown || parseJson(row.grading_breakdown_json, []));
+    if (!breakdown) return errorResponse('Grading breakdown is invalid', 400);
+    if (!breakdownMatchesScore(score, breakdown)) {
+        return errorResponse('Score must match the grading breakdown total', 400);
+    }
     const now = new Date().toISOString();
     const feedback = String(body.feedback || body.teacher_feedback || '').slice(0, 5000);
+    const isRevision = Boolean(row.published_at);
+    const previousScore = Number(row.score);
     await db.prepare(`UPDATE hw_submissions SET status='GRADED', score=?, teacher_feedback=?, grading_breakdown_json=?, analytics_json=?, graded_by=?, graded_at=?, published_at=? WHERE id=?`)
         .bind(score, feedback, JSON.stringify(breakdown),
             JSON.stringify(breakdown.map((x: any) => ({ questionId: x.questionId, label: x.label, score: x.score / x.maxScore }))),
@@ -424,8 +477,10 @@ async function publishGrade(db: D1Database, user: JWTPayload, submissionId: stri
             userRole: 'student',
             type: 'homework_graded',
             priority: 'IMPORTANT',
-            title: 'Bài tập của em đã được chấm',
-            body: `${row.assignment_title || 'Bài tập'}: ${score.toFixed(1)}/10${feedback ? ` · ${feedback.slice(0, 240)}` : ''}`,
+            title: isRevision ? 'Điểm bài tập của em đã được điều chỉnh' : 'Bài tập của em đã được chấm',
+            body: isRevision
+                ? `${row.assignment_title || 'Bài tập'}: ${previousScore.toFixed(1)}/10 → ${score.toFixed(1)}/10${feedback ? ` · ${feedback.slice(0, 240)}` : ''}`
+                : `${row.assignment_title || 'Bài tập'}: ${score.toFixed(1)}/10${feedback ? ` · ${feedback.slice(0, 240)}` : ''}`,
             actionUrl: `/student?assignment=${encodeURIComponent(String(row.assignment_id))}`,
             data: {
                 assignment_id: String(row.assignment_id),
@@ -433,7 +488,7 @@ async function publishGrade(db: D1Database, user: JWTPayload, submissionId: stri
                 score,
             },
             sourceType: 'homework_grade',
-            sourceId: submissionId,
+            sourceId: isRevision ? `${submissionId}:revision:${now}` : submissionId,
             createdAt: now,
         });
     } catch (error) {
@@ -448,9 +503,11 @@ async function publishGrade(db: D1Database, user: JWTPayload, submissionId: stri
             studentId: String(row.student_id),
             kind: 'homework_graded',
             sourceType: 'homework_grade',
-            sourceId: submissionId,
-            title: 'Bài tập đã được chấm',
-            body: `${row.assignment_title || 'Bài tập'}: ${score.toFixed(1)}/10${feedback ? ` – ${feedback.slice(0, 240)}` : ''}`,
+            sourceId: isRevision ? `${submissionId}:revision:${now}` : submissionId,
+            title: isRevision ? 'Điểm bài tập đã được điều chỉnh' : 'Bài tập đã được chấm',
+            body: isRevision
+                ? `${row.assignment_title || 'Bài tập'}: ${previousScore.toFixed(1)}/10 → ${score.toFixed(1)}/10${feedback ? ` – ${feedback.slice(0, 240)}` : ''}`
+                : `${row.assignment_title || 'Bài tập'}: ${score.toFixed(1)}/10${feedback ? ` – ${feedback.slice(0, 240)}` : ''}`,
             payload: {
                 assignmentId: String(row.assignment_id),
                 submissionId,
