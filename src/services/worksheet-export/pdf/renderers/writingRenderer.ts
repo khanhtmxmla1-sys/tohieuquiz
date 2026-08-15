@@ -3,6 +3,20 @@ import { normalizeWorksheetMath } from '../../shared/mathNormalizer';
 import { ensurePdfSpace } from '../pdfLayout';
 import { PDF_MARGIN, type PdfRenderContext, setPdfFont } from '../pdfTypes';
 
+export function renderPdfRiddle(ctx: PdfRenderContext, question: any): void {
+    const doc = ctx.doc;
+    const contentWidth = doc.internal.pageSize.getWidth() - PDF_MARGIN * 2;
+    setPdfFont(doc, FONT_NAME, 'normal');
+    doc.setFontSize(9);
+    (question.riddleLines || []).forEach((line: unknown) => {
+        const lines = doc.splitTextToSize(normalizeWorksheetMath(String(line ?? '')), contentWidth);
+        ensurePdfSpace(ctx, Math.max(6, lines.length * 5 + 1));
+        doc.text(lines, PDF_MARGIN, ctx.yPos);
+        ctx.yPos += Math.max(5, lines.length * 5) + 1;
+    });
+    renderPdfWritingLines(ctx);
+}
+
 export function renderPdfWritingLines(ctx: PdfRenderContext): void {
     const doc = ctx.doc;
     const width = doc.internal.pageSize.getWidth();

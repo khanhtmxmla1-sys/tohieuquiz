@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
 import { X, FileDown, Loader2, FileText, LayoutGrid, Minus, BookOpen } from 'lucide-react';
 import type { Quiz } from '../../types';
 import {
@@ -7,6 +7,7 @@ import {
     type WorksheetPaperStyle,
     type WorksheetAnswerKey,
 } from '../../services/worksheetExportService';
+import { useDialogFocus } from '../../hooks/useDialogFocus';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,16 @@ const WorksheetExportModal: React.FC<WorksheetExportModalProps> = ({ quiz, onClo
     const [answerKey, setAnswerKey] = useState<WorksheetAnswerKey>('none');
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const closeRef = useRef<HTMLButtonElement>(null);
+    const titleId = useId();
+
+    useDialogFocus({
+        isOpen: true,
+        dialogRef,
+        initialFocusRef: closeRef,
+        onClose,
+    });
 
     const handleExport = async () => {
         setIsExporting(true);
@@ -68,13 +79,19 @@ const WorksheetExportModal: React.FC<WorksheetExportModalProps> = ({ quiz, onClo
             onClick={onClose}
         >
             <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                aria-busy={isExporting}
+                tabIndex={-1}
                 className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
                 <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center justify-between">
                     <div>
-                        <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                        <h3 id={titleId} className="text-white font-bold text-lg flex items-center gap-2">
                             <FileDown className="w-5 h-5" />
                             Xuất Vở Bài Tập
                         </h3>
@@ -82,6 +99,9 @@ const WorksheetExportModal: React.FC<WorksheetExportModalProps> = ({ quiz, onClo
                     </div>
                     <button
                         onClick={onClose}
+                        ref={closeRef}
+                        type="button"
+                        aria-label="Đóng"
                         className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/20 transition-colors"
                     >
                         <X className="w-5 h-5" />
@@ -97,6 +117,7 @@ const WorksheetExportModal: React.FC<WorksheetExportModalProps> = ({ quiz, onClo
                                 <button
                                     key={opt.value}
                                     type="button"
+                                    aria-pressed={format === opt.value}
                                     onClick={() => setFormat(opt.value)}
                                     className={`flex items-start gap-2.5 p-3 rounded-xl border-2 text-left transition-all ${
                                         format === opt.value
@@ -127,6 +148,7 @@ const WorksheetExportModal: React.FC<WorksheetExportModalProps> = ({ quiz, onClo
                                     <button
                                         key={opt.value}
                                         type="button"
+                                        aria-pressed={paperStyle === opt.value}
                                         onClick={() => setPaperStyle(opt.value)}
                                         className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-center transition-all ${
                                             paperStyle === opt.value
@@ -181,7 +203,7 @@ const WorksheetExportModal: React.FC<WorksheetExportModalProps> = ({ quiz, onClo
 
                     {/* Error */}
                     {error && (
-                        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+                        <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
                     )}
 
                     {/* Actions */}

@@ -3,6 +3,26 @@ import { normalizeWorksheetMath } from '../../shared/mathNormalizer';
 import { ensurePdfSpace } from '../pdfLayout';
 import { PDF_MARGIN, type PdfRenderContext, setPdfFont } from '../pdfTypes';
 
+export function renderPdfDropdown(ctx: PdfRenderContext, question: any): void {
+    const doc = ctx.doc;
+    const contentWidth = doc.internal.pageSize.getWidth() - PDF_MARGIN * 2;
+    const source = String(question.text || '').replace(/\[\d+\]/g, '___');
+    const lines = doc.splitTextToSize(normalizeWorksheetMath(source), contentWidth);
+    ensurePdfSpace(ctx, Math.max(12, lines.length * 5 + (question.blanks?.length || 0) * 6 + 4));
+    setPdfFont(doc, FONT_NAME, 'normal');
+    doc.setFontSize(9);
+    doc.text(lines, PDF_MARGIN, ctx.yPos);
+    ctx.yPos += Math.max(5, lines.length * 5) + 2;
+    (question.blanks || []).forEach((blank: any, index: number) => {
+        const options = (blank?.options || []).map((value: unknown) => normalizeWorksheetMath(String(value ?? ''))).join(' / ');
+        const optionLines = doc.splitTextToSize(`[${index + 1}]: ${options}`, contentWidth - 4);
+        ensurePdfSpace(ctx, Math.max(6, optionLines.length * 5 + 1));
+        doc.text(optionLines, PDF_MARGIN + 2, ctx.yPos);
+        ctx.yPos += Math.max(5, optionLines.length * 5) + 1;
+    });
+    ctx.yPos += 2;
+}
+
 export function renderPdfOrdering(ctx: PdfRenderContext, question: any): void {
     const doc = ctx.doc;
     const contentWidth = doc.internal.pageSize.getWidth() - PDF_MARGIN * 2;

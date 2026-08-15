@@ -1,6 +1,7 @@
 
 import { setupUnicodeFont } from '../../../utils/pdfFonts';
 import { createWorksheetFileName } from '../fileName';
+import { prepareWorksheetImageAssets } from '../shared/media';
 import type { WorksheetExportOptions } from '../types';
 import { renderPdfAnswerKey } from './pdfAnswerKey';
 import { drawPdfBackground, drawPdfHeader } from './pdfLayout';
@@ -32,6 +33,7 @@ export async function exportWorksheetPdf(opts: WorksheetExportOptions): Promise<
     try {
         const { default: jsPDF } = await import('jspdf');
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const imageAssets = await prepareWorksheetImageAssets(opts.quiz);
         const svgDiagrams = new Map<string, PdfSvgDiagramImage>();
         await Promise.all(opts.quiz.questions.map(async (question, index) => {
             const svgContent = (question as unknown as Record<string, unknown>).svgContent;
@@ -45,11 +47,12 @@ export async function exportWorksheetPdf(opts: WorksheetExportOptions): Promise<
             doc,
             opts,
             svgDiagrams,
+            imageAssets,
             yPos: drawPdfHeader(doc, opts, schoolName),
         };
         opts.quiz.questions.forEach((question, index) => renderPdfQuestion(context, question, index));
-        addPdfFooters(doc, schoolName);
         if (opts.answerKey === 'separate') renderPdfAnswerKey(doc, opts.quiz, schoolName);
+        addPdfFooters(doc, schoolName);
         doc.save(createWorksheetFileName(opts.quiz.title, 'pdf'));
     } catch (error) {
         console.error('Worksheet export failed:', error);

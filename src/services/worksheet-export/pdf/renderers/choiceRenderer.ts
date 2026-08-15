@@ -11,22 +11,35 @@ export function renderPdfChoices(ctx: PdfRenderContext, question: any): void {
     const letters = ['A', 'B', 'C', 'D'];
     const columns = options.length <= 2 ? 1 : 2;
     const columnWidth = contentWidth / columns;
-    options.forEach((option, index) => {
-        const column = index % columns;
-        const row = Math.floor(index / columns);
-        const x = PDF_MARGIN + column * columnWidth;
-        const y = ctx.yPos + row * 7;
-        ensurePdfSpace(ctx, 10);
-        doc.setDrawColor(60, 60, 60);
-        doc.setLineWidth(0.4);
-        doc.rect(x, y - 3.5, 4, 4);
-        setPdfFont(doc, FONT_NAME, 'bold');
-        doc.setFontSize(9);
-        doc.text(`${letters[index]}.`, x + 6, y);
-        setPdfFont(doc, FONT_NAME, 'normal');
-        const clean = normalizeWorksheetMath(option.replace(/^[A-Da-d][.)]\s*/, ''));
-        const lines = doc.splitTextToSize(clean, columnWidth - 14);
-        doc.text(lines[0] || '', x + 14, y);
-    });
-    ctx.yPos += Math.ceil(options.length / columns) * 7 + 4;
+    const rows = Math.ceil(options.length / columns);
+
+    for (let row = 0; row < rows; row += 1) {
+        const indexes = Array.from({ length: columns }, (_, column) => row * columns + column)
+            .filter(index => index < options.length);
+        const prepared = indexes.map((index) => {
+            const clean = normalizeWorksheetMath(options[index].replace(/^[A-Da-d][.)]\s*/, ''));
+            return {
+                index,
+                lines: doc.splitTextToSize(clean, columnWidth - 14),
+            };
+        });
+        const rowHeight = Math.max(7, ...prepared.map(item => item.lines.length * 5));
+        ensurePdfSpace(ctx, rowHeight + 3);
+        const y = ctx.yPos;
+
+        prepared.forEach(({ index, lines }) => {
+            const column = index % columns;
+            const x = PDF_MARGIN + column * columnWidth;
+            doc.setDrawColor(60, 60, 60);
+            doc.setLineWidth(0.4);
+            doc.rect(x, y - 3.5, 4, 4);
+            setPdfFont(doc, FONT_NAME, 'bold');
+            doc.setFontSize(9);
+            doc.text(`${letters[index]}.`, x + 6, y);
+            setPdfFont(doc, FONT_NAME, 'normal');
+            doc.text(lines, x + 14, y);
+        });
+        ctx.yPos += rowHeight + 2;
+    }
+    ctx.yPos += 2;
 }

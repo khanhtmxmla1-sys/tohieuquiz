@@ -25,6 +25,8 @@ vi.mock('jspdf', () => {
             return text.length > chunk ? text.match(new RegExp(`.{1,${chunk}}`, 'g')) || [text] : [text];
         }
         getTextWidth(value: string) { return String(value).length * 2; }
+        getFontSize() { return 9; }
+        addImage() {}
         save(name: string) { this.savedNames.push(name); }
         addFileToVFS() {} addFont() {} setFont() {} setFontSize() {} setTextColor() {}
         setDrawColor() {} setLineWidth() {} line() {} rect() {} setFillColor() {} setPage() {}
@@ -66,6 +68,7 @@ vi.mock('docx', () => {
         Packer: { toBlob: vi.fn(async () => new Blob(['docx'])) },
         WidthType: { PERCENTAGE: 'percentage' }, BorderStyle: { NONE: 'none', SINGLE: 'single' },
         AlignmentType: { CENTER: 'center' }, VerticalAlign: { BOTTOM: 'bottom' },
+        PageOrientation: { PORTRAIT: 'portrait' },
     };
 });
 
@@ -113,8 +116,8 @@ describe('worksheetExportService characterization', () => {
         await exportWorksheet({ quiz, format: 'pdf', paperStyle: 'blank', answerKey: 'none' });
         await exportWorksheet({ quiz, format: 'docx', paperStyle: 'blank', answerKey: 'none' });
 
-        expect(mocks.pdfInstances[0].savedNames).toEqual(['vo-bai-tap-Ôn t-p Toán- Phân s-.pdf']);
-        expect(mocks.savedFiles.map(file => file.name)).toEqual(['vo-bai-tap-Ôn t-p Toán- Phân s-.docx']);
+        expect(mocks.pdfInstances[0].savedNames).toEqual(['vo-bai-tap-Ôn-tập-Toán-Phân-số.pdf']);
+        expect(mocks.savedFiles.map(file => file.name)).toEqual(['vo-bai-tap-Ôn-tập-Toán-Phân-số.docx']);
     });
 
     it('keeps Vietnamese text, readable PDF math, and native Office Math in DOCX', async () => {
@@ -123,8 +126,10 @@ describe('worksheetExportService characterization', () => {
         const pdfText = mocks.pdfInstances[0].textCalls.join('\n');
         expect(pdfText).toContain('TÔHIỆUQUIZ');
         expect(pdfText).toContain('Ôn tập Toán: Phân số');
-        expect(pdfText).toContain('Viết kết quả của 1/2 + 1/4');
-        expect(pdfText).toContain('3/4');
+        expect(pdfText).toContain('Câu 3 [Tự luận]: ');
+        expect(pdfText).not.toContain('1/2');
+        expect(pdfText).not.toContain('1/4');
+        expect(pdfText).not.toContain('3/4');
 
         await exportWorksheet({ quiz, format: 'docx', paperStyle: 'blank', answerKey: 'separate', schoolName: 'TôHiệuQuiz' });
         const docxText = collectText(mocks.documents[0]).join('\n');

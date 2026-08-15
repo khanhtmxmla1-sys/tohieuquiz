@@ -2,7 +2,7 @@ import type jsPDF from 'jspdf';
 import type { Quiz } from '../../../types';
 import { FONT_NAME } from '../../../utils/pdfFonts';
 import { getWorksheetAnswerText } from '../shared/answerFormatter';
-import { normalizeWorksheetMath } from '../shared/mathNormalizer';
+import { renderPdfMathText } from './pdfMath';
 import { PDF_MARGIN, setPdfFont } from './pdfTypes';
 
 export function renderPdfAnswerKey(doc: jsPDF, quiz: Quiz, schoolName: string): void {
@@ -36,11 +36,13 @@ export function renderPdfAnswerKey(doc: jsPDF, quiz: Quiz, schoolName: string): 
         doc.setFontSize(9);
         doc.text(`Câu ${index + 1}:`, PDF_MARGIN, y);
         setPdfFont(doc, FONT_NAME, 'normal');
-        const lines = doc.splitTextToSize(
-            normalizeWorksheetMath(getWorksheetAnswerText(question)),
+        const answerHeight = renderPdfMathText(
+            doc,
+            getWorksheetAnswerText(question, true),
+            PDF_MARGIN + 18,
+            y,
             width - PDF_MARGIN * 2 - 20,
         );
-        doc.text(lines, PDF_MARGIN + 18, y);
-        y += Math.max(lines.length * 5, 6) + 2;
+        y += answerHeight + 2;
     });
 }
