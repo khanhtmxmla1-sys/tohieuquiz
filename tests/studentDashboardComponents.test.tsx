@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AssignedWorkSection,
@@ -53,6 +53,7 @@ beforeEach(() => {
 });
 
 const renderHeader = (callbacks: {
+  activeSection?: 'dashboard' | 'achievements' | 'resultReports';
   onOpenAssignments?: () => void;
   onOpenPractice?: () => void;
 } = {}) =>
@@ -63,7 +64,7 @@ const renderHeader = (callbacks: {
       avatarUrl="/avatar1.png"
       level={4}
       coins={250}
-      activeSection="dashboard"
+      activeSection={callbacks.activeSection || 'dashboard'}
       giftShopEnabled
       studentId="student-1"
       onSelectSection={vi.fn()}
@@ -195,6 +196,21 @@ describe('student dashboard header', () => {
       'aria-expanded',
       'false',
     );
+  });
+
+  it('marks only the active mobile route with aria-current and active styling', () => {
+    renderHeader({ activeSection: 'achievements' });
+
+    const mobileNav = screen.getByRole('navigation', {
+      name: 'Điều hướng học sinh trên điện thoại',
+    });
+    const homeButton = within(mobileNav).getByRole('button', { name: 'Trang chủ' });
+    const achievementsButton = within(mobileNav).getByRole('button', { name: 'Thành tích' });
+
+    expect(achievementsButton).toHaveAttribute('aria-current', 'page');
+    expect(achievementsButton.className).toContain('text-sky-700');
+    expect(homeButton).not.toHaveAttribute('aria-current');
+    expect(homeButton.className).toContain('text-slate-600');
   });
 });
 
