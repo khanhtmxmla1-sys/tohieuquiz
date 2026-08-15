@@ -123,6 +123,7 @@ const ActionCenterPanel: React.FC = () => {
   const load = useCallback(async () => {
     setIsLoading(true);
     setError('');
+    setData(null);
     try {
       setData(await fetchTeacherActionCenter());
     } catch (loadError) {

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type React from 'react';
 import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIStore';
 import { showError } from '../../../utils/toast';
+import { isDashboardTabAllowed } from './useDashboardPermissions';
 import {
   DASHBOARD_SEARCH_ITEMS,
   type DashboardSearchDestination,
@@ -11,6 +12,8 @@ interface UseDashboardSearchOptions {
   onSelectTab: (tab: TeacherDashboardTab) => void;
   onCreateQuizManually: () => void;
   manualQuizWorkspaceEnabled: boolean;
+  isAdmin: boolean;
+  giftShopEnabled: boolean;
 }
 
 const normalizeSearchText = (value: string): string => value
@@ -35,15 +38,18 @@ export const useDashboardSearch = ({
   onSelectTab,
   onCreateQuizManually,
   manualQuizWorkspaceEnabled,
+  isAdmin,
+  giftShopEnabled,
 }: UseDashboardSearchOptions) => {
   const [searchQuery, setSearchQuery] = useState('');
   const searchOptions = useMemo<DashboardSearchDestination[]>(() => DASHBOARD_SEARCH_ITEMS
     .filter((item) => manualQuizWorkspaceEnabled || item.kind !== 'manual-quiz')
+    .filter((item) => item.kind !== 'tab' || isDashboardTabAllowed(item.tab, isAdmin, giftShopEnabled))
     .map((item) => (
       !manualQuizWorkspaceEnabled && item.kind === 'tab' && item.tab === 'create'
         ? { ...item, label: 'Tạo đề mới' }
         : item
-    )), [manualQuizWorkspaceEnabled]);
+    )), [giftShopEnabled, isAdmin, manualQuizWorkspaceEnabled]);
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

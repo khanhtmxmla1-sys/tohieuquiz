@@ -23,7 +23,7 @@ import {
   getTeacherInitial,
 } from './dashboardSelectors';
 import { useAccessCodeEditor } from './useAccessCodeEditor';
-import { useDashboardPermissions } from './useDashboardPermissions';
+import { isDashboardTabAllowed, useDashboardPermissions } from './useDashboardPermissions';
 import { useDashboardSearch } from './useDashboardSearch';
 import { useTeacherAccountGate } from './useTeacherAccountGate';
 import { useTeacherDashboardBootstrap } from './useTeacherDashboardBootstrap';
@@ -34,13 +34,16 @@ const TeacherDashboard = () => {
   const quizStore = useQuizStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const activeTab = resolveTeacherTabFromLocation(location.pathname, location.search);
+  const requestedTab = resolveTeacherTabFromLocation(location.pathname, location.search);
   const setLegacyActiveTab = useTeacherDashboardUIStore(state => state.setActiveTab);
   const clearAssignmentComposerDraft = useTeacherDashboardUIStore(state => state.clearAssignmentComposerDraft);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const giftShopEnabled = isGiftShopFeatureEnabled();
   const manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled();
+  const activeTab = isDashboardTabAllowed(requestedTab, authStore.isAdmin, giftShopEnabled)
+    ? requestedTab
+    : 'overview';
   const accountGate = useTeacherAccountGate();
   const bootstrap = useTeacherDashboardBootstrap();
 
@@ -82,6 +85,8 @@ const TeacherDashboard = () => {
     onSelectTab: selectTab,
     onCreateQuizManually: openManualQuizCreator,
     manualQuizWorkspaceEnabled,
+    isAdmin: authStore.isAdmin,
+    giftShopEnabled,
   });
   const accessCode = useAccessCodeEditor();
   const runLegacyLogout = useTeacherLogout(setLegacyActiveTab, clearAssignmentComposerDraft);
@@ -95,7 +100,7 @@ const TeacherDashboard = () => {
   }, [activeTab, setLegacyActiveTab]);
 
   useDashboardPermissions(
-    activeTab,
+    requestedTab,
     () => navigate(getTeacherRoute('overview'), { replace: true }),
     authStore.isAdmin,
     giftShopEnabled,

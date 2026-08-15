@@ -28,10 +28,10 @@ export const useAccessCodeEditor = () => {
       });
       setEditingAccessCode(null);
       setNewAccessCode('');
-      showSuccess('Cap nhat ma lam bai thanh cong!');
+      showSuccess('Cập nhật mã làm bài thành công!');
     } catch (error) {
       const normalized = error instanceof Error ? error : new Error(String(error));
-      showError(`Loi khi cap nhat: ${normalized.message || 'Unknown error'}`);
+      showError(`Lỗi khi cập nhật: ${normalized.message || 'Lỗi không xác định'}`);
     }
   };
 

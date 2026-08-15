@@ -273,6 +273,20 @@ describe('TeacherDashboard shell contracts', () => {
 
   });
 
+  it('uses the result request outcome instead of the shared quiz-store error state', async () => {
+    useQuizStore.setState({
+      error: null,
+      loadResults: vi.fn().mockRejectedValue(new Error('Không thể tải kết quả học tập.')),
+    } as any);
+
+    render(<TeacherDashboard />);
+
+    await waitFor(() => expect(screen.getByTestId('overview-results-state')).toHaveTextContent(
+      'error:Không thể tải kết quả học tập.',
+    ));
+    expect(screen.getByTestId('overview-summary-state')).toHaveTextContent('success::285');
+  });
+
   it('keeps result-list success separate from a summary error and retries both sources', async () => {
     mocks.callApi.mockImplementation(async (action: string) => {
       if (action === 'get_results_summary') throw new Error('Không thể tải số liệu tổng quan.');
@@ -475,6 +489,28 @@ describe('TeacherDashboard shell contracts', () => {
       fireEvent.submit(search.closest('form') as HTMLFormElement);
     });
     expect(mocks.showError).toHaveBeenCalledWith('Không tìm thấy chức năng phù hợp.');
+
+    mocks.navigate.mockClear();
+    mocks.showError.mockClear();
+    await act(async () => {
+      fireEvent.change(search, { target: { value: 'banner đăng nhập' } });
+      fireEvent.submit(search.closest('form') as HTMLFormElement);
+    });
+    expect(mocks.navigate).not.toHaveBeenCalledWith('/teacher/login-media');
+    expect(mocks.showError).toHaveBeenCalledWith('Không tìm thấy chức năng phù hợp.');
+  });
+
+  it('lets admins search admin-only dashboard destinations', async () => {
+    useAuthStore.setState({ isAdmin: true } as any);
+    render(<TeacherDashboard />);
+    const search = screen.getByPlaceholderText('Tìm chức năng...');
+
+    await act(async () => {
+      fireEvent.change(search, { target: { value: 'banner đăng nhập' } });
+      fireEvent.submit(search.closest('form') as HTMLFormElement);
+    });
+
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/login-media');
   });
 
   it('passes only the teacher exact normalized class results to the results tab', async () => {
@@ -491,6 +527,7 @@ describe('TeacherDashboard shell contracts', () => {
     mocks.location.pathname = '/teacher/announcements';
     render(<TeacherDashboard />);
     await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith('/teacher/overview', { replace: true }));
+    expect(await screen.findByTestId('overview-tab')).toBeInTheDocument();
 
     mocks.navigate.mockReset();
     mocks.location.pathname = '/teacher/gift-shop';
@@ -536,6 +573,22 @@ describe('TeacherDashboard shell contracts', () => {
       accessCode: 'NEW1',
       requireCode: true,
     })));
-    expect(mocks.showSuccess).toHaveBeenCalledWith('Cap nhat ma lam bai thanh cong!');
+    expect(mocks.showSuccess).toHaveBeenCalledWith('Cập nhật mã làm bài thành công!');
+  });
+
+  it('shows a UTF-8 Vietnamese error when access-code update fails', async () => {
+    mocks.location.pathname = '/teacher/quizzes';
+    useQuizStore.setState({
+      modifyQuiz: vi.fn().mockRejectedValue(new Error('Máy chủ tạm thời gián đoạn')),
+    } as any);
+    render(<TeacherDashboard />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Quản lý mã' }));
+    fireEvent.change(screen.getByPlaceholderText('Nhập mã mới (VD: TOAN3A)'), { target: { value: 'new1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu mã' }));
+
+    await waitFor(() => expect(mocks.showError).toHaveBeenCalledWith(
+      'Lỗi khi cập nhật: Máy chủ tạm thời gián đoạn',
+    ));
   });
 });

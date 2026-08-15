@@ -187,6 +187,36 @@ describe('ActionCenterPanel', () => {
     expect(await screen.findByText('Không có việc gấp trong phạm vi hiện tại')).toBeInTheDocument();
   });
 
+  it('hides stale actions when a refresh fails after a successful load', async () => {
+    mocks.fetchTeacherActionCenter
+      .mockResolvedValueOnce({
+        generatedAt,
+        items: [{
+          id: 'assignment-at-risk',
+          kind: 'assignment_at_risk',
+          severity: 'critical',
+          title: 'Bài giao sắp đến hạn',
+          explanation: '2 bài còn 7 học sinh chưa nộp trong 48 giờ tới.',
+          count: 2,
+          generatedAt,
+          cta: {
+            label: 'Xem bài cần xử lý',
+            url: '/teacher/assignments?status=OPEN&due=48',
+          },
+        }],
+      })
+      .mockRejectedValueOnce(new Error('Mạng tạm thời gián đoạn'));
+
+    renderPanel();
+
+    expect(await screen.findByText('Bài giao sắp đến hạn')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Làm mới' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Mạng tạm thời gián đoạn');
+    expect(screen.queryByText('Bài giao sắp đến hạn')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Xem bài cần xử lý/i })).not.toBeInTheDocument();
+  });
+
   it('keeps a retry surface when the request fails', async () => {
     mocks.fetchTeacherActionCenter.mockRejectedValue(new Error('Mạng tạm thời gián đoạn'));
 
