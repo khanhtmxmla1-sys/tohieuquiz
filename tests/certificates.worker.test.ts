@@ -162,6 +162,31 @@ describe('certificate worker authorization and integrity', () => {
     expect(db.batches).toHaveLength(0);
   });
 
+  it('fails closed before persisting a batch when the certificate queue binding is missing', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => {
+      if (sql.includes('FROM classes')) {
+        return { id: 'class-1', name: '5A', teacher_username: 'teacher-1' };
+      }
+      if (sql.includes('FROM certificate_templates')) {
+        return { id: 'template-1', school_id: null, created_by: 'admin', is_active: 1 };
+      }
+      return null;
+    };
+    db.all = (sql) => sql.includes('FROM students')
+      ? [{ id: 'student-1', full_name: 'Nguyễn Văn A' }]
+      : [];
+    const env = createEnv(db);
+    delete env.CERTIFICATE_QUEUE;
+
+    const response = await handleCreateBatch(requestBody(), env);
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      error: { code: 'CERTIFICATE_QUEUE_UNAVAILABLE' },
+    });
+    expect(db.batches).toHaveLength(0);
+  });
   it('creates one atomic D1 batch and derives student metadata server-side', async () => {
     const db = new FakeDB();
     db.first = (sql) => {
@@ -415,6 +440,105 @@ describe('certificate worker authorization and integrity', () => {
       'student-2',
       'student',
     ]);
+  });
+
+  it('fails closed before resetting a failed batch when the certificate queue binding is missing', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => sql.includes('FROM certificate_batches') ? { id: 'batch-1' } : null;
+    const env = createEnv(db);
+    delete env.CERTIFICATE_QUEUE;
+
+    const response = await handleRetryBatch(
+      new Request('https://example.test/api/certificate-batches/batch-1/retry', { method: 'POST' }),
+      env,
+      'batch-1',
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      error: { code: 'CERTIFICATE_QUEUE_UNAVAILABLE' },
+    });
+    expect(db.runs).toHaveLength(0);
+  });
+  it('returns an explicit preview DTO without internal storage fields', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => sql.includes('FROM certificates c') ? {
+      id: 'cert-1', batch_id: 'batch-1', title: 'Hoàn thành tốt', template_id: 'template-1',
+      teacher_id: 'teacher-1', student_id: 'student-1', student_name: 'Nguyễn Văn A',
+      student_score: 10, quiz_title: 'Toán', image_url: '/api/certificates/cert-1/image',
+      issued_at: '2026-08-15T00:00:00.000Z', sent_at: '2026-08-15T00:01:00.000Z', status: 'sent',
+      png_r2_key: 'certs/private.png', attempt_count: 3, error_message: 'internal',
+    } : null;
+
+    const response = await handleCertificatePreview(
+      new Request('https://example.test/api/certificates/preview/cert-1'), createEnv(db), 'cert-1',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(200);
+    expect(db.statements[0].sql).not.toContain('c.*');
+    expect(payload.data).toMatchObject({ id: 'cert-1', student_id: 'student-1', status: 'sent' });
+    expect(payload.data).not.toHaveProperty('png_r2_key');
+    expect(payload.data).not.toHaveProperty('attempt_count');
+    expect(payload.data).not.toHaveProperty('error_message');
+    expect(payload.data).not.toHaveProperty('teacher_id');
+  });
+
+  it('returns a bounded cursor page for student achievements', async () => {
+    currentUser = { id: 'student-1', username: 'student-1', role: 'student' };
+    const db = new FakeDB();
+    db.first = (sql) => sql.includes('COUNT(*)') ? { total: 2 } : null;
+    db.all = () => [
+      { id: 'cert-2', batch_id: 'batch-1', title: 'Hai', teacher_name: 'Cô A', student_score: 9, quiz_title: 'Toán', image_url: '/api/certificates/cert-2/image', issued_at: '2026-08-15T02:00:00.000Z', sent_at: '2026-08-15T02:00:00.000Z', status: 'sent' },
+      { id: 'cert-1', batch_id: 'batch-1', title: 'Một', teacher_name: 'Cô A', student_score: 8, quiz_title: 'Toán', image_url: '/api/certificates/cert-1/image', issued_at: '2026-08-15T01:00:00.000Z', sent_at: '2026-08-15T01:00:00.000Z', status: 'sent' },
+    ];
+
+    const response = await handleGetMyCertificates(
+      new Request('https://example.test/api/certificates/my?limit=1'), createEnv(db),
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(200);
+    expect(payload.data.items).toHaveLength(1);
+    expect(payload.data.meta).toMatchObject({ limit: 1, total: 2, hasMore: true });
+    expect(typeof payload.data.meta.nextCursor).toBe('string');
+    expect(db.statements.some((statement) => statement.sql.includes('LIMIT ?'))).toBe(true);
+  });
+
+  it('returns a bounded cursor page for teacher certificate batches', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => sql.includes('COUNT(*)') ? { total: 2 } : null;
+    db.all = () => [
+      { id: 'batch-2', title: 'Hai', message: null, status: 'sent', template_name: 'Mẫu', total_certificates: 1, sent_certificates: 1, failed_certificates: 0, created_at: '2026-08-15T02:00:00.000Z', sent_at: '2026-08-15T02:01:00.000Z' },
+      { id: 'batch-1', title: 'Một', message: null, status: 'sent', template_name: 'Mẫu', total_certificates: 1, sent_certificates: 1, failed_certificates: 0, created_at: '2026-08-15T01:00:00.000Z', sent_at: '2026-08-15T01:01:00.000Z' },
+    ];
+
+    const response = await handleGetBatches(
+      new Request('https://example.test/api/certificate-batches?limit=1'), createEnv(db),
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(200);
+    expect(payload.data.items).toHaveLength(1);
+    expect(payload.data.meta).toMatchObject({ limit: 1, total: 2, hasMore: true });
+    expect(typeof payload.data.meta.nextCursor).toBe('string');
+  });
+
+  it('soft-revokes an owned sent certificate', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => sql.includes('FROM certificates c')
+      ? { id: 'cert-1', status: 'sent', teacher_id: 'teacher-1' }
+      : null;
+
+    const response = await handleCertificateRoutes(
+      new Request('https://example.test/api/certificates/cert-1/revoke', { method: 'POST' }),
+      createEnv(db), '/api/certificates/cert-1/revoke', 'POST',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(200);
+    expect(payload.data).toEqual({ id: 'cert-1', status: 'revoked' });
+    expect(db.runs.some((statement) => statement.sql.includes("status = 'revoked'"))).toBe(true);
   });
 
   it('keeps the certificate public aliases stable', () => {

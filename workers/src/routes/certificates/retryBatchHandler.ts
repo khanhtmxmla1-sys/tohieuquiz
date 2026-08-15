@@ -18,6 +18,14 @@ export async function handleRetryBatch(request: Request, env: Env, batchId: stri
     return certificateError('CERTIFICATE_BATCH_NOT_FOUND', 'Batch not found', 404);
   }
 
+  if (!env.CERTIFICATE_QUEUE) {
+    return certificateError(
+      'CERTIFICATE_QUEUE_UNAVAILABLE',
+      'Certificate queue is unavailable',
+      503,
+    );
+  }
+
   await env.DB.prepare(`
     UPDATE certificate_batches
     SET status = 'pending', error_message = NULL, updated_at = ?
@@ -30,9 +38,7 @@ export async function handleRetryBatch(request: Request, env: Env, batchId: stri
     WHERE batch_id = ? AND status = 'failed'
   `).bind(new Date().toISOString(), batchId).run();
 
-  if (env.CERTIFICATE_QUEUE) {
-    await env.CERTIFICATE_QUEUE.send({ batchId });
-  }
+  await env.CERTIFICATE_QUEUE.send({ batchId });
 
   return certificateSuccess({ batch_id: batchId, status: 'pending' as const });
 }

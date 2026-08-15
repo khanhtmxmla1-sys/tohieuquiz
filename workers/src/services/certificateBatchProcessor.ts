@@ -190,7 +190,7 @@ export async function processBatch(
           priority: 'IMPORTANT' as const,
           title: 'Em có chứng nhận mới! 🎓',
           body: `Em vừa nhận được chứng nhận: ${batchTitle}`,
-          actionUrl: `/student/certificates?certificate=${encodeURIComponent(student.certificate_id)}`,
+          actionUrl: `/student/achievements?certificate=${encodeURIComponent(student.certificate_id)}`,
           data: {
             batch_id: batchId,
             certificate_id: student.certificate_id,

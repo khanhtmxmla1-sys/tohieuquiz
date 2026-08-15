@@ -19,6 +19,7 @@ import {
   handleGetNotifications,
   handleMarkNotificationRead,
 } from './notificationHandlers';
+import { handleRevokeCertificate } from './revokeCertificateHandler';
 import { certificateError } from './responses';
 
 export async function handleCertificateRoutes(
@@ -60,6 +61,11 @@ export async function handleCertificateRoutes(
   const previewMatch = path.match(/^\/api\/certificates\/preview\/([^/]+)$/);
   if (previewMatch && method === 'GET') {
     return handleCertificatePreview(request, env, previewMatch[1]);
+  }
+
+  const revokeCertificateMatch = path.match(/^\/api\/certificates\/([^/]+)\/revoke$/);
+  if (revokeCertificateMatch && method === 'POST') {
+    return handleRevokeCertificate(request, env, decodeURIComponent(revokeCertificateMatch[1]));
   }
 
   const imageMatch = path.match(/^\/api\/certificates\/([^/]+)\/image$/);

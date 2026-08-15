@@ -111,7 +111,7 @@ export default {
           batchId,
           batchRow.template_id,
           certificateRows,
-          teacher?.full_name || 'Giáo viên',
+          teacher?.full_name || 'GiÃ¡o viÃªn',
           batchRow.title,
           batchRow.message || '',
           batchRow.achievement_prefix,
@@ -158,7 +158,6 @@ export default {
             WHERE batch_id = ? AND status = 'processing'
           `).bind(errorMessage, now, batchId),
         ]).catch(() => undefined);
-        queueMessage.ack();
       }
     }
   },
