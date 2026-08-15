@@ -1,6 +1,13 @@
 export type WorksheetFileExtension = 'pdf' | 'docx';
 
 export function createWorksheetFileName(title: string, extension: WorksheetFileExtension): string {
-    const safeTitle = title.replace(/[^a-zA-Z0-9\u00C0-\u024F\s]/g, '-').trim();
+    const normalized = title.normalize('NFC')
+        .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '-')
+        .replace(/[^\p{L}\p{N}\s.-]/gu, '-');
+    const safeTitle = normalized
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^[.-]+|[.-]+$/g, '') || 'bai-tap';
     return `vo-bai-tap-${safeTitle}.${extension}`;
 }

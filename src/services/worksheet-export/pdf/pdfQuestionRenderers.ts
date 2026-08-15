@@ -1,15 +1,17 @@
 import { QuestionType } from '../../../types';
 import { FONT_NAME } from '../../../utils/pdfFonts';
-import { normalizeWorksheetMath } from '../shared/mathNormalizer';
 import { getWorksheetTypeLabel } from '../shared/typeLabels';
 import { ensurePdfSpace } from './pdfLayout';
+import { renderPdfMathText } from './pdfMath';
+import { renderPdfQuestionMedia } from './pdfMedia';
 import { PDF_MARGIN, type PdfRenderContext, setPdfFont } from './pdfTypes';
 import { renderPdfSvgDiagram } from './pdfSvgDiagram';
 import { renderPdfChoices } from './renderers/choiceRenderer';
 import { renderPdfMatching, renderPdfDragDrop } from './renderers/matchingDragRenderer';
-import { renderPdfCategorization, renderPdfOrdering, renderPdfWordScramble } from './renderers/structuredRenderer';
+import { renderPdfCategorization, renderPdfDropdown, renderPdfOrdering, renderPdfWordScramble } from './renderers/structuredRenderer';
 import { renderPdfTrueFalse } from './renderers/trueFalseRenderer';
-import { renderPdfErrorCorrection, renderPdfFallback, renderPdfUnderline, renderPdfWritingLines } from './renderers/writingRenderer';
+import { renderPdfErrorCorrection, renderPdfFallback, renderPdfRiddle, renderPdfUnderline, renderPdfWritingLines } from './renderers/writingRenderer';
+import { renderPdfGeometry } from './pdfGeometry';
 
 export function renderPdfQuestion(ctx: PdfRenderContext, question: any, index: number): void {
     const doc = ctx.doc;
@@ -19,20 +21,23 @@ export function renderPdfQuestion(ctx: PdfRenderContext, question: any, index: n
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
     const header = `Câu ${index + 1} [${getWorksheetTypeLabel(question.type)}]: `;
-    const text = normalizeWorksheetMath(question.question || question.mainQuestion || '');
+    const text = question.question || question.mainQuestion || '';
     doc.text(header, PDF_MARGIN, ctx.yPos);
     setPdfFont(doc, FONT_NAME, 'normal');
     const headerWidth = doc.getTextWidth(header);
-    const lines = doc.splitTextToSize(text, contentWidth - headerWidth);
-    doc.text(lines[0] || '', PDF_MARGIN + headerWidth, ctx.yPos);
-    ctx.yPos += 5;
-    if (lines.length > 1) {
-        const rest = doc.splitTextToSize(lines.slice(1).join('\n'), contentWidth);
-        doc.text(rest, PDF_MARGIN + 4, ctx.yPos);
-        ctx.yPos += rest.length * 5;
-    }
-    ctx.yPos += 2;
-    renderPdfSvgDiagram(ctx, question, index);
+    const questionHeight = renderPdfMathText(
+        doc,
+        text,
+        PDF_MARGIN + headerWidth,
+        ctx.yPos,
+        contentWidth - headerWidth,
+    );
+    ctx.yPos += questionHeight + 2;
+    renderPdfQuestionMedia(ctx, index, Array.isArray(question.options) ? question.options.length : 0);
+    const hasStructuredGeometry = question.type === QuestionType.GEOMETRY
+        && question.geometryData
+        && typeof question.geometryData === 'object';
+    const renderedSvg = hasStructuredGeometry ? false : renderPdfSvgDiagram(ctx, question, index);
 
     switch (question.type) {
         case QuestionType.MCQ:
@@ -44,14 +49,19 @@ export function renderPdfQuestion(ctx: PdfRenderContext, question: any, index: n
             renderPdfTrueFalse(ctx, question);
             break;
         case QuestionType.SHORT_ANSWER:
-        case QuestionType.RIDDLE:
             renderPdfWritingLines(ctx);
+            break;
+        case QuestionType.RIDDLE:
+            renderPdfRiddle(ctx, question);
             break;
         case QuestionType.MATCHING:
             renderPdfMatching(ctx, question);
             break;
         case QuestionType.DRAG_DROP:
             renderPdfDragDrop(ctx, question);
+            break;
+        case QuestionType.DROPDOWN:
+            renderPdfDropdown(ctx, question);
             break;
         case QuestionType.ORDERING:
             renderPdfOrdering(ctx, question);
@@ -67,6 +77,10 @@ export function renderPdfQuestion(ctx: PdfRenderContext, question: any, index: n
             break;
         case QuestionType.ERROR_CORRECTION:
             renderPdfErrorCorrection(ctx, question);
+            break;
+        case QuestionType.GEOMETRY:
+            if (!renderedSvg) renderPdfGeometry(ctx, question);
+            renderPdfWritingLines(ctx);
             break;
         default:
             renderPdfFallback(ctx);

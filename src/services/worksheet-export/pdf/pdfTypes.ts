@@ -1,6 +1,7 @@
 import type jsPDF from 'jspdf';
 import type { WorksheetExportOptions } from '../types';
 import type { PdfSvgDiagramImage } from './pdfSvgDiagram';
+import type { WorksheetImageAssetMap } from '../shared/media';
 
 export const PDF_MARGIN = 15;
 export const PDF_GRID_SIZE = 5;
@@ -11,6 +12,7 @@ export interface PdfRenderContext {
     opts: WorksheetExportOptions;
     yPos: number;
     svgDiagrams?: Map<string, PdfSvgDiagramImage>;
+    imageAssets?: WorksheetImageAssetMap;
 }
 
 export function setPdfFont(doc: jsPDF, font: string, style: string): void {

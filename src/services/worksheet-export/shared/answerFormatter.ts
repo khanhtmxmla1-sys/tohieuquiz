@@ -1,4 +1,5 @@
 import { QuestionType } from '../../../types';
+import { buildWorksheetMatchingLayout } from './matchingLayout';
 import { normalizeWorksheetMath } from './mathNormalizer';
 
 export function getWorksheetAnswerText(question: any, wrapForWord = false): string {
@@ -21,10 +22,20 @@ export function getWorksheetAnswerText(question: any, wrapForWord = false): stri
         case QuestionType.RIDDLE:
             return clean(question.correctAnswer || '');
         case QuestionType.MATCHING:
-            return (question.pairs || []).map((_: any, index: number) =>
-                `${index + 1}→${String.fromCharCode(65 + index)}`).join('  ');
+            return buildWorksheetMatchingLayout(question).answerText;
         case QuestionType.DRAG_DROP:
-            return (question.blanks || []).join(' / ');
+            return (question.blanks || [])
+                .map((item: unknown) => typeof item === 'string'
+                    ? item
+                    : (item && typeof item === 'object' && 'content' in item
+                        ? String((item as { content?: unknown }).content ?? '')
+                        : String(item ?? '')))
+                .join(' / ');
+        case QuestionType.DROPDOWN:
+            return (question.blanks || [])
+                .map((blank: any, index: number) =>
+                    `${index + 1}. ${clean(String(blank?.correctAnswer ?? ''))}`)
+                .join(' | ');
         case QuestionType.ORDERING:
             return (question.correctOrder || []).map((item: number, index: number) =>
                 `${index + 1}=(${item + 1})`).join('  ');

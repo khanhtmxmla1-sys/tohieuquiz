@@ -1,22 +1,29 @@
-import { AlignmentType, BorderStyle, Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from 'docx';
+import { AlignmentType, BorderStyle, Document, Packer, PageOrientation, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from 'docx';
 import { saveAs } from 'file-saver';
 import { createWorksheetFileName } from '../fileName';
 import { getWorksheetAnswerText } from '../shared/answerFormatter';
+import { prepareWorksheetImageAssets } from '../shared/media';
 import type { WorksheetExportOptions } from '../types';
 import { DOCX_NO_BORDERS } from './docxHelpers';
 import { renderDocxQuestion } from './docxQuestionRenderers';
 import { createDocxMathChildren } from './docxMath';
+import {
+    worksheetCenteredParagraph,
+    worksheetInfoCell,
+    worksheetMathChildren,
+    worksheetTextRun,
+} from './docxStyle';
 
 function createDocxHeader(opts: WorksheetExportOptions, schoolName: string): any[] {
     return [
-        centeredText(schoolName.toUpperCase(), 28, true, 40),
-        centeredText('BÀI KIỂM TRÀ', 32, true, 40),
-        centeredText(opts.quiz.title, 28, false, 40),
-        centeredText(`Lớp ${opts.quiz.classLevel}  •  ${opts.quiz.questions.length} câu  •  ${opts.quiz.timeLimit} phút`, 24, false, 120, '555555'),
+        worksheetCenteredParagraph(schoolName.toUpperCase(), true, 40),
+        worksheetCenteredParagraph('BÀI KIỂM TRA', true, 40),
+        worksheetCenteredParagraph(opts.quiz.title, false, 40),
+        worksheetCenteredParagraph(`Lớp ${opts.quiz.classLevel}  •  ${opts.quiz.questions.length} câu  •  ${opts.quiz.timeLimit} phút`, false, 120, '555555'),
         new Table({
             rows: [new TableRow({ children: [
-                infoCell('Họ và tên: ___________________________', 60),
-                infoCell('Lớp: ________  Ngày: ________', 40),
+                worksheetInfoCell('Họ và tên: ___________________________', 60),
+                worksheetInfoCell('Lớp: ________  Ngày: ________', 40),
             ] })],
             width: { size: 100, type: WidthType.PERCENTAGE },
         }),
@@ -28,11 +35,11 @@ function createDocxAnswerKey(opts: WorksheetExportOptions): any[] {
     if (opts.answerKey !== 'separate') return [];
     return [
         new Paragraph({ children: [new TextRun({ text: '', break: 1 })], pageBreakBefore: true }),
-        centeredText('═══ ĐÁP ÁN ═══', 26, true, 200),
+        worksheetCenteredParagraph('═══ ĐÁP ÁN ═══', true, 200),
         ...opts.quiz.questions.map((question: any, index) => new Paragraph({
             children: [
-                new TextRun({ text: `Câu ${index + 1}: `, bold: true, size: 28 }),
-                ...createDocxMathChildren(getWorksheetAnswerText(question, true), { size: 28 }),
+                worksheetTextRun({ text: `Câu ${index + 1}: `, bold: true }),
+                ...worksheetMathChildren(getWorksheetAnswerText(question, true)),
             ],
             spacing: { before: 20, after: 20, line: 320 },
         })),
@@ -41,14 +48,18 @@ function createDocxAnswerKey(opts: WorksheetExportOptions): any[] {
 
 export async function exportWorksheetDocx(opts: WorksheetExportOptions): Promise<void> {
     const schoolName = opts.schoolName || 'TôHiệuQuiz';
+    const imageAssets = await prepareWorksheetImageAssets(opts.quiz);
     const children = [
         ...createDocxHeader(opts, schoolName),
-        ...opts.quiz.questions.flatMap((question, index) => renderDocxQuestion(question, index)),
+        ...opts.quiz.questions.flatMap((question, index) => renderDocxQuestion(question, index, imageAssets)),
         ...createDocxAnswerKey(opts),
     ];
-    const document = new Document({ sections: [{ properties: { page: { margin: {
-        top: 1134, bottom: 1134, left: 1701, right: 850,
-    } } }, children }] });
+    const document = new Document({ sections: [{ properties: { page: {
+        size: { width: 11906, height: 16838, orientation: PageOrientation.PORTRAIT },
+        margin: {
+        top: 1134, bottom: 1134, left: 1134, right: 850, gutter: 0,
+        } },
+    }, children }] });
     const blob = await Packer.toBlob(document);
     saveAs(blob, createWorksheetFileName(opts.quiz.title, 'docx'));
 }

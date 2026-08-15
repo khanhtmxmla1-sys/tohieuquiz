@@ -1,10 +1,10 @@
-import { AlignmentType, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from 'docx';
-import { createDocxMathChildren } from '../docxMath';
+import { AlignmentType, Paragraph, Table, TableCell, TableRow, WidthType } from 'docx';
+import { worksheetMathChildren, worksheetTextRun } from '../docxStyle';
 
 function headerCell(text: string, width: number, centered = false): TableCell {
     return new TableCell({
         children: [new Paragraph({
-            children: [new TextRun({ text, bold: true, size: 28 })],
+            children: [worksheetTextRun({ text, bold: true, size: 28 })],
             alignment: centered ? AlignmentType.CENTER : undefined,
             spacing: { line: 280 },
         })],
@@ -18,11 +18,11 @@ export function renderDocxTrueFalse(question: any): Table {
     ] })];
     (question.items || []).forEach((item: any) => rows.push(new TableRow({ children: [
         new TableCell({ children: [new Paragraph({
-            children: createDocxMathChildren(item.statement || '', { size: 28 }),
+            children: worksheetMathChildren(item.statement || '', { size: 28 }),
             spacing: { line: 280 },
         })] }),
         ...['Đ', 'S'].map(() => new TableCell({ children: [new Paragraph({
-            children: [new TextRun({ text: '□', size: 28 })],
+            children: [worksheetTextRun({ text: '□', size: 28 })],
             alignment: AlignmentType.CENTER,
             spacing: { line: 280 },
         })] })),

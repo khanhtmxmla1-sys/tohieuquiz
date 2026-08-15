@@ -1,14 +1,14 @@
-import { Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from 'docx';
+import { Paragraph, Table, TableCell, TableRow, WidthType } from 'docx';
 import { DOCX_NO_BORDERS, DOCX_TABLE_NO_BORDERS } from '../docxHelpers';
-import { createDocxMathChildren } from '../docxMath';
+import { worksheetMathChildren, worksheetTextRun } from '../docxStyle';
 
 export function renderDocxChoices(question: any): Table[] {
     const letters = ['A', 'B', 'C', 'D'];
     const cells = (question.options || []).map((option: string, index: number) => new TableCell({
         children: [new Paragraph({
             children: [
-                new TextRun({ text: `${letters[index]}. `, bold: true, size: 28 }),
-                ...createDocxMathChildren(option.replace(/^[A-Da-d][.)]\s*/, ''), { size: 28 }),
+                worksheetTextRun({ text: `${letters[index]}. `, bold: true, size: 28 }),
+                ...worksheetMathChildren(option.replace(/^[A-Da-d][.)]\s*/, ''), { size: 28 }),
             ],
             spacing: { after: 20, line: 320 },
         })],
