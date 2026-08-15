@@ -3,6 +3,13 @@ import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIS
 
 const ADMIN_TABS: TeacherDashboardTab[] = ['announcements', 'feature-rollout', 'login-media', 'teachers', 'admin-templates', 'math-audit', 'operations', 'system-question-bank'];
 
+export const isDashboardTabAllowed = (
+  tab: TeacherDashboardTab,
+  isAdmin: boolean,
+  giftShopEnabled: boolean,
+): boolean => (giftShopEnabled || tab !== 'gift-shop')
+  && (isAdmin || !ADMIN_TABS.includes(tab));
+
 export const useDashboardPermissions = (
   activeTab: TeacherDashboardTab,
   onInvalidTab: () => void,
@@ -10,7 +17,6 @@ export const useDashboardPermissions = (
   giftShopEnabled: boolean,
 ) => {
   useEffect(() => {
-    if (!giftShopEnabled && activeTab === 'gift-shop') onInvalidTab();
-    if (!isAdmin && ADMIN_TABS.includes(activeTab)) onInvalidTab();
+    if (!isDashboardTabAllowed(activeTab, isAdmin, giftShopEnabled)) onInvalidTab();
   }, [giftShopEnabled, activeTab, isAdmin, onInvalidTab]);
 };

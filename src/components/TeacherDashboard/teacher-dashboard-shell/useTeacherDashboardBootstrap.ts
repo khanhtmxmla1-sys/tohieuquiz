@@ -25,15 +25,18 @@ export const useTeacherDashboardBootstrap = () => {
     setSummaryLoadError(null);
     useQuizStore.getState().setError(null);
 
-    const [, summaryResult] = await Promise.allSettled([
+    const [resultsResult, summaryResult] = await Promise.allSettled([
       useQuizStore.getState().loadResults(),
       fetchResultDashboardSummary(),
     ]);
 
-    const loadError = useQuizStore.getState().error;
-    if (loadError) {
+    if (resultsResult.status === 'rejected') {
       setResultsLoadState('error');
-      setResultsLoadError(loadError);
+      setResultsLoadError(
+        resultsResult.reason instanceof Error && resultsResult.reason.message
+          ? resultsResult.reason.message
+          : 'Không thể tải kết quả học tập.',
+      );
     } else {
       setResultsLoadState('success');
     }

@@ -430,10 +430,30 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
     if (path === '/api/quizzes' && method === 'GET') {
         const authResult = await verifyJWTMiddleware(request, env);
         const user: JWTPayload | null = authResult instanceof Response ? null : authResult.user;
-        const rows = await withD1Retry(
-            () => db.prepare('SELECT * FROM quizzes').all<import('../types').Quiz>(),
-            'GET /api/quizzes'
-        );
+        let rows: { results: import('../types').Quiz[] };
+        if (user && requireAdmin(user)) {
+            rows = await withD1Retry(
+                () => db.prepare('SELECT * FROM quizzes').all<import('../types').Quiz>(),
+                'GET /api/quizzes admin',
+            );
+        } else if (user?.role === 'teacher') {
+            const identity = await loadTeacherQuizOwnerIdentity(db, user.username);
+            if (!identity) return errorResponse('Teacher not found', 404);
+            rows = await withD1Retry(
+                () => db.prepare(`
+                    SELECT *
+                    FROM quizzes
+                    WHERE LOWER(TRIM(created_by)) = LOWER(TRIM(?))
+                       OR (? IS NOT NULL AND LOWER(TRIM(created_by)) = LOWER(TRIM(?)))
+                `).bind(...teacherQuizOwnerQueryValues(identity)).all<import('../types').Quiz>(),
+                'GET /api/quizzes teacher',
+            );
+        } else {
+            rows = await withD1Retry(
+                () => db.prepare('SELECT * FROM quizzes').all<import('../types').Quiz>(),
+                'GET /api/quizzes catalog',
+            );
+        }
         const quizzes = user && requireTeacher(user)
             ? rows.results
             : rows.results.map((quiz) => sanitizeQuizForStudent(quiz as unknown as Record<string, unknown>));

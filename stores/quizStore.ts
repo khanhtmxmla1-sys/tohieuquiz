@@ -478,21 +478,24 @@ export const useQuizStore = create<QuizState>()(
                     const data = await callApi<any>('get_results');
 
                     // Handle both legacy array format and new object format { data: [], meta: {} }
-                    const rawResults = Array.isArray(data) ? data : (data?.data || []);
+                    const rawResults = Array.isArray(data) ? data : data?.data;
 
                     if (!Array.isArray(rawResults)) {
-                        set({ results: [], error: null });
-                        return;
+                        throw new Error('Dữ liệu kết quả học tập không hợp lệ.');
                     }
                     const results: StudentResult[] = rawResults
                         .map(mapResultRow)
                         .filter(r => !!r.studentName);
                     set({ results, error: null });
                 } catch (err: any) {
-                    console.error('Failed to load results:', err);
+                    const normalized = err instanceof Error
+                        ? err
+                        : new Error(err?.message || 'Không thể tải kết quả học tập.');
+                    console.error('Failed to load results:', normalized);
                     set({
-                        error: err?.message || 'Không thể tải kết quả học tập.',
+                        error: normalized.message || 'Không thể tải kết quả học tập.',
                     });
+                    throw normalized;
                 }
             },
 

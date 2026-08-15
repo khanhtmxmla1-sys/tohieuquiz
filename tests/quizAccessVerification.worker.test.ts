@@ -27,6 +27,7 @@ class Database {
   quiz: Record<string, unknown> | null = {
     id: 'quiz-1',
     title: 'Đề có mã',
+    created_by: 'teacher-1',
     access_code: 'ABC123',
     require_code: 'TRUE',
     show_on_home: 'TRUE',
@@ -37,10 +38,13 @@ class Database {
     if (sql.includes('SELECT access_code, require_code FROM quizzes')) {
       return bindings[0] === 'quiz-1' ? this.quiz : null;
     }
+    if (sql.includes('FROM teachers t')) {
+      return { username: 'teacher-1', full_name: 'Teacher One', full_name_count: 1 };
+    }
     return null;
   }
   all(sql: string) {
-    if (sql.includes('SELECT * FROM quizzes')) return this.quiz ? [this.quiz] : [];
+    if (sql.includes('FROM quizzes')) return this.quiz ? [this.quiz] : [];
     return [];
   }
 }
