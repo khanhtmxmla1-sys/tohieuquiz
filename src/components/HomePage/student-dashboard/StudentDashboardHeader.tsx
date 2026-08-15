@@ -239,7 +239,8 @@ export function StudentDashboardHeader({
         <button
           type="button"
           onClick={() => onSelectSection('dashboard')}
-          className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-sky-700"
+          aria-current={activeSection === 'dashboard' ? 'page' : undefined}
+          className={`min-h-12 rounded-[10px] px-1 text-xs font-semibold ${activeSection === 'dashboard' ? 'text-sky-700' : 'text-slate-600'}`}
         >
           Trang chủ
         </button>
@@ -260,6 +261,7 @@ export function StudentDashboardHeader({
         <button
           type="button"
           onClick={() => onSelectSection('resultReports')}
+          aria-current={activeSection === 'resultReports' ? 'page' : undefined}
           className={`min-h-12 rounded-[10px] px-1 text-xs font-semibold ${activeSection === 'resultReports' ? 'text-sky-700' : 'text-slate-600'}`}
         >
           Phiếu KQ
@@ -267,7 +269,8 @@ export function StudentDashboardHeader({
         <button
           type="button"
           onClick={() => onSelectSection('achievements')}
-          className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-slate-600"
+          aria-current={activeSection === 'achievements' ? 'page' : undefined}
+          className={`min-h-12 rounded-[10px] px-1 text-xs font-semibold ${activeSection === 'achievements' ? 'text-sky-700' : 'text-slate-600'}`}
         >
           Thành tích
         </button>

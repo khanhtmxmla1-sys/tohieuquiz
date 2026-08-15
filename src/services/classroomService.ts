@@ -311,7 +311,7 @@ export const getStudentAssignments = async (studentId: string): Promise<Assignme
     if (res.status === 'success' && Array.isArray(res.data)) {
         return res.data;
     }
-    return [];
+    throw new Error(res.message || 'Không thể tải bài tập.');
 };
 
 /**

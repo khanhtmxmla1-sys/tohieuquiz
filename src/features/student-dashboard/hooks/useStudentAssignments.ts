@@ -109,11 +109,21 @@ export const useStudentAssignments = (studentId?: string) => {
 
     try {
       await loadResults();
-      const result = useQuizStore.getState().results
-        .filter((item) => String(item.quizId) === String(quiz.id))
-        .sort((first, second) => (
-          Date.parse(second.submittedAt || '') - Date.parse(first.submittedAt || '')
-        ))[0];
+      const quizResults = useQuizStore.getState().results
+        .filter((item) => String(item.quizId) === String(quiz.id));
+      const newestFirst = (first: StudentResult, second: StudentResult) => (
+        Date.parse(second.submittedAt || '') - Date.parse(first.submittedAt || '')
+      );
+      const exactResult = quizResults
+        .filter((item) => String(item.assignmentId || '') === assignmentId)
+        .sort(newestFirst)[0];
+      const assignmentCountForQuiz = allQuizzes
+        .filter((item) => String(item.id) === String(quiz.id))
+        .length;
+      const legacyResult = assignmentCountForQuiz <= 1
+        ? quizResults.filter((item) => !item.assignmentId).sort(newestFirst)[0]
+        : undefined;
+      const result = exactResult ?? legacyResult;
 
       if (!result) {
         throw new Error('Không tìm thấy bài làm đã nộp.');
@@ -153,7 +163,7 @@ export const useStudentAssignments = (studentId?: string) => {
     } finally {
       setReviewingAssignmentId(null);
     }
-  }, [loadQuizQuestions, loadResults]);
+  }, [allQuizzes, loadQuizQuestions, loadResults]);
 
   return {
     pagedQuizzes,
