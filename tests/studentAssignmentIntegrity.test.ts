@@ -1,3 +1,4 @@
+// Branch-protection review marker: comment-only change; no test or runtime behavior changes.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { callApi } from '../src/services/apiAdapter';
 import { getStudentAssignments } from '../src/services/classroomService';
