@@ -1,6 +1,6 @@
 import type { Env } from '../../types';
 import type { CreateCertificateBatchResult } from '../../../../shared/certificates.contract';
-import { certificateSuccess } from './responses';
+import { certificateError, certificateSuccess } from './responses';
 import type { BatchInput, BatchScope } from './batchTypes';
 
 export async function persistCertificateBatch(
@@ -9,6 +9,14 @@ export async function persistCertificateBatch(
   input: BatchInput,
   scope: BatchScope,
 ): Promise<Response> {
+  if (!env.CERTIFICATE_QUEUE) {
+    return certificateError(
+      'CERTIFICATE_QUEUE_UNAVAILABLE',
+      'Certificate queue is unavailable',
+      503,
+    );
+  }
+
   const batchId = `batch-${crypto.randomUUID()}`;
   const now = new Date().toISOString();
   const statements: D1PreparedStatement[] = [env.DB.prepare(`
@@ -51,7 +59,7 @@ export async function persistCertificateBatch(
     }
     throw error;
   }
-  if (env.CERTIFICATE_QUEUE) await env.CERTIFICATE_QUEUE.send({ batchId });
+  await env.CERTIFICATE_QUEUE.send({ batchId });
   return certificateSuccess<CreateCertificateBatchResult>({
     batch_id: batchId,
     status: 'pending',

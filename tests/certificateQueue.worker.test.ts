@@ -139,7 +139,7 @@ describe('certificate queue delivery semantics', () => {
     expectConsoleMessage(errorSpy, 'failed batch=batch-1 attempt=1');
   });
 
-  it('marks the final attempt failed and acknowledges it', async () => {
+  it('marks the final attempt failed without acknowledging it so Cloudflare can route it to the DLQ', async () => {
     const errorSpy = expectConsoleError();
     const db = new QueueDB();
     const message = queueMessage(3);
@@ -148,7 +148,7 @@ describe('certificate queue delivery semantics', () => {
     await dispatch(db, message);
 
     expect(message.retry).not.toHaveBeenCalled();
-    expect(message.ack).toHaveBeenCalledOnce();
+    expect(message.ack).not.toHaveBeenCalled();
     expect(db.batches).toHaveLength(2);
     expect(db.batches[1][0].sql).toContain("status = 'failed'");
     expectConsoleMessage(errorSpy, 'failed batch=batch-1 attempt=3');

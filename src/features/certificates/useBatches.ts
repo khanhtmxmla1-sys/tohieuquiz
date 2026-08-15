@@ -3,6 +3,7 @@ import { getWorkersApiBaseUrl } from '../../services/api/config';
 import type {
     CertificateApiError,
     CertificateApiSuccess,
+    CertificateBatchPage,
     CertificateBatchSummary,
     CreateCertificateBatchRequest,
     CreateCertificateBatchResult,
@@ -57,13 +58,13 @@ export function useBatches() {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${base()}/api/certificate-batches`, {
+            const res = await fetch(`${base()}/api/certificate-batches?limit=100`, {
                 headers: authHeaders(),
                 credentials: 'include',
             });
             if (!res.ok) throw new Error(await readCertificateError(res));
-            const json = await res.json() as CertificateApiSuccess<BatchRecord[]>;
-            setBatches(json.data ?? []);
+            const json = await res.json() as CertificateApiSuccess<CertificateBatchPage>;
+            setBatches(json.data?.items ?? []);
         } catch (e: unknown) {
             setError(e instanceof Error ? e.message : 'Lỗi không xác định');
         } finally {
@@ -119,7 +120,17 @@ export function useBatches() {
         await fetchBatches();
     }, [fetchBatches]);
 
-    return { batches, isLoading, error, refetch: fetchBatches, createBatch, fetchBatchDetail, retryBatch };
+    const revokeCertificate = useCallback(async (certificateId: string): Promise<void> => {
+        const res = await fetch(`${base()}/api/certificates/${encodeURIComponent(certificateId)}/revoke`, {
+            method: 'POST',
+            headers: authHeaders(),
+            credentials: 'include',
+        });
+        if (!res.ok) throw new Error(await readCertificateError(res));
+        await fetchBatches();
+    }, [fetchBatches]);
+
+    return { batches, isLoading, error, refetch: fetchBatches, createBatch, fetchBatchDetail, retryBatch, revokeCertificate };
 }
 
 export async function fetchTemplateOptions(): Promise<TemplateOption[]> {

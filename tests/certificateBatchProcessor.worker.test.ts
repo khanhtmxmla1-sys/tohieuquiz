@@ -93,6 +93,8 @@ describe('certificate batch processor', () => {
     expect(notifications).toHaveLength(2);
     expect(notifications.find((statement) => statement.bindings[3] === 'certificate_issued')?.bindings[1])
       .toBe('student-1');
+    expect(notifications.find((statement) => statement.bindings[3] === 'certificate_issued')?.bindings)
+      .toContain('/student/achievements?certificate=cert-ok');
     expect(notifications.find((statement) => statement.bindings[3] === 'certificate_batch_completed')?.bindings[1])
       .toBe('teacher-1');
     expectConsoleMessage(errorSpy, 'render failed certificate=cert-fail');

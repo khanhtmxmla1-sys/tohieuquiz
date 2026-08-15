@@ -68,6 +68,22 @@ export interface CertificateBatchSummary {
   sent_at: string | null;
 }
 
+export interface CertificatePreviewItem {
+  id: string;
+  batch_id: string;
+  title: string;
+  template_id: string;
+  student_id: string;
+  student_name: string;
+  student_score: number | null;
+  quiz_title: string | null;
+  image_url: string | null;
+  issued_at: string;
+  sent_at: string | null;
+  status: CertificateStatus;
+}
+
+
 export interface StudentCertificateItem {
   id: string;
   batch_id: string;
@@ -92,6 +108,27 @@ export interface CertificateBatchStudentItem {
   error_message: string | null;
   sent_at: string | null;
 }
+
+export interface CertificateListPage {
+  items: StudentCertificateItem[];
+  meta: {
+    limit: number;
+    total: number;
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+}
+
+export interface CertificateBatchPage {
+  items: CertificateBatchSummary[];
+  meta: {
+    limit: number;
+    total: number;
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+}
+
 
 export interface CertificateBatchDetail {
   batch: CertificateBatchSummary & { error_message?: string | null };

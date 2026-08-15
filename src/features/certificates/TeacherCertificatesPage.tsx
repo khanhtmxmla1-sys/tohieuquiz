@@ -1,25 +1,27 @@
 import { formatSystemDateWithOptions } from '../../utils/dateTime';
 import React, { useState, Suspense } from 'react';
-import { Award, Plus, RefreshCw, AlertCircle, Inbox, CheckCircle2, Clock, Send, XCircle, Eye, RotateCcw } from 'lucide-react';
+import { Award, Plus, RefreshCw, AlertCircle, Inbox, CheckCircle2, Clock, Send, XCircle, Eye, RotateCcw, Download, Ban } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useBatches } from './useBatches';
+import { fetchCertificateImageBlob } from './useCertificates';
 import type { BatchRecord } from './useBatches';
 import type { CertificateBatchDetail } from '../../../shared/certificates.contract';
 
 const BatchCreateModal = React.lazy(() => import('./BatchCreateModal'));
 
-function statusBadge(status: BatchRecord['status']) {
+function statusBadge(status: BatchRecord['status'] | 'revoked') {
     switch (status) {
         case 'sent': return <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full"><CheckCircle2 size={11} />Đã gửi</span>;
         case 'processing': return <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full"><Send size={11} />Đang xử lý</span>;
         case 'partial': return <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full"><AlertCircle size={11} />Một phần</span>;
+        case 'revoked': return <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full"><Ban size={11} />Đã thu hồi</span>;
         case 'failed': return <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full"><XCircle size={11} />Lỗi</span>;
         default: return <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full"><Clock size={11} />Chờ xử lý</span>;
     }
 }
 
 const TeacherCertificatesPage: React.FC = () => {
-    const { batches, isLoading, error, refetch, createBatch, fetchBatchDetail, retryBatch } = useBatches();
+    const { batches, isLoading, error, refetch, createBatch, fetchBatchDetail, retryBatch, revokeCertificate } = useBatches();
     const [showModal, setShowModal] = useState(false);
     const [detail, setDetail] = useState<CertificateBatchDetail | null>(null);
     const [detailLoading, setDetailLoading] = useState(false);
@@ -45,6 +47,41 @@ const TeacherCertificatesPage: React.FC = () => {
         }
     };
 
+    const openIssuedCertificate = async (imageUrl: string) => {
+        try {
+            const blob = await fetchCertificateImageBlob(imageUrl);
+            const objectUrl = URL.createObjectURL(blob);
+            window.open(objectUrl, '_blank', 'noopener,noreferrer');
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+        } catch (viewError) {
+            toast.error(viewError instanceof Error ? viewError.message : 'Không thể mở chứng nhận');
+        }
+    };
+
+    const downloadIssuedCertificate = async (certificateId: string, imageUrl: string) => {
+        try {
+            const blob = await fetchCertificateImageBlob(imageUrl);
+            const objectUrl = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = objectUrl;
+            anchor.download = `chung-nhan-${certificateId}.png`;
+            anchor.click();
+            URL.revokeObjectURL(objectUrl);
+        } catch (downloadError) {
+            toast.error(downloadError instanceof Error ? downloadError.message : 'Không thể tải chứng nhận');
+        }
+    };
+
+    const revokeIssuedCertificate = async (certificateId: string) => {
+        if (!window.confirm('Thu hồi chứng nhận này? Học sinh sẽ không thể xem hoặc tải lại.')) return;
+        try {
+            await revokeCertificate(certificateId);
+            toast.success('Đã thu hồi chứng nhận');
+            if (detail) setDetail(await fetchBatchDetail(detail.batch.id));
+        } catch (revokeError) {
+            toast.error(revokeError instanceof Error ? revokeError.message : 'Không thể thu hồi chứng nhận');
+        }
+    };
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -177,7 +214,16 @@ const TeacherCertificatesPage: React.FC = () => {
                             {detail.certificates.map((certificate) => (
                                 <div key={certificate.id} className="p-4 flex items-start justify-between gap-4">
                                     <div><p className="font-medium text-sm text-slate-800">{certificate.student_name}</p><p className="text-xs text-slate-500">{certificate.quiz_title || 'Không gắn bài kiểm tra'}{certificate.student_score !== null ? ` · ${certificate.student_score} điểm` : ''}</p>{certificate.error_message && <p className="text-xs text-red-600 mt-1">{certificate.error_message}</p>}</div>
-                                    {statusBadge(certificate.status === 'revoked' ? 'failed' : certificate.status)}
+                                    <div className="flex flex-wrap items-center justify-end gap-2">
+                                        {statusBadge(certificate.status)}
+                                        {certificate.status === 'sent' && certificate.image_url && (
+                                            <>
+                                                <button type="button" onClick={() => openIssuedCertificate(certificate.image_url!)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" aria-label={`Xem ảnh ${certificate.student_name}`} title="Xem ảnh"><Eye size={15} /></button>
+                                                <button type="button" onClick={() => downloadIssuedCertificate(certificate.id, certificate.image_url!)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" aria-label={`Tải ${certificate.student_name}`} title="Tải xuống"><Download size={15} /></button>
+                                                <button type="button" onClick={() => revokeIssuedCertificate(certificate.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" aria-label={`Thu hồi ${certificate.student_name}`} title="Thu hồi"><Ban size={15} /></button>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
