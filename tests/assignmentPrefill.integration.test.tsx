@@ -60,13 +60,15 @@ vi.mock('html2canvas', () => ({
     default: vi.fn(),
 }));
 
-vi.mock('react-hot-toast', () => ({
-    toast: {
+vi.mock('react-hot-toast', () => {
+    const toast = Object.assign(vi.fn(), {
         success: vi.fn(),
         error: vi.fn(),
         loading: vi.fn(),
-    },
-}));
+        dismiss: vi.fn(),
+    });
+    return { default: toast, toast };
+});
 
 const mockedFetchWeaknessProfile = vi.mocked(fetchWeaknessProfile);
 const mockedGetSmartAssignmentPreview = vi.mocked(getSmartAssignmentPreview);

@@ -22,9 +22,15 @@ vi.mock('../src/features/analytics/components/AIInsightBox', () => ({
     AIInsightBox: () => <div>AI Insight Box</div>,
 }));
 vi.mock('html2canvas', () => ({ default: vi.fn() }));
-vi.mock('react-hot-toast', () => ({
-    toast: { success: vi.fn(), error: vi.fn(), loading: vi.fn() },
-}));
+vi.mock('react-hot-toast', () => {
+    const toast = Object.assign(vi.fn(), {
+        success: vi.fn(),
+        error: vi.fn(),
+        loading: vi.fn(),
+        dismiss: vi.fn(),
+    });
+    return { default: toast, toast };
+});
 
 const fetchWeaknessProfileMock = vi.mocked(fetchWeaknessProfile);
 
