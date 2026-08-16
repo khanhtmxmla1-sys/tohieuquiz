@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import { showError, showSuccess } from '@/src/utils/toast';
 import { callApi } from '@/src/services/apiAdapter';
 import type { WeeklyQuestViewModel } from '@/src/components/HomePage/student-dashboard';
 
@@ -39,13 +39,13 @@ export const useWeeklyQuests = (
     try {
       const data = await callApi('claim_weekly_quest', { questId });
       if (data.status === 'success') {
-        toast.success(`🎉 Nhận thưởng thành công! +${data.reward.coins} xu`);
+        showSuccess(`🎉 Nhận thưởng thành công! +${data.reward.coins} xu`);
         await fetchQuests();
         if (data.data) await refreshDashboard(username);
       }
     } catch (error) {
       console.error('Error claiming weekly quest:', error);
-      toast.error(error instanceof Error ? error.message : 'Không thể nhận thưởng');
+      showError(error instanceof Error ? error.message : 'Không thể nhận thưởng');
     } finally {
       setClaimingId(null);
     }

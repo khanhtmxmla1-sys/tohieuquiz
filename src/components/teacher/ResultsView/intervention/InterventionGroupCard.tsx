@@ -5,7 +5,7 @@ import {
   ChevronUp,
   BookOpenCheck,
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { showSuccess } from '@/src/utils/toast';
 import type { Quiz } from '../../../../types';
 import type { InterventionGroup } from '../../../../../shared/intervention.contract';
 import { InterventionArchiveDialog } from './InterventionArchiveDialog';
@@ -33,7 +33,7 @@ export const InterventionGroupCard: React.FC<InterventionGroupCardProps> = ({
   const archived = group.status === 'ARCHIVED';
 
   const archiveAndReload = async () => {
-    toast.success('Đã lưu trữ nhóm hỗ trợ.');
+    showSuccess('Đã lưu trữ nhóm hỗ trợ.');
     await onSaved();
   };
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
+import { showError, showInfo, showSuccess } from '@/src/utils/toast';
 import { Plus, X } from 'lucide-react';
 import { ModuleIcon } from '../../../components/common';
 import {
@@ -41,7 +41,7 @@ const LegacyTestBankModal: React.FC<TestBankModalProps> = ({ isOpen, onClose, on
         setLoading(true);
         testBankService.getTestBank(teacherId)
             .then((data) => { if (active) setItems(data); })
-            .catch(() => toast.error('Không thể tải ngân hàng câu hỏi'))
+            .catch(() => showError('Không thể tải ngân hàng câu hỏi'))
             .finally(() => { if (active) setLoading(false); });
         return () => { active = false; };
     }, [isOpen, teacherId]);
@@ -66,7 +66,7 @@ const LegacyTestBankModal: React.FC<TestBankModalProps> = ({ isOpen, onClose, on
                 return next;
             });
         } catch {
-            toast.error('Không thể xóa câu hỏi');
+            showError('Không thể xóa câu hỏi');
         }
     };
 
@@ -157,13 +157,13 @@ const SystemQuestionBankModal: React.FC<TestBankModalProps> = ({ isOpen, onClose
     const copyToPersonal = async (item: QuestionBankItem) => {
         try {
             await testBankService.copyQuestionToPersonal(item.id);
-            toast.success('Đã sao chép câu hỏi về kho của tôi.');
+            showSuccess('Đã sao chép câu hỏi về kho của tôi.');
         } catch (error) {
             if (error instanceof QuestionBankApiError && error.code === 'DUPLICATE_QUESTION') {
-                toast('Câu hỏi này đã có trong kho của tôi.');
+                showInfo('Câu hỏi này đã có trong kho của tôi.');
                 return;
             }
-            toast.error('Không thể sao chép câu hỏi.');
+            showError('Không thể sao chép câu hỏi.');
         }
     };
 
@@ -177,9 +177,9 @@ const SystemQuestionBankModal: React.FC<TestBankModalProps> = ({ isOpen, onClose
                 return next;
             });
             bank.reload();
-            toast.success('Đã xóa câu hỏi khỏi kho của tôi.');
+            showSuccess('Đã xóa câu hỏi khỏi kho của tôi.');
         } catch {
-            toast.error('Không thể xóa câu hỏi.');
+            showError('Không thể xóa câu hỏi.');
         }
     };
 

@@ -9,6 +9,7 @@ import React from 'react';
 import { StudentResult, Quiz } from '../../../types';
 import { ArrowUpDown, Eye, Trash2, Loader2, Printer } from 'lucide-react';
 import { ResponsiveDataView } from '../../common';
+import { showConfirm } from '@/src/utils/toast';
 
 export interface ResultsTableProps {
     results: StudentResult[];
@@ -208,9 +209,12 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            if (window.confirm(`Bạn có chắc muốn xóa kết quả của học sinh ${result.studentName}?`)) {
-                                                                onDeleteClick(result);
-                                                            }
+                                                            void showConfirm({
+                                                                message: `Bạn có chắc muốn xóa kết quả của học sinh ${result.studentName}?`,
+                                                                confirmLabel: 'Xóa',
+                                                                destructive: true,
+                                                                onConfirm: () => onDeleteClick(result),
+                                                            });
                                                         }}
                                                         className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                                                         title="Xóa kết quả"
@@ -280,9 +284,12 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (window.confirm(`Bạn có chắc muốn xóa kết quả của học sinh ${result.studentName}?`)) {
-                                            onDeleteClick(result);
-                                        }
+                                        void showConfirm({
+                                            message: `Bạn có chắc muốn xóa kết quả của học sinh ${result.studentName}?`,
+                                            confirmLabel: 'Xóa',
+                                            destructive: true,
+                                            onConfirm: () => onDeleteClick(result),
+                                        });
                                     }}
                                     className="h-11 px-4 rounded-xl bg-red-50 text-red-700 font-semibold text-sm inline-flex items-center gap-2"
                                 >

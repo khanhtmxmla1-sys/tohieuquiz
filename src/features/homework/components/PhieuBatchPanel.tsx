@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
+import { showError, showSuccess } from '@/src/utils/toast';
 import { Check, Copy, Download, ExternalLink, FileText, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '../../../components/common';
 import { HomeworkAssignment, HomeworkSubmission } from '../types';
@@ -55,10 +55,10 @@ export const PhieuBatchPanel: React.FC<PhieuBatchPanelProps> = ({ assignment, su
       if (!activeSubmissionId && selectedSubmissions[0]) {
         setActiveSubmissionId(selectedSubmissions[0].id);
       }
-      toast.success('Đã sinh và lưu phiếu nhập.');
+      showSuccess('Đã sinh và lưu phiếu nhập.');
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Không thể sinh phiếu.');
+      showError(error instanceof Error ? error.message : 'Không thể sinh phiếu.');
     } finally {
       setIsGenerating(false);
     }
@@ -81,10 +81,10 @@ export const PhieuBatchPanel: React.FC<PhieuBatchPanelProps> = ({ assignment, su
     try {
       const saved = await phieuService.upsertPhieu(activePhieu as PhieuNhanXetInput);
       setDrafts((current) => ({ ...current, [activeSubmissionId]: saved }));
-      toast.success('Đã lưu phiếu.');
+      showSuccess('Đã lưu phiếu.');
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Không thể lưu phiếu.');
+      showError(error instanceof Error ? error.message : 'Không thể lưu phiếu.');
     }
   };
 
@@ -94,7 +94,7 @@ export const PhieuBatchPanel: React.FC<PhieuBatchPanelProps> = ({ assignment, su
       .map((phieu) => phieu.id);
 
     if (phieuIds.length === 0) {
-      toast.error('Cần sinh và lưu ít nhất 1 phiếu trước khi xuất link.');
+      showError('Cần sinh và lưu ít nhất 1 phiếu trước khi xuất link.');
       return;
     }
 
@@ -109,10 +109,10 @@ export const PhieuBatchPanel: React.FC<PhieuBatchPanelProps> = ({ assignment, su
         expiresInDays: undefined,
       });
       setLinks(result.links);
-      toast.success('Đã xuất link phụ huynh.');
+      showSuccess('Đã xuất link phụ huynh.');
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Không thể xuất link.');
+      showError(error instanceof Error ? error.message : 'Không thể xuất link.');
     } finally {
       setIsPublishing(false);
     }

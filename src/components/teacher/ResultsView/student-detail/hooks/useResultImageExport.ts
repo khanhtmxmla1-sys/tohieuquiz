@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import type { StudentResult } from '../../../../../types';
 
-import { toast } from 'react-hot-toast';
+import { showError, showLoading, showSuccess } from '@/src/utils/toast';
 
 export const useResultImageExport = (
     reportRef: RefObject<HTMLDivElement | null>,
@@ -9,7 +9,7 @@ export const useResultImageExport = (
 ) => {
     const handleExportImage = async () => {
         if (!reportRef.current) return;
-        const loadingToast = toast.loading('Đang chuẩn bị báo cáo...');
+        const loadingToast = showLoading('Đang chuẩn bị báo cáo...');
         try {
             const { default: html2canvas } = await import('html2canvas');
             const canvas = await html2canvas(reportRef.current, {
@@ -21,10 +21,10 @@ export const useResultImageExport = (
             link.download = `Bao-cao-${result.studentName}-${result.quizTitle}.png`;
             link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
-            toast.success('Đã tải xuống báo cáo!', { id: loadingToast });
+            showSuccess('Đã tải xuống báo cáo!', { id: loadingToast });
         } catch (error) {
             console.error('Export error:', error);
-            toast.error('Không thể xuất ảnh. Vui lòng thử lại.', { id: loadingToast });
+            showError('Không thể xuất ảnh. Vui lòng thử lại.', { id: loadingToast });
         }
     };
 

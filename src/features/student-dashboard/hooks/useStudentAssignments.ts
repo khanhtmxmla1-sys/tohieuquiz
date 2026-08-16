@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import toast from 'react-hot-toast';
+import { showError } from '@/src/utils/toast';
 import { useAssignmentStore } from '@/src/stores/useAssignmentStore';
 import { useQuizStore } from '@/stores/quizStore';
 import type { AssignedQuiz } from '@/src/components/HomePage/student-dashboard';
@@ -159,7 +159,7 @@ export const useStudentAssignments = (studentId?: string) => {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không thể mở lại bài làm.';
-      toast.error(message);
+      showError(message);
     } finally {
       setReviewingAssignmentId(null);
     }

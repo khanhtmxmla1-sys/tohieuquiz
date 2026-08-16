@@ -2,11 +2,13 @@ import React from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from 'react-hot-toast';
 import { ChatBot } from '../components/ChatBot';
+import { SystemDialogHost } from '../components/common/SystemDialogHost';
 
 export const AppGlobals: React.FC<{ showChatbot: boolean }> = ({ showChatbot }) => (
     <>
         {showChatbot && <ChatBot />}
         <Analytics />
+        <SystemDialogHost />
         <Toaster
             position="top-center"
             containerStyle={{ top: 64 }}

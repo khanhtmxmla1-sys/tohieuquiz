@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
+import { showError } from '@/src/utils/toast';
 import { Search, Sparkles } from 'lucide-react';
 import { practiceService } from '../../../services/practiceService';
 import { usePracticeTopics } from '../../../features/student-dashboard/hooks/usePracticeTopics';
@@ -53,14 +53,14 @@ const ValidSubjectLibrary = ({ subjectId, onBack }: ValidSubjectLibraryProps) =>
     try {
       const virtualQuiz = await practiceService.getPracticeQuiz(topic, 10);
       if (!virtualQuiz) {
-        toast.error('Không thể tải bài luyện tập. Vui lòng thử lại.');
+        showError('Không thể tải bài luyện tập. Vui lòng thử lại.');
         return;
       }
 
       quizStore.selectQuiz(virtualQuiz);
       quizStore.setView('student');
     } catch {
-      toast.error('Không thể tải bài luyện tập. Vui lòng thử lại.');
+      showError('Không thể tải bài luyện tập. Vui lòng thử lại.');
     } finally {
       setStartingTopic(null);
     }
