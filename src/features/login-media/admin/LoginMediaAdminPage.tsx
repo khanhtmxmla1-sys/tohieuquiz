@@ -6,6 +6,7 @@ import { LoginMediaSettingsCard } from './LoginMediaSettingsCard';
 import { LoginMediaSlideEditor } from './LoginMediaSlideEditor';
 import { LoginMediaSlideList } from './LoginMediaSlideList';
 import { useLoginMediaAdmin } from './useLoginMediaAdmin';
+import { showConfirm } from '../../../utils/toast';
 
 const LoginMediaAdminPage = () => {
   const admin = useLoginMediaAdmin();
@@ -38,8 +39,12 @@ const LoginMediaAdminPage = () => {
   };
 
   const deleteSlide = (slide: LoginMediaAdminSlide) => {
-    if (!window.confirm(`Xóa “${slide.internalTitle || 'banner'}” khỏi danh sách? Ảnh trên Cloudinary sẽ không bị xóa.`)) return;
-    void admin.remove(slide.id, slide.updatedAt);
+    void showConfirm({
+      message: `Xóa “${slide.internalTitle || 'banner'}” khỏi danh sách? Ảnh trên Cloudinary sẽ không bị xóa.`,
+      confirmLabel: 'Xóa',
+      destructive: true,
+      onConfirm: () => admin.remove(slide.id, slide.updatedAt).then(() => undefined),
+    });
   };
 
   if (admin.loading && !admin.state) {

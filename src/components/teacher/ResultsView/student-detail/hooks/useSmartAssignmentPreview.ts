@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { SmartAssignmentPreviewApiResponse, SmartAssignmentPreviewData } from '../../../../../types/classroom.types';
 import type { StudentResult } from '../../../../../types';
 import { getSmartAssignmentPreview } from '../../../../../services/classroomService';
-import { toast } from 'react-hot-toast';
+import { showError, showSuccess } from '@/src/utils/toast';
 import { createSmartAssignmentComposerDraft } from '../models/smartAssignmentDraft';
 import { toSystemDateTimeLocal } from '../../../../../utils/dateTime';
 
@@ -32,7 +32,7 @@ export const useSmartAssignmentPreview = (
 
     const handleLoadSmartPreview = async () => {
         if (!teacherUsername) {
-            toast.error('Khong xac dinh duoc giao vien dang dang nhap.');
+            showError('Khong xac dinh duoc giao vien dang dang nhap.');
             return;
         }
         setIsSmartPreviewLoading(true); setSmartPreviewError(null); setSmartPreviewErrorDetails(null);
@@ -55,13 +55,13 @@ export const useSmartAssignmentPreview = (
 
     const handleUseSmartPreviewInAssignmentTab = () => {
         if (!smartPreview || !selectedPreviewQuizId || !smartDeadline) {
-            toast.error('Smart preview chua san sang de giao bai.'); return;
+            showError('Smart preview chua san sang de giao bai.'); return;
         }
         const selected = smartPreview.recommendedQuizzes.find(({ quizId }) => quizId === selectedPreviewQuizId);
         openDraft(createSmartAssignmentComposerDraft(
             result.id, smartPreview, selectedPreviewQuizId, smartDeadline, smartMaxAttempts
         ));
-        toast.success(selected
+        showSuccess(selected
             ? `Da nap goi y "${selected.title}" sang tab Giao bai.`
             : 'Da nap smart preview sang tab Giao bai.');
     };

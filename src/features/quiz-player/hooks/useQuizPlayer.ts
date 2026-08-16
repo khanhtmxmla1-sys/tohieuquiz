@@ -6,7 +6,7 @@ import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
 import { verifyQuizAccessCode } from '../../../services/quizAccessService';
 import { startAssignmentAttempt } from '../../../services/classroomService';
-import { playTingSound } from '../../../utils/toast';
+import { playTingSound, showConfirm } from '../../../utils/toast';
 import { useQuizProgressRollout } from './useQuizProgressRollout';
 import {
     clearQuizAttemptDraft,
@@ -128,6 +128,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const startTriggeredRef = useRef(false);
     const submissionTriggeredRef = useRef(false);
+    const navigationConfirmOpenRef = useRef(false);
 
     // Gamification state
     const [showReward, setShowReward] = useState(false);
@@ -167,12 +168,25 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
         if (step !== 'quiz') return;
         const handlePopState = (e: PopStateEvent) => {
             e.preventDefault();
-            if (window.confirm('Bạn đang làm bài! Tiến độ đang được lưu trên thiết bị. Bạn có chắc muốn thoát?')) {
-                clearQuizAttemptDraft(quiz.id);
-                onExit();
-            } else {
+            if (navigationConfirmOpenRef.current) {
                 window.history.pushState(null, '', window.location.href);
+                return;
             }
+            navigationConfirmOpenRef.current = true;
+            void showConfirm({
+                message: 'Bạn đang làm bài! Tiến độ đang được lưu trên thiết bị. Bạn có chắc muốn thoát?',
+                confirmLabel: 'Thoát',
+                cancelLabel: 'Tiếp tục làm bài',
+                destructive: true,
+            }).then((confirmed) => {
+                navigationConfirmOpenRef.current = false;
+                if (confirmed) {
+                    clearQuizAttemptDraft(quiz.id);
+                    onExit();
+                } else {
+                    window.history.pushState(null, '', window.location.href);
+                }
+            });
         };
 
         window.history.pushState(null, '', window.location.href);

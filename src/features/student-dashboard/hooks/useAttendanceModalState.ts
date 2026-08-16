@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
+import { showError, showInfo } from '@/src/utils/toast';
 import type { Quiz } from '@/src/types';
 import {
   buildAttendanceQuestionPool, pickAttendanceQuestion, type AttendanceQuestion,
@@ -16,12 +16,12 @@ export const useAttendanceModalState = (quizzes: Quiz[], claimedToday: boolean) 
 
   const open = useCallback(() => {
     if (claimedToday) {
-      toast('Hôm nay em đã điểm danh nhận thưởng rồi. Mai quay lại nhé!', { icon: '📅' });
+      showInfo('Hôm nay em đã điểm danh nhận thưởng rồi. Mai quay lại nhé!', { icon: '📅' });
       return;
     }
     const nextQuestion = pickAttendanceQuestion(questionPool, question?.id);
     if (!nextQuestion) {
-      toast.error('Hiện chưa có câu hỏi trắc nghiệm phù hợp trong ngân hàng đề.');
+      showError('Hiện chưa có câu hỏi trắc nghiệm phù hợp trong ngân hàng đề.');
       return;
     }
     setQuestion(nextQuestion);

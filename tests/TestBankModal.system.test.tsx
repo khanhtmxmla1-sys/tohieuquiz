@@ -21,7 +21,11 @@ vi.mock('../src/services/featureRolloutService', () => ({
   resolveRuntimeFeatureFlag: mocks.resolveFlag,
 }));
 
-vi.mock('react-hot-toast', () => ({ default: mocks.toast }));
+vi.mock('../src/utils/toast', () => ({
+  showSuccess: mocks.toast.success,
+  showError: mocks.toast.error,
+  showInfo: mocks.toast,
+}));
 
 vi.mock('../src/services/testBankService', async () => {
   const actual = await vi.importActual<typeof import('../src/services/testBankService')>(
