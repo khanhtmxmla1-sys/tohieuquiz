@@ -1,6 +1,6 @@
 import { formatSystemDateWithOptions } from '../../utils/dateTime';
 import React, { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import { showError, showInfo } from '@/src/utils/toast';
 import { Calendar, Download, Share2, Star, Trophy, User } from 'lucide-react';
 import type { Certificate } from './certificates.types';
 import { fetchCertificateImageBlob } from './useCertificates';
@@ -50,7 +50,7 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ cert }) => {
             anchor.remove();
             URL.revokeObjectURL(url);
         } catch {
-            toast.error('Không thể tải chứng nhận. Vui lòng thử lại.');
+            showError('Không thể tải chứng nhận. Vui lòng thử lại.');
         } finally {
             setIsDownloading(false);
         }
@@ -67,7 +67,7 @@ const CertificateCard: React.FC<CertificateCardProps> = ({ cert }) => {
             }
             return;
         }
-        toast('Thiết bị chưa hỗ trợ chia sẻ tệp. Hãy dùng nút Tải về.');
+        showInfo('Thiết bị chưa hỗ trợ chia sẻ tệp. Hãy dùng nút Tải về.');
     };
 
     return (

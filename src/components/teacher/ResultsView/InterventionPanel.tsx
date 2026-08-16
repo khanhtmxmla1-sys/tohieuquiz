@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BookOpenCheck, RefreshCw, Users } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { showError, showSuccess } from '@/src/utils/toast';
 import type { Quiz } from '../../../types';
 import type { InterventionSuggestion } from '../../../../shared/intervention.contract';
 import { createInterventionGroup } from '../../../services/results/interventionService';
@@ -71,7 +71,7 @@ export const InterventionPanel = ({
         studentIds: input.studentIds,
       });
       setPendingFocusGroupId(created.id);
-      toast.success(`Đã tạo nhóm hỗ trợ với ${input.studentIds.length} học sinh.`);
+      showSuccess(`Đã tạo nhóm hỗ trợ với ${input.studentIds.length} học sinh.`);
       await load();
       return 'created';
     } catch (createError) {
@@ -80,11 +80,11 @@ export const InterventionPanel = ({
         : 0;
       const message = createError instanceof Error ? createError.message : 'Không thể tạo nhóm hỗ trợ.';
       if (status === 409 || /no longer available|không còn/i.test(message)) {
-        toast.error('Gợi ý đã thay đổi theo dữ liệu mới. Đã tải lại để bạn kiểm tra thành viên còn phù hợp.');
+        showError('Gợi ý đã thay đổi theo dữ liệu mới. Đã tải lại để bạn kiểm tra thành viên còn phù hợp.');
         await load();
         return 'stale';
       }
-      toast.error(message);
+      showError(message);
       return 'failed';
     } finally {
       setBusyAction('');

@@ -46,6 +46,15 @@ export const playTingSound = (): void => {
 
 const BASE_DURATION = 3500;
 
+export type SystemToastOptions = NonNullable<Parameters<typeof toast.success>[1]>;
+
+type SystemToastOptionsInput = number | SystemToastOptions;
+
+const normalizeToastOptions = (optionsOrDuration?: SystemToastOptionsInput): SystemToastOptions => {
+    if (typeof optionsOrDuration === 'number') return { duration: optionsOrDuration };
+    return optionsOrDuration ?? {};
+};
+
 const baseStyle: React.CSSProperties = {
     fontFamily: "'Baloo 2', sans-serif",
     fontWeight: 600,
@@ -58,52 +67,68 @@ const baseStyle: React.CSSProperties = {
 // ─── Notification helpers ─────────────────────────────────────────────────────
 
 /** Show a success toast */
-export const showSuccess = (message: string, duration = BASE_DURATION): string =>
-    toast.success(message, {
-        duration,
+export const showSuccess = (message: string, optionsOrDuration?: SystemToastOptionsInput): string => {
+    const options = normalizeToastOptions(optionsOrDuration);
+    return toast.success(message, {
+        ...options,
+        duration: options.duration ?? BASE_DURATION,
         style: {
             ...baseStyle,
             background: '#f0fdf4',
             color: '#15803d',
+            ...options.style,
         },
-        iconTheme: { primary: '#22c55e', secondary: '#f0fdf4' },
+        iconTheme: options.iconTheme ?? { primary: '#22c55e', secondary: '#f0fdf4' },
     });
+};
 
 /** Show an error toast */
-export const showError = (message: string, duration = BASE_DURATION): string =>
-    toast.error(message, {
-        duration,
+export const showError = (message: string, optionsOrDuration?: SystemToastOptionsInput): string => {
+    const options = normalizeToastOptions(optionsOrDuration);
+    return toast.error(message, {
+        ...options,
+        duration: options.duration ?? BASE_DURATION,
         style: {
             ...baseStyle,
             background: '#fef2f2',
             color: '#dc2626',
+            ...options.style,
         },
-        iconTheme: { primary: '#ef4444', secondary: '#fef2f2' },
+        iconTheme: options.iconTheme ?? { primary: '#ef4444', secondary: '#fef2f2' },
     });
+};
 
 /** Show an info / neutral toast */
-export const showInfo = (message: string, duration = BASE_DURATION): string =>
-    toast(message, {
-        duration,
-        icon: 'ℹ️',
+export const showInfo = (message: string, optionsOrDuration?: SystemToastOptionsInput): string => {
+    const options = normalizeToastOptions(optionsOrDuration);
+    return toast(message, {
+        ...options,
+        duration: options.duration ?? BASE_DURATION,
+        icon: options.icon ?? 'ℹ️',
         style: {
             ...baseStyle,
             background: '#eff6ff',
             color: '#1d4ed8',
+            ...options.style,
         },
     });
+};
 
 /** Show a warning toast */
-export const showWarning = (message: string, duration = BASE_DURATION): string =>
-    toast(message, {
-        duration,
-        icon: '⚠️',
+export const showWarning = (message: string, optionsOrDuration?: SystemToastOptionsInput): string => {
+    const options = normalizeToastOptions(optionsOrDuration);
+    return toast(message, {
+        ...options,
+        duration: options.duration ?? BASE_DURATION,
+        icon: options.icon ?? '⚠️',
         style: {
             ...baseStyle,
             background: '#fffbeb',
             color: '#b45309',
+            ...options.style,
         },
     });
+};
 
 /**
  * Show a loading toast that you dismiss manually.
@@ -118,91 +143,105 @@ export const showLoading = (message: string): string =>
         },
     });
 
-// ─── Confirm Dialog ───────────────────────────────────────────────────────────
+// ─── System Dialogs ──────────────────────────────────────────────────────────
 
-interface ConfirmOptions {
+export interface ConfirmOptions {
     message: string;
-    onConfirm: () => void;
+    onConfirm?: () => unknown;
     confirmLabel?: string;
     cancelLabel?: string;
-    destructive?: boolean; // true → confirm button is red
+    destructive?: boolean;
 }
 
-/**
- * Show a confirmation toast with two action buttons.
- * Does NOT auto-dismiss — waits for user to press confirm or cancel.
- * Use this to REPLACE all window.confirm() calls.
- */
-export const showConfirm = ({
-    message,
-    onConfirm,
-    confirmLabel = 'Đồng ý',
-    cancelLabel = 'Huỷ',
-    destructive = false,
-}: ConfirmOptions): void => {
-    toast(
-        (t) =>
-            React.createElement(
-                'div',
-                { style: { display: 'flex', flexDirection: 'column' as const, gap: 10 } },
-                React.createElement(
-                    'span',
-                    { style: { fontFamily: "'Baloo 2', sans-serif", fontWeight: 600, fontSize: '0.95rem', color: '#1e293b' } },
-                    message
-                ),
-                React.createElement(
-                    'div',
-                    { style: { display: 'flex', gap: 8, justifyContent: 'flex-end' } },
-                    React.createElement(
-                        'button',
-                        {
-                            onClick: () => toast.dismiss(t.id),
-                            style: {
-                                padding: '7px 14px',
-                                borderRadius: 10,
-                                border: '1.5px solid #e2e8f0',
-                                background: '#f8fafc',
-                                color: '#475569',
-                                cursor: 'pointer',
-                                fontFamily: "'Baloo 2', sans-serif",
-                                fontWeight: 600,
-                                fontSize: '0.88rem',
-                                minHeight: 36,
-                            },
-                        },
-                        cancelLabel
-                    ),
-                    React.createElement(
-                        'button',
-                        {
-                            onClick: () => {
-                                toast.dismiss(t.id);
-                                onConfirm();
-                            },
-                            style: {
-                                padding: '7px 14px',
-                                borderRadius: 10,
-                                border: 'none',
-                                background: destructive ? '#ef4444' : '#16a34a',
-                                color: '#fff',
-                                cursor: 'pointer',
-                                fontFamily: "'Baloo 2', sans-serif",
-                                fontWeight: 700,
-                                fontSize: '0.88rem',
-                                minHeight: 36,
-                            },
-                        },
-                        confirmLabel
-                    )
-                )
-            ),
-        {
-            duration: Infinity, // User must explicitly dismiss
-            style: {
-                ...baseStyle,
-                background: '#ffffff',
-                maxWidth: 360,
-            },
-        }
-    );
+export interface PromptOptions {
+    title: string;
+    message: string;
+    defaultValue?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    inputType?: React.HTMLInputTypeAttribute;
+}
+
+interface ConfirmDialogRequest {
+    id: string;
+    kind: 'confirm';
+    options: ConfirmOptions;
+    resolve: (value: boolean) => void;
+}
+
+interface PromptDialogRequest {
+    id: string;
+    kind: 'prompt';
+    options: PromptOptions;
+    resolve: (value: string | null) => void;
+}
+
+export type SystemDialogRequest = ConfirmDialogRequest | PromptDialogRequest;
+
+let nextSystemDialogId = 0;
+let activeSystemDialog: SystemDialogRequest | null = null;
+const pendingSystemDialogs: SystemDialogRequest[] = [];
+const systemDialogListeners = new Set<() => void>();
+
+const notifySystemDialogListeners = (): void => {
+    systemDialogListeners.forEach((listener) => listener());
 };
+
+const enqueueSystemDialog = (request: SystemDialogRequest): void => {
+    if (activeSystemDialog) {
+        pendingSystemDialogs.push(request);
+        return;
+    }
+    activeSystemDialog = request;
+    notifySystemDialogListeners();
+};
+
+export const getSystemDialogRequest = (): SystemDialogRequest | null => activeSystemDialog;
+
+export const subscribeSystemDialog = (listener: () => void): (() => void) => {
+    systemDialogListeners.add(listener);
+    return () => systemDialogListeners.delete(listener);
+};
+
+export const settleSystemDialog = (id: string, value: boolean | string | null): void => {
+    if (!activeSystemDialog || activeSystemDialog.id !== id) return;
+
+    const request = activeSystemDialog;
+    activeSystemDialog = pendingSystemDialogs.shift() ?? null;
+
+    if (request.kind === 'confirm') {
+        const confirmed = value === true;
+        request.resolve(confirmed);
+        notifySystemDialogListeners();
+        if (confirmed) request.options.onConfirm?.();
+        return;
+    }
+
+    request.resolve(typeof value === 'string' ? value : null);
+    notifySystemDialogListeners();
+};
+
+/**
+ * Show an accessible confirmation dialog through SystemDialogHost.
+ * Existing callback-style callers remain supported while new callers can await the result.
+ */
+export const showConfirm = (options: ConfirmOptions): Promise<boolean> =>
+    new Promise((resolve) => {
+        enqueueSystemDialog({
+            id: `system-confirm-${++nextSystemDialogId}`,
+            kind: 'confirm',
+            options,
+            resolve,
+        });
+    });
+
+/** Show an accessible prompt dialog through SystemDialogHost. */
+export const showPrompt = (options: PromptOptions): Promise<string | null> =>
+    new Promise((resolve) => {
+        enqueueSystemDialog({
+            id: `system-prompt-${++nextSystemDialogId}`,
+            kind: 'prompt',
+            options,
+            resolve,
+        });
+    });

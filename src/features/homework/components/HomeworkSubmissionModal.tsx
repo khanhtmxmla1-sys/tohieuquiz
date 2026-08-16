@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useHomeworkStore } from '../stores/useHomeworkStore';
 import MathSpan from '../../../components/common/MathSpan';
 import { uploadMedia } from '../../../services/mediaUploadService';
+import { showConfirm, showError } from '../../../utils/toast';
 
 interface HomeworkSubmissionModalProps {
   assignment: HomeworkAssignment;
@@ -257,11 +258,15 @@ export const HomeworkSubmissionModal: React.FC<HomeworkSubmissionModalProps> = (
     if (files.length) {
       const invalid = files.find(file => file.size > 10 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type));
       if (invalid) {
-        window.alert('Chỉ nhận ảnh JPG, PNG hoặc WebP, tối đa 10 MB mỗi ảnh.');
+        showError('Chỉ nhận ảnh JPG, PNG hoặc WebP, tối đa 10 MB mỗi ảnh.');
         return;
       }
       const warnings = (await Promise.all(files.map(inspectImageQuality))).flat();
-      if (warnings.length && window.confirm(`Phát hiện ${[...new Set(warnings)].join(', ')}. Chọn OK để chọn lại ảnh, hoặc Cancel để vẫn dùng ảnh này.`)) {
+      if (warnings.length && await showConfirm({
+        message: `Phát hiện ${[...new Set(warnings)].join(', ')}. Chọn “Chọn lại ảnh” để chọn ảnh khác, hoặc “Vẫn dùng ảnh” để tiếp tục.`,
+        confirmLabel: 'Chọn lại ảnh',
+        cancelLabel: 'Vẫn dùng ảnh',
+      })) {
         e.target.value = '';
         return;
       }

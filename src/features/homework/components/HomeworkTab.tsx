@@ -1,6 +1,6 @@
 import { formatSystemDateTime, systemDateTimeLocalToIso, toSystemDateTimeLocal } from '../../../utils/dateTime';
 import React, { useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
+import { showConfirm, showError, showPrompt, showSuccess } from '@/src/utils/toast';
 import { Archive, BookText, CalendarClock, ChevronRight, Clock, Copy, LayoutGrid, List, Lock, Pencil, Plus, Search, Unlock, Users } from 'lucide-react';
 import { Button, ModuleIcon } from '../../../components/common';
 import { useAuthStore } from '../../../../stores/authStore';
@@ -61,51 +61,75 @@ export const HomeworkTab: React.FC = () => {
 
   const archive = async (event: React.MouseEvent, assignment: HomeworkAssignment) => {
     event.stopPropagation();
-    if (!window.confirm(`Lưu trữ bài “${assignment.title}”? Bài nộp và điểm sẽ được giữ nguyên.`)) return;
-    try { await deleteAssignment(assignment.id); toast.success('Đã lưu trữ bài tập'); }
-    catch (err) { toast.error(err instanceof Error ? err.message : 'Không thể lưu trữ bài tập'); }
+    if (!(await showConfirm({
+      message: `Lưu trữ bài “${assignment.title}”? Bài nộp và điểm sẽ được giữ nguyên.`,
+      confirmLabel: 'Lưu trữ',
+      destructive: true,
+    }))) return;
+    try { await deleteAssignment(assignment.id); showSuccess('Đã lưu trữ bài tập'); }
+    catch (err) { showError(err instanceof Error ? err.message : 'Không thể lưu trữ bài tập'); }
   };
 
   const updateDeadline = async (event: React.MouseEvent, assignment: HomeworkAssignment) => {
     event.stopPropagation();
     const localValue = toSystemDateTimeLocal(assignment.deadline);
-    const value = window.prompt('Nhập hạn nộp mới theo giờ Hà Nội (YYYY-MM-DDTHH:mm)', localValue);
+    const value = await showPrompt({
+      title: 'Gia hạn bài tập',
+      message: 'Nhập hạn nộp mới theo giờ Hà Nội (YYYY-MM-DDTHH:mm)',
+      defaultValue: localValue,
+      confirmLabel: 'Cập nhật',
+    });
     if (!value) return;
     try {
       const deadline = systemDateTimeLocalToIso(value);
       await updateAssignment(assignment.id, { deadline, status: 'OPEN' });
-      toast.success('Đã gia hạn bài tập');
+      showSuccess('Đã gia hạn bài tập');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Hạn nộp không hợp lệ');
+      showError(err instanceof Error ? err.message : 'Hạn nộp không hợp lệ');
     }
   };
 
   const editAssignment = async (event: React.MouseEvent, assignment: HomeworkAssignment) => {
     event.stopPropagation();
-    const title = window.prompt('Tên bài tập', assignment.title);
+    const title = await showPrompt({
+      title: 'Tên bài tập',
+      message: 'Tên bài tập',
+      defaultValue: assignment.title,
+      confirmLabel: 'Tiếp tục',
+    });
     if (!title?.trim()) return;
-    const description = window.prompt('Hướng dẫn cho học sinh', assignment.description || '') ?? assignment.description;
-    const attemptsValue = window.prompt('Số lần nộp tối đa (1-10)', String(assignment.maxAttempts || assignment.max_attempts || 1));
+    const description = await showPrompt({
+      title: 'Hướng dẫn cho học sinh',
+      message: 'Hướng dẫn cho học sinh',
+      defaultValue: assignment.description || '',
+      confirmLabel: 'Tiếp tục',
+    }) ?? assignment.description;
+    const attemptsValue = await showPrompt({
+      title: 'Số lần nộp tối đa',
+      message: 'Số lần nộp tối đa (1-10)',
+      defaultValue: String(assignment.maxAttempts || assignment.max_attempts || 1),
+      confirmLabel: 'Lưu',
+    });
     if (attemptsValue === null) return;
     const maxAttempts = Number(attemptsValue);
-    if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10) return toast.error('Số lần nộp phải từ 1 đến 10');
-    try { await updateAssignment(assignment.id, { title: title.trim(), description, maxAttempts }); toast.success('Đã cập nhật bài tập'); }
-    catch (err) { toast.error(err instanceof Error ? err.message : 'Không thể cập nhật'); }
+    if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 10) return showError('Số lần nộp phải từ 1 đến 10');
+    try { await updateAssignment(assignment.id, { title: title.trim(), description, maxAttempts }); showSuccess('Đã cập nhật bài tập'); }
+    catch (err) { showError(err instanceof Error ? err.message : 'Không thể cập nhật'); }
   };
 
   const toggleStatus = async (event: React.MouseEvent, assignment: HomeworkAssignment) => {
     event.stopPropagation();
     const nextStatus = assignment.effectiveStatus === 'OPEN' ? 'CLOSED' : 'OPEN';
-    try { await updateAssignment(assignment.id, { status: nextStatus }); toast.success(nextStatus === 'OPEN' ? 'Đã mở lại bài tập' : 'Đã đóng bài tập'); }
-    catch (err) { toast.error(err instanceof Error ? err.message : 'Không thể đổi trạng thái'); }
+    try { await updateAssignment(assignment.id, { status: nextStatus }); showSuccess(nextStatus === 'OPEN' ? 'Đã mở lại bài tập' : 'Đã đóng bài tập'); }
+    catch (err) { showError(err instanceof Error ? err.message : 'Không thể đổi trạng thái'); }
   };
 
   const duplicate = async (event: React.MouseEvent, assignment: HomeworkAssignment) => {
     event.stopPropagation();
     try {
       await addAssignment({ ...assignment, id: undefined, title: `${assignment.title} (bản sao)`, status: 'DRAFT', teacher_id: username || assignment.teacher_id });
-      toast.success('Đã tạo bản sao ở trạng thái bản nháp');
-    } catch (err) { toast.error(err instanceof Error ? err.message : 'Không thể nhân bản'); }
+      showSuccess('Đã tạo bản sao ở trạng thái bản nháp');
+    } catch (err) { showError(err instanceof Error ? err.message : 'Không thể nhân bản'); }
   };
 
   if (selectedAssignment) return <AssignmentSubmissionsView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} />;

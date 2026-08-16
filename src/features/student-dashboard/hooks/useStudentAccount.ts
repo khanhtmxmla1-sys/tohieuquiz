@@ -1,5 +1,5 @@
 import { useCallback, useState, type FormEvent } from 'react';
-import toast from 'react-hot-toast';
+import { showConfirm, showSuccess } from '@/src/utils/toast';
 import { useAuthStore } from '@/stores/authStore';
 import { useClassroomStore } from '@/src/stores/useClassroomStore';
 import type { StudentSession } from '@/src/types/classroom.types';
@@ -34,18 +34,27 @@ export const useStudentAccount = (studentSession: StudentSession | null) => {
   }, [isSubmitting, reset]);
 
   const logout = useCallback(() => {
-    if (window.confirm('Em có chắc chắn muốn đăng xuất không?')) {
-      logoutStudent();
-      useAuthStore.getState().logout();
-    }
+    void showConfirm({
+      message: 'Em có chắc chắn muốn đăng xuất không?',
+      confirmLabel: 'Đăng xuất',
+      onConfirm: () => {
+        logoutStudent();
+        useAuthStore.getState().logout();
+      },
+    });
   }, [logoutStudent]);
 
   const clearDeviceData = useCallback(() => {
-    if (window.confirm('Xóa toàn bộ dữ liệu TôHiệuQuiz đã lưu trên thiết bị này và đăng xuất?')) {
-      logoutStudent();
-      useAuthStore.getState().logout();
-      toast.success('Đã xóa dữ liệu TôHiệuQuiz trên thiết bị này.');
-    }
+    void showConfirm({
+      message: 'Xóa toàn bộ dữ liệu TôHiệuQuiz đã lưu trên thiết bị này và đăng xuất?',
+      confirmLabel: 'Xóa dữ liệu',
+      destructive: true,
+      onConfirm: () => {
+        logoutStudent();
+        useAuthStore.getState().logout();
+        showSuccess('Đã xóa dữ liệu TôHiệuQuiz trên thiết bị này.');
+      },
+    });
   }, [logoutStudent]);
 
   const submit = useCallback(async (event: FormEvent) => {
@@ -75,7 +84,7 @@ export const useStudentAccount = (studentSession: StudentSession | null) => {
         setErrorMessage(classroomError || 'Không thể đổi mật khẩu.');
         return;
       }
-      toast.success('Đổi mật khẩu thành công.');
+      showSuccess('Đổi mật khẩu thành công.');
       setIsOpen(false);
       reset();
     } finally {

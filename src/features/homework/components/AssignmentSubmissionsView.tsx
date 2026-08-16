@@ -1,6 +1,6 @@
 import { formatSystemDateTime } from '../../../utils/dateTime';
 import React, { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import { showError, showSuccess } from '@/src/utils/toast';
 import { HomeworkAssignment, HomeworkAssignmentAnalytics, HomeworkSubmission } from '../types';
 import { useHomeworkStore } from '../stores/useHomeworkStore';
 import { useRosterStore } from '../../../stores/useRosterStore';
@@ -121,10 +121,10 @@ export const AssignmentSubmissionsView: React.FC<AssignmentSubmissionsViewProps>
       // Update local state
       setLocalSubmissions(prev => prev.map(s => s.id === updatedSubmission.id ? updatedSubmission : s));
       setSelectedSubmission(updatedSubmission);
-      toast.success('Đã chấm điểm thành công! Học sinh hiện đã có thể xem kết quả.');
+      showSuccess('Đã chấm điểm thành công! Học sinh hiện đã có thể xem kết quả.');
     } catch (err) {
       console.error(err);
-      toast.error('Có lỗi xảy ra khi chấm điểm.');
+      showError('Có lỗi xảy ra khi chấm điểm.');
     } finally {
       setIsGrading(false);
     }
@@ -152,7 +152,7 @@ export const AssignmentSubmissionsView: React.FC<AssignmentSubmissionsViewProps>
       });
     } catch (err) {
       console.error(err);
-      toast.error('AI không thể phân tích ảnh lúc này. Vui lòng thử lại sau.');
+      showError('AI không thể phân tích ảnh lúc này. Vui lòng thử lại sau.');
     } finally {
       setIsAILoading(false);
     }

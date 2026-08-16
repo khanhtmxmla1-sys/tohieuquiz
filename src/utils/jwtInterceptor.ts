@@ -15,6 +15,19 @@ export interface JWTInterceptorConfig {
     redirectOnUnauthorized?: boolean;
 }
 
+const UNAUTHORIZED_TOAST_DEDUPE_MS = 3500;
+let lastUnauthorizedToastAt = 0;
+
+const showUnauthorizedErrorOnce = (): void => {
+    const now = Date.now();
+    if (now - lastUnauthorizedToastAt < UNAUTHORIZED_TOAST_DEDUPE_MS) return;
+    lastUnauthorizedToastAt = now;
+    showError(
+        'Không có quyền truy cập hoặc phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại nếu cần.',
+        { id: 'auth-unauthorized' },
+    );
+};
+
 /**
  * Wrap fetch calls to intercept 401 errors
  */
@@ -31,7 +44,7 @@ export async function fetchWithJWTInterceptor(
         // Intercept 401 Unauthorized
         if (response.status === 401) {
             if (showToast) {
-                showError('Không có quyền truy cập hoặc phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại nếu cần.');
+                showUnauthorizedErrorOnce();
             }
 
             // Call custom handler if provided

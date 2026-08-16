@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, ShieldCheck } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { showError, showSuccess } from '@/src/utils/toast';
 import type { InterventionGroup } from '../../../../../shared/intervention.contract';
 import { addInterventionNote } from '../../../../services/results/interventionService';
 import { formatSystemDateTime } from '../../../../utils/dateTime';
@@ -33,10 +33,10 @@ export const InterventionNotes = ({
         ...(scope === GROUP_SCOPE ? {} : { studentId: scope }),
       });
       setNote('');
-      toast.success('Đã lưu ghi chú nội bộ.');
+      showSuccess('Đã lưu ghi chú nội bộ.');
       await onSaved();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể lưu ghi chú nội bộ.');
+      showError(error instanceof Error ? error.message : 'Không thể lưu ghi chú nội bộ.');
     } finally {
       setSaving(false);
     }

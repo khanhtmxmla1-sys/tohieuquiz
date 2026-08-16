@@ -1,7 +1,7 @@
 import { formatSystemDateWithOptions } from '../../utils/dateTime';
 import React, { useState, Suspense } from 'react';
 import { Award, Plus, RefreshCw, AlertCircle, Inbox, CheckCircle2, Clock, Send, XCircle, Eye, RotateCcw, Download, Ban } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { showConfirm, showError, showSuccess } from '@/src/utils/toast';
 import { useBatches } from './useBatches';
 import { fetchCertificateImageBlob } from './useCertificates';
 import type { BatchRecord } from './useBatches';
@@ -31,7 +31,7 @@ const TeacherCertificatesPage: React.FC = () => {
         try {
             setDetail(await fetchBatchDetail(batchId));
         } catch (loadError) {
-            toast.error(loadError instanceof Error ? loadError.message : 'Không thể tải chi tiết');
+            showError(loadError instanceof Error ? loadError.message : 'Không thể tải chi tiết');
         } finally {
             setDetailLoading(false);
         }
@@ -40,10 +40,10 @@ const TeacherCertificatesPage: React.FC = () => {
     const retryFailed = async (batchId: string) => {
         try {
             await retryBatch(batchId);
-            toast.success('Đã đưa các chứng nhận lỗi vào hàng đợi xử lý lại');
+            showSuccess('Đã đưa các chứng nhận lỗi vào hàng đợi xử lý lại');
             setDetail(null);
         } catch (retryError) {
-            toast.error(retryError instanceof Error ? retryError.message : 'Không thể thử lại');
+            showError(retryError instanceof Error ? retryError.message : 'Không thể thử lại');
         }
     };
 
@@ -54,7 +54,7 @@ const TeacherCertificatesPage: React.FC = () => {
             window.open(objectUrl, '_blank', 'noopener,noreferrer');
             window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
         } catch (viewError) {
-            toast.error(viewError instanceof Error ? viewError.message : 'Không thể mở chứng nhận');
+            showError(viewError instanceof Error ? viewError.message : 'Không thể mở chứng nhận');
         }
     };
 
@@ -68,18 +68,22 @@ const TeacherCertificatesPage: React.FC = () => {
             anchor.click();
             URL.revokeObjectURL(objectUrl);
         } catch (downloadError) {
-            toast.error(downloadError instanceof Error ? downloadError.message : 'Không thể tải chứng nhận');
+            showError(downloadError instanceof Error ? downloadError.message : 'Không thể tải chứng nhận');
         }
     };
 
     const revokeIssuedCertificate = async (certificateId: string) => {
-        if (!window.confirm('Thu hồi chứng nhận này? Học sinh sẽ không thể xem hoặc tải lại.')) return;
+        if (!(await showConfirm({
+            message: 'Thu hồi chứng nhận này? Học sinh sẽ không thể xem hoặc tải lại.',
+            confirmLabel: 'Thu hồi',
+            destructive: true,
+        }))) return;
         try {
             await revokeCertificate(certificateId);
-            toast.success('Đã thu hồi chứng nhận');
+            showSuccess('Đã thu hồi chứng nhận');
             if (detail) setDetail(await fetchBatchDetail(detail.batch.id));
         } catch (revokeError) {
-            toast.error(revokeError instanceof Error ? revokeError.message : 'Không thể thu hồi chứng nhận');
+            showError(revokeError instanceof Error ? revokeError.message : 'Không thể thu hồi chứng nhận');
         }
     };
     return (
