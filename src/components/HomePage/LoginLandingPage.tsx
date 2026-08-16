@@ -14,76 +14,159 @@ import HeroSection from './components/HeroSection';
 import LoginForm from './components/LoginForm';
 import LandingFooter from './components/LandingFooter';
 
-type SavedLoginAccount = {
-    username: string;
-    role: 'student' | 'teacher';
-    savedAt: string;
+type LoginRole = 'student' | 'teacher';
+type LoginDraft = { username: string; password: string; rememberLogin: boolean };
+type SavedRoleAccount = { username: string; savedAt: string };
+type SavedLoginState = {
+    version: 2;
+    lastRole: LoginRole;
+    accounts: Partial<Record<LoginRole, SavedRoleAccount>>;
 };
 
 const SAVED_LOGIN_KEY = 'tohieuquiz_saved_login_v1';
+const emptySavedState = (): SavedLoginState => ({ version: 2, lastRole: 'student', accounts: {} });
+
+const readSavedLoginState = (): SavedLoginState => {
+    try {
+        const raw = localStorage.getItem(SAVED_LOGIN_KEY);
+        if (!raw) return emptySavedState();
+        const saved = JSON.parse(raw) as any;
+
+        if (saved?.version === 2 && saved.accounts && typeof saved.accounts === 'object') {
+            const accounts: SavedLoginState['accounts'] = {};
+            (['student', 'teacher'] as LoginRole[]).forEach((role) => {
+                const username = typeof saved.accounts?.[role]?.username === 'string'
+                    ? saved.accounts[role].username.trim()
+                    : '';
+                if (username) {
+                    accounts[role] = {
+                        username,
+                        savedAt: typeof saved.accounts[role].savedAt === 'string'
+                            ? saved.accounts[role].savedAt
+                            : new Date(0).toISOString(),
+                    };
+                }
+            });
+            const lastRole: LoginRole = saved.lastRole === 'teacher' ? 'teacher' : 'student';
+            return { version: 2, lastRole, accounts };
+        }
+
+        const legacyRole: LoginRole | null = saved?.role === 'teacher'
+            ? 'teacher'
+            : saved?.role === 'student'
+                ? 'student'
+                : null;
+        const legacyUsername = typeof saved?.username === 'string' ? saved.username.trim() : '';
+        if (legacyRole && legacyUsername) {
+            return {
+                version: 2,
+                lastRole: legacyRole,
+                accounts: {
+                    [legacyRole]: {
+                        username: legacyUsername,
+                        savedAt: typeof saved.savedAt === 'string' ? saved.savedAt : new Date(0).toISOString(),
+                    },
+                },
+            };
+        }
+    } catch (error) {
+        console.warn('Could not load saved login account:', error);
+    }
+    return emptySavedState();
+};
+
+const writeSavedLoginState = (state: SavedLoginState) => {
+    const hasSavedAccount = Boolean(state.accounts.student || state.accounts.teacher);
+    if (!hasSavedAccount) {
+        localStorage.removeItem(SAVED_LOGIN_KEY);
+        return;
+    }
+    localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify(state));
+};
 
 const LoginLandingPage: React.FC = () => {
     const location = useLocation();
     const requestedRole = new URLSearchParams(location.search).get('login');
-    const [activeTab, setActiveTab] = useState<'student' | 'teacher'>(
-        requestedRole === 'teacher' ? 'teacher' : 'student',
-    );
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [rememberLogin, setRememberLogin] = useState(false);
+    const [activeTab, setActiveTab] = useState<LoginRole>(requestedRole === 'teacher' ? 'teacher' : 'student');
+    const [drafts, setDrafts] = useState<Record<LoginRole, LoginDraft>>({
+        student: { username: '', password: '', rememberLogin: false },
+        teacher: { username: '', password: '', rememberLogin: false },
+    });
+    const [usernameError, setUsernameError] = useState<string | null>(null);
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [formError, setFormError] = useState<string | null>(null);
     const [pendingTeacher, setPendingTeacher] = useState<any | null>(null);
     const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
     const authStore = useAuthStore();
     const classroomStore = useClassroomStore();
     const notificationFlag = useUnifiedNotificationsFeatureFlag();
+    const { username, password, rememberLogin } = drafts[activeTab];
 
     useEffect(() => {
-        try {
-            const raw = localStorage.getItem(SAVED_LOGIN_KEY);
-            if (!raw) return;
-
-            const saved = JSON.parse(raw) as Partial<SavedLoginAccount>;
-            if (typeof saved.username === 'string' && saved.username.trim()) {
-                setUsername(saved.username.trim());
-                setRememberLogin(true);
-            }
-            if (
-                requestedRole !== 'teacher'
-                && requestedRole !== 'student'
-                && (saved.role === 'teacher' || saved.role === 'student')
-            ) {
-                setActiveTab(saved.role);
-            }
-        } catch (error) {
-            console.warn('Could not load saved login account:', error);
+        const saved = readSavedLoginState();
+        setDrafts((current) => ({
+            student: {
+                ...current.student,
+                username: saved.accounts.student?.username || '',
+                password: '',
+                rememberLogin: Boolean(saved.accounts.student),
+            },
+            teacher: {
+                ...current.teacher,
+                username: saved.accounts.teacher?.username || '',
+                password: '',
+                rememberLogin: Boolean(saved.accounts.teacher),
+            },
+        }));
+        if (requestedRole !== 'teacher' && requestedRole !== 'student') {
+            setActiveTab(saved.lastRole);
         }
     }, [requestedRole]);
 
     const isLoading = activeTab === 'teacher' ? authStore.isLoggingIn : classroomStore.isLoading;
 
+    const updateActiveDraft = (patch: Partial<LoginDraft>) => {
+        setDrafts((current) => ({
+            ...current,
+            [activeTab]: { ...current[activeTab], ...patch },
+        }));
+    };
+
+    const clearErrors = () => {
+        setUsernameError(null);
+        setPasswordError(null);
+        setFormError(null);
+    };
+
+    const handleRoleChange = (role: LoginRole) => {
+        setActiveTab(role);
+        clearErrors();
+    };
+
     const persistSavedLoginAccount = () => {
         try {
-            if (!rememberLogin) {
-                localStorage.removeItem(SAVED_LOGIN_KEY);
-                return;
+            const saved = readSavedLoginState();
+            const accounts = { ...saved.accounts };
+            if (rememberLogin && username.trim()) {
+                accounts[activeTab] = { username: username.trim(), savedAt: new Date().toISOString() };
+            } else {
+                delete accounts[activeTab];
             }
-
-            localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify({
-                username: username.trim(),
-                role: activeTab,
-                savedAt: new Date().toISOString(),
-            } satisfies SavedLoginAccount));
+            writeSavedLoginState({ version: 2, lastRole: activeTab, accounts });
         } catch (error) {
             console.warn('Could not save login account:', error);
         }
     };
 
     const handleRememberLoginChange = (checked: boolean) => {
-        setRememberLogin(checked);
+        updateActiveDraft({ rememberLogin: checked });
         if (!checked) {
             try {
-                localStorage.removeItem(SAVED_LOGIN_KEY);
+                const saved = readSavedLoginState();
+                const accounts = { ...saved.accounts };
+                delete accounts[activeTab];
+                writeSavedLoginState({ ...saved, lastRole: activeTab, accounts });
             } catch (error) {
                 console.warn('Could not clear saved login account:', error);
             }
@@ -92,7 +175,12 @@ const LoginLandingPage: React.FC = () => {
 
     const handleLogin = async (event: React.FormEvent) => {
         event.preventDefault();
-        if (!username || !password) {
+        const nextUsernameError = username ? null : 'Vui lòng nhập tên đăng nhập.';
+        const nextPasswordError = password ? null : 'Vui lòng nhập mật khẩu.';
+        setUsernameError(nextUsernameError);
+        setPasswordError(nextPasswordError);
+        setFormError(null);
+        if (nextUsernameError || nextPasswordError) {
             showError('Vui lòng nhập đầy đủ thông tin!');
             return;
         }
@@ -113,6 +201,7 @@ const LoginLandingPage: React.FC = () => {
         const teacherClass = teacher?.class ? String(teacher.class).trim() : undefined;
         if (!teacherUsername) return false;
 
+        setFormError(null);
         persistSavedLoginAccount();
         if (teacher.requiresPasswordChange) {
             authStore.loginPendingPasswordChange();
@@ -136,19 +225,27 @@ const LoginLandingPage: React.FC = () => {
             const result = await callApi<{ status?: string; data?: any; message?: string }>('login', { username, password });
             if (result?.status === 'success' && result.data && acceptTeacherSession(result.data)) return;
             authStore.loginFailure();
-            showError(result?.message || 'Tên đăng nhập hoặc mật khẩu không đúng!');
+            const message = result?.message || 'Tên đăng nhập hoặc mật khẩu không đúng!';
+            setFormError(message);
+            showError(message);
         } catch (error) {
             console.error('Login error:', error);
             authStore.loginFailure();
-            showError('Có lỗi xảy ra khi kết nối. Vui lòng thử lại!');
+            const message = 'Có lỗi xảy ra khi kết nối. Vui lòng thử lại!';
+            setFormError(message);
+            showError(message);
         }
     };
 
     const handlePasskeyLogin = async () => {
         if (!username.trim()) {
-            showError('Hãy nhập tài khoản giáo viên trước.');
+            const message = 'Hãy nhập tài khoản giáo viên trước.';
+            setUsernameError('Vui lòng nhập tên đăng nhập.');
+            setFormError(message);
+            showError(message);
             return;
         }
+        setFormError(null);
         authStore.loginStart();
         setIsPasskeyLoading(true);
         try {
@@ -156,7 +253,9 @@ const LoginLandingPage: React.FC = () => {
             if (!acceptTeacherSession(teacher)) throw new Error('Phản hồi tài khoản không hợp lệ.');
         } catch (error) {
             authStore.loginFailure();
-            showError(error instanceof Error ? error.message : 'Không thể đăng nhập bằng passkey.');
+            const message = error instanceof Error ? error.message : 'Không thể đăng nhập bằng passkey.';
+            setFormError(message);
+            showError(message);
         } finally {
             setIsPasskeyLoading(false);
         }
@@ -165,10 +264,13 @@ const LoginLandingPage: React.FC = () => {
     const handleStudentLogin = async () => {
         const success = await classroomStore.loginStudent({ username, password });
         if (success) {
+            setFormError(null);
             persistSavedLoginAccount();
             return;
         }
-        showError('Tên đăng nhập hoặc mật khẩu học sinh không đúng!');
+        const message = 'Tên đăng nhập hoặc mật khẩu học sinh không đúng!';
+        setFormError(message);
+        showError(message);
     };
 
     return (
@@ -199,18 +301,22 @@ const LoginLandingPage: React.FC = () => {
             )}
 
             <main className="relative z-10 mx-auto grid w-full max-w-[1280px] flex-1 items-start gap-8 px-4 pb-10 pt-2 md:gap-10 md:px-8 md:pb-12 md:pt-3 lg:grid-cols-[minmax(0,1.16fr)_minmax(400px,0.84fr)] lg:items-center lg:gap-10 lg:px-10 lg:py-6">
-                <Suspense fallback={<div className="h-64 animate-pulse rounded-[28px] bg-white/70" />}>
-                    <HeroSection />
-                </Suspense>
-
                 <Suspense fallback={<div className="h-[560px] w-full max-w-[460px] animate-pulse justify-self-end rounded-[28px] bg-white" />}>
                     <LoginForm
                         activeTab={activeTab}
-                        setActiveTab={setActiveTab}
+                        setActiveTab={handleRoleChange}
                         username={username}
-                        setUsername={setUsername}
+                        setUsername={(value) => {
+                            updateActiveDraft({ username: value });
+                            setUsernameError(null);
+                            setFormError(null);
+                        }}
                         password={password}
-                        setPassword={setPassword}
+                        setPassword={(value) => {
+                            updateActiveDraft({ password: value });
+                            setPasswordError(null);
+                            setFormError(null);
+                        }}
                         rememberLogin={rememberLogin}
                         setRememberLogin={handleRememberLoginChange}
                         isLoading={isLoading}
@@ -218,7 +324,14 @@ const LoginLandingPage: React.FC = () => {
                         onPasskey={() => void handlePasskeyLogin()}
                         isPasskeyLoading={isPasskeyLoading}
                         passkeyAvailable={passkeysSupported()}
+                        usernameError={usernameError}
+                        passwordError={passwordError}
+                        formError={formError}
                     />
+                </Suspense>
+
+                <Suspense fallback={<div className="h-64 animate-pulse rounded-[28px] bg-white/70" />}>
+                    <HeroSection />
                 </Suspense>
             </main>
 

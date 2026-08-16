@@ -29,7 +29,7 @@ const LandingHeader: React.FC = () => {
                 </span>
                 <span className="text-[1.3rem] font-bold tracking-[-0.03em] sm:text-[1.4rem]">
                     <span className="text-[#1e3a8a]">TôHiệu</span>
-                    <span className="text-[#d6a900]">Quiz</span>
+                    <span className="text-[#946f00]">Quiz</span>
                 </span>
             </button>
 

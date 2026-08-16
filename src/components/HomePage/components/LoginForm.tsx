@@ -23,6 +23,9 @@ interface LoginFormProps {
     onPasskey?: () => void;
     isPasskeyLoading?: boolean;
     passkeyAvailable?: boolean;
+    usernameError?: string | null;
+    passwordError?: string | null;
+    formError?: string | null;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({
@@ -39,6 +42,9 @@ const LoginForm: React.FC<LoginFormProps> = ({
     onPasskey,
     isPasskeyLoading = false,
     passkeyAvailable = false,
+    usernameError = null,
+    passwordError = null,
+    formError = null,
 }) => {
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
@@ -50,7 +56,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
         }`
     );
 
-    const inputClassName = 'h-[52px] w-full rounded-[14px] border border-[#dbe4f0] bg-[#f8fafc] pl-11 pr-12 text-base text-[#0f172a] outline-none transition-[background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] placeholder:text-[#94a3b8] hover:border-[#bfdbfe] focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-[#2563eb]/10 disabled:cursor-not-allowed disabled:opacity-65';
+    const inputClassName = 'h-[52px] w-full rounded-[14px] border border-[#dbe4f0] bg-[#f8fafc] pl-11 pr-12 text-base text-[#0f172a] outline-none transition-[background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] placeholder:text-[#64748b] hover:border-[#bfdbfe] focus:border-[#2563eb] focus:bg-white focus:ring-4 focus:ring-[#2563eb]/10 disabled:cursor-not-allowed disabled:opacity-65';
+    const supportText = activeTab === 'student'
+        ? 'Học sinh hãy liên hệ giáo viên hoặc Quản trị viên để được hỗ trợ'
+        : 'Giáo viên hãy liên hệ Quản trị viên để được hỗ trợ';
+    const supportSubject = activeTab === 'student'
+        ? 'Hỗ trợ đăng nhập học sinh TôHiệuQuiz'
+        : 'Hỗ trợ đăng nhập giáo viên TôHiệuQuiz';
 
     return (
         <section className="login-page-reveal order-1 mx-auto w-full max-w-[460px] lg:order-2 lg:mx-0 lg:justify-self-start" aria-labelledby="login-title">
@@ -75,152 +87,64 @@ const LoginForm: React.FC<LoginFormProps> = ({
                         role="group"
                         aria-label="Chọn vai trò đăng nhập"
                     >
-                        <button
-                            type="button"
-                            className={roleButtonClass('student')}
-                            aria-pressed={activeTab === 'student'}
-                            onClick={() => setActiveTab('student')}
-                        >
+                        <button type="button" className={roleButtonClass('student')} aria-pressed={activeTab === 'student'} onClick={() => setActiveTab('student')}>
                             <GraduationCap size={18} strokeWidth={1.9} aria-hidden="true" />
                             Học sinh
                         </button>
-                        <button
-                            type="button"
-                            className={roleButtonClass('teacher')}
-                            aria-pressed={activeTab === 'teacher'}
-                            onClick={() => setActiveTab('teacher')}
-                        >
+                        <button type="button" className={roleButtonClass('teacher')} aria-pressed={activeTab === 'teacher'} onClick={() => setActiveTab('teacher')}>
                             <UserRound size={18} strokeWidth={1.9} aria-hidden="true" />
                             Giáo viên
                         </button>
                     </div>
 
-                    <form onSubmit={onSubmit} aria-label="Đăng nhập">
+                    <form onSubmit={onSubmit} aria-label="Đăng nhập" noValidate>
                         <div className="mb-4">
-                            <label htmlFor="landing-login-username" className="mb-2 block text-sm font-semibold text-[#1e293b]">
-                                Tên đăng nhập
-                            </label>
+                            <label htmlFor="landing-login-username" className="mb-2 block text-sm font-semibold text-[#1e293b]">Tên đăng nhập</label>
                             <div className="relative">
-                                <UserRound
-                                    size={19}
-                                    strokeWidth={1.8}
-                                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8]"
-                                    aria-hidden="true"
-                                />
-                                <input
-                                    id="landing-login-username"
-                                    type="text"
-                                    autoComplete="username"
-                                    className={inputClassName}
-                                    value={username}
-                                    onChange={(event) => setUsername(event.target.value)}
-                                    placeholder={activeTab === 'student' ? 'Mã học sinh' : 'Tài khoản giáo viên'}
-                                    disabled={isLoading}
-                                    required
-                                />
+                                <UserRound size={19} strokeWidth={1.8} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8]" aria-hidden="true" />
+                                <input id="landing-login-username" type="text" autoComplete="username" className={inputClassName} value={username} onChange={(event) => setUsername(event.target.value)} placeholder={activeTab === 'student' ? 'Mã học sinh' : 'Tài khoản giáo viên'} disabled={isLoading} required aria-invalid={usernameError ? true : undefined} aria-describedby={usernameError ? 'landing-login-username-error' : undefined} />
                             </div>
+                            {usernameError && <p id="landing-login-username-error" className="mt-1.5 text-sm font-medium text-[#b91c1c]">{usernameError}</p>}
                         </div>
 
                         <div className="mb-4">
-                            <label htmlFor="landing-login-password" className="mb-2 block text-sm font-semibold text-[#1e293b]">
-                                Mật khẩu
-                            </label>
+                            <label htmlFor="landing-login-password" className="mb-2 block text-sm font-semibold text-[#1e293b]">Mật khẩu</label>
                             <div className="relative">
-                                <Lock
-                                    size={19}
-                                    strokeWidth={1.8}
-                                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8]"
-                                    aria-hidden="true"
-                                />
-                                <input
-                                    id="landing-login-password"
-                                    type={isPasswordVisible ? 'text' : 'password'}
-                                    autoComplete="current-password"
-                                    className={inputClassName}
-                                    value={password}
-                                    onChange={(event) => setPassword(event.target.value)}
-                                    placeholder={activeTab === 'student' ? 'Mật khẩu học sinh' : '••••••••'}
-                                    disabled={isLoading}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[11px] text-[#64748b] transition-colors hover:bg-[#eaf1ff] hover:text-[#1d4ed8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60"
-                                    aria-label={isPasswordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                                    aria-controls="landing-login-password"
-                                    onClick={() => setIsPasswordVisible((visible) => !visible)}
-                                    disabled={isLoading}
-                                >
-                                    {isPasswordVisible
-                                        ? <EyeOff size={19} strokeWidth={1.8} aria-hidden="true" />
-                                        : <Eye size={19} strokeWidth={1.8} aria-hidden="true" />}
+                                <Lock size={19} strokeWidth={1.8} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8]" aria-hidden="true" />
+                                <input id="landing-login-password" type={isPasswordVisible ? 'text' : 'password'} autoComplete="current-password" className={inputClassName} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={activeTab === 'student' ? 'Mật khẩu học sinh' : '••••••••'} disabled={isLoading} required aria-invalid={passwordError ? true : undefined} aria-describedby={passwordError ? 'landing-login-password-error' : undefined} />
+                                <button type="button" className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[11px] text-[#64748b] transition-colors hover:bg-[#eaf1ff] hover:text-[#1d4ed8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] disabled:cursor-not-allowed disabled:opacity-60" aria-label={isPasswordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-controls="landing-login-password" onClick={() => setIsPasswordVisible((visible) => !visible)} disabled={isLoading}>
+                                    {isPasswordVisible ? <EyeOff size={19} strokeWidth={1.8} aria-hidden="true" /> : <Eye size={19} strokeWidth={1.8} aria-hidden="true" />}
                                 </button>
                             </div>
+                            {passwordError && <p id="landing-login-password-error" className="mt-1.5 text-sm font-medium text-[#b91c1c]">{passwordError}</p>}
                         </div>
 
-                        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <div className="mb-6 flex items-center text-sm">
                             <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[#475569]">
-                                <input
-                                    type="checkbox"
-                                    className="h-[18px] w-[18px] rounded border-[#cbd5e1] accent-[#2563eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2"
-                                    checked={rememberLogin}
-                                    onChange={(event) => setRememberLogin?.(event.target.checked)}
-                                />
+                                <input type="checkbox" className="h-[18px] w-[18px] rounded border-[#cbd5e1] accent-[#2563eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2" checked={rememberLogin} onChange={(event) => setRememberLogin?.(event.target.checked)} />
                                 Ghi nhớ đăng nhập
                             </label>
-                            <a
-                                href="mailto:tongminhkhanh@gmail.com?subject=Hỗ trợ đặt lại mật khẩu TôHiệuQuiz"
-                                className="flex min-h-11 items-center font-semibold text-[#2563eb] underline-offset-4 hover:text-[#1d4ed8] hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]"
-                            >
-                                Quên mật khẩu?
-                            </a>
                         </div>
 
-                        <button
-                            type="submit"
-                            className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-base font-bold text-white shadow-[0_14px_28px_-20px_rgba(37,99,235,0.8)] transition-[background-color,box-shadow,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[#1d4ed8] hover:shadow-[0_18px_34px_-22px_rgba(29,78,216,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2563eb]/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-65"
-                            disabled={isLoading}
-                            aria-busy={isLoading}
-                        >
-                            {isLoading ? (
-                                <span className="flex items-center justify-center gap-2" aria-live="polite">
-                                    <Loader2 className="animate-spin motion-reduce:animate-none" size={20} aria-hidden="true" />
-                                    Đang đăng nhập…
-                                </span>
-                            ) : 'Đăng nhập'}
+                        {formError && <div role="alert" className="mb-4 rounded-[12px] border border-[#fecaca] bg-[#fef2f2] px-3.5 py-3 text-sm font-medium leading-5 text-[#991b1b]">{formError}</div>}
+
+                        <button type="submit" className="flex h-[52px] w-full items-center justify-center rounded-[14px] bg-[#2563eb] px-5 text-base font-bold text-white shadow-[0_14px_28px_-20px_rgba(37,99,235,0.8)] transition-[background-color,box-shadow,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-[#1d4ed8] hover:shadow-[0_18px_34px_-22px_rgba(29,78,216,0.9)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2563eb]/25 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-65" disabled={isLoading} aria-busy={isLoading}>
+                            {isLoading ? <span className="flex items-center justify-center gap-2" aria-live="polite"><Loader2 className="animate-spin motion-reduce:animate-none" size={20} aria-hidden="true" />Đang đăng nhập…</span> : 'Đăng nhập'}
                         </button>
 
                         {activeTab === 'teacher' && passkeyAvailable && onPasskey && (
                             <>
-                                <div className="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.14em] text-[#94a3b8]">
-                                    <span className="h-px flex-1 bg-[#dbe4f0]" />
-                                    Hoặc tiếp tục bằng
-                                    <span className="h-px flex-1 bg-[#dbe4f0]" />
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={onPasskey}
-                                    disabled={isLoading || isPasskeyLoading}
-                                    aria-busy={isPasskeyLoading}
-                                    className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] border border-[#cbdcf5] bg-white px-5 text-base font-bold text-[#1d4ed8] transition-[background-color,border-color,transform] hover:border-[#93c5fd] hover:bg-[#f5f9ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2563eb]/20 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {isPasskeyLoading
-                                        ? <Loader2 className="animate-spin motion-reduce:animate-none" size={20} aria-hidden="true" />
-                                        : <Fingerprint size={20} strokeWidth={1.9} aria-hidden="true" />}
-                                    Đăng nhập bằng passkey
+                                <div className="my-4 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.14em] text-[#94a3b8]"><span className="h-px flex-1 bg-[#dbe4f0]" />Hoặc tiếp tục bằng<span className="h-px flex-1 bg-[#dbe4f0]" /></div>
+                                <button type="button" onClick={onPasskey} disabled={isLoading || isPasskeyLoading} aria-busy={isPasskeyLoading} className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] border border-[#cbdcf5] bg-white px-5 text-base font-bold text-[#1d4ed8] transition-[background-color,border-color,transform] hover:border-[#93c5fd] hover:bg-[#f5f9ff] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#2563eb]/20 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60">
+                                    {isPasskeyLoading ? <Loader2 className="animate-spin motion-reduce:animate-none" size={20} aria-hidden="true" /> : <Fingerprint size={20} strokeWidth={1.9} aria-hidden="true" />}Đăng nhập bằng passkey
                                 </button>
                             </>
                         )}
                     </form>
 
                     <p className="mt-5 text-center text-sm leading-6 text-[#64748b]">
-                        Gặp khó khăn khi đăng nhập?{' '}
-                        <a
-                            href="mailto:tongminhkhanh@gmail.com"
-                            className="font-semibold text-[#2563eb] underline-offset-4 hover:text-[#1d4ed8] hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]"
-                        >
-                            Liên hệ Quản trị viên
-                        </a>
+                        Quên mật khẩu?{' '}
+                        <a href={`mailto:tongminhkhanh@gmail.com?subject=${encodeURIComponent(supportSubject)}`} className="font-semibold text-[#2563eb] underline-offset-4 hover:text-[#1d4ed8] hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]">{supportText}</a>
                     </p>
                 </div>
             </div>

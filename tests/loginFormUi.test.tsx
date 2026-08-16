@@ -18,8 +18,8 @@ const renderLoginForm = (overrides: Partial<React.ComponentProps<typeof LoginFor
     ...overrides,
   };
 
-  render(<LoginForm {...props} />);
-  return props;
+  const view = render(<LoginForm {...props} />);
+  return { props, ...view };
 };
 
 describe('landing login form UI', () => {
@@ -55,5 +55,45 @@ describe('landing login form UI', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Ghi nhớ đăng nhập' }));
     expect(setRememberLogin).toHaveBeenCalledWith(true);
+  });
+
+  it('exposes inline field and form errors to assistive technology', () => {
+    renderLoginForm({
+      usernameError: 'Vui lòng nhập tên đăng nhập.',
+      passwordError: 'Vui lòng nhập mật khẩu.',
+      formError: 'Tên đăng nhập hoặc mật khẩu không đúng!',
+    } as any);
+
+    const usernameInput = screen.getByLabelText('Tên đăng nhập');
+    const passwordInput = screen.getByLabelText('Mật khẩu');
+
+    expect(usernameInput).toHaveAttribute('aria-invalid', 'true');
+    expect(usernameInput).toHaveAttribute('aria-describedby', 'landing-login-username-error');
+    expect(passwordInput).toHaveAttribute('aria-invalid', 'true');
+    expect(passwordInput).toHaveAttribute('aria-describedby', 'landing-login-password-error');
+    expect(screen.getByText('Vui lòng nhập tên đăng nhập.')).toHaveAttribute('id', 'landing-login-username-error');
+    expect(screen.getByText('Vui lòng nhập mật khẩu.')).toHaveAttribute('id', 'landing-login-password-error');
+    expect(screen.getByRole('alert')).toHaveTextContent('Tên đăng nhập hoặc mật khẩu không đúng!');
+  });
+
+  it('uses readable placeholder contrast and one role-specific support action', () => {
+    const { rerender } = renderLoginForm({ activeTab: 'student' });
+    expect(screen.getByLabelText('Tên đăng nhập')).toHaveClass('placeholder:text-[#64748b]');
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByRole('link')).toHaveTextContent('Học sinh hãy liên hệ giáo viên hoặc Quản trị viên để được hỗ trợ');
+
+    rerender(<LoginForm
+      activeTab="teacher"
+      setActiveTab={vi.fn()}
+      username=""
+      setUsername={vi.fn()}
+      password=""
+      setPassword={vi.fn()}
+      isLoading={false}
+      onSubmit={vi.fn()}
+    />);
+
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByRole('link')).toHaveTextContent('Giáo viên hãy liên hệ Quản trị viên để được hỗ trợ');
   });
 });
