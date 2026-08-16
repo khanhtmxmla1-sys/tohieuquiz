@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { KeyRound, QrCode, Trash2 } from 'lucide-react';
+import { Archive, KeyRound, QrCode } from 'lucide-react';
 import { Student } from '../../types';
 import { ResponsiveDataView } from '../../../../components/common';
 import { showConfirm } from '../../../../utils/toast';
@@ -10,6 +10,7 @@ interface StudentTableProps {
     onResetPassword: (studentId: string) => void;
     onRemoveStudent: (studentId: string, classId: string) => void;
     onParentAccess: (student: Student) => void;
+    serverActionsDisabled?: boolean;
 }
 
 export const StudentTable: React.FC<StudentTableProps> = memo(({
@@ -18,6 +19,7 @@ export const StudentTable: React.FC<StudentTableProps> = memo(({
     onResetPassword,
     onRemoveStudent,
     onParentAccess,
+    serverActionsDisabled = false,
 }) => {
     return (
         <ResponsiveDataView
@@ -52,33 +54,37 @@ export const StudentTable: React.FC<StudentTableProps> = memo(({
                                         <div className="flex items-center justify-end gap-1">
                                             <button
                                                 onClick={() => onParentAccess(student)}
-                                                className="p-1.5 text-indigo-900 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
-                                                title="Quản lý quyền phụ huynh"
+                                                disabled={serverActionsDisabled}
+                                                className="p-1.5 text-indigo-900 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+                                                title={serverActionsDisabled ? 'Cần kết nối mạng để quản lý quyền phụ huynh.' : 'Quản lý quyền phụ huynh'}
                                                 aria-label={`Quản lý quyền phụ huynh cho ${student.fullName}`}
                                             >
                                                 <QrCode className="w-4 h-4" />
                                             </button>
                                             <button
                                                 onClick={() => onResetPassword(student.id)}
-                                                className="p-1.5 text-blue-900 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                                                title="Đặt lại mật khẩu"
+                                                disabled={serverActionsDisabled}
+                                                className="p-1.5 text-blue-900 hover:text-blue-600 hover:bg-blue-50 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+                                                title={serverActionsDisabled ? 'Cần kết nối mạng để đặt lại mật khẩu.' : 'Đặt lại mật khẩu'}
                                                 aria-label={`Đặt lại mật khẩu cho ${student.fullName}`}
                                             >
                                                 <KeyRound className="w-4 h-4" />
                                             </button>
                                             <button
+                                                disabled={serverActionsDisabled}
                                                 onClick={() => {
                                                     showConfirm({
-                                                        message: `Xóa học sinh "${student.fullName}" khỏi lớp?`,
-                                                        confirmLabel: 'Xóa',
+                                                        message: `Lưu trữ học sinh "${student.fullName}" khỏi lớp? Tài khoản sẽ ẩn khỏi danh sách nhưng lịch sử học tập vẫn được bảo toàn.`,
+                                                        confirmLabel: 'Lưu trữ',
                                                         destructive: true,
                                                         onConfirm: () => onRemoveStudent(student.id, classId),
                                                     });
                                                 }}
-                                                className="p-1.5 text-red-900 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                title="Xóa học sinh"
+                                                className="p-1.5 text-amber-900 hover:text-amber-700 hover:bg-amber-50 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+                                                title={serverActionsDisabled ? 'Cần kết nối mạng để lưu trữ học sinh.' : 'Lưu trữ học sinh'}
+                                                aria-label={`Lưu trữ học sinh ${student.fullName}`}
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Archive className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </td>
@@ -98,33 +104,37 @@ export const StudentTable: React.FC<StudentTableProps> = memo(({
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => onParentAccess(student)}
-                                className="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 inline-flex items-center justify-center"
-                                title="Quản lý quyền phụ huynh"
+                                disabled={serverActionsDisabled}
+                                className="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 inline-flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
+                                title={serverActionsDisabled ? 'Cần kết nối mạng để quản lý quyền phụ huynh.' : 'Quản lý quyền phụ huynh'}
                                 aria-label={`Quản lý quyền phụ huynh cho ${student.fullName}`}
                             >
                                 <QrCode className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => onResetPassword(student.id)}
-                                className="h-10 w-10 rounded-lg bg-blue-50 text-blue-600 inline-flex items-center justify-center"
-                                title="Đặt lại mật khẩu"
+                                disabled={serverActionsDisabled}
+                                className="h-10 w-10 rounded-lg bg-blue-50 text-blue-600 inline-flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
+                                title={serverActionsDisabled ? 'Cần kết nối mạng để đặt lại mật khẩu.' : 'Đặt lại mật khẩu'}
                                 aria-label={`Đặt lại mật khẩu cho ${student.fullName}`}
                             >
                                 <KeyRound className="w-4 h-4" />
                             </button>
                             <button
+                                disabled={serverActionsDisabled}
                                 onClick={() => {
                                     showConfirm({
-                                        message: `Xóa học sinh "${student.fullName}" khỏi lớp?`,
-                                        confirmLabel: 'Xóa',
+                                        message: `Lưu trữ học sinh "${student.fullName}" khỏi lớp? Tài khoản sẽ ẩn khỏi danh sách nhưng lịch sử học tập vẫn được bảo toàn.`,
+                                        confirmLabel: 'Lưu trữ',
                                         destructive: true,
                                         onConfirm: () => onRemoveStudent(student.id, classId),
                                     });
                                 }}
-                                className="h-10 w-10 rounded-lg bg-red-50 text-red-600 inline-flex items-center justify-center"
-                                title="Xóa học sinh"
+                                className="h-10 w-10 rounded-lg bg-amber-50 text-amber-700 inline-flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
+                                title={serverActionsDisabled ? 'Cần kết nối mạng để lưu trữ học sinh.' : 'Lưu trữ học sinh'}
+                                aria-label={`Lưu trữ học sinh ${student.fullName}`}
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Archive className="w-4 h-4" />
                             </button>
                         </div>
                     </div>

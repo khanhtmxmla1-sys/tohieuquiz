@@ -9,6 +9,9 @@ export class ClassroomStatement {
 
 interface ClassroomFixtureOptions {
     classroom?: any;
+    teacher?: any;
+    conflictClass?: any;
+    duplicateClass?: any;
     student?: any;
     students?: any[];
     assignment?: any;
@@ -28,6 +31,9 @@ export class ClassroomDatabase {
     }
     first(sql: string) {
         if (sql.includes('FROM classes WHERE id = ?')) return this.options.classroom ?? null;
+        if (sql.includes('FROM classes') && sql.includes('teacher_username = ?') && sql.includes('id <> ?')) return this.options.conflictClass ?? null;
+        if (sql.includes('LOWER(TRIM(name)) = LOWER(?)')) return this.options.duplicateClass ?? null;
+        if (sql.includes('FROM teachers WHERE username = ?')) return this.options.teacher ?? null;
         if (sql.includes('FROM students WHERE id = ?')) return this.options.student ?? null;
         if (sql.includes('FROM students WHERE username = ?')) return this.options.student ?? null;
         if (sql.includes('FROM students s')) return this.options.student ?? null;

@@ -35,6 +35,19 @@ describe('ParentCommunicationPanel', () => {
     mocks.revokeParentAnnouncement.mockResolvedValue({ id: 'a-1', status: 'REVOKED' });
   });
 
+  it('does not fetch or allow mutations while offline', () => {
+    render(<ParentCommunicationPanel classId="class-1" isOnline={false} /> as any);
+
+    expect(mocks.listParentAnnouncements).not.toHaveBeenCalled();
+    expect(mocks.getParentDelivery).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Tải lại' })).toBeDisabled();
+    expect(screen.getByLabelText('Tiêu đề thông báo')).toBeDisabled();
+    expect(screen.getByLabelText('Nội dung thông báo')).toBeDisabled();
+    expect(screen.getByLabelText('Đánh dấu quan trọng')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Gửi thông báo lớp' })).toBeDisabled();
+    expect(screen.getByText(/Ngoại tuyến/)).toBeInTheDocument();
+  });
+
   it('shows announcement read metrics and parent delivery status', async () => {
     render(<ParentCommunicationPanel classId="class-1" />);
     expect(await screen.findByText('Họp phụ huynh')).toBeInTheDocument();

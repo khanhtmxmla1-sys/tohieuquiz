@@ -25,27 +25,19 @@ export async function handleClassTeacherRoute(context: ClassroomRouteContext): P
                 .first<any>();
             if (!classroom) return errorResponse('Class not found', 404);
 
-            const teacher = await db.prepare('SELECT username, full_name FROM teachers WHERE username = ?')
+            const teacher = await db.prepare('SELECT username, full_name, role, status FROM teachers WHERE username = ?')
                 .bind(newTeacherUsername)
                 .first<any>();
             if (!teacher) return errorResponse('Teacher not found', 404);
+            if (String(teacher.status || '').toUpperCase() !== 'ACTIVE') {
+                return errorResponse('Giáo viên nhận lớp đang bị vô hiệu hóa.', 409);
+            }
+            if (String(teacher.role || '').toLowerCase() !== 'teacher') {
+                return errorResponse('Tài khoản nhận lớp phải có vai trò giáo viên.', 400);
+            }
 
             const className = String(classroom.name || '').trim();
             const oldTeacherUsername = String(classroom.teacher_username || '').trim();
-
-            const conflictClass = await db.prepare(`
-                SELECT id, name
-                FROM classes
-                WHERE teacher_username = ?
-                  AND id <> ?
-                LIMIT 1
-            `).bind(newTeacherUsername, classId).first<any>();
-            if (conflictClass) {
-                return errorResponse(
-                    `Giáo viên "${newTeacherUsername}" đang phụ trách lớp "${conflictClass.name}". Vui lòng chuyển lớp đó trước.`,
-                    409
-                );
-            }
 
             await db.prepare('UPDATE classes SET teacher_username = ? WHERE id = ?').bind(newTeacherUsername, classId).run();
 

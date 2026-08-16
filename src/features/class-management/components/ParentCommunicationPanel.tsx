@@ -14,6 +14,7 @@ import type {
 
 interface ParentCommunicationPanelProps {
   classId: string;
+  isOnline?: boolean;
 }
 
 const accessLabel: Record<ParentDeliveryView['parentAccessStatus'], string> = {
@@ -23,7 +24,7 @@ const accessLabel: Record<ParentDeliveryView['parentAccessStatus'], string> = {
   revoked: 'Đã thu hồi',
 };
 
-export default function ParentCommunicationPanel({ classId }: ParentCommunicationPanelProps) {
+export default function ParentCommunicationPanel({ classId, isOnline = true }: ParentCommunicationPanelProps) {
   const [announcements, setAnnouncements] = useState<ParentAnnouncementView[]>([]);
   const [delivery, setDelivery] = useState<ParentDeliveryView[]>([]);
   const [title, setTitle] = useState('');
@@ -35,6 +36,7 @@ export default function ParentCommunicationPanel({ classId }: ParentCommunicatio
   const [message, setMessage] = useState<string | null>(null);
 
   const load = async () => {
+    if (!isOnline) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -51,10 +53,17 @@ export default function ParentCommunicationPanel({ classId }: ParentCommunicatio
     }
   };
 
-  useEffect(() => { void load(); }, [classId]);
+  useEffect(() => {
+    if (!isOnline) {
+      setIsLoading(false);
+      return;
+    }
+    void load();
+  }, [classId, isOnline]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!isOnline) return;
     const normalizedTitle = title.trim();
     const normalizedBody = body.trim();
     if (!normalizedTitle || !normalizedBody) {
@@ -84,6 +93,7 @@ export default function ParentCommunicationPanel({ classId }: ParentCommunicatio
   };
 
   const revoke = async (announcementId: string) => {
+    if (!isOnline) return;
     setIsSaving(true);
     setError(null);
     try {
@@ -111,13 +121,19 @@ export default function ParentCommunicationPanel({ classId }: ParentCommunicatio
         <button
           type="button"
           onClick={load}
-          disabled={isLoading}
+          disabled={isLoading || !isOnline}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           Tải lại
         </button>
       </div>
+
+      {!isOnline && (
+        <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+          Ngoại tuyến — dữ liệu đã tải vẫn được hiển thị, các thao tác máy chủ tạm thời bị khóa.
+        </p>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl bg-emerald-50 p-4"><ShieldCheck className="h-5 w-5 text-emerald-700" /><p className="mt-2 text-sm text-slate-600">Đã kích hoạt</p><p className="text-2xl font-bold text-slate-900">{activeCount}/{delivery.length}</p></div>
@@ -134,6 +150,7 @@ export default function ParentCommunicationPanel({ classId }: ParentCommunicatio
             value={title}
             onChange={event => setTitle(event.target.value.slice(0, 160))}
             maxLength={160}
+            disabled={!isOnline || isSaving}
             className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             required
           />
@@ -146,6 +163,7 @@ export default function ParentCommunicationPanel({ classId }: ParentCommunicatio
             onChange={event => setBody(event.target.value.slice(0, 2000))}
             maxLength={2000}
             rows={4}
+            disabled={!isOnline || isSaving}
             className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             required
           />
@@ -156,11 +174,12 @@ export default function ParentCommunicationPanel({ classId }: ParentCommunicatio
             type="checkbox"
             checked={isImportant}
             onChange={event => setIsImportant(event.target.checked)}
+            disabled={!isOnline || isSaving}
             className="h-4 w-4 rounded border-slate-300"
           />
           Đánh dấu quan trọng
         </label>
-        <button type="submit" disabled={isSaving} className="min-h-11 rounded-xl bg-indigo-600 px-5 font-bold text-white disabled:opacity-50">
+        <button type="submit" disabled={isSaving || !isOnline} className="min-h-11 rounded-xl bg-indigo-600 px-5 font-bold text-white disabled:opacity-50">
           {isSaving ? 'Đang gửi…' : 'Gửi thông báo lớp'}
         </button>
       </form>
@@ -190,7 +209,7 @@ export default function ParentCommunicationPanel({ classId }: ParentCommunicatio
                       type="button"
                       aria-label={`Thu hồi ${item.title}`}
                       onClick={() => revoke(item.id)}
-                      disabled={isSaving}
+                      disabled={isSaving || !isOnline}
                       className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
                       <ShieldOff className="h-4 w-4" />

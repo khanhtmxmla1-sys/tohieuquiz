@@ -20,6 +20,7 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
         setSelectedClass,
         showCreateModal,
         setShowCreateModal,
+        openCreateModal,
         handleCreateClass,
         handleDeleteClass,
         openTransferModal,
@@ -30,6 +31,7 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
         teachers,
         handleTransferTeacher,
         isLoadingTeachers,
+        teacherLoadError,
         isTransferring,
         transferError,
         store,
@@ -55,7 +57,7 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
                     isAdmin={isAdmin}
                     onSelectClass={setSelectedClass}
                     onCreateClick={() => {
-                        if (isOnline) setShowCreateModal(true);
+                        if (isOnline) void openCreateModal();
                     }}
                     onTransferClick={(classroom) => {
                         if (isOnline) void openTransferModal(classroom);
@@ -72,9 +74,10 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
             ) : (
                 <ClassDetailView
                     classroom={selectedClass}
+                    isOnline={isOnline}
                     onBack={() => {
                         setSelectedClass(null);
-                        if (username) void fetchClasses(isAdmin ? undefined : username);
+                        if (username && isOnline) void fetchClasses(isAdmin ? undefined : username);
                     }}
                 />
             )}
@@ -84,6 +87,8 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
                     onClose={() => setShowCreateModal(false)}
                     onCreate={handleCreateClass}
                     isLoading={store.isLoading}
+                    teachers={teachers}
+                    isLoadingTeachers={isLoadingTeachers}
                 />
             )}
 
@@ -97,7 +102,7 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
                     onSubmit={handleTransferTeacher}
                     isLoadingTeachers={isLoadingTeachers}
                     isSaving={isTransferring}
-                    error={transferError}
+                    error={transferError || teacherLoadError}
                 />
             )}
         </div>

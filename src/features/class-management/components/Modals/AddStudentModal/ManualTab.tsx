@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { EyeOff, Eye, UserPlus, Loader2 } from 'lucide-react';
 import { Button } from '../../../../../components/common';
 import { CreateStudentPayload } from '../../../types';
+import { generateStudentUsernameSuffix, generateTemporaryStudentPassword } from '../../../utils/studentCredentials';
 
 interface ManualTabProps {
     classId: string;
@@ -17,7 +18,7 @@ export const ManualTab: React.FC<ManualTabProps> = ({ classId, onClose, onSubmit
     const [parentPhone, setParentPhone] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const usernameEditedRef = useRef(false);
-    const usernameSuffixRef = useRef(Math.floor(Math.random() * 900 + 100));
+    const usernameSuffixRef = useRef(generateStudentUsernameSuffix());
 
     // Auto-generate username from full name
     useEffect(() => {
@@ -33,10 +34,7 @@ export const ManualTab: React.FC<ManualTabProps> = ({ classId, onClose, onSubmit
 
     // Auto-generate password on mount
     useEffect(() => {
-        const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
-        let pw = '';
-        for (let i = 0; i < 6; i++) pw += chars[Math.floor(Math.random() * chars.length)];
-        setPassword(pw);
+        setPassword(generateTemporaryStudentPassword(6));
     }, []);
 
     const handleFormSubmit = async (e: React.FormEvent) => {

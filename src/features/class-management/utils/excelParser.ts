@@ -1,5 +1,6 @@
 import type { SheetData } from 'write-excel-file/browser';
 import type { CreateStudentPayload } from '../types';
+import { generateStudentUsernameSuffix, generateTemporaryStudentPassword } from './studentCredentials';
 
 export interface StudentCredential {
     fullName: string;
@@ -102,7 +103,7 @@ export const parseStudentExcel = async (file: File, classId: string): Promise<Cr
                 const firstName = parts[parts.length - 1] || '';
                 const lastInitial = parts[0]?.[0] || '';
                 const mid = parts.length > 2 ? parts.slice(1, -1).map((part) => part[0]).join('') : '';
-                const suffix = Math.floor(Math.random() * 900 + 100);
+                const suffix = generateStudentUsernameSuffix();
                 const clean = (value: string) => value
                     .normalize('NFD')
                     .replace(/[\u0300-\u036f]/g, '')
@@ -113,10 +114,7 @@ export const parseStudentExcel = async (file: File, classId: string): Promise<Cr
             usernameRow = usernameRow.toLowerCase().replace(/[^a-z0-9._-]/g, '');
 
             if (!passwordRow) {
-                const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
-                for (let k = 0; k < 6; k += 1) {
-                    passwordRow += chars[Math.floor(Math.random() * chars.length)];
-                }
+                passwordRow = generateTemporaryStudentPassword(6);
             }
 
             students.push({
