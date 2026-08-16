@@ -1,5 +1,7 @@
 export interface AttendanceQuestion {
   id: string;
+  quizId: string;
+  questionId: string;
   quizTitle: string;
   question: string;
   options: string[];
@@ -16,6 +18,11 @@ export interface AttendanceStatusData {
   todayDateKey: string;
   weekStartDateKey: string;
 }
+
+export type AttendanceRewardPreview = Pick<
+  AttendanceStatusData,
+  'attendanceDayNumber' | 'nextRewardExp' | 'nextRewardCoins'
+>;
 
 export interface AttendanceClaimData {
   claimed: boolean;

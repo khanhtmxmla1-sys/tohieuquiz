@@ -14,7 +14,8 @@ export const useStudentAttendance = (username: string | undefined, quizzes: Quiz
   const modal = useAttendanceModalState(quizzes, status.claimedToday);
 
   const submit = useCallback(async () => {
-    if (!modal.question || !modal.selectedAnswer || status.claimedToday || modal.isSubmitting) return;
+    if (!modal.question || !modal.selectedAnswer || status.claimedToday
+      || !status.statusAvailable || modal.isSubmitting) return;
     if (modal.selectedAnswer !== modal.question.correctLabel) {
       modal.setResult('wrong');
       modal.setMessage(getWrongAnswerMessage(modal.question));
@@ -29,7 +30,12 @@ export const useStudentAttendance = (username: string | undefined, quizzes: Quiz
     try {
       const response = await callApi<{
         status: 'success' | 'error'; data?: AttendanceClaimData; message?: string;
-      }>('claim_daily_attendance', { username });
+      }>('claim_daily_attendance', {
+        username,
+        quizId: modal.question.quizId,
+        questionId: modal.question.questionId,
+        selectedAnswer: modal.selectedAnswer,
+      });
       if (response?.status !== 'success' || !response.data) {
         modal.setResult('wrong');
         modal.setMessage(response?.message || 'Không thể cộng thưởng lúc này. Em thử lại sau nhé!');
@@ -39,7 +45,7 @@ export const useStudentAttendance = (username: string | undefined, quizzes: Quiz
         ? response.data.claimDates : status.claimDates);
       if (response.data.alreadyClaimed || !response.data.claimed) {
         status.setClaimedToday(true);
-        modal.setResult('wrong');
+        modal.setResult('info');
         modal.setMessage(response.data.message || 'Hôm nay em đã điểm danh rồi. Mai quay lại nhé!');
         return;
       }
@@ -60,9 +66,9 @@ export const useStudentAttendance = (username: string | undefined, quizzes: Quiz
     isOpen: modal.isOpen, question: modal.question, selectedAnswer: modal.selectedAnswer,
     result: modal.result, message: modal.message, isSubmitting: modal.isSubmitting,
     claimedToday: status.claimedToday,
-    isAvailable: status.claimedToday || modal.hasQuestions,
+    isAvailable: status.statusAvailable && (status.claimedToday || modal.hasQuestions),
     badgeText: getAttendanceBadgeText(
-      status.claimedToday, status.claimDates.length, modal.hasQuestions,
+      status.claimedToday, modal.hasQuestions, status.rewardPreview,
     ),
     open: modal.open, close: modal.close, submit, selectAnswer: modal.selectAnswer,
   };

@@ -1,6 +1,7 @@
 import { getSystemDateKey } from '../../../utils/dateTime';
-import { ATTENDANCE_REWARD } from './dashboardConstants';
-import type { AttendanceClaimData, AttendanceQuestion } from './attendanceTypes';
+import type {
+  AttendanceClaimData, AttendanceQuestion, AttendanceRewardPreview,
+} from './attendanceTypes';
 import { cleanOptionText } from './attendanceQuestions';
 
 export const getLocalDateKey = () => getSystemDateKey();
@@ -13,13 +14,14 @@ export const getAttendanceMultiplier = (day: number) => {
 };
 
 export const getAttendanceBadgeText = (
-  claimed: boolean, claimCount: number, hasQuestions: boolean,
+  claimed: boolean,
+  hasQuestions: boolean,
+  preview: AttendanceRewardPreview | null,
 ) => {
   if (claimed) return 'Đã điểm danh hôm nay';
   if (!hasQuestions) return 'Đang tải câu hỏi điểm danh...';
-  const day = claimCount + 1;
-  const multiplier = getAttendanceMultiplier(day);
-  return `Điểm danh ngày ${day}: +${ATTENDANCE_REWARD.coins * multiplier} Xu +${ATTENDANCE_REWARD.exp * multiplier} EXP`;
+  if (!preview) return 'Đang xác minh phần thưởng điểm danh...';
+  return `Điểm danh ngày ${preview.attendanceDayNumber}: +${preview.nextRewardCoins} Xu +${preview.nextRewardExp} EXP`;
 };
 
 export const getWrongAnswerMessage = (question: AttendanceQuestion) => {

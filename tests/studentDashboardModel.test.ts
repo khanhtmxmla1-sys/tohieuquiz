@@ -6,6 +6,7 @@ import {
   buildSelectedAssignmentAnswers,
   buildAttendanceQuestionPool,
   buildPracticeCatalog,
+  getAttendanceBadgeText,
   getAttendanceMultiplier,
   getRewardSummary,
 } from '../src/features/student-dashboard/model';
@@ -121,6 +122,14 @@ describe('student dashboard attendance model', () => {
     expect(getAttendanceMultiplier(3)).toBe(2);
     expect(getAttendanceMultiplier(5)).toBe(3);
     expect(getAttendanceMultiplier(7)).toBe(5);
+  });
+
+  it('renders the attendance reward preview from server-provided values', () => {
+    expect(getAttendanceBadgeText(false, true, {
+      attendanceDayNumber: 4,
+      nextRewardCoins: 321,
+      nextRewardExp: 654,
+    })).toBe('Điểm danh ngày 4: +321 Xu +654 EXP');
   });
 });
 

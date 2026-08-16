@@ -9,7 +9,7 @@ export const useAttendanceModalState = (quizzes: Quiz[], claimedToday: boolean) 
   const [isOpen, setIsOpen] = useState(false);
   const [question, setQuestion] = useState<AttendanceQuestion | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [result, setResult] = useState<'correct' | 'wrong' | null>(null);
+  const [result, setResult] = useState<'correct' | 'wrong' | 'info' | null>(null);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const questionPool = useMemo(() => buildAttendanceQuestionPool(quizzes), [quizzes]);

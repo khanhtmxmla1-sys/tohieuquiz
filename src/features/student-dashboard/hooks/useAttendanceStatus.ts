@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { callApi } from '@/src/services/apiAdapter';
 import { systemDateTimeLocalToIso } from '@/src/utils/dateTime';
-import { getLocalDateKey, type AttendanceStatusData } from '../model';
+import {
+  getLocalDateKey, type AttendanceRewardPreview, type AttendanceStatusData,
+} from '../model';
 
 const getDelayUntilNextSystemDay = () => {
   const [year, month, day] = getLocalDateKey().split('-').map(Number);
@@ -14,6 +16,8 @@ const getDelayUntilNextSystemDay = () => {
 export const useAttendanceStatus = (username?: string) => {
   const [claimedToday, setClaimedToday] = useState(false);
   const [claimDates, setClaimDates] = useState<string[]>([]);
+  const [statusAvailable, setStatusAvailable] = useState(false);
+  const [rewardPreview, setRewardPreview] = useState<AttendanceRewardPreview | null>(null);
   const [todayKey, setTodayKey] = useState(() => getLocalDateKey());
   const [refreshVersion, setRefreshVersion] = useState(0);
 
@@ -50,9 +54,15 @@ export const useAttendanceStatus = (username?: string) => {
     let cancelled = false;
     const load = async () => {
       if (!username) {
-        if (!cancelled) { setClaimedToday(false); setClaimDates([]); }
+        if (!cancelled) {
+          setClaimedToday(false);
+          setClaimDates([]);
+          setRewardPreview(null);
+          setStatusAvailable(false);
+        }
         return;
       }
+      if (!cancelled) setStatusAvailable(false);
       try {
         const response = await callApi<{
           status: 'success' | 'error'; data?: AttendanceStatusData; message?: string;
@@ -63,16 +73,30 @@ export const useAttendanceStatus = (username?: string) => {
               .map((date) => String(date || '').trim()).filter(Boolean))) : [];
           setClaimDates(dates);
           setClaimedToday(Boolean(response.data.claimedToday));
+          setRewardPreview({
+            attendanceDayNumber: Number(response.data.attendanceDayNumber) || 1,
+            nextRewardExp: Math.max(0, Number(response.data.nextRewardExp) || 0),
+            nextRewardCoins: Math.max(0, Number(response.data.nextRewardCoins) || 0),
+          });
+          setStatusAvailable(true);
           return;
         }
       } catch (error) {
         console.error('Failed to load attendance status:', error);
       }
-      if (!cancelled) { setClaimedToday(false); setClaimDates([]); }
+      if (!cancelled) {
+        setClaimedToday(false);
+        setClaimDates([]);
+        setRewardPreview(null);
+        setStatusAvailable(false);
+      }
     };
     void load();
     return () => { cancelled = true; };
   }, [refreshVersion, todayKey, username]);
 
-  return { claimedToday, claimDates, setClaimedToday, setClaimDates };
+  return {
+    claimedToday, claimDates, statusAvailable, rewardPreview,
+    setClaimedToday, setClaimDates,
+  };
 };
