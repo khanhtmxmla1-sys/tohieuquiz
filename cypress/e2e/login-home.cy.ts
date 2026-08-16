@@ -38,16 +38,18 @@ describe('Public home and login flow', () => {
     cy.get('button[aria-label="Hiện mật khẩu"]').click();
     cy.get('#landing-login-password').should('have.attr', 'type', 'text');
     cy.get('button[aria-label="Ẩn mật khẩu"]').should('be.visible');
-
   });
 
-  it('honors a guarded teacher deep link and restores only saved account metadata', () => {
+  it('honors a guarded teacher deep link and restores only teacher account metadata', () => {
     cy.visit('/?login=teacher&returnTo=%2Fteacher%2Fresults', {
       onBeforeLoad(win) {
         win.localStorage.setItem('tohieuquiz_saved_login_v1', JSON.stringify({
-          username: 'teacher.saved',
-          role: 'student',
-          savedAt: '2026-08-07T00:00:00.000Z',
+          version: 2,
+          lastRole: 'student',
+          accounts: {
+            student: { username: 'student.saved', savedAt: '2026-08-07T00:00:00.000Z' },
+            teacher: { username: 'teacher.saved', savedAt: '2026-08-07T00:00:01.000Z' },
+          },
         }));
       },
     });
@@ -56,6 +58,10 @@ describe('Public home and login flow', () => {
     cy.get('#landing-login-username').should('have.value', 'teacher.saved');
     cy.get('#landing-login-password').should('have.value', '');
     cy.get('input[type="checkbox"]').should('be.checked');
+
+    cy.contains('button', 'Học sinh').click().should('have.attr', 'aria-pressed', 'true');
+    cy.get('#landing-login-username').should('have.value', 'student.saved');
+    cy.get('#landing-login-password').should('have.value', '');
   });
 
   it('submits the teacher login contract without using live credentials', () => {

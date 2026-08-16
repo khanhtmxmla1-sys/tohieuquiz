@@ -1,18 +1,42 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { getLoginMedia } from '../../../../services/loginMediaService';
 import LearningOverview from './LearningOverview';
 import type { LoginMediaPublicData, LoginMediaPublicSlide } from './loginMedia.types';
 
+const LOGIN_MEDIA_QUERY = '(min-width: 1024px)';
 const wrapIndex = (index: number, length: number) => ((index % length) + length) % length;
 
 const LoginMediaSection: React.FC = () => {
   const [media, setMedia] = useState<LoginMediaPublicData | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => (
+    typeof window === 'undefined' || typeof window.matchMedia !== 'function'
+      ? true
+      : window.matchMedia(LOGIN_MEDIA_QUERY).matches
+  ));
+  const [hoverPaused, setHoverPaused] = useState(false);
+  const [focusPaused, setFocusPaused] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    if (typeof window.matchMedia !== 'function') {
+      setIsDesktop(true);
+      return undefined;
+    }
+    const mediaQuery = window.matchMedia(LOGIN_MEDIA_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => setIsDesktop(event.matches);
+    setIsDesktop(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
+  useEffect(() => {
+    if (!isDesktop) {
+      setMedia(null);
+      return undefined;
+    }
+
+    let cancelled = false;
     void getLoginMedia()
       .then((data) => {
         if (!cancelled) setMedia(data);
@@ -24,7 +48,7 @@ const LoginMediaSection: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isDesktop]);
 
   const slides = useMemo(() => (
     media?.mode === 'SLIDER' && !media.degraded ? media.slides : []
@@ -33,6 +57,8 @@ const LoginMediaSection: React.FC = () => {
   useEffect(() => {
     setCurrentIndex((index) => (slides.length > 0 ? wrapIndex(index, slides.length) : 0));
   }, [slides.length]);
+
+  const paused = hoverPaused || focusPaused || userPaused;
 
   useEffect(() => {
     if (!media || slides.length < 2 || !media.settings.autoplay || paused) return undefined;
@@ -66,7 +92,7 @@ const LoginMediaSection: React.FC = () => {
       src={currentSlide.imageUrl}
       alt={currentSlide.alt || 'Banner đăng nhập'}
       className={`h-full w-full object-cover ${transitionClass}`}
-      loading="eager"
+      loading="lazy"
       decoding="async"
       onError={() => setMedia(null)}
     />
@@ -80,10 +106,15 @@ const LoginMediaSection: React.FC = () => {
         aria-roledescription="carousel"
         aria-label="Banner trang đăng nhập"
         onMouseEnter={() => {
-          if (media.settings.pauseOnHover) setPaused(true);
+          if (media.settings.pauseOnHover) setHoverPaused(true);
         }}
         onMouseLeave={() => {
-          if (media.settings.pauseOnHover) setPaused(false);
+          if (media.settings.pauseOnHover) setHoverPaused(false);
+        }}
+        onFocusCapture={() => setFocusPaused(true)}
+        onBlurCapture={(event) => {
+          const nextTarget = event.relatedTarget as Node | null;
+          if (!nextTarget || !event.currentTarget.contains(nextTarget)) setFocusPaused(false);
         }}
       >
         <div className="overflow-hidden rounded-[24px] border border-[#dce5f1] bg-white shadow-[0_22px_54px_-44px_rgba(30,58,138,0.42)]">
@@ -98,6 +129,18 @@ const LoginMediaSection: React.FC = () => {
                 {image}
               </a>
             ) : image}
+
+            {media.settings.autoplay && canNavigate ? (
+              <button
+                type="button"
+                aria-label={userPaused ? 'Tiếp tục trình chiếu' : 'Tạm dừng trình chiếu'}
+                aria-pressed={userPaused}
+                onClick={() => setUserPaused((value) => !value)}
+                className="absolute right-3 top-3 flex h-10 min-w-10 items-center justify-center rounded-full border border-white/70 bg-slate-900/55 px-3 text-sm font-bold text-white shadow-lg backdrop-blur-sm transition hover:bg-slate-900/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <span aria-hidden="true">{userPaused ? '▶' : 'Ⅱ'}</span>
+              </button>
+            ) : null}
 
             {media.settings.showArrows && canNavigate ? (
               <>
