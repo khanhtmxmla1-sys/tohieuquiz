@@ -83,19 +83,32 @@ beforeEach(() => {
       created_at TEXT NOT NULL
     );
     CREATE UNIQUE INDEX idx_attendance_user_date ON attendance_claims(username, claim_date);
+    CREATE TABLE questions (
+      id TEXT PRIMARY KEY,
+      quiz_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      options TEXT NOT NULL,
+      correct_answer TEXT NOT NULL
+    );
     INSERT INTO students VALUES ('student-a', 'student-a', 100);
     INSERT INTO user_pets(username, total_exp) VALUES ('student-a', 0);
+    INSERT INTO questions VALUES ('question-1', 'quiz-1', 'MCQ', '["A. 1","B. 2"]', 'B');
   `);
   db = new SqliteD1(sqlite);
 });
 
 afterEach(() => sqlite.close());
 
-const claim = () => handleGamificationRoutes(
+const claim = (selectedAnswer = 'B') => handleGamificationRoutes(
   new Request('https://test/api/game-state/attendance-claim', {
     method: 'POST',
     headers: { Authorization: 'Bearer test', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'student-a' }),
+    body: JSON.stringify({
+      username: 'student-a',
+      quizId: 'quiz-1',
+      questionId: 'question-1',
+      selectedAnswer,
+    }),
   }),
   { DB: db, JWT_SECRET: 'test-secret' } as any,
   '/api/game-state/attendance-claim',
@@ -103,6 +116,45 @@ const claim = () => handleGamificationRoutes(
 );
 
 describe('attendance reward ledger atomicity', () => {
+  it('rejects an incorrect answer before creating any reward state', async () => {
+    const response = await claim('A');
+
+    expect(response.status).toBe(400);
+    expect(sqlite.prepare(`SELECT coins FROM students WHERE id='student-a'`).get()).toEqual({ coins: 100 });
+    expect(sqlite.prepare(`SELECT total_exp FROM user_pets WHERE username='student-a'`).get()).toEqual({ total_exp: 0 });
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM attendance_claims`).get()).toEqual({ count: 0 });
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger`).get()).toEqual({ count: 0 });
+  });
+
+  it('keeps an attendance streak across the Sunday-to-Monday week boundary', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-16T17:05:00.000Z'));
+    try {
+      sqlite.prepare(`INSERT INTO attendance_claims VALUES (?, ?, ?, ?, ?, ?)`).run(
+        'att-sunday', 'student-a', '2026-08-16', 50, 50, '2026-08-16T12:00:00.000Z',
+      );
+      sqlite.prepare(`INSERT INTO attendance_claims VALUES (?, ?, ?, ?, ?, ?)`).run(
+        'att-monday', 'student-a', '2026-08-17', 50, 50, '2026-08-17T00:01:00.000Z',
+      );
+
+      const response = await handleGamificationRoutes(
+        new Request('https://test/api/game-state/attendance-status?username=student-a', {
+          headers: { Authorization: 'Bearer test' },
+        }),
+        { DB: db, JWT_SECRET: 'test-secret' } as any,
+        '/api/game-state/attendance-status',
+        'GET',
+      );
+      const payload = await response.json() as any;
+
+      expect(response.status).toBe(200);
+      expect(payload.data.claimedToday).toBe(true);
+      expect(payload.data.streakDays).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('makes concurrent attendance claims idempotent and awards the stored receipt', async () => {
     const responses = await Promise.all([claim(), claim()]);
     const payloads = await Promise.all(responses.map(response => response.json() as Promise<any>));

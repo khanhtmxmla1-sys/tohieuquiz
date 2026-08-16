@@ -35,16 +35,21 @@ export const buildAttendanceQuestionPool = (quizzes: Quiz[]): AttendanceQuestion
     return ['toan', 'tieng-viet'].includes(normalizeCategory(value));
   });
   return (preferred.length > 0 ? preferred : quizzes).flatMap((quiz) =>
-    (Array.isArray(quiz.questions) ? quiz.questions : []).flatMap((question, index) => {
+    (Array.isArray(quiz.questions) ? quiz.questions : []).flatMap((question) => {
       const raw = question as typeof question & {
         type?: string; options?: unknown[]; correctAnswer?: unknown; question?: unknown;
       };
       const options = Array.isArray(raw.options)
         ? raw.options.map((option) => String(option ?? '').trim()).filter(Boolean) : [];
       const correctLabel = resolveCorrectLabel(raw.correctAnswer, options);
-      if (String(raw.type || '').toUpperCase() !== 'MCQ' || options.length < 2 || !correctLabel) return [];
+      const quizId = String(quiz.id || '').trim();
+      const questionId = String(question.id || '').trim();
+      if (!quizId || !questionId || String(raw.type || '').toUpperCase() !== 'MCQ'
+        || options.length < 2 || !correctLabel) return [];
       return [{
-        id: `${quiz.id}-${question.id || index}`,
+        id: `${quizId}-${questionId}`,
+        quizId,
+        questionId,
         quizTitle: quiz.title || 'Ngân hàng câu hỏi',
         question: String(raw.question || ''), options, correctLabel,
       }];

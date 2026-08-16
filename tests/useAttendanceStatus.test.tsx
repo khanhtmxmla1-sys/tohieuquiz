@@ -27,6 +27,48 @@ describe('useAttendanceStatus day rollover', () => {
     vi.useRealTimers();
   });
 
+  it('fails closed when attendance status cannot be verified', async () => {
+    mocks.callApi.mockReset().mockRejectedValueOnce(new Error('offline'));
+    const { result } = renderHook(() => useAttendanceStatus('student-a'));
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.statusAvailable).toBe(false);
+    expect(result.current.claimedToday).toBe(false);
+  });
+
+  it('keeps the server-owned reward preview from attendance status', async () => {
+    mocks.callApi.mockReset().mockResolvedValueOnce({
+      status: 'success',
+      data: {
+        claimedToday: false,
+        claimDates: ['2026-08-15'],
+        streakDays: 1,
+        attendanceDayNumber: 5,
+        nextRewardExp: 375,
+        nextRewardCoins: 275,
+        todayDateKey: '2026-08-16',
+        weekStartDateKey: '2026-08-10',
+      },
+    });
+    const { result } = renderHook(() => useAttendanceStatus('student-a'));
+
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.statusAvailable).toBe(true);
+    expect(result.current.rewardPreview).toEqual({
+      attendanceDayNumber: 5,
+      nextRewardExp: 375,
+      nextRewardCoins: 275,
+    });
+  });
+
   it('refreshes attendance when the system date rolls past midnight without a reload', async () => {
     const { result } = renderHook(() => useAttendanceStatus('student-a'));
 

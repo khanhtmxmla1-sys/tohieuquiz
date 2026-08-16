@@ -11,6 +11,68 @@ import { applyStudentReward, parseRewardPayload } from '../gamification/studentR
 
 const ATTENDANCE_BASE_REWARD = { exp: 50, coins: 50 };
 
+const cleanAttendanceOptionText = (value: unknown): string => String(value ?? '')
+    .replace(/^\s*[A-Z]\s*[\.\)\:\-]\s*/i, '')
+    .trim();
+
+const parseAttendanceOptions = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value.map((option) => String(option ?? '').trim()).filter(Boolean);
+    try {
+        const parsed = JSON.parse(String(value ?? '[]'));
+        return Array.isArray(parsed)
+            ? parsed.map((option) => String(option ?? '').trim()).filter(Boolean)
+            : [];
+    } catch {
+        return [];
+    }
+};
+
+const resolveAttendanceCorrectLabel = (answer: unknown, options: string[]): string | null => {
+    let raw = String(answer ?? '').trim();
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length === 1) raw = String(parsed[0] ?? '').trim();
+    } catch {
+        // Legacy scalar answers are intentionally handled below.
+    }
+    const direct = raw.toUpperCase().match(/^([A-Z])(?:[\.\)\:\-].*)?$/);
+    if (direct) return direct[1];
+    if (/^\d+$/.test(raw)) {
+        const index = Number(raw);
+        if (index >= 0 && index < options.length) return String.fromCharCode(65 + index);
+    }
+    const normalized = cleanAttendanceOptionText(raw).toUpperCase();
+    const index = options.findIndex(
+        (option) => cleanAttendanceOptionText(option).toUpperCase() === normalized,
+    );
+    return index >= 0 ? String.fromCharCode(65 + index) : null;
+};
+
+const verifyAttendanceAnswer = async (
+    db: D1Database,
+    quizId: unknown,
+    questionId: unknown,
+    selectedAnswer: unknown
+): Promise<boolean> => {
+    const canonicalQuizId = String(quizId ?? '').trim();
+    const canonicalQuestionId = String(questionId ?? '').trim();
+    const selectedLabel = String(selectedAnswer ?? '').trim().toUpperCase();
+    if (!canonicalQuizId || !canonicalQuestionId || !/^[A-Z]$/.test(selectedLabel)) return false;
+
+    const row = await db.prepare(`
+        SELECT id, quiz_id, type, options, correct_answer
+        FROM questions
+        WHERE id = ? AND quiz_id = ?
+        LIMIT 1
+    `).bind(canonicalQuestionId, canonicalQuizId).first<any>();
+    if (!row || String(row.type || '').toUpperCase() !== 'MCQ') return false;
+
+    const options = parseAttendanceOptions(row.options);
+    const correctLabel = resolveAttendanceCorrectLabel(row.correct_answer, options);
+    return Boolean(correctLabel && selectedLabel === correctLabel);
+};
+
 const parseDateKeyToUtc = (dateKey: string): Date => {
     const [year, month, day] = String(dateKey || '').split('-').map((v) => Number(v || 0));
     return new Date(Date.UTC(year, (month || 1) - 1, day || 1));
@@ -94,6 +156,21 @@ const getWeekClaimDates = async (
     return rows.results.map((r: any) => String(r.claim_date || '').trim()).filter(Boolean);
 };
 
+const getClaimDatesThroughDate = async (
+    db: D1Database,
+    username: string,
+    todayDateKey: string
+): Promise<string[]> => {
+    const rows = await db.prepare(`
+        SELECT claim_date
+        FROM attendance_claims
+        WHERE username = ? AND claim_date <= ?
+        ORDER BY claim_date ASC
+    `).bind(username, todayDateKey).all<any>();
+
+    return rows.results.map((r: any) => String(r.claim_date || '').trim()).filter(Boolean);
+};
+
 export async function handleGamificationRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
     const authResult = await verifyJWTMiddleware(request, env);
     if (authResult instanceof Response) return authResult;
@@ -151,8 +228,9 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
         const todayDateKey = getCurrentDateKey();
         const weekStartDateKey = getWeekStartDateKey(todayDateKey);
         const weekClaimDates = await getWeekClaimDates(db, username, weekStartDateKey, todayDateKey);
+        const claimDatesThroughToday = await getClaimDatesThroughDate(db, username, todayDateKey);
         const claimedToday = weekClaimDates.includes(todayDateKey);
-        const streakDays = calculateAttendanceStreak(weekClaimDates, todayDateKey);
+        const streakDays = calculateAttendanceStreak(claimDatesThroughToday, todayDateKey);
         const attendanceDayNumber = claimedToday ? weekClaimDates.length : (weekClaimDates.length + 1);
         const multiplier = getAttendanceMultiplier(attendanceDayNumber);
 
@@ -207,7 +285,8 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
             const awardedExp = Number(stored.awardedExp ?? stored.historicalExp ?? existingClaim.reward_exp) || 0;
             const awardedCoins = Number(stored.awardedCoins ?? stored.historicalCoins ?? existingClaim.reward_coins) || 0;
             const weekClaimDates = await getWeekClaimDates(db, username, weekStartDateKey, todayDateKey);
-            const streakDays = calculateAttendanceStreak(weekClaimDates, todayDateKey);
+            const claimDatesThroughToday = await getClaimDatesThroughDate(db, username, todayDateKey);
+            const streakDays = calculateAttendanceStreak(claimDatesThroughToday, todayDateKey);
             const attendanceDayNumber = Number(stored.attendanceDayNumber) || weekClaimDates.length;
             const multiplier = Number(stored.multiplier) || getAttendanceMultiplier(attendanceDayNumber);
             const wallet = await db.prepare(`
@@ -243,6 +322,14 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
                 },
             });
         }
+
+        const answerVerified = await verifyAttendanceAnswer(
+            db,
+            body.quizId,
+            body.questionId,
+            body.selectedAnswer
+        );
+        if (!answerVerified) return errorResponse('Attendance answer could not be verified', 400);
 
         const weekClaimDatesBefore = await getWeekClaimDates(db, username, weekStartDateKey, todayDateKey);
         const attendanceDayNumber = weekClaimDatesBefore.length + 1;
@@ -282,7 +369,8 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
             const storedAttendanceDayNumber = Number(stored.attendanceDayNumber) || attendanceDayNumber;
             const storedMultiplier = Number(stored.multiplier) || multiplier;
             const weekClaimDates = await getWeekClaimDates(db, username, weekStartDateKey, todayDateKey);
-            const streakDays = calculateAttendanceStreak(weekClaimDates, todayDateKey);
+            const claimDatesThroughToday = await getClaimDatesThroughDate(db, username, todayDateKey);
+            const streakDays = calculateAttendanceStreak(claimDatesThroughToday, todayDateKey);
 
             return jsonResponse({
                 status: 'success',
