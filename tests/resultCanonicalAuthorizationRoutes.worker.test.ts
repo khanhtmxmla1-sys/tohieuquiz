@@ -27,12 +27,21 @@ class Statement {
 class FakeDatabase {
   executed: Statement[] = [];
   prepare(sql: string) { return new Statement(sql, this); }
-  first(sql: string, _bindings: unknown[]) {
+  first(sql: string, bindings: unknown[]) {
     if (sql.includes('SELECT COUNT(*) as total FROM results')) return { total: 1 };
     if (sql.includes('FROM students') && sql.includes('WHERE username = ?')) {
       return { id: 'student-a', class_id: 'class-a' };
     }
     if (sql.includes('FROM results') && sql.includes('WHERE id = ?')) {
+      if (bindings[0] === 'result-a') {
+        return {
+          id: 'result-a', student_id: 'student-a', class_id: 'class-a', assignment_id: 'assignment-a',
+          student_name: 'An', class_name: '4A', quiz_id: 'quiz-1', quiz_title: 'Quiz',
+          score: 8, correct_count: 8, total_questions: 10, time_taken: 300,
+          submitted_at: '2026-08-01T00:00:00Z', grading_version: '2.0.0',
+          answers: JSON.stringify({ q1: { selectedAnswer: 'A', isCorrect: true } }),
+        };
+      }
       return {
         id: 'legacy-unresolved', student_id: null, class_id: null, assignment_id: null,
         student_name: 'An', class_name: '4A', quiz_id: 'quiz-1', answers: '{}',
@@ -123,6 +132,35 @@ describe('canonical result route authorization', () => {
     const query = db.executed.find((statement) => statement.sql.includes('SELECT id, answers FROM results'));
     expect(query?.sql).toContain('class_id IN (?)');
     expect(query?.sql).not.toMatch(/class_name/i);
+  });
+
+  it('returns canonical metadata with stored answers for an authorized result detail', async () => {
+    const db = new FakeDatabase();
+    const response = await handleResultRoutes(
+      new Request('https://example.test/api/results/result-a/answers'),
+      { DB: db } as any,
+      '/api/results/result-a/answers',
+      'GET',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(200);
+    expect(payload.result).toMatchObject({
+      id: 'result-a',
+      studentId: 'student-a',
+      classId: 'class-a',
+      assignmentId: 'assignment-a',
+      studentName: 'An',
+      studentClass: '4A',
+      quizId: 'quiz-1',
+      quizTitle: 'Quiz',
+      score: 8,
+      correctCount: 8,
+      totalQuestions: 10,
+      timeTaken: 300,
+      gradingVersion: '2.0.0',
+    });
+    expect(payload.result.answers).toEqual({ q1: { selectedAnswer: 'A', isCorrect: true } });
   });
 
   it('denies unresolved detail records to teachers', async () => {

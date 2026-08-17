@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { StudentDetailModal } from '../teacher/ResultsView';
 import { fetchResultAnswerReview } from '../../services/results/resultAnswersService';
+import { ApiError } from '../../services/api/errors';
 import { useQuizStore } from '../../../stores/quizStore';
 import { getTeacherRoute } from '../../app/navigationRoutes';
 import type { Question, StudentResult } from '../../types';
@@ -13,56 +14,73 @@ const TeacherResultDetailPage: React.FC = () => {
     const location = useLocation();
     const quizStore = useQuizStore();
 
-    const [resolvedResult, setResolvedResult] = useState<StudentResult | null>(null);
-    const [isPageLoading, setIsPageLoading] = useState(false);
-    const [loadError, setLoadError] = useState<string | null>(null);
-
     const result = useMemo(
         () => quizStore.results.find((item) => String(item.id) === String(resultId)) || null,
         [quizStore.results, resultId],
     );
 
+    const [resolvedResult, setResolvedResult] = useState<StudentResult | null>(result);
+    const [isPageLoading, setIsPageLoading] = useState(result === null);
+    const [loadError, setLoadError] = useState<string | null>(null);
+
+    const currentResolvedResult = resolvedResult
+        && String(resolvedResult.id) === String(resultId)
+        ? resolvedResult
+        : null;
+
     const questions = useMemo<Question[]>(() => {
-        if (!result) return [];
-        const quiz = quizStore.quizzes.find((q) => q.id === result.quizId);
+        const detailResult = currentResolvedResult || result;
+        if (!detailResult) return [];
+        const quiz = quizStore.quizzes.find((q) => q.id === detailResult.quizId);
         return quiz?.questions || [];
-    }, [quizStore.quizzes, result]);
+    }, [currentResolvedResult, quizStore.quizzes, result]);
 
     useEffect(() => {
         let cancelled = false;
 
         const hydrateResult = async () => {
-            if (!result) {
-                setResolvedResult(null);
-                return;
-            }
-
-            const hasAnswers = Boolean(result.answers && Object.keys(result.answers).length > 0);
-            const hasReviewDetails = Array.isArray(result.reviewDetails);
-            if (hasAnswers && hasReviewDetails) {
+            const hasAnswers = Boolean(result?.answers && Object.keys(result.answers).length > 0);
+            const hasReviewDetails = Array.isArray(result?.reviewDetails);
+            if (result && hasAnswers && hasReviewDetails) {
                 setResolvedResult(result);
+                setLoadError(null);
+                setIsPageLoading(false);
                 return;
             }
 
+            setResolvedResult(result);
             setIsPageLoading(true);
             setLoadError(null);
 
             try {
-                const payload = await fetchResultAnswerReview(result.id);
-                if (!cancelled) {
-                    const hydratedAnswers = Object.keys(payload.answers).length > 0
-                        ? payload.answers
-                        : result.answers;
-                    setResolvedResult({
-                        ...result,
-                        answers: hydratedAnswers,
-                        reviewDetails: payload.reviewDetails,
-                    });
+                const payload = await fetchResultAnswerReview(result?.id || resultId);
+                if (cancelled) return;
+
+                const baseResult = payload?.result || result;
+                if (!baseResult) {
+                    setResolvedResult(null);
+                    setLoadError('Không tìm thấy kết quả này. Có thể dữ liệu đã bị xóa.');
+                    return;
                 }
-            } catch {
+
+                const hydratedAnswers = Object.keys(payload?.answers || {}).length > 0
+                    ? payload.answers
+                    : baseResult.answers;
+                setResolvedResult({
+                    ...baseResult,
+                    answers: hydratedAnswers,
+                    reviewDetails: payload?.reviewDetails || baseResult.reviewDetails || [],
+                });
+            } catch (error) {
                 if (!cancelled) {
                     setResolvedResult(result);
-                    setLoadError('Không tải được chi tiết câu trả lời. Hiển thị dữ liệu hiện có.');
+                    if (result) {
+                        setLoadError('Không tải được chi tiết câu trả lời. Hiển thị dữ liệu hiện có.');
+                    } else if (error instanceof ApiError && error.status === 404) {
+                        setLoadError('Không tìm thấy kết quả này. Có thể dữ liệu đã bị xóa.');
+                    } else {
+                        setLoadError('Không tải được kết quả này. Vui lòng kiểm tra kết nối và thử lại.');
+                    }
                 }
             } finally {
                 if (!cancelled) {
@@ -71,12 +89,12 @@ const TeacherResultDetailPage: React.FC = () => {
             }
         };
 
-        hydrateResult();
+        void hydrateResult();
 
         return () => {
             cancelled = true;
         };
-    }, [result]);
+    }, [result, resultId]);
 
     const handleBack = () => {
         // Back restores result filters/page; direct links replace to the canonical results route.
@@ -84,7 +102,7 @@ const TeacherResultDetailPage: React.FC = () => {
         else navigate(-1);
     };
 
-    if (!result) {
+    if (!currentResolvedResult && !isPageLoading) {
         return (
             <div className="min-h-screen bg-slate-50 p-6">
                 <button
@@ -94,7 +112,7 @@ const TeacherResultDetailPage: React.FC = () => {
                     <ArrowLeft className="h-4 w-4" /> Quay lại danh sách
                 </button>
                 <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-amber-100 bg-amber-50 p-6 text-amber-700">
-                    Không tìm thấy kết quả này. Có thể dữ liệu đã bị xóa hoặc chưa được tải.
+                    {loadError || 'Không tìm thấy kết quả này. Có thể dữ liệu đã bị xóa.'}
                 </div>
             </div>
         );
@@ -117,10 +135,10 @@ const TeacherResultDetailPage: React.FC = () => {
                 </div>
             )}
 
-            {resolvedResult && (
+            {currentResolvedResult && (
                 <StudentDetailModal
                     embedded
-                    result={resolvedResult}
+                    result={currentResolvedResult}
                     questions={questions}
                     onClose={handleBack}
                 />

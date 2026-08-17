@@ -1,4 +1,5 @@
 import type { QuestionAnswerReview } from '../../domain/quiz-scoring';
+import type { StudentResult } from '../../types';
 import { callApi } from '../apiAdapter';
 
 export type ResultAnswers = Record<string, any>;
@@ -6,6 +7,7 @@ export type ResultAnswers = Record<string, any>;
 export interface ResultAnswerReviewPayload {
     answers: ResultAnswers;
     reviewDetails: QuestionAnswerReview[];
+    result?: StudentResult;
 }
 
 export const normalizeResultAnswers = (raw: unknown): ResultAnswers => {
@@ -38,28 +40,34 @@ export const normalizeResultAnswers = (raw: unknown): ResultAnswers => {
 export const fetchResultAnswerReview = async (
     resultId: string | number
 ): Promise<ResultAnswerReviewPayload> => {
-    try {
-        const data = await callApi<{ answers?: unknown; reviewDetails?: QuestionAnswerReview[] }>(
-            'get_result_answers',
-            { resultId }
-        );
-        let rawAnswers = data?.answers;
-        if (typeof rawAnswers === 'string') {
-            try {
-                rawAnswers = JSON.parse(rawAnswers) as unknown;
-            } catch (error) {
-                console.error('[fetchResultAnswerReview] Invalid answers JSON:', error);
-                rawAnswers = {};
-            }
+    const data = await callApi<{
+        answers?: unknown;
+        reviewDetails?: QuestionAnswerReview[];
+        result?: StudentResult;
+    }>(
+        'get_result_answers',
+        { resultId }
+    );
+    let rawAnswers = data?.answers;
+    if (typeof rawAnswers === 'string') {
+        try {
+            rawAnswers = JSON.parse(rawAnswers) as unknown;
+        } catch (error) {
+            console.error('[fetchResultAnswerReview] Invalid answers JSON:', error);
+            rawAnswers = {};
         }
-        return {
-            answers: normalizeResultAnswers(rawAnswers),
-            reviewDetails: Array.isArray(data?.reviewDetails) ? data.reviewDetails : [],
-        };
-    } catch (error) {
-        console.error('[fetchResultAnswerReview] Error:', error);
-        return { answers: {}, reviewDetails: [] };
     }
+    const answers = normalizeResultAnswers(rawAnswers);
+    const reviewDetails = Array.isArray(data?.reviewDetails) ? data.reviewDetails : [];
+    const result = data?.result && typeof data.result === 'object'
+        ? {
+            ...data.result,
+            answers: normalizeResultAnswers(data.result.answers ?? answers),
+            reviewDetails,
+        }
+        : undefined;
+
+    return { answers, reviewDetails, result };
 };
 
 export const fetchResultAnswers = async (
