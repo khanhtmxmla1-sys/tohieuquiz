@@ -413,11 +413,11 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const access = await requireResultAccess(db, user, id);
         if (access instanceof Response) return access;
 
-        const row = await db.prepare('SELECT answers FROM results WHERE id = ?').bind(id).first<{ answers: string }>();
-        if (!row) return errorResponse('Result not found', 404);
+        const result = access.result;
+        const rawAnswers = String(result.answers || '{}');
         let parsedAnswers: Record<string, unknown> = {};
         try {
-            const parsed = JSON.parse(row.answers || '{}') as unknown;
+            const parsed = JSON.parse(rawAnswers) as unknown;
             if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
                 parsedAnswers = parsed as Record<string, unknown>;
             }
@@ -426,12 +426,33 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         }
         let reviewDetails: QuestionAnswerReview[] = [];
         try {
-            const questions = await loadQuizQuestionsForGrading(db, String(access.result.quiz_id || ''));
+            const questions = await loadQuizQuestionsForGrading(db, String(result.quiz_id || ''));
             reviewDetails = buildStoredResultReviewDetails(questions, parsedAnswers);
         } catch (error) {
             if (!(error instanceof QuizGradingServiceError)) throw error;
         }
-        return jsonResponse({ answers: row.answers, reviewDetails });
+        return jsonResponse({
+            answers: rawAnswers,
+            reviewDetails,
+            result: {
+                id: String(result.id),
+                studentId: result.student_id || undefined,
+                classId: result.class_id || undefined,
+                assignmentId: result.assignment_id || undefined,
+                studentName: result.student_name || '',
+                studentClass: result.class_name || '',
+                quizId: result.quiz_id || '',
+                quizTitle: result.quiz_title || '',
+                score: Number(result.score ?? 0),
+                correctCount: Number(result.correct_count ?? 0),
+                totalQuestions: Number(result.total_questions ?? 0),
+                timeTaken: Number(result.time_taken ?? 0),
+                submittedAt: result.submitted_at || '',
+                gradingVersion: result.grading_version || undefined,
+                answers: parsedAnswers,
+                reviewDetails,
+            },
+        });
     }
 
     // POST /api/results/answers/bulk - Cohort answers for teacher question analysis

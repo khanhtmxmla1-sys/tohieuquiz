@@ -54,6 +54,33 @@ describe('result answer retrieval contracts', () => {
             reviewDetails,
         });
     });
+    it('returns canonical result metadata for direct-link detail hydration', async () => {
+        callApiMock.mockResolvedValueOnce({
+            answers: JSON.stringify({ q1: { selectedAnswer: 'B', isCorrect: false } }),
+            reviewDetails: [],
+            result: {
+                id: 'result-detail',
+                quizId: 'quiz-1',
+                studentName: 'Bình',
+                studentClass: '4A',
+                score: 5,
+                correctCount: 1,
+                totalQuestions: 2,
+                timeTaken: 120,
+                submittedAt: '2026-08-10T10:00:00.000Z',
+                answers: { q1: { selectedAnswer: 'B', isCorrect: false } },
+            },
+        });
+
+        await expect(fetchResultAnswerReview('result-detail')).resolves.toMatchObject({
+            result: {
+                id: 'result-detail',
+                studentName: 'Bình',
+                answers: { q1: { selectedAnswer: 'B', isCorrect: false } },
+            },
+        });
+    });
+
     it('preserves object answers and returns an empty map for invalid JSON', async () => {
         callApiMock
             .mockResolvedValueOnce({ answers: '{"q1":{"selectedAnswer":"C"}}' })
@@ -101,6 +128,12 @@ describe('result answer retrieval contracts', () => {
         expect(result['result-2']).toEqual({
             q1: { selectedAnswer: 'result-2' },
         });
+    });
+
+    it('rethrows single-result transport failures so detail screens can show a real error state', async () => {
+        callApiMock.mockRejectedValueOnce(new Error('network unavailable'));
+
+        await expect(fetchResultAnswerReview('result-1')).rejects.toThrow('network unavailable');
     });
 
     it('rethrows bulk transport failures so the caller can display an error state', async () => {
