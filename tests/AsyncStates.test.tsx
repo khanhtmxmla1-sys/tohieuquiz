@@ -11,6 +11,7 @@ import ParentDashboardPage from '../src/features/parent-portal/pages/ParentDashb
 import { useParentPortalStore } from '../src/features/parent-portal/useParentPortalStore';
 import * as parentPortalService from '../src/features/parent-portal/parentPortalService';
 import { useClassStore } from '../src/stores/useClassStore';
+import { useRosterStore } from '../src/stores/useRosterStore';
 import * as classroomService from '../src/services/classroomService';
 import { AssignedWorkSection } from '../src/components/HomePage/student-dashboard/AssignedWorkSection';
 import { useOnlineStatus } from '../src/hooks/useOnlineStatus';
@@ -138,6 +139,26 @@ describe('standardized async and offline states', () => {
     await useParentPortalStore.getState().loadDashboard();
     expect(useParentPortalStore.getState().dashboard).toBeNull();
     expect(useParentPortalStore.getState().dashboardUpdatedAt).toBeNull();
+  });
+
+  it('clears the denied class roster cache without exposing sensitive data from a previous authorization', async () => {
+    vi.spyOn(classroomService, 'getStudents').mockRejectedValueOnce(
+      new ApiError('Bạn không còn quyền truy cập lớp này.', 403),
+    );
+    useRosterStore.setState({
+      students: {
+        'class-1': [{ id: 'student-1', fullName: 'Nguyễn Văn An', username: 'an01', classId: 'class-1', parentPhone: '0900000001' } as never],
+        'class-2': [{ id: 'student-2', fullName: 'Trần Bình', username: 'binh02', classId: 'class-2', parentPhone: '0900000002' } as never],
+      },
+      error: null,
+      isLoading: false,
+    });
+
+    await useRosterStore.getState().fetchStudents('class-1');
+
+    expect(useRosterStore.getState().students['class-1']).toBeUndefined();
+    expect(useRosterStore.getState().students['class-2']).toHaveLength(1);
+    expect(useRosterStore.getState().error).toBe('Bạn không còn quyền truy cập lớp này.');
   });
 
   it('discards stale result data after an authorization failure', async () => {

@@ -34,6 +34,7 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
         teacherLoadError,
         isTransferring,
         transferError,
+        createClassError,
         store,
     } = useClassManagement(isAdmin, username);
 
@@ -89,6 +90,7 @@ const ClassManagementTab: React.FC<ClassManagementTabProps> = memo(({ isAdmin, u
                     isLoading={store.isLoading}
                     teachers={teachers}
                     isLoadingTeachers={isLoadingTeachers}
+                    error={teacherLoadError || createClassError}
                 />
             )}
 

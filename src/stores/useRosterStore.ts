@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import type { CreateStudentPayload, Student } from '../types/classroom.types';
 import * as classroomService from '../services/classroomService';
+import { ApiError } from '../services/api/errors';
+
+const isAccessDenied = (error: unknown): boolean => (
+    error instanceof ApiError && (error.status === 401 || error.status === 403)
+);
 
 interface RosterStore {
     students: Record<string, Student[]>;
@@ -33,6 +38,13 @@ export const useRosterStore = create<RosterStore>((set) => ({
             }));
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Không thể tải danh sách học sinh.';
+            if (isAccessDenied(error)) {
+                set((state) => {
+                    const { [classId]: _deniedClass, ...remainingStudents } = state.students;
+                    return { students: remainingStudents, error: message, isLoading: false };
+                });
+                return;
+            }
             set({ error: message, isLoading: false });
         }
     },

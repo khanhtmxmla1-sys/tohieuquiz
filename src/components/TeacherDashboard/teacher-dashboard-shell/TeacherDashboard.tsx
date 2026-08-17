@@ -64,7 +64,7 @@ const TeacherDashboard = () => {
     if (!manualQuizWorkspaceEnabled) return;
     const manualQuizSeed = buildManualQuizSeed({
       quizTitle: 'Đề kiểm tra mới',
-      classLevel: authStore.teacherClass?.trim() || '3',
+      classLevel: authStore.teacherClasses[0]?.name?.trim() || authStore.teacherClass?.trim() || '3',
       category: 'toan',
       manualTimeLimit: 15,
       tags: [],
@@ -79,7 +79,7 @@ const TeacherDashboard = () => {
         workspaceStartedAt: new Date().toISOString(),
       },
     });
-  }, [authStore.teacherClass, manualQuizWorkspaceEnabled, navigate]);
+  }, [authStore.teacherClasses, authStore.teacherClass, manualQuizWorkspaceEnabled, navigate]);
 
   const dashboardSearch = useDashboardSearch({
     onSelectTab: selectTab,
@@ -136,7 +136,7 @@ const TeacherDashboard = () => {
       resultSummary={bootstrap.resultSummary}
       summaryLoadState={bootstrap.summaryLoadState}
       summaryLoadError={bootstrap.summaryLoadError}
-      filteredResults={filterTeacherResults(quizStore.results, authStore.isAdmin, authStore.teacherClass)}
+      filteredResults={filterTeacherResults(quizStore.results, authStore.isAdmin, authStore.teacherClasses, authStore.teacherClass)}
       quizzes={quizStore.quizzes}
       editingQuiz={editingQuiz}
       setEditingQuiz={setEditingQuiz}

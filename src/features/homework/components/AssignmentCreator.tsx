@@ -25,19 +25,20 @@ export const AssignmentCreator: React.FC<AssignmentCreatorProps> = ({ onSuccess 
   
   const [isProcessingAI, setIsProcessingAI] = useState(false);
   const { addAssignment, isLoading: isSaving } = useHomeworkStore();
-  const { username, teacherClass } = useAuthStore();
+  const { username } = useAuthStore();
   const classes = useClassStore((state) => state.classes);
   
   const { uploadHomework, isUploading, progress, url } = useHomeworkUpload();
 
-  // Auto-select class if available
+  // Class selection is always keyed by the canonical class id.
   React.useEffect(() => {
-    if (teacherClass) {
-        setSelectedClassId(teacherClass);
-    } else if (classes.length > 0) {
-        setSelectedClassId(classes[0].id);
-    }
-  }, [teacherClass, classes]);
+    setSelectedClassId((currentClassId) => {
+      if (currentClassId && classes.some((classroom) => classroom.id === currentClassId)) {
+        return currentClassId;
+      }
+      return classes[0]?.id || '';
+    });
+  }, [classes]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -4,13 +4,18 @@ import { StorageKeys } from '../src/constants/storageKeys';
 
 export type AuthSessionStatus = 'anonymous' | 'checking' | 'authenticated';
 
+export interface TeacherClassScope {
+  id: string;
+  name: string;
+}
+
 interface AuthProfileResponse {
   data?: {
     username: string;
     fullName?: string;
     role?: string;
     teacherClass?: string | null;
-    classes?: Array<{ id: string; name: string }>;
+    classes?: TeacherClassScope[];
   };
 }
 
@@ -21,6 +26,7 @@ interface AuthState {
   teacherName: string | null;
   isAdmin: boolean;
   teacherClass: string | null;
+  teacherClasses: TeacherClassScope[];
   isLoggingIn: boolean;
   loginError: boolean;
   loginStart: () => void;
@@ -40,6 +46,7 @@ const anonymousState = {
   teacherName: null,
   isAdmin: false,
   teacherClass: null,
+  teacherClasses: [] as TeacherClassScope[],
   isLoggingIn: false,
   loginError: false,
 };
@@ -51,16 +58,34 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   loginSuccess: (username, name, isAdmin, teacherClass) => {
     localStorage.setItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT, '1');
-    set({
+    set((state) => ({
       status: 'authenticated',
       isLoggedIn: true,
       username,
       teacherName: name,
       isAdmin,
       teacherClass: teacherClass || null,
+      teacherClasses: state.username === username ? state.teacherClasses : [],
       isLoggingIn: false,
       loginError: false,
-    });
+    }));
+
+    void Promise.resolve()
+      .then(() => callApi<AuthProfileResponse>('get_account_profile'))
+      .then((response) => {
+        const profile = response?.data;
+        if (!profile?.username || profile.username !== username) return;
+        set((state) => {
+          if (!state.isLoggedIn || state.username !== username) return {};
+          return {
+            teacherClass: profile.teacherClass || null,
+            teacherClasses: profile.classes || [],
+          };
+        });
+      })
+      .catch(() => {
+        // Keep the authenticated legacy scope if profile hydration is temporarily unavailable.
+      });
   },
 
   loginFailure: () => set({ ...anonymousState, loginError: true }),
@@ -107,7 +132,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         username: profile.username,
         teacherName: profile.fullName || profile.username,
         isAdmin: profile.role === 'admin',
-        teacherClass: profile.teacherClass || profile.classes?.[0]?.name || null,
+        teacherClass: profile.teacherClass || null,
+        teacherClasses: profile.classes || [],
         isLoggingIn: false,
         loginError: false,
       });

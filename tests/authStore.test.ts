@@ -38,9 +38,63 @@ describe('canonical teacher auth store', () => {
     expect(useAuthStore.getState()).toMatchObject({ status: 'authenticated', isLoggedIn: true, username: 'teacher-a', teacherName: 'Cô A', isAdmin: false, teacherClass: '5A' });
   });
 
+  it('keeps the server class list canonical instead of collapsing a multi-class teacher to the first class name', async () => {
+    localStorage.setItem(StorageKeys.TEACHER_SESSION_RESTORE_HINT, '1');
+    callApi.mockResolvedValue({
+      data: {
+        username: 'teacher-a',
+        fullName: 'Cô A',
+        role: 'teacher',
+        classes: [
+          { id: 'class-4a', name: '4A' },
+          { id: 'class-5b', name: '5B' },
+        ],
+      },
+    });
+
+    await useAuthStore.getState().restoreSession();
+
+    expect(useAuthStore.getState()).toMatchObject({
+      teacherClass: null,
+      teacherClasses: [
+        { id: 'class-4a', name: '4A' },
+        { id: 'class-5b', name: '5B' },
+      ],
+    });
+  });
+
+  it('hydrates canonical classes immediately after login without waiting for an app bootstrap reload', async () => {
+    callApi.mockResolvedValue({
+      data: {
+        username: 'teacher-a',
+        fullName: 'Cô A',
+        role: 'teacher',
+        classes: [
+          { id: 'class-4a', name: '4A' },
+          { id: 'class-5b', name: '5B' },
+        ],
+      },
+    });
+
+    useAuthStore.getState().loginSuccess('teacher-a', 'Cô A', false, '4A');
+
+    await vi.waitFor(() => {
+      expect(callApi).toHaveBeenCalledWith('get_account_profile');
+      expect(useAuthStore.getState()).toMatchObject({
+        teacherClass: null,
+        teacherClasses: [
+          { id: 'class-4a', name: '4A' },
+          { id: 'class-5b', name: '5B' },
+        ],
+      });
+    });
+  });
+
   it('clears client state even when server logout fails', async () => {
+    callApi
+      .mockResolvedValueOnce({ data: { username: 'teacher-a', fullName: 'Cô A', role: 'admin', classes: [] } })
+      .mockRejectedValueOnce(new Error('offline'));
     useAuthStore.getState().loginSuccess('teacher-a', 'Cô A', true, '5A');
-    callApi.mockRejectedValue(new Error('offline'));
     const logout = useAuthStore.getState().logout();
     expect(useAuthStore.getState()).toMatchObject({ status: 'anonymous', isLoggedIn: false, isAdmin: false });
     await logout;

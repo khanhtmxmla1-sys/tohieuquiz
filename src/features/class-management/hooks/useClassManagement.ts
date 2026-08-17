@@ -144,6 +144,7 @@ export const useClassManagement = (isAdmin: boolean, username: string | null) =>
         teacherLoadError,
         isTransferring,
         transferError,
+        createClassError: classStore.error,
         
         // Store Bindings
         store: {
