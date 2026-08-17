@@ -19,7 +19,13 @@ export const ClassCard: React.FC<ClassCardProps> = ({ classroom, isAdmin, onClic
             onClick={onClick}
             role="button"
             tabIndex={0}
-            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onClick(); }}
+            onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onClick();
+                }
+            }}
         >
             <div className="flex items-start justify-between mb-3">
                 <div className="p-2.5 bg-orange-50 rounded-xl group-hover:bg-orange-100 transition-colors">

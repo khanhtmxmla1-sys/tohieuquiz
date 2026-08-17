@@ -7,6 +7,7 @@ import { Alert, Button } from '../common';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { useAuthStore } from '../../../stores/authStore';
 import { areClassNamesEqual } from '../../utils/classMatching';
+import { filterTeacherResults, getTeacherClassNames } from './teacher-dashboard-shell/dashboardSelectors';
 import type { TeacherDashboardTab } from '../../stores/useTeacherDashboardUIStore';
 import {
   ActionCenterPanel,
@@ -76,9 +77,10 @@ const formatDateLabel = (date: Date): string => {
   return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
-const formatScopeLabel = (teacherClass?: string | null): string => {
-  const value = String(teacherClass || '').trim();
-  if (!value) return 'Tất cả lớp';
+const formatScopeLabel = (classNames: string[]): string => {
+  if (classNames.length === 0) return 'Chưa có lớp';
+  if (classNames.length > 1) return `${classNames.length} lớp`;
+  const value = classNames[0];
   return /^lớp\s+/i.test(value) ? value : `Lớp ${value}`;
 };
 
@@ -99,17 +101,23 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   const authStore = useAuthStore();
   const quizStore = useQuizStore();
 
-  const filteredResults = useMemo(() => (
-    authStore.isAdmin || !authStore.teacherClass
-      ? quizStore.results
-      : quizStore.results.filter((result) => areClassNamesEqual(result.studentClass, authStore.teacherClass))
-  ), [quizStore.results, authStore.isAdmin, authStore.teacherClass]);
+  const teacherClassNames = useMemo(
+    () => getTeacherClassNames(authStore.teacherClasses, authStore.teacherClass),
+    [authStore.teacherClasses, authStore.teacherClass],
+  );
 
-  const visibleQuizzes = useMemo(() => (
-    authStore.isAdmin || !authStore.teacherClass
-      ? quizStore.quizzes
-      : quizStore.quizzes.filter((quiz) => areClassNamesEqual(quiz.classLevel, authStore.teacherClass))
-  ), [quizStore.quizzes, authStore.isAdmin, authStore.teacherClass]);
+  const filteredResults = useMemo(
+    () => filterTeacherResults(quizStore.results, authStore.isAdmin, authStore.teacherClasses, authStore.teacherClass),
+    [quizStore.results, authStore.isAdmin, authStore.teacherClasses, authStore.teacherClass],
+  );
+
+  const visibleQuizzes = useMemo(() => {
+    if (authStore.isAdmin) return quizStore.quizzes;
+    if (teacherClassNames.length === 0) return [];
+    return quizStore.quizzes.filter((quiz) => (
+      teacherClassNames.some((className) => areClassNamesEqual(quiz.classLevel, className))
+    ));
+  }, [quizStore.quizzes, authStore.isAdmin, teacherClassNames]);
 
   const todayResults = useMemo(() => {
     const today = new Date();
@@ -137,7 +145,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       .slice(0, 5)
   ), [visibleQuizzes]);
 
-  const scopeLabel = authStore.isAdmin ? 'Toàn trường' : formatScopeLabel(authStore.teacherClass);
+  const scopeLabel = authStore.isAdmin ? 'Toàn trường' : formatScopeLabel(teacherClassNames);
   const now = new Date();
   const statistics = resultSummary?.statistics ?? EMPTY_SUMMARY_STATISTICS;
   const isInitialResultsLoading = resultsLoadState === 'loading' && filteredResults.length === 0;

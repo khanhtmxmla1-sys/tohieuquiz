@@ -33,6 +33,7 @@ const resetStores = () => {
     username: 'teacher-a',
     teacherName: 'Cô An',
     teacherClass: '4A',
+    teacherClasses: [],
     isAdmin: false,
   } as any);
   useQuizStore.setState({
@@ -93,6 +94,24 @@ describe('ManageTab quiz row menu', () => {
     for (const action of ['Quản lý mã', 'Xem trước', 'Sửa đề', 'Nhân bản', 'Xuất Vở Bài Tập', 'Xóa đề']) {
       expect(within(menu).getByRole('menuitem', { name: action })).toBeTruthy();
     }
+  });
+
+  it('allows canonical assigned grades and blocks quiz actions outside the teacher class scope', () => {
+    const assignedQuiz = { ...quiz, id: 'quiz-5', title: 'Đề lớp 5B', classLevel: '5' };
+    const outsideQuiz = { ...quiz, id: 'quiz-6', title: 'Đề lớp 6C', classLevel: '6' };
+    useAuthStore.setState({
+      teacherClass: null,
+      teacherClasses: [
+        { id: 'class-4a', name: '4A' },
+        { id: 'class-5b', name: '5B' },
+      ],
+    } as any);
+
+    render(<ManageTab quizzes={[assignedQuiz, outsideQuiz]} onEdit={vi.fn()} onManageCode={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: `Tùy chọn khác cho ${assignedQuiz.title}` })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: `Tùy chọn khác cho ${outsideQuiz.title}` })).not.toBeInTheDocument();
+    expect(screen.getByText('Khối 6')).toBeInTheDocument();
   });
 
   it('keeps the ⋮ menu clear of clipping ancestors', () => {

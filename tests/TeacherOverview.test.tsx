@@ -89,6 +89,7 @@ describe('TeacherDashboard OverviewTab', () => {
             teacherName: 'Cô An',
             isAdmin: false,
             teacherClass: '3A',
+            teacherClasses: [],
         });
         useQuizStore.setState({
             quizzes: [
@@ -139,6 +140,32 @@ describe('TeacherDashboard OverviewTab', () => {
         expect(recentSubmission).toContain('Bài kiểm tra');
         expect(document.body.textContent).not.toContain('Bình');
         expect(document.body.textContent).not.toContain('Chi');
+    });
+
+    it('scopes overview quizzes to every canonical teacher class without widening to unrelated classes', () => {
+        useAuthStore.setState({
+            teacherClass: null,
+            teacherClasses: [
+                { id: 'class-3a', name: '3A' },
+                { id: 'class-4b', name: '4B' },
+            ],
+        } as any);
+        useQuizStore.setState({
+            quizzes: [
+                { ...useQuizStore.getState().quizzes[0], id: 'quiz-3a', title: 'Đề lớp 3A', classLevel: '3A' },
+                { ...useQuizStore.getState().quizzes[0], id: 'quiz-4b', title: 'Đề lớp 4B', classLevel: 'Lớp 4-B' },
+                { ...useQuizStore.getState().quizzes[0], id: 'quiz-13a', title: 'Đề lớp 13A', classLevel: '13A' },
+            ] as any,
+        });
+
+        renderOverview();
+
+        const kpiRegion = screen.getByRole('region', { name: 'Chỉ số tổng quan' });
+        const cards = within(kpiRegion).getAllByRole('article');
+        expect(within(cards[0]).getByText('2')).toBeInTheDocument();
+        expect(screen.getAllByText('2 lớp').length).toBeGreaterThan(0);
+        expect(screen.getByText('Đề lớp 4B')).toBeInTheDocument();
+        expect(screen.queryByText('Đề lớp 13A')).not.toBeInTheDocument();
     });
 
     it('uses the light Stitch hero and the custom teacher illustration', () => {

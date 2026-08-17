@@ -102,8 +102,12 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
                 setResetError(store.error || 'Không thể đặt lại mật khẩu.');
                 return;
             }
-            try { await navigator.clipboard.writeText(newPassword); } catch { /* Clipboard may be unavailable. */ }
-            showSuccess('Đã đặt lại mật khẩu và sao chép vào bộ nhớ tạm.');
+            try {
+                await navigator.clipboard.writeText(newPassword);
+                showSuccess('Đã đặt lại mật khẩu và sao chép vào bộ nhớ tạm.');
+            } catch {
+                showSuccess('Đã đặt lại mật khẩu. Không thể tự động sao chép; vui lòng sao chép thủ công.');
+            }
             setResettingStudent(null);
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : 'Không thể đặt lại mật khẩu.';

@@ -27,6 +27,7 @@ import { parseQuizTags } from '../../utils/quizTags';
 import { showConfirm, showError, showSuccess } from '../../utils/toast';
 import { AssignmentDrawer } from './AssignmentDrawer';
 import WorksheetExportModal from './WorksheetExportModal';
+import { getTeacherClassNames } from './teacher-dashboard-shell/dashboardSelectors';
 
 const CATEGORY_OPTIONS = [
     { key: 'all', label: 'Tất cả môn' },
@@ -193,10 +194,18 @@ const ManageTab: React.FC<ManageTabProps> = ({ quizzes, onDelete, onEdit, onMana
 
     const quizManager = useQuizManager({ quizzes: metadataFilteredQuizzes, onDelete });
 
+    const teacherGrades = useMemo(() => (
+        new Set(
+            getTeacherClassNames(authStore.teacherClasses, authStore.teacherClass)
+                .map(getClassGrade)
+                .filter(Boolean),
+        )
+    ), [authStore.teacherClasses, authStore.teacherClass]);
+
     const canManageQuiz = (quiz: Quiz): boolean => {
-        if (authStore.isAdmin || !authStore.teacherClass) return true;
-        const teacherGrade = getClassGrade(authStore.teacherClass);
-        return Boolean(teacherGrade) && getClassGrade(quiz.classLevel) === teacherGrade;
+        if (authStore.isAdmin) return true;
+        if (teacherGrades.size === 0) return false;
+        return teacherGrades.has(getClassGrade(quiz.classLevel));
     };
 
     const handleRefresh = async () => {

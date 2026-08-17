@@ -27,6 +27,22 @@ describe('class management UI permissions and states', () => {
         expect(onDelete).toHaveBeenCalledOnce();
     });
 
+    it('does not let keyboard events from nested admin actions also open the class card', () => {
+        const onClick = vi.fn();
+        const view = render(<ClassCard classroom={classroom} isAdmin onClick={onClick} onTransfer={vi.fn()} onDelete={vi.fn()} />);
+        const archiveButton = screen.getByLabelText('Lưu trữ lớp 5A');
+
+        fireEvent.keyDown(archiveButton, { key: 'Enter' });
+        expect(onClick).not.toHaveBeenCalled();
+
+        const cardButton = view.container.querySelector('[role="button"][tabindex="0"]');
+        expect(cardButton).not.toBeNull();
+        fireEvent.keyDown(cardButton as HTMLElement, { key: 'Enter' });
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(fireEvent.keyDown(cardButton as HTMLElement, { key: ' ' })).toBe(false);
+        expect(onClick).toHaveBeenCalledTimes(2);
+    });
+
     it('distinguishes an API error from an empty class list', () => {
         render(<ClassListView classes={[]} isAdmin={false} onSelectClass={vi.fn()} onCreateClick={vi.fn()} onTransferClick={vi.fn()} onDeleteClick={vi.fn()} isLoading={false} error="Không thể tải danh sách lớp." onRetry={vi.fn()} />);
         expect(screen.getByText('Không thể tải danh sách lớp.')).toBeInTheDocument();
@@ -54,6 +70,22 @@ describe('class management UI permissions and states', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Tạo lớp' }));
 
         expect(onCreate).toHaveBeenCalledWith('4A', 'teacher-b');
+    });
+
+    it('shows API errors in the create-class modal instead of presenting them as an empty teacher list', () => {
+        render(
+            <CreateClassModal
+                onClose={vi.fn()}
+                onCreate={vi.fn(async () => false) as any}
+                isLoading={false}
+                teachers={[]}
+                isLoadingTeachers={false}
+                error="Không thể tải danh sách giáo viên."
+            />,
+        );
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Không thể tải danh sách giáo viên.');
+        expect(screen.queryByText('Chưa có giáo viên đang hoạt động để phân công lớp.')).not.toBeInTheDocument();
     });
 
     it('shows teacher class counts instead of legacy single-class metadata during transfer', () => {

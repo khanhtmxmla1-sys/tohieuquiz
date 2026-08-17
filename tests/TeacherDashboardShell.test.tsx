@@ -205,6 +205,7 @@ const resetStores = () => {
     username: 'teacher-a',
     teacherName: 'Cô An',
     teacherClass: '3A',
+    teacherClasses: [],
     isAdmin: false,
     logout,
     loginSuccess,
@@ -354,6 +355,25 @@ describe('TeacherDashboard shell contracts', () => {
           category: 'toan',
           timeLimit: 15,
         }),
+      }),
+    });
+  });
+
+  it('uses the first canonical assigned class as the manual quiz default when legacy teacherClass is absent', async () => {
+    useAuthStore.setState({
+      teacherClass: null,
+      teacherClasses: [
+        { id: 'class-4a', name: '4A' },
+        { id: 'class-5b', name: '5B' },
+      ],
+    } as any);
+    render(<TeacherDashboard />);
+
+    await click(await screen.findByRole('button', { name: 'Tổng quan soạn đề thủ công' }));
+
+    expect(mocks.navigate).toHaveBeenCalledWith('/teacher/quizzes/new', {
+      state: expect.objectContaining({
+        manualQuizSeed: expect.objectContaining({ classLevel: '4A' }),
       }),
     });
   });

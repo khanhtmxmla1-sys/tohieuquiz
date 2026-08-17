@@ -10,9 +10,10 @@ interface CreateClassModalProps {
     isLoading: boolean;
     teachers: TeacherRecord[];
     isLoadingTeachers: boolean;
+    error?: string | null;
 }
 
-export const CreateClassModal: React.FC<CreateClassModalProps> = ({ onClose, onCreate, isLoading, teachers, isLoadingTeachers }) => {
+export const CreateClassModal: React.FC<CreateClassModalProps> = ({ onClose, onCreate, isLoading, teachers, isLoadingTeachers, error }) => {
     const [name, setName] = useState('');
     const [teacherUsername, setTeacherUsername] = useState('');
     const dialogRef = useRef<HTMLDivElement>(null);
@@ -52,6 +53,11 @@ export const CreateClassModal: React.FC<CreateClassModalProps> = ({ onClose, onC
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
+                {error && (
+                    <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                        {error}
+                    </div>
+                )}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label htmlFor="create-class-name" className="block text-sm font-medium text-gray-700 mb-1">Tên lớp</label>
@@ -82,7 +88,7 @@ export const CreateClassModal: React.FC<CreateClassModalProps> = ({ onClose, onC
                                 </option>
                             ))}
                         </select>
-                        {!isLoadingTeachers && teachers.length === 0 && (
+                        {!isLoadingTeachers && !error && teachers.length === 0 && (
                             <p className="text-xs text-amber-700 mt-1">Chưa có giáo viên đang hoạt động để phân công lớp.</p>
                         )}
                     </div>
