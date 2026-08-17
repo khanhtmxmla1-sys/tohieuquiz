@@ -18,8 +18,16 @@ export async function handleClassCreateRoute(context: ClassroomRouteContext): Pr
             if (!teacherUsername) return errorResponse('Missing teacherUsername');
             if (className.length < 2 || className.length > 80) return errorResponse('Tên lớp phải từ 2 đến 80 ký tự');
 
-            const teacherExists = await db.prepare('SELECT username FROM teachers WHERE username = ?').bind(teacherUsername).first();
-            if (!teacherExists) return errorResponse('Teacher not found', 404);
+            const teacher = await db.prepare('SELECT username, full_name, role, status FROM teachers WHERE username = ?')
+                .bind(teacherUsername)
+                .first<any>();
+            if (!teacher) return errorResponse('Teacher not found', 404);
+            if (String(teacher.status || '').toUpperCase() !== 'ACTIVE') {
+                return errorResponse('Giáo viên phụ trách đang bị vô hiệu hóa.', 409);
+            }
+            if (String(teacher.role || '').toLowerCase() !== 'teacher') {
+                return errorResponse('Tài khoản phụ trách lớp phải có vai trò giáo viên.', 400);
+            }
             const duplicate = await db.prepare("SELECT id FROM classes WHERE LOWER(TRIM(name)) = LOWER(?) AND COALESCE(archived_at, '') = ''")
                 .bind(className).first();
             if (duplicate) return errorResponse('Tên lớp đang được sử dụng', 409);
@@ -28,10 +36,6 @@ export async function handleClassCreateRoute(context: ClassroomRouteContext): Pr
             const createdAt = new Date().toISOString();
             await db.prepare('INSERT INTO classes (id, name, teacher_username, created_at) VALUES (?, ?, ?, ?)')
                 .bind(id, className, teacherUsername, createdAt).run();
-
-            const teacher = await db.prepare('SELECT full_name FROM teachers WHERE username = ?')
-                .bind(teacherUsername)
-                .first<any>();
 
             return jsonResponse({
                 status: 'success',

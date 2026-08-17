@@ -51,6 +51,16 @@ describe('ParentAccessModal', () => {
     vi.stubGlobal('print', mocks.print);
   });
 
+  it('traps dialog focus and closes with Escape when no mutation is running', async () => {
+    renderModal();
+    await screen.findByText('Chưa cấp quyền phụ huynh');
+
+    expect(screen.getByRole('dialog', { name: 'Quyền phụ huynh của Nguyễn Văn An' })).toBeInTheDocument();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Đóng' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(mocks.onClose).toHaveBeenCalledOnce();
+  });
+
   it('creates a one-time QR and shows the safe access code', async () => {
     renderModal();
     await screen.findByText('Chưa cấp quyền phụ huynh');

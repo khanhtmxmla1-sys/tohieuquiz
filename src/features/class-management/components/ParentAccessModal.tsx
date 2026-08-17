@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Copy, Download, Printer, QrCode, RefreshCw, ShieldOff, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import {
@@ -8,6 +8,7 @@ import {
   revokeParentLink,
 } from '../../parent-portal/parentPortalService';
 import type { ParentLinkSafeView } from '../../parent-portal/types';
+import { useDialogFocus } from '../../../hooks/useDialogFocus';
 
 interface ParentAccessModalProps {
   studentId: string;
@@ -35,6 +36,18 @@ export default function ParentAccessModal({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const requestClose = () => {
+    if (!isSaving) onClose();
+  };
+
+  useDialogFocus({
+    isOpen: true,
+    dialogRef,
+    initialFocusRef: closeButtonRef,
+    onClose: requestClose,
+  });
 
   useEffect(() => {
     let active = true;
@@ -129,11 +142,18 @@ export default function ParentAccessModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-label={`Quyền phụ huynh của ${studentName}`}>
-      <div className="max-h-[95vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Quyền phụ huynh của ${studentName}`}
+        tabIndex={-1}
+        className="max-h-[95vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white shadow-2xl"
+      >
         <header className="sticky top-0 flex items-start justify-between gap-4 border-b border-slate-200 bg-white p-5">
           <div><p className="text-sm font-semibold text-indigo-600">Cổng phụ huynh</p><h2 className="text-xl font-bold">{studentName}</h2><p className="text-sm text-slate-500">Lớp {className}</p></div>
-          <button type="button" onClick={onClose} aria-label="Đóng" className="inline-flex h-11 w-11 items-center justify-center rounded-xl hover:bg-slate-100"><X /></button>
+          <button ref={closeButtonRef} type="button" onClick={requestClose} disabled={isSaving} aria-label="Đóng" className="inline-flex h-11 w-11 items-center justify-center rounded-xl hover:bg-slate-100 disabled:opacity-50"><X /></button>
         </header>
         <div className="space-y-5 p-5">
           {isLoading && <p role="status" className="rounded-xl bg-slate-50 p-4 text-slate-500">Đang tải quyền phụ huynh…</p>}

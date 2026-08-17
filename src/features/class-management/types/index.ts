@@ -8,6 +8,9 @@ export * from '../../../types/classroom.types';
 export interface TeacherRecord {
     username: string;
     full_name: string;
+    fullName?: string;
     role: string;
     class: string;
+    status?: string;
+    classCount?: number;
 }
