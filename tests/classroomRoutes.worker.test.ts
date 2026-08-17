@@ -98,6 +98,115 @@ describe('Classroom route contracts', () => {
         expect(response.status).toBe(405);
     });
 
+    it('archives a class and only currently-active students with the same lifecycle timestamp', async () => {
+        authState.currentUser = { username: 'admin-a', role: 'admin' };
+        const db = new ClassroomDatabase({
+            classroom: { id: 'class-a', name: '4A', teacher_username: 'teacher-a', archived_at: '' },
+        });
+
+        const response = await callRoute(
+            '/api/classes/class-a/archive',
+            'PATCH',
+            db,
+            JSON.stringify({ archived: true }),
+        );
+
+        expect(response.status).toBe(200);
+        const classUpdate = db.executed.find(statement => statement.sql.includes('UPDATE classes SET archived_at = ?'));
+        const studentUpdate = db.executed.find(statement => statement.sql.includes('UPDATE students SET archived_at = ?'));
+        expect(classUpdate?.bindings[0]).toBeTruthy();
+        expect(studentUpdate?.bindings[0]).toBe(classUpdate?.bindings[0]);
+        expect(studentUpdate?.sql).toContain("COALESCE(archived_at, '') = ''");
+        expect(db.executed.some(statement => /DELETE FROM (assignments|results)/i.test(statement.sql))).toBe(false);
+    });
+
+    it('restores only students archived by the same class archive event', async () => {
+        authState.currentUser = { username: 'admin-a', role: 'admin' };
+        const archivedAt = '2026-08-01T10:20:30.000Z';
+        const db = new ClassroomDatabase({
+            classroom: { id: 'class-a', name: '4A', teacher_username: 'teacher-a', archived_at: archivedAt },
+        });
+
+        const response = await callRoute(
+            '/api/classes/class-a/archive',
+            'PATCH',
+            db,
+            JSON.stringify({ archived: false }),
+        );
+
+        expect(response.status).toBe(200);
+        const studentRestore = db.executed.find(statement => statement.sql.includes('UPDATE students SET archived_at = NULL'));
+        expect(studentRestore?.sql).toContain('archived_at = ?');
+        expect(studentRestore?.bindings).toEqual(['class-a', archivedAt]);
+        expect(db.executed.some(statement => /DELETE FROM (assignments|results)/i.test(statement.sql))).toBe(false);
+    });
+
+    it.each([
+        [{ username: 'teacher-disabled', full_name: 'Teacher Disabled', role: 'teacher', status: 'DISABLED' }, 409],
+        [{ username: 'admin-b', full_name: 'Admin B', role: 'admin', status: 'ACTIVE' }, 400],
+    ])('rejects an invalid class owner on creation %#', async (teacher, expectedStatus) => {
+        authState.currentUser = { username: 'admin-a', role: 'admin' };
+        const db = new ClassroomDatabase({ teacher });
+
+        const response = await callRoute(
+            '/api/classes',
+            'POST',
+            db,
+            JSON.stringify({ name: '4A', teacherUsername: teacher.username }),
+        );
+
+        expect(response.status).toBe(expectedStatus);
+        expect(db.executed.some(statement => statement.sql.includes('INSERT INTO classes'))).toBe(false);
+    });
+
+    it('allows an active teacher to receive an additional class', async () => {
+        authState.currentUser = { username: 'admin-a', role: 'admin' };
+        const db = new ClassroomDatabase({
+            classroom: { id: 'class-b', name: '4B', teacher_username: 'teacher-old', created_at: '2026-08-01' },
+            teacher: { username: 'teacher-a', full_name: 'Teacher A', role: 'teacher', status: 'ACTIVE' },
+            conflictClass: { id: 'class-a', name: '4A' },
+        });
+
+        const response = await callRoute(
+            '/api/classes/class-b/teacher',
+            'PATCH',
+            db,
+            JSON.stringify({ teacherUsername: 'teacher-a' }),
+        );
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toMatchObject({
+            status: 'success',
+            data: { id: 'class-b', teacherUsername: 'teacher-a' },
+        });
+        expect(db.executed.some(statement => (
+            statement.sql.includes('UPDATE classes SET teacher_username = ?')
+            && statement.bindings.includes('teacher-a')
+            && statement.bindings.includes('class-b')
+        ))).toBe(true);
+    });
+
+    it.each([
+        [{ username: 'teacher-disabled', full_name: 'Teacher Disabled', role: 'teacher', status: 'DISABLED' }, 409],
+        [{ username: 'admin-b', full_name: 'Admin B', role: 'admin', status: 'ACTIVE' }, 400],
+    ])('rejects an invalid class transfer recipient %#', async (teacher, expectedStatus) => {
+        authState.currentUser = { username: 'admin-a', role: 'admin' };
+        const db = new ClassroomDatabase({
+            classroom: { id: 'class-b', name: '4B', teacher_username: 'teacher-old', created_at: '2026-08-01' },
+            teacher,
+        });
+
+        const response = await callRoute(
+            '/api/classes/class-b/teacher',
+            'PATCH',
+            db,
+            JSON.stringify({ teacherUsername: teacher.username }),
+        );
+
+        expect(response.status).toBe(expectedStatus);
+        expect(db.executed.some(statement => statement.sql.includes('UPDATE classes SET teacher_username = ?'))).toBe(false);
+    });
+
     it('keeps password changes restricted to the matching student', async () => {
         asStudent();
         const db = new ClassroomDatabase({

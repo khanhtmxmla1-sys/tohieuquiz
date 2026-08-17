@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useId, useRef } from 'react';
 import { X, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '../../../../components/common';
 import { Classroom, TeacherRecord } from '../../types';
+import { useDialogFocus } from '../../../../hooks/useDialogFocus';
 
 interface TransferTeacherModalProps {
     classroom: Classroom;
@@ -27,19 +28,37 @@ export const TransferTeacherModal: React.FC<TransferTeacherModalProps> = ({
     error,
 }) => {
     const submitDisabled = isLoadingTeachers || isSaving || !selectedTeacherUsername.trim();
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const selectRef = useRef<HTMLSelectElement>(null);
+    const titleId = useId();
+    const requestClose = () => {
+        if (!isSaving && !isLoadingTeachers) onClose();
+    };
+
+    useDialogFocus({
+        isOpen: true,
+        dialogRef,
+        initialFocusRef: selectRef,
+        onClose: requestClose,
+    });
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md" onClick={requestClose}>
             <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                tabIndex={-1}
                 className="bg-white w-full h-dvh md:h-auto md:max-h-[90vh] md:max-w-md rounded-none md:rounded-2xl shadow-xl p-5 md:p-6 md:mx-4 overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-800">Chuyển giáo viên</h2>
+                        <h2 id={titleId} className="text-xl font-bold text-gray-800">Chuyển giáo viên</h2>
                         <p className="text-sm text-gray-500 mt-1">Lớp: {classroom.name}</p>
                     </div>
-                    <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+                    <button type="button" onClick={requestClose} disabled={isSaving || isLoadingTeachers} aria-label="Đóng" className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-50">
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
@@ -52,8 +71,10 @@ export const TransferTeacherModal: React.FC<TransferTeacherModalProps> = ({
 
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Giáo viên mới</label>
+                        <label htmlFor="transfer-class-teacher" className="block text-sm font-medium text-gray-700 mb-1">Giáo viên mới</label>
                         <select
+                            ref={selectRef}
+                            id="transfer-class-teacher"
                             value={selectedTeacherUsername}
                             onChange={(e) => onSelectTeacher(e.target.value)}
                             disabled={isLoadingTeachers || isSaving}
@@ -63,7 +84,7 @@ export const TransferTeacherModal: React.FC<TransferTeacherModalProps> = ({
                             {teachers.map((teacher) => (
                                 <option key={teacher.username} value={teacher.username}>
                                     {teacher.full_name} ({teacher.username})
-                                    {teacher.class ? ` - Phụ trách: ${teacher.class}` : ''}
+                                    {typeof teacher.classCount === 'number' ? ` - ${teacher.classCount} lớp` : ''}
                                 </option>
                             ))}
                         </select>
@@ -77,7 +98,7 @@ export const TransferTeacherModal: React.FC<TransferTeacherModalProps> = ({
                     )}
 
                     <div className="flex gap-3 pt-2">
-                        <Button onClick={onClose} variant="secondary" className="flex-1" disabled={isSaving}>
+                        <Button onClick={requestClose} variant="secondary" className="flex-1" disabled={isSaving || isLoadingTeachers}>
                             Hủy
                         </Button>
                         <Button

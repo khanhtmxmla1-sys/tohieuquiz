@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useClassStore } from '../../../stores/useClassStore';
 import { useRosterStore } from '../../../stores/useRosterStore';
 import { callApi } from '../../../services/apiAdapter';
 import { Classroom, TeacherRecord } from '../types';
+import { loadActiveTeacherOptions } from '../utils/teacherOptions';
 import { showConfirm } from '../../../utils/toast';
 
 export const useClassManagement = (isAdmin: boolean, username: string | null) => {
@@ -18,16 +19,40 @@ export const useClassManagement = (isAdmin: boolean, username: string | null) =>
     const [teachers, setTeachers] = useState<TeacherRecord[]>([]);
     const [transferTeacherUsername, setTransferTeacherUsername] = useState('');
     const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
+    const [teacherLoadError, setTeacherLoadError] = useState<string | null>(null);
     const [isTransferring, setIsTransferring] = useState(false);
     const [transferError, setTransferError] = useState<string | null>(null);
 
     // Initial Loading is handled top-level context/effects
 
-    const handleCreateClass = async (name: string) => {
-        if (!username) return false;
+    const loadActiveTeachers = async (): Promise<TeacherRecord[]> => {
+        setIsLoadingTeachers(true);
+        setTeacherLoadError(null);
+        try {
+            const teacherList = await loadActiveTeacherOptions();
+            setTeachers(teacherList);
+            return teacherList;
+        } catch (err: unknown) {
+            const normalizedError = err instanceof Error ? err : new Error(String(err));
+            setTeacherLoadError(normalizedError.message || 'Không thể tải danh sách giáo viên.');
+            setTeachers([]);
+            return [];
+        } finally {
+            setIsLoadingTeachers(false);
+        }
+    };
+
+    const openCreateModal = async () => {
+        if (!isAdmin) return;
+        setShowCreateModal(true);
+        await loadActiveTeachers();
+    };
+
+    const handleCreateClass = async (name: string, teacherUsername: string) => {
+        if (!isAdmin || !teacherUsername.trim()) return false;
         const result = await classStore.addClass({
             name,
-            teacherUsername: username,
+            teacherUsername: teacherUsername.trim(),
         });
         if (result) setShowCreateModal(false);
         return result;
@@ -47,27 +72,7 @@ export const useClassManagement = (isAdmin: boolean, username: string | null) =>
         setTransferClassroom(classroom);
         setTransferTeacherUsername(classroom.teacherUsername || '');
         setTransferError(null);
-        setIsLoadingTeachers(true);
-        
-        try {
-            const data = await callApi<{ data?: { items?: TeacherRecord[] } }>('get_teachers', { status: 'ACTIVE', pageSize: 100 });
-            const rows = data.data?.items || [];
-            if (Array.isArray(rows)) {
-                const teacherList = rows.filter((t) => {
-                    const isAdminRole = String(t.role || '').trim().toLowerCase() === 'admin';
-                    return !isAdminRole || t.username === classroom.teacherUsername;
-                });
-                setTeachers(teacherList);
-            } else {
-                setTeachers([]);
-            }
-        } catch (err: unknown) {
-            const normalizedError = err instanceof Error ? err : new Error(String(err));
-            setTransferError(normalizedError.message || 'Cannot load teacher list.');
-            setTeachers([]);
-        } finally {
-            setIsLoadingTeachers(false);
-        }
+        await loadActiveTeachers();
     };
 
     const handleTransferTeacher = async () => {
@@ -121,6 +126,7 @@ export const useClassManagement = (isAdmin: boolean, username: string | null) =>
         // Creation Modal
         showCreateModal,
         setShowCreateModal,
+        openCreateModal,
         handleCreateClass,
         
         // Deletion
@@ -135,6 +141,7 @@ export const useClassManagement = (isAdmin: boolean, username: string | null) =>
         closeTransferModal,
         handleTransferTeacher,
         isLoadingTeachers,
+        teacherLoadError,
         isTransferring,
         transferError,
         

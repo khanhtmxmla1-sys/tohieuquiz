@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { CreateStudentPayload } from '../../../types';
 import { ManualTab } from './ManualTab';
 import { ExcelTab } from './ExcelTab';
 import type { BatchStudentResult } from '../../../../../services/classroomService';
+import { useDialogFocus } from '../../../../../hooks/useDialogFocus';
 
 interface AddStudentModalProps {
     classId: string;
@@ -16,16 +17,32 @@ interface AddStudentModalProps {
 
 export const AddStudentModal: React.FC<AddStudentModalProps> = ({ classId, onClose, onAdd, onAddBatch, isLoading, error }) => {
     const [activeTab, setActiveTab] = useState<'manual' | 'excel'>('manual');
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const titleId = useId();
+    const requestClose = () => {
+        if (!isLoading) onClose();
+    };
+
+    useDialogFocus({
+        isOpen: true,
+        dialogRef,
+        onClose: requestClose,
+    });
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md" onClick={requestClose}>
             <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                tabIndex={-1}
                 className="bg-white w-full h-dvh md:h-auto md:max-h-[90vh] md:max-w-lg rounded-none md:rounded-2xl shadow-xl p-5 md:p-6 md:mx-4 overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-800">Thêm học sinh</h2>
-                    <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+                    <h2 id={titleId} className="text-xl font-bold text-gray-800">Thêm học sinh</h2>
+                    <button type="button" onClick={requestClose} disabled={isLoading} aria-label="Đóng" className="p-2 hover:bg-gray-100 rounded-full disabled:opacity-50">
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>

@@ -7,7 +7,6 @@
 
 // classroomService uses the canonical Worker API adapter
 import { callApi } from './apiAdapter';
-import { ApiError } from './api/errors';
 import {
     Classroom, CreateClassPayload,
     Student, CreateStudentPayload, StudentLoginPayload, StudentSession,
@@ -21,20 +20,9 @@ import {
 /**
  * Helper to call the canonical Worker API
  */
-const callWorkerApi = async <T = any>(action: string, payload: Record<string, any> = {}): Promise<ClassroomApiResponse<T>> => {
-    try {
-        const data = await callApi<ClassroomApiResponse<T>>(action, payload);
-        return data;
-    } catch (error: unknown) {
-        const normalizedError = error instanceof Error ? error : new Error(String(error));
-        console.error(`[ClassroomService] API Error [${action}]:`, error);
-        return {
-            status: 'error',
-            message: normalizedError.message || 'Unknown API error',
-            code: error instanceof ApiError ? error.code : undefined,
-        };
-    }
-};
+const callWorkerApi = async <T = any>(action: string, payload: Record<string, any> = {}): Promise<ClassroomApiResponse<T>> => (
+    callApi<ClassroomApiResponse<T>>(action, payload)
+);
 
 /**
  * Get all classes for a teacher
@@ -140,7 +128,8 @@ export const addStudentsBatch = async (students: CreateStudentPayload[]): Promis
  */
 export const deleteStudent = async (studentId: string): Promise<boolean> => {
     const res = await callWorkerApi('delete_student', { studentId });
-    return res.status === 'success';
+    if (res.status !== 'success') throw new Error(res.message || 'Không thể lưu trữ học sinh.');
+    return true;
 };
 
 /**
