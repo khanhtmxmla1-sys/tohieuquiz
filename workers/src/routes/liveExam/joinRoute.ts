@@ -29,9 +29,26 @@ export const handleJoinRoute: LiveExamRouteHandler = async (context) => {
   try {
     const participant = await LiveExamService.joinSession(context.db, validation.data);
     const session = await LiveExamService.getLiveExamById(context.db, participant.liveExamId);
+    const participantPayload = session?.participantScopeType === 'SCHOOL_EXAM_ROOM'
+      && session.resultVisibility === 'WITHHELD'
+      ? {
+          id: participant.id,
+          liveExamId: participant.liveExamId,
+          studentId: participant.studentId,
+          username: participant.username,
+          joinedAt: participant.joinedAt,
+          startedAt: participant.startedAt,
+          submittedAt: participant.submittedAt,
+          individualEndsAt: participant.individualEndsAt,
+          tabSwitches: participant.tabSwitches,
+          warnings: participant.warnings,
+          createdAt: participant.createdAt,
+          updatedAt: participant.updatedAt,
+        }
+      : participant;
     return jsonResponse({
       success: true,
-      participant,
+      participant: participantPayload,
       session: {
         id: session!.id,
         title: session!.title,

@@ -30,7 +30,14 @@ export const handleSubmitRoute: LiveExamRouteHandler = async (context) => {
   }
 
   try {
+    const session = await LiveExamService.getLiveExamById(context.db, sessionId);
     const submission = await LiveExamService.submitAnswers(context.db, validation.data);
+    if (session?.participantScopeType === 'SCHOOL_EXAM_ROOM' && session.resultVisibility === 'WITHHELD') {
+      return jsonResponse({
+        success: true,
+        message: 'Answers submitted successfully',
+      });
+    }
     return jsonResponse({
       success: true,
       message: 'Answers submitted successfully',
