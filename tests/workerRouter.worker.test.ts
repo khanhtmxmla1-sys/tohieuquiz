@@ -38,6 +38,7 @@ const routeMocks = {
   handleTestBankRoutes: vi.fn(async () => null as Response | null),
   handleTeacherAiQuotaRoutes: vi.fn(async () => null as Response | null),
   handleLiveExamRoutes: vi.fn(async () => null as Response | null),
+  handleCompetitionRoutes: vi.fn(async () => null as Response | null),
   handleNotificationRoutes: vi.fn(async () => null as Response | null),
   handleCertificateRoutes: vi.fn(async () => null as Response | null),
   handleAdminCertificateRoutes: vi.fn(async () => null as Response | null),
@@ -254,6 +255,31 @@ describe('Worker root route dispatch', () => {
     expect(verifyTokenMock).toHaveBeenCalledOnce();
     expect(routeMocks.handleLoginMediaRoutes).toHaveBeenCalledWith(
       expect.any(Request), env, '/api/admin/login-media', 'GET',
+    );
+  });
+
+  it('dispatches all Competition namespaces through the authenticated Competition router', async () => {
+    verifyTokenMock.mockReturnValue(null);
+    routeMocks.handleCompetitionRoutes.mockImplementation(async () => new Response('{}', { status: 200 }));
+
+    for (const path of [
+      '/api/competitions',
+      '/api/student/competitions/campaign-1',
+      '/api/school-exams/event-1',
+    ]) {
+      const response = await workerFetch(request(path), env);
+      expect(response.status).toBe(200);
+    }
+
+    expect(routeMocks.handleCompetitionRoutes).toHaveBeenCalledTimes(3);
+    expect(routeMocks.handleCompetitionRoutes).toHaveBeenNthCalledWith(
+      1, expect.any(Request), env, '/api/competitions', 'GET',
+    );
+    expect(routeMocks.handleCompetitionRoutes).toHaveBeenNthCalledWith(
+      2, expect.any(Request), env, '/api/student/competitions/campaign-1', 'GET',
+    );
+    expect(routeMocks.handleCompetitionRoutes).toHaveBeenNthCalledWith(
+      3, expect.any(Request), env, '/api/school-exams/event-1', 'GET',
     );
   });
 

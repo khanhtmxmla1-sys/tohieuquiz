@@ -48,6 +48,11 @@ const routeSamples = [
   ['/api/gift-shop/catalog/gift-1', 'DELETE', 'admin-only'],
   ['/api/gift-shop/events', 'GET', 'admin-only'],
   ['/api/media/uploads', 'POST', 'authenticated'],
+  ['/api/competitions', 'POST', 'admin-only'],
+  ['/api/competitions/campaign-1', 'GET', 'teacher-owned'],
+  ['/api/student/competitions/campaign-1', 'GET', 'student-owned'],
+  ['/api/school-exams/event-1', 'GET', 'teacher-owned'],
+  ['/api/school-exams/event-1/publish', 'POST', 'admin-only'],
 ] as const;
 
 describe('API authorization matrix', () => {
@@ -59,6 +64,15 @@ describe('API authorization matrix', () => {
 
   it.each(routeSamples)('classifies %s %s as %s', (route, method, expected) => {
     expect(findApiAuthorizationPolicy(route, method)?.authorization).toBe(expected);
+  });
+
+  it('locks Competition ownership keys for campaign, round, event, room, attempt, and export scope', () => {
+    expect(findApiAuthorizationPolicy('/api/competitions/campaign-1', 'GET')?.ownership)
+      .toEqual(expect.arrayContaining(['campaignId', 'classId']));
+    expect(findApiAuthorizationPolicy('/api/student/competitions/campaign-1/rounds/round-1/attempts/attempt-1', 'GET')?.ownership)
+      .toEqual(expect.arrayContaining(['session', 'campaignId', 'roundId', 'attemptId']));
+    expect(findApiAuthorizationPolicy('/api/school-exams/event-1/exports/export-1', 'GET')?.ownership)
+      .toEqual(expect.arrayContaining(['eventId', 'roomId', 'exportId']));
   });
 
   it('fails closed for an unclassified API route', async () => {

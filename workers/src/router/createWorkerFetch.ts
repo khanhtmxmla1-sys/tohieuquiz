@@ -71,6 +71,7 @@ export interface WorkerFetchDependencies {
   handleTestBankRoutes: RouteHandler;
   handleTeacherAiQuotaRoutes: RouteHandler;
   handleLiveExamRoutes: RouteHandler;
+  handleCompetitionRoutes: RouteHandler;
   handleNotificationRoutes: RouteHandler;
   handleCertificateRoutes: RouteHandler;
   handleAdminCertificateRoutes: RouteHandler;
@@ -131,6 +132,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     handleTestBankRoutes,
     handleTeacherAiQuotaRoutes,
     handleLiveExamRoutes,
+    handleCompetitionRoutes,
     handleNotificationRoutes,
     handleCertificateRoutes,
     handleAdminCertificateRoutes,
@@ -407,6 +409,12 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
         response = await handleTeacherAiQuotaRoutes(request, env, path, method);
       } else if (path.startsWith('/api/live-exam')) {
         response = await handleLiveExamRoutes(request, env, path, method);
+      } else if (
+        path.startsWith('/api/competitions')
+        || path.startsWith('/api/student/competitions')
+        || path.startsWith('/api/school-exams')
+      ) {
+        response = await handleCompetitionRoutes(request, env, path, method);
       } else if (
         path.startsWith('/api/notifications')
         || path === '/api/admin/notification-metrics'

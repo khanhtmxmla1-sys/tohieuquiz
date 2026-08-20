@@ -15,6 +15,12 @@ export type ApiOwnershipKey =
   | 'resultId'
   | 'classId'
   | 'batchId'
+  | 'campaignId'
+  | 'roundId'
+  | 'eventId'
+  | 'roomId'
+  | 'attemptId'
+  | 'exportId'
   | 'route-handler';
 
 export interface ApiAuthorizationPolicy {
@@ -127,6 +133,11 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('certificate-batches', '/api/certificate-batches', 'teacher-owned', ['studentId', 'classId', 'batchId'], 'certificate batch ownership'),
   policy('notifications', '/api/notifications', 'authenticated', ['session', 'studentId'], 'notification recipient scope'),
   policy('media-upload', '/api/media/uploads', 'authenticated', ['session', 'route-handler'], 'JWT role, purpose, MIME, signature and size checks', { match: 'exact', methods: ['POST'] }),
+  policy('competition-student', '/api/student/competitions', 'student-owned', ['session', 'campaignId', 'roundId', 'attemptId'], 'Competition handler derives student identity from authenticated session'),
+  policy('competition-admin-mutations', '/api/competitions', 'admin-only', ['campaignId', 'roundId', 'classId', 'route-handler'], 'Competition Admin mutation guards', { methods: ['POST', 'PUT', 'PATCH', 'DELETE'] }),
+  policy('competition-staff-read', '/api/competitions', 'teacher-owned', ['session', 'campaignId', 'roundId', 'classId'], 'Competition Admin/Teacher scoped read guards', { methods: ['GET'] }),
+  policy('school-exam-admin-mutations', '/api/school-exams', 'admin-only', ['eventId', 'roomId', 'exportId', 'route-handler'], 'School Exam Admin mutation guards', { methods: ['POST', 'PUT', 'PATCH', 'DELETE'] }),
+  policy('school-exam-staff-read', '/api/school-exams', 'teacher-owned', ['session', 'eventId', 'roomId', 'classId', 'exportId'], 'School Exam Admin/Teacher scoped read guards', { methods: ['GET'] }),
   policy('homework', '/api/homework', 'authenticated', ['studentId', 'classId', 'route-handler'], 'homework ownership checks'),
   policy('analytics', '/api/analytics', 'teacher-owned', ['classId', 'quizId'], 'teacher/admin scope'),
   policy('phieu', '/api/phieu', 'teacher-owned', ['resultId', 'classId', 'batchId'], 'phieu ownership checks'),
