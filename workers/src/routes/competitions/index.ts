@@ -1,5 +1,6 @@
 import {
   CreateCompetitionCampaignRequestSchema,
+  FinalizeCompetitionEligibilityRequestSchema,
   FinalizeCompetitionRoundRequestSchema,
   StartCompetitionRoundAttemptRequestSchema,
   SubmitCompetitionRoundAttemptRequestSchema,
@@ -17,6 +18,11 @@ import {
   previewCompetitionAudience,
   updateCompetitionCampaign,
 } from '../../competition/campaignService';
+import {
+  finalizeCompetitionEligibility,
+  getStudentCompetitionEligibility,
+  listCompetitionEligibility,
+} from '../../competition/eligibilityService';
 import {
   finalizeCompetitionRound,
   listCompetitionRounds,
@@ -82,10 +88,15 @@ function routeError(error: unknown): Response {
     'COMPETITION_ROUND_NOT_FOUND',
     'COMPETITION_ATTEMPT_NOT_FOUND',
     'COMPETITION_ROUND_QUIZ_NOT_FOUND',
+    'COMPETITION_ELIGIBILITY_VERSION_NOT_FOUND',
   ].includes(message)) return errorResponse(message, 404);
   if ([
     'COMPETITION_CAMPAIGN_NOT_DRAFT',
     'COMPETITION_AUDIENCE_NOT_SNAPSHOTTED',
+    'COMPETITION_ELIGIBILITY_NOT_FINALIZED',
+    'COMPETITION_ELIGIBILITY_ROUNDS_NOT_READY',
+    'COMPETITION_ELIGIBILITY_ROUNDS_NOT_FINALIZED',
+    'COMPETITION_ELIGIBILITY_PROGRESS_INCOMPLETE',
     'COMPETITION_ROUND_NOT_OPEN',
     'COMPETITION_MAX_ATTEMPTS_REACHED',
     'COMPETITION_ROUND_FINALIZED',
@@ -139,6 +150,16 @@ export async function handleCompetitionRoutes(
     try {
       const studentId = await authenticatedStudentId(env.DB, user);
       if (!studentId) return errorResponse('Unauthorized: Student identity not found', 401);
+
+      const studentEligibilityParts = routeParts(
+        path,
+        /^\/api\/student\/competitions\/([^/]+)\/eligibility$/,
+      );
+      if (studentEligibilityParts && method === 'GET') {
+        const [campaignId] = studentEligibilityParts;
+        const eligibility = await getStudentCompetitionEligibility(env.DB, campaignId, studentId);
+        return jsonResponse({ eligibility });
+      }
 
       const startParts = routeParts(
         path,
@@ -242,6 +263,45 @@ export async function handleCompetitionRoutes(
         classIds,
       });
       return jsonResponse(audience);
+    }
+
+    const eligibilityFinalizeParts = routeParts(
+      path,
+      /^\/api\/competitions\/([^/]+)\/eligibility\/finalize$/,
+    );
+    if (eligibilityFinalizeParts && method === 'POST') {
+      const [campaignId] = eligibilityFinalizeParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = FinalizeCompetitionEligibilityRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid competition eligibility finalize payload', 400);
+      if (parsed.data.campaignId !== campaignId) {
+        return errorResponse('COMPETITION_ELIGIBILITY_ROUTE_MISMATCH', 400);
+      }
+      const snapshot = await finalizeCompetitionEligibility(
+        env.DB,
+        campaignId,
+        user.username,
+        parsed.data.requestId,
+      );
+      return jsonResponse({ snapshot });
+    }
+
+    const eligibilityParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/eligibility$/);
+    if (eligibilityParts && method === 'GET') {
+      const [campaignId] = eligibilityParts;
+      const url = new URL(request.url);
+      const rawVersion = url.searchParams.get('version');
+      const parsedVersion = rawVersion === null ? undefined : Number(rawVersion);
+      if (parsedVersion !== undefined && (!Number.isInteger(parsedVersion) || parsedVersion <= 0)) {
+        return errorResponse('COMPETITION_ELIGIBILITY_VERSION_INVALID', 400);
+      }
+      const classIds = await teacherClassIds(env.DB, user);
+      const eligibility = await listCompetitionEligibility(env.DB, campaignId, {
+        version: parsedVersion,
+        classIds,
+      });
+      return jsonResponse(eligibility);
     }
 
     const roundListParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/rounds$/);

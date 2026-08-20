@@ -173,6 +173,79 @@ const createBody = {
   requestId: 'req_competition_route_create_0001',
 };
 
+async function seedEligibilityProgress(
+  campaignId: string,
+  options: { failedRoundForStudent1?: number; nonFinalizedRound?: number } = {},
+): Promise<void> {
+  const quizSnapshot = await createOrReuseQuizSnapshot(env.DB, 'quiz-round');
+  const studentIds = ['student-1', 'student-2', 'student-3'];
+
+  for (let roundNumber = 1; roundNumber <= 6; roundNumber += 1) {
+    const roundId = `elig-round-${roundNumber}`;
+    const finalized = options.nonFinalizedRound !== roundNumber;
+    sqlite.prepare(`
+      INSERT INTO competition_rounds (
+        id, campaign_id, round_number, opens_at, closes_at, max_attempts,
+        passing_rule_type, passing_score, status, created_at, finalized_at
+      ) VALUES (?, ?, ?, ?, ?, 2, 'MIN_SCORE', 7, ?, ?, ?)
+    `).run(
+      roundId,
+      campaignId,
+      roundNumber,
+      '2026-09-01T00:00:00.000Z',
+      '2026-09-02T00:00:00.000Z',
+      finalized ? 'FINALIZED' : 'CLOSED',
+      '2026-08-20T00:00:00.000Z',
+      finalized ? '2026-09-03T00:00:00.000Z' : null,
+    );
+
+    for (const studentId of studentIds) {
+      const passed = !(studentId === 'student-1' && options.failedRoundForStudent1 === roundNumber);
+      const attemptId = passed ? `elig-attempt-${studentId}-${roundNumber}` : null;
+      if (attemptId) {
+        sqlite.prepare(`
+          INSERT INTO competition_round_attempts (
+            id, campaign_id, round_id, student_id, attempt_no, quiz_id,
+            quiz_snapshot_id, quiz_snapshot_hash, result_id, status, score,
+            correct_count, time_taken, started_at, submitted_at, scored_at,
+            voided_at, voided_by, void_reason, idempotency_key
+          ) VALUES (?, ?, ?, ?, 1, 'quiz-round', ?, ?, NULL, 'SCORED', 10,
+            1, 20, ?, ?, ?, NULL, NULL, NULL, ?)
+        `).run(
+          attemptId,
+          campaignId,
+          roundId,
+          studentId,
+          quizSnapshot.id,
+          quizSnapshot.sha256,
+          '2026-09-01T00:10:00.000Z',
+          '2026-09-01T00:10:20.000Z',
+          '2026-09-01T00:10:20.000Z',
+          `elig-idempotency-${studentId}-${roundNumber}`,
+        );
+      }
+
+      sqlite.prepare(`
+        INSERT INTO competition_round_progress (
+          campaign_id, round_id, student_id, attempts_used, best_attempt_id, best_score,
+          is_passed, passed_at, status, version, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+      `).run(
+        campaignId,
+        roundId,
+        studentId,
+        passed ? 1 : 0,
+        attemptId,
+        passed ? 10 : null,
+        passed ? 1 : 0,
+        passed ? '2026-09-01T00:10:20.000Z' : null,
+        passed ? 'PASSED' : 'NOT_PASSED',
+        '2026-09-03T00:00:00.000Z',
+      );
+    }
+  }
+}
+
 beforeEach(async () => {
   sqlite = new DatabaseSync(':memory:');
   createBaseSchema(sqlite);
@@ -418,5 +491,139 @@ describe('Competition V1 campaign routes', () => {
     );
     expect(finalize.status).toBe(200);
     expect((await finalize.json() as any).round.status).toBe('FINALIZED');
+  });
+
+  it('finalizes a 6/6 immutable eligibility snapshot and exposes staff/student reads', async () => {
+    const createResponse = await request('/api/competitions', 'POST', createBody);
+    const campaignId = (await createResponse.json() as any).campaign.id as string;
+    expect((await request(`/api/competitions/${campaignId}/audience/snapshot`, 'POST', {
+      requestId: 'elig-audience-6of6-0001',
+    })).status).toBe(201);
+    await seedEligibilityProgress(campaignId);
+
+    const finalize = await request(`/api/competitions/${campaignId}/eligibility/finalize`, 'POST', {
+      campaignId,
+      requestId: 'elig-finalize-6of6-0001',
+    });
+    expect(finalize.status).toBe(200);
+    const finalized = await finalize.json() as any;
+    expect(finalized.snapshot).toMatchObject({
+      campaignId,
+      version: 1,
+      memberCount: 3,
+      qualifiedCount: 3,
+    });
+
+    const persisted = sqlite.prepare(`
+      SELECT eligibility_snapshot_version, qualified, reason_codes_json, progress_digest
+      FROM competition_eligibility
+      WHERE campaign_id = ? AND student_id = 'student-1'
+    `).get(campaignId) as any;
+    expect(persisted).toMatchObject({ eligibility_snapshot_version: 1, qualified: 1 });
+    expect(JSON.parse(persisted.reason_codes_json)).toEqual(['QUALIFIED']);
+    expect(persisted.progress_digest).toMatch(/^[0-9a-f]{64}$/);
+    expect((sqlite.prepare('SELECT status FROM competition_campaigns WHERE id = ?').get(campaignId) as any).status)
+      .toBe('ELIGIBILITY_LOCKED');
+
+    const staffRead = await request(`/api/competitions/${campaignId}/eligibility`, 'GET', undefined, teacherCookie);
+    expect(staffRead.status).toBe(200);
+    const staffPayload = await staffRead.json() as any;
+    expect(staffPayload).toMatchObject({ campaignId, version: 1 });
+    expect(staffPayload.items).toHaveLength(3);
+
+    const studentRead = await request(
+      `/api/student/competitions/${campaignId}/eligibility`,
+      'GET',
+      undefined,
+      studentCookie,
+    );
+    expect(studentRead.status).toBe(200);
+    expect((await studentRead.json() as any).eligibility).toMatchObject({
+      campaignId,
+      version: 1,
+      studentId: 'student-1',
+      qualified: true,
+      reasonCodes: ['QUALIFIED'],
+    });
+
+    expect(() => sqlite.prepare(`
+      UPDATE competition_eligibility
+      SET qualified = 0
+      WHERE campaign_id = ? AND eligibility_snapshot_version = 1 AND student_id = 'student-1'
+    `).run(campaignId)).toThrow();
+
+    const retry = await request(`/api/competitions/${campaignId}/eligibility/finalize`, 'POST', {
+      campaignId,
+      requestId: 'elig-finalize-6of6-retry-0001',
+    });
+    expect(retry.status).toBe(200);
+    expect((await retry.json() as any).snapshot.version).toBe(1);
+    expect((sqlite.prepare(`
+      SELECT COUNT(*) AS count FROM competition_eligibility WHERE campaign_id = ?
+    `).get(campaignId) as any).count).toBe(3);
+  });
+
+  it('marks a student with only 5/6 passed rounds as not qualified with reason codes', async () => {
+    const createResponse = await request('/api/competitions', 'POST', createBody);
+    const campaignId = (await createResponse.json() as any).campaign.id as string;
+    await request(`/api/competitions/${campaignId}/audience/snapshot`, 'POST', {
+      requestId: 'elig-audience-5of6-0001',
+    });
+    await seedEligibilityProgress(campaignId, { failedRoundForStudent1: 6 });
+
+    const finalize = await request(`/api/competitions/${campaignId}/eligibility/finalize`, 'POST', {
+      campaignId,
+      requestId: 'elig-finalize-5of6-0001',
+    });
+    expect(finalize.status).toBe(200);
+    expect((await finalize.json() as any).snapshot.qualifiedCount).toBe(2);
+
+    const studentRead = await request(
+      `/api/student/competitions/${campaignId}/eligibility`,
+      'GET',
+      undefined,
+      studentCookie,
+    );
+    expect(studentRead.status).toBe(200);
+    expect((await studentRead.json() as any).eligibility).toMatchObject({
+      qualified: false,
+      reasonCodes: ['ROUND_6_NOT_PASSED', 'ONLY_5_OF_6_ROUNDS_PASSED'],
+    });
+  });
+
+  it('blocks eligibility finalization when the frozen audience is missing', async () => {
+    const createResponse = await request('/api/competitions', 'POST', createBody);
+    const campaignId = (await createResponse.json() as any).campaign.id as string;
+
+    const finalize = await request(`/api/competitions/${campaignId}/eligibility/finalize`, 'POST', {
+      campaignId,
+      requestId: 'elig-finalize-no-audience-0001',
+    });
+    expect(finalize.status).toBe(409);
+    expect((sqlite.prepare(`
+      SELECT COUNT(*) AS count FROM competition_eligibility WHERE campaign_id = ?
+    `).get(campaignId) as any).count).toBe(0);
+    expect((sqlite.prepare('SELECT status FROM competition_campaigns WHERE id = ?').get(campaignId) as any).status)
+      .not.toBe('ELIGIBILITY_LOCKED');
+  });
+
+  it('blocks eligibility finalization until every required round is FINALIZED', async () => {
+    const createResponse = await request('/api/competitions', 'POST', createBody);
+    const campaignId = (await createResponse.json() as any).campaign.id as string;
+    await request(`/api/competitions/${campaignId}/audience/snapshot`, 'POST', {
+      requestId: 'elig-audience-round-block-0001',
+    });
+    await seedEligibilityProgress(campaignId, { nonFinalizedRound: 6 });
+
+    const finalize = await request(`/api/competitions/${campaignId}/eligibility/finalize`, 'POST', {
+      campaignId,
+      requestId: 'elig-finalize-round-block-0001',
+    });
+    expect(finalize.status).toBe(409);
+    expect((sqlite.prepare(`
+      SELECT COUNT(*) AS count FROM competition_eligibility WHERE campaign_id = ?
+    `).get(campaignId) as any).count).toBe(0);
+    expect((sqlite.prepare('SELECT status FROM competition_campaigns WHERE id = ?').get(campaignId) as any).status)
+      .not.toBe('ELIGIBILITY_LOCKED');
   });
 });

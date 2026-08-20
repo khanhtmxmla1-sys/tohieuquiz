@@ -261,3 +261,18 @@ CREATE INDEX IF NOT EXISTS idx_competition_eligibility_campaign_version
 
 CREATE INDEX IF NOT EXISTS idx_competition_eligibility_student
   ON competition_eligibility(student_id, campaign_id, eligibility_snapshot_version DESC);
+
+-- Eligibility versions are append-only historical snapshots. Administrative
+-- exceptions create a new version rather than mutating rows already referenced
+-- by downstream school-exam workflows.
+CREATE TRIGGER IF NOT EXISTS trg_competition_eligibility_immutable_update
+BEFORE UPDATE ON competition_eligibility
+BEGIN
+  SELECT RAISE(ABORT, 'COMPETITION_ELIGIBILITY_IMMUTABLE');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_competition_eligibility_immutable_delete
+BEFORE DELETE ON competition_eligibility
+BEGIN
+  SELECT RAISE(ABORT, 'COMPETITION_ELIGIBILITY_IMMUTABLE');
+END;
