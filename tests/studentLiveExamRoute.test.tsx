@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStudentLiveExam } from '../src/features/student-dashboard/hooks/useStudentLiveExam';
 import { useQuizStore } from '../stores/quizStore';
 
-vi.mock('../src/hooks/useLiveExamStatus', () => ({
-  useLiveExamStatus: () => ({ status: null }),
+vi.mock('../src/features/live-exam/hooks/usePollingQuery', () => ({
+  usePollingQuery: () => ({ data: null, isLoading: false, error: null, refetch: vi.fn(async () => undefined) }),
 }));
 
 vi.mock('../src/features/student-dashboard/hooks/useLiveExamQuizPreparation', () => ({

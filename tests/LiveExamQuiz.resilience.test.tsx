@@ -92,7 +92,7 @@ describe('LiveExamQuiz resilience', () => {
     await waitFor(() => {
       expect(window.sessionStorage.getItem('tohieuquiz_live_exam_answers_v1:session-1')).toContain('q1');
     });
-    expect(await screen.findByText('Đáp án đã đồng bộ với máy chủ')).toBeVisible();
+    expect(await screen.findByText('Đáp án đã đồng bộ với máy chủ', {}, { timeout: 3_500 })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Nộp bài' }));
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận nộp' }));

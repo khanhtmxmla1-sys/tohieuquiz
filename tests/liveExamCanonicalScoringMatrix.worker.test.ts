@@ -156,6 +156,9 @@ class Database {
         archived_at: null,
         created_at: '2026-08-02T00:00:00.000Z',
         updated_at: '2026-08-02T00:00:00.000Z',
+        participant_id: 'participant-14',
+        participant_submitted_at: null,
+        participant_individual_ends_at: null,
       };
     }
     if (sql.includes('SELECT id, submitted_at, individual_ends_at')) {

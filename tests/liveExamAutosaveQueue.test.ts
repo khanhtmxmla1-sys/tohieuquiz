@@ -28,6 +28,36 @@ const snapshot = (attemptVersion: number, answers: Record<string, unknown>): Liv
 });
 
 describe('liveExamAutosaveQueue', () => {
+  it('debounces remote writes for 1.75s and coalesces rapid edits to the newest answers', async () => {
+    vi.useFakeTimers();
+    const saveSnapshot = vi.fn(async (_sessionId, payload) => snapshot(payload.attemptVersion, payload.answers));
+    const queue = createLiveExamAutosaveQueue({
+      sessionId: 'session-debounce',
+      initialAnswers: {},
+      initialOnline: true,
+      getSnapshot: vi.fn(async () => null),
+      saveSnapshot,
+      onStatus: vi.fn(),
+      createId: () => 'debounce-id',
+    });
+    await settle();
+
+    queue.enqueue({ q1: 'A' });
+    queue.enqueue({ q1: 'B' });
+    queue.enqueue({ q1: 'C' });
+    await settle();
+    expect(saveSnapshot).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1_749);
+    expect(saveSnapshot).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await settle();
+
+    expect(saveSnapshot).toHaveBeenCalledTimes(1);
+    expect(saveSnapshot.mock.calls[0][1]).toMatchObject({ answers: { q1: 'C' } });
+    queue.dispose();
+    vi.useRealTimers();
+  });
   it('keeps one request in flight and coalesces pending edits to the newest answers', async () => {
     const first = deferred<LiveExamAutosaveSnapshot>();
     const saveSnapshot = vi.fn()
@@ -41,6 +71,7 @@ describe('liveExamAutosaveQueue', () => {
       saveSnapshot,
       onStatus: vi.fn(),
       createId: () => 'id',
+      remoteDebounceMs: 0,
     });
     await settle();
 
@@ -77,6 +108,7 @@ describe('liveExamAutosaveQueue', () => {
       saveSnapshot,
       onStatus: vi.fn(),
       createId: () => 'id',
+      remoteDebounceMs: 0,
     });
     await settle();
 
@@ -107,6 +139,7 @@ describe('liveExamAutosaveQueue', () => {
       saveSnapshot,
       onStatus: vi.fn(),
       createId: () => 'id',
+      remoteDebounceMs: 0,
     });
     await settle();
     await settle();
@@ -133,6 +166,7 @@ describe('liveExamAutosaveQueue', () => {
       onStatus: vi.fn(),
       onRemoteAnswers,
       createId: () => 'id',
+      remoteDebounceMs: 0,
     });
     await settle();
 
@@ -152,6 +186,7 @@ describe('liveExamAutosaveQueue', () => {
       saveSnapshot,
       onStatus: (status) => statuses.push(status),
       createId: () => 'id',
+      remoteDebounceMs: 0,
     });
 
     queue.enqueue({ q1: 'A' });

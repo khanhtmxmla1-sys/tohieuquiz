@@ -14,7 +14,7 @@ export const handleStatusRoute: LiveExamRouteHandler = async (context) => {
   const sessionId = context.path.split('/')[3];
   if (!sessionId) return errorResponse('Invalid session ID');
   try {
-    await LiveExamService.checkAndAutoCloseExpiredExams(context.db);
+
     const session = await LiveExamService.getLiveExamById(context.db, sessionId);
     if (!session) return errorResponse('Session not found', 404);
     const currentParticipant = await requireStudentParticipant(context.db, sessionId, auth.data.studentId);

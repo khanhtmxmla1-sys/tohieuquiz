@@ -62,6 +62,13 @@ const activeSessionRow = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const activeSubmissionRow = (overrides: Record<string, unknown> = {}) => activeSessionRow({
+  participant_id: 'participant-a',
+  participant_submitted_at: null,
+  participant_individual_ends_at: null,
+  ...overrides,
+});
+
 const createParams = (overrides: Partial<LiveExamService.CreateLiveExamParams> = {}): LiveExamService.CreateLiveExamParams => ({
   title: 'KiÃ¡Â»Æ’m tra ToÃƒÂ¡n',
   quizId: 'quiz-1',
@@ -186,7 +193,7 @@ describe('live exam P0 authorization and integrity', () => {
   it('grades with the shared 0-10 engine and uses an atomic first-submit update', async () => {
     const db = new FakeDB();
     db.first = (sql) => {
-      if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow();
+      if (sql.includes('FROM live_exam_sessions s')) return activeSubmissionRow();
       if (sql.includes('SELECT id, submitted_at')) return { id: 'participant-a', submitted_at: null, individual_ends_at: null };
       if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'ToÃƒÂ¡n 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
       return null;
@@ -209,7 +216,7 @@ describe('live exam P0 authorization and integrity', () => {
   it('uses canonical blank identity and records the grading version', async () => {
     const db = new FakeDB();
     db.first = (sql) => {
-      if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow();
+      if (sql.includes('FROM live_exam_sessions s')) return activeSubmissionRow();
       if (sql.includes('SELECT id, submitted_at')) return { id: 'participant-a', submitted_at: null, individual_ends_at: null };
       if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'Toán 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
       return null;
@@ -235,7 +242,7 @@ describe('live exam P0 authorization and integrity', () => {
   it('rejects a raced duplicate when the atomic update changes no row', async () => {
     const db = new FakeDB();
     db.first = (sql) => {
-      if (sql.includes('FROM live_exam_sessions s')) return activeSessionRow();
+      if (sql.includes('FROM live_exam_sessions s')) return activeSubmissionRow();
       if (sql.includes('SELECT id, submitted_at')) return { id: 'participant-a', submitted_at: null, individual_ends_at: null };
       if (sql.includes('SELECT id, title, class_level')) return { id: 'quiz-1', title: 'ToÃƒÂ¡n 4', class_level: '4', time_limit: 30, created_at: '', created_by: 'teacher-a' };
       return null;

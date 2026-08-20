@@ -3,9 +3,8 @@ import { QUIZ_SCORING_ENGINE_VERSION, gradeQuiz } from '../../../../src/domain/q
 import { getEffectiveParticipantEndsAt } from './deadlineService';
 import { LiveExamServiceError } from './errors';
 import { loadLiveExamQuiz } from './quizLoader';
-import { getLiveExamById } from './sessionRepository';
 import type { SubmissionScoreSummary, SubmitAnswersParams } from './types';
-import { getChangedRows, now } from './utils';
+import { getChangedRows, mapSessionRow, now } from './utils';
 
 interface ParticipantSubmissionRow {
   id: string;
@@ -19,6 +18,12 @@ interface CommittedSubmissionRow {
   correct_count: number | null;
   wrong_count: number | null;
   submitted_at: string | null;
+}
+
+interface SubmissionContextRow {
+  participant_id: string | null;
+  participant_submitted_at: string | null;
+  participant_individual_ends_at: string | null;
 }
 
 const canonicalize = (value: unknown): unknown => {
@@ -41,6 +46,39 @@ const answersMatch = (stored: string | null, incoming: unknown): boolean => {
   } catch {
     return false;
   }
+};
+
+const loadSubmissionContext = async (
+  db: D1Database,
+  liveExamId: string,
+  studentId: string,
+) => {
+  const row = await db.prepare(`
+    SELECT
+      sessions.*,
+      quizzes.title AS quiz_title,
+      classes.name AS class_name,
+      participants.id AS participant_id,
+      participants.submitted_at AS participant_submitted_at,
+      participants.individual_ends_at AS participant_individual_ends_at
+    FROM live_exam_sessions sessions
+    LEFT JOIN quizzes ON quizzes.id = sessions.quiz_id
+    LEFT JOIN classes ON classes.id = sessions.class_id
+    LEFT JOIN live_exam_participants participants
+      ON participants.live_exam_id = sessions.id
+     AND participants.student_id = ?
+    WHERE sessions.id = ?
+  `).bind(studentId, liveExamId).first<SubmissionContextRow & Record<string, unknown>>();
+  if (!row) return null;
+
+  return {
+    session: mapSessionRow(row),
+    participant: row.participant_id ? {
+      id: String(row.participant_id),
+      submitted_at: row.participant_submitted_at || null,
+      individual_ends_at: row.participant_individual_ends_at || null,
+    } satisfies ParticipantSubmissionRow : null,
+  };
 };
 
 const loadParticipantState = async (
@@ -89,10 +127,10 @@ export async function submitAnswers(
   params: SubmitAnswersParams,
 ): Promise<SubmissionScoreSummary> {
   const timestamp = now();
-  const session = await getLiveExamById(db, params.liveExamId);
-  if (!session || session.archivedAt) throw new LiveExamServiceError('Session not found', 404);
+  const context = await loadSubmissionContext(db, params.liveExamId, params.studentId);
+  if (!context || context.session.archivedAt) throw new LiveExamServiceError('Session not found', 404);
 
-  const participant = await loadParticipantState(db, params.liveExamId, params.studentId);
+  const { session, participant } = context;
   if (participant?.submitted_at) return replayCommittedSubmission(db, params);
 
   if (session.status === 'paused') throw new LiveExamServiceError('Exam is paused', 409);

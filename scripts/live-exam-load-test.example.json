@@ -1,0 +1,26 @@
+{
+  "baseUrl": "http://127.0.0.1:8787",
+  "sessionId": "replace-with-prepared-live-exam-id",
+  "statusRounds": 3,
+  "requestTimeoutMs": 12000,
+  "warmupRequests": 5,
+  "defaultAnswers": {},
+  "students": [
+    {
+      "name": "student-001",
+      "id": "replace-with-student-id-001",
+      "username": "replace-with-student-username-001",
+      "tokenVersion": 0,
+      "authToken": "placeholder-value-or-remove-this-field-for-local-generated-jwt",
+      "answers": {}
+    },
+    {
+      "name": "student-002",
+      "id": "replace-with-student-id-002",
+      "username": "replace-with-student-username-002",
+      "tokenVersion": 0,
+      "authToken": "placeholder-value-or-remove-this-field-for-local-generated-jwt",
+      "answers": {}
+    }
+  ]
+}

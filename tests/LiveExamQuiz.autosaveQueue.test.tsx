@@ -71,6 +71,13 @@ describe('LiveExamQuiz autosave queue', () => {
       vi.advanceTimersByTime(250);
       await Promise.resolve();
     });
+    expect(saveSnapshot).not.toHaveBeenCalled();
+    expect(screen.getByText('Đáp án đã được lưu trên thiết bị')).toBeVisible();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1_750);
+      await Promise.resolve();
+    });
     expect(saveSnapshot).toHaveBeenCalledTimes(1);
     expect(saveSnapshot.mock.calls[0][1]).toMatchObject({ attemptVersion: 1, answers: { q1: 'A' } });
 
@@ -89,6 +96,13 @@ describe('LiveExamQuiz autosave queue', () => {
 
     await act(async () => {
       await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(saveSnapshot).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(1_750);
       await Promise.resolve();
       await Promise.resolve();
     });
