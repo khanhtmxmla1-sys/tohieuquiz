@@ -215,6 +215,71 @@ describe('Competition school exam migration 0070', () => {
     `).run()).toThrow(/ELIGIBILITY_REFERENCE_IMMUTABLE/);
   });
 
+  it('preserves original class identity for a multi-class school-exam room without creating a synthetic class', () => {
+    db = new DatabaseSync(':memory:');
+    createBaseSchema(db);
+    db.exec(`
+      INSERT INTO classes (id, teacher_username) VALUES
+        ('class-4b', 'admin'),
+        ('class-4c', 'admin');
+      INSERT INTO students (id, class_id) VALUES
+        ('student-2', 'class-4b'),
+        ('student-3', 'class-4c');
+    `);
+    db.exec(liveExamMigration);
+    db.exec(competitionCoreMigration);
+    insertCampaignAndEligibility(db);
+    db.exec(schoolExamMigration());
+
+    db.prepare(`
+      INSERT INTO competition_school_exam_events (
+        id, campaign_id, eligibility_snapshot_version, title, exam_date, status,
+        ranking_policy, exam_form_policy, created_by, created_at, updated_at
+      ) VALUES ('event-multi', 'campaign-1', 1, 'School exam',
+        '2027-05-10T01:00:00.000Z', 'DRAFT', 'SCORE_CORRECT_TIME', 'SAME_FORM',
+        'admin', '2026-08-20T08:00:00.000Z', '2026-08-20T08:00:00.000Z')
+    `).run();
+    db.prepare(`
+      INSERT INTO competition_school_exam_rooms (
+        id, event_id, name, room_code, scheduled_at, duration_minutes,
+        check_in_lead_minutes, close_drain_minutes, form_code, quiz_id,
+        status, created_at, updated_at
+      ) VALUES ('room-multi', 'event-multi', 'Room Multi', 'RM01',
+        '2027-05-10T01:00:00.000Z', 45, 15, 10, 'A', 'quiz-1', 'DRAFT',
+        '2026-08-20T08:00:00.000Z', '2026-08-20T08:00:00.000Z')
+    `).run();
+
+    const classCountBefore = db.prepare('SELECT COUNT(*) AS count FROM classes').get() as { count: number };
+    for (const [id, studentId, originalClassId] of [
+      ['member-1', 'student-1', 'class-4a'],
+      ['member-2', 'student-2', 'class-4b'],
+      ['member-3', 'student-3', 'class-4c'],
+    ] as const) {
+      db.prepare(`
+        INSERT INTO competition_school_exam_members (
+          id, event_id, room_id, student_id, original_class_id,
+          eligibility_snapshot_version, status, assigned_at, updated_at
+        ) VALUES (?, 'event-multi', 'room-multi', ?, ?, 1, 'ASSIGNED',
+          '2026-08-20T08:00:00.000Z', '2026-08-20T08:00:00.000Z')
+      `).run(id, studentId, originalClassId);
+    }
+
+    expect(db.prepare(`
+      SELECT student_id, original_class_id
+      FROM competition_school_exam_members
+      WHERE room_id = 'room-multi'
+      ORDER BY student_id
+    `).all()).toEqual([
+      { student_id: 'student-1', original_class_id: 'class-4a' },
+      { student_id: 'student-2', original_class_id: 'class-4b' },
+      { student_id: 'student-3', original_class_id: 'class-4c' },
+    ]);
+
+    const resultColumns = db.prepare(`PRAGMA table_info('competition_school_exam_results')`).all() as Array<{ name: string }>;
+    expect(resultColumns.map(({ name }) => name)).toContain('original_class_id');
+    expect(db.prepare('SELECT COUNT(*) AS count FROM classes').get()).toEqual(classCountBefore);
+  });
+
   it('rolls back school-exam tables safely while retaining additive Live Exam columns', () => {
     db = new DatabaseSync(':memory:');
     createBaseSchema(db);

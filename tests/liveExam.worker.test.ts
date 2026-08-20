@@ -47,6 +47,9 @@ const activeSessionRow = (overrides: Record<string, unknown> = {}) => ({
   teacher_id: 'teacher-a',
   class_id: 'class-a',
   class_name: '4A',
+  participant_scope_type: 'CLASS',
+  participant_scope_id: 'class-a',
+  result_visibility: 'PUBLISHED',
   duration: 30,
   scheduled_at: null,
   started_at: '2026-07-15T00:00:00.000Z',
@@ -164,6 +167,102 @@ describe('live exam P0 authorization and integrity', () => {
         expectServiceError(error, 403, /not in the assigned class/i);
         return true;
       });
+  });
+
+  it('rejects a school-exam join when the access code matches but the student is not assigned to the room', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => {
+      if (sql.includes('WHERE s.access_code')) {
+        return activeSessionRow({
+          status: 'waiting',
+          class_id: null,
+          class_name: null,
+          participant_scope_type: 'SCHOOL_EXAM_ROOM',
+          participant_scope_id: 'room-1',
+          result_visibility: 'WITHHELD',
+        });
+      }
+      if (sql.includes('FROM students')) return { id: 'student-a', class_id: 'class-4a' };
+      if (sql.includes('FROM competition_school_exam_members')) return null;
+      return null;
+    };
+
+    await expect(LiveExamService.joinSession(db as any, {
+      accessCode: 'ABC123',
+      studentId: 'student-a',
+      username: 'student-a',
+    })).rejects.toSatisfy((error: unknown) => {
+      expectServiceError(error, 403, /not assigned to this school exam room/i);
+      return true;
+    });
+
+    expect(db.executed.some((statement) => statement.sql.includes('FROM competition_school_exam_members'))).toBe(true);
+    expect(db.executed.some((statement) => /INSERT\s+INTO\s+classes/i.test(statement.sql))).toBe(false);
+  });
+
+  it('rejects a voided school-exam RoomMember even when the room access code is valid', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => {
+      if (sql.includes('WHERE s.access_code')) {
+        return activeSessionRow({
+          status: 'waiting',
+          class_id: null,
+          class_name: null,
+          participant_scope_type: 'SCHOOL_EXAM_ROOM',
+          participant_scope_id: 'room-1',
+          result_visibility: 'WITHHELD',
+        });
+      }
+      if (sql.includes('FROM students')) return { id: 'student-a', class_id: 'class-4a' };
+      if (sql.includes('FROM competition_school_exam_members')) {
+        if (sql.includes("status <> 'VOID'")) return null;
+        return { id: 'member-a', room_id: 'room-1', student_id: 'student-a', original_class_id: 'class-4a', status: 'VOID' };
+      }
+      if (sql.includes('FROM live_exam_participants')) return null;
+      return null;
+    };
+
+    await expect(LiveExamService.joinSession(db as any, {
+      accessCode: 'ABC123',
+      studentId: 'student-a',
+      username: 'student-a',
+    })).rejects.toSatisfy((error: unknown) => {
+      expectServiceError(error, 403, /not assigned to this school exam room/i);
+      return true;
+    });
+  });
+
+  it('allows an assigned school-exam RoomMember to join without a synthetic class', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => {
+      if (sql.includes('WHERE s.access_code')) {
+        return activeSessionRow({
+          status: 'waiting',
+          class_id: null,
+          class_name: null,
+          participant_scope_type: 'SCHOOL_EXAM_ROOM',
+          participant_scope_id: 'room-1',
+          result_visibility: 'WITHHELD',
+        });
+      }
+      if (sql.includes('FROM students')) return { id: 'student-b', class_id: 'class-4b' };
+      if (sql.includes('FROM competition_school_exam_members')) {
+        return { id: 'member-b', room_id: 'room-1', student_id: 'student-b', original_class_id: 'class-4b' };
+      }
+      if (sql.includes('FROM live_exam_participants')) return null;
+      return null;
+    };
+
+    const participant = await LiveExamService.joinSession(db as any, {
+      accessCode: 'ABC123',
+      studentId: 'student-b',
+      username: 'student-b',
+    });
+
+    expect(participant).toMatchObject({ liveExamId: 'live-1', studentId: 'student-b' });
+    const membershipQuery = db.executed.find((statement) => statement.sql.includes('FROM competition_school_exam_members'));
+    expect(membershipQuery?.bindings).toEqual(['room-1', 'student-b']);
+    expect(db.executed.some((statement) => /INSERT\s+INTO\s+classes/i.test(statement.sql))).toBe(false);
   });
 
   it('rejects submission when the exam is not active', async () => {

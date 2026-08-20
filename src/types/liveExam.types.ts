@@ -39,6 +39,9 @@ export interface LiveExamSession {
   teacherId: string;
   classId: string;
   className?: string;
+  participantScopeType?: 'CLASS' | 'SCHOOL_EXAM_ROOM';
+  participantScopeId?: string;
+  resultVisibility?: 'WITHHELD' | 'PUBLISHED';
   quizTitle?: string;
   participantCount?: number;
   submittedCount?: number;

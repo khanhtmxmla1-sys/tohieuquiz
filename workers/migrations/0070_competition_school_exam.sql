@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS competition_school_exam_members (
   event_id TEXT NOT NULL,
   room_id TEXT NOT NULL,
   student_id TEXT NOT NULL,
+  original_class_id TEXT NOT NULL,
   eligibility_snapshot_version INTEGER NOT NULL CHECK (eligibility_snapshot_version > 0),
   status TEXT NOT NULL DEFAULT 'ASSIGNED'
     CHECK (status IN ('ASSIGNED', 'CHECKED_IN', 'STARTED', 'SUBMITTED', 'ABSENT', 'VOID', 'RETEST_APPROVED')),
@@ -77,7 +78,8 @@ CREATE TABLE IF NOT EXISTS competition_school_exam_members (
   UNIQUE (event_id, student_id),
   FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
   FOREIGN KEY (room_id) REFERENCES competition_school_exam_rooms(id) ON DELETE RESTRICT,
-  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  FOREIGN KEY (original_class_id) REFERENCES classes(id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS competition_school_exam_results (
@@ -85,6 +87,7 @@ CREATE TABLE IF NOT EXISTS competition_school_exam_results (
   event_id TEXT NOT NULL,
   room_id TEXT NOT NULL,
   student_id TEXT NOT NULL,
+  original_class_id TEXT NOT NULL,
   live_exam_session_id TEXT NOT NULL,
   live_exam_participant_id TEXT,
   score REAL CHECK (score IS NULL OR score BETWEEN 0 AND 100),
@@ -100,6 +103,7 @@ CREATE TABLE IF NOT EXISTS competition_school_exam_results (
   FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
   FOREIGN KEY (room_id) REFERENCES competition_school_exam_rooms(id) ON DELETE RESTRICT,
   FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  FOREIGN KEY (original_class_id) REFERENCES classes(id) ON DELETE RESTRICT,
   FOREIGN KEY (live_exam_session_id) REFERENCES live_exam_sessions(id) ON DELETE RESTRICT,
   FOREIGN KEY (live_exam_participant_id) REFERENCES live_exam_participants(id) ON DELETE SET NULL,
   FOREIGN KEY (source_result_id) REFERENCES results(id) ON DELETE SET NULL
