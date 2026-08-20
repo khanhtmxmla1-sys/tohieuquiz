@@ -1,6 +1,10 @@
 import {
   CreateCompetitionCampaignRequestSchema,
+  FinalizeCompetitionRoundRequestSchema,
+  StartCompetitionRoundAttemptRequestSchema,
+  SubmitCompetitionRoundAttemptRequestSchema,
   UpdateCompetitionCampaignRequestSchema,
+  UpdateCompetitionRoundRequestSchema,
 } from '../../../../schemas/competition.schema';
 import type { Env } from '../../types';
 import { requireAdmin, requireTeacher, verifyJWTMiddleware } from '../../middleware/jwtAuth';
@@ -13,6 +17,13 @@ import {
   previewCompetitionAudience,
   updateCompetitionCampaign,
 } from '../../competition/campaignService';
+import {
+  finalizeCompetitionRound,
+  listCompetitionRounds,
+  startRoundAttempt,
+  submitRoundAttempt,
+  updateCompetitionRound,
+} from '../../competition/roundService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
 
@@ -30,6 +41,16 @@ function routeCampaignId(path: string, suffix = ''): string | null {
 
   if (!remainder || remainder.includes('/')) return null;
   return decodeURIComponent(remainder);
+}
+
+function routeParts(path: string, pattern: RegExp): string[] | null {
+  const match = path.match(pattern);
+  if (!match) return null;
+  try {
+    return match.slice(1).map((value) => decodeURIComponent(value));
+  } catch {
+    return null;
+  }
 }
 
 async function jsonBody(request: Request): Promise<Record<string, unknown> | null> {
@@ -56,11 +77,47 @@ async function teacherClassIds(db: D1Database, user: JWTPayload): Promise<string
 
 function routeError(error: unknown): Response {
   const message = error instanceof Error ? error.message : 'COMPETITION_REQUEST_FAILED';
-  if (message === 'COMPETITION_CAMPAIGN_NOT_FOUND') return errorResponse(message, 404);
-  if (message === 'COMPETITION_CAMPAIGN_NOT_DRAFT') return errorResponse(message, 409);
-  if (message === 'COMPETITION_AUDIENCE_NOT_SNAPSHOTTED') return errorResponse(message, 409);
+  if ([
+    'COMPETITION_CAMPAIGN_NOT_FOUND',
+    'COMPETITION_ROUND_NOT_FOUND',
+    'COMPETITION_ATTEMPT_NOT_FOUND',
+    'COMPETITION_ROUND_QUIZ_NOT_FOUND',
+  ].includes(message)) return errorResponse(message, 404);
+  if ([
+    'COMPETITION_CAMPAIGN_NOT_DRAFT',
+    'COMPETITION_AUDIENCE_NOT_SNAPSHOTTED',
+    'COMPETITION_ROUND_NOT_OPEN',
+    'COMPETITION_MAX_ATTEMPTS_REACHED',
+    'COMPETITION_ROUND_FINALIZED',
+    'COMPETITION_ROUND_CONFIG_LOCKED',
+    'COMPETITION_ROUND_NOT_CLOSED',
+    'COMPETITION_ATTEMPT_NOT_SUBMITTABLE',
+    'COMPETITION_ATTEMPT_EXPIRED',
+    'COMPETITION_QUIZ_SNAPSHOT_HASH_MISMATCH',
+  ].includes(message)) return errorResponse(message, 409);
+  if ([
+    'COMPETITION_STUDENT_NOT_IN_AUDIENCE',
+    'COMPETITION_ADMIN_REQUIRED',
+  ].includes(message)) return errorResponse(message, 403);
   if (message === 'COMPETITION_AUDIENCE_CURSOR_INVALID') return errorResponse(message, 400);
   return errorResponse(message, 400);
+}
+
+async function authenticatedStudentId(db: D1Database, user: JWTPayload): Promise<string | null> {
+  if (user.role !== 'student') return null;
+  const id = String(user.id || '').trim();
+  const username = String(user.username || '').trim();
+  if (!username) return null;
+  if (id) {
+    const row = await db.prepare(`
+      SELECT id FROM students WHERE id = ? AND username = ? LIMIT 1
+    `).bind(id, username).first<{ id: string }>();
+    return row?.id || null;
+  }
+  const row = await db.prepare('SELECT id FROM students WHERE username = ? LIMIT 1')
+    .bind(username)
+    .first<{ id: string }>();
+  return row?.id || null;
 }
 
 export async function handleCompetitionRoutes(
@@ -69,13 +126,72 @@ export async function handleCompetitionRoutes(
   path: string,
   method: string,
 ): Promise<Response | null> {
-  if (!path.startsWith('/api/competitions')) return null;
+  const isStaffNamespace = path === '/api/competitions' || path.startsWith('/api/competitions/');
+  const isStudentNamespace = path.startsWith('/api/student/competitions/');
+  if (!isStaffNamespace && !isStudentNamespace) return null;
 
   const authResult = await verifyJWTMiddleware(request, env);
   if (authResult instanceof Response) return authResult;
   const user = authResult.user;
-  if (!requireTeacher(user)) return errorResponse('Forbidden', 403);
 
+  if (isStudentNamespace) {
+    if (user.role !== 'student') return errorResponse('Forbidden', 403);
+    try {
+      const studentId = await authenticatedStudentId(env.DB, user);
+      if (!studentId) return errorResponse('Unauthorized: Student identity not found', 401);
+
+      const startParts = routeParts(
+        path,
+        /^\/api\/student\/competitions\/([^/]+)\/rounds\/([^/]+)\/attempts$/,
+      );
+      if (startParts && method === 'POST') {
+        const [campaignId, roundId] = startParts;
+        const body = await jsonBody(request);
+        if (!body) return errorResponse('Invalid JSON body', 400);
+        const parsed = StartCompetitionRoundAttemptRequestSchema.safeParse(body);
+        if (!parsed.success) return errorResponse('Invalid competition attempt payload', 400);
+        if (parsed.data.campaignId !== campaignId || parsed.data.roundId !== roundId) {
+          return errorResponse('COMPETITION_ROUND_ROUTE_MISMATCH', 400);
+        }
+        const attempt = await startRoundAttempt(env.DB, {
+          campaignId,
+          roundId,
+          studentId,
+          requestId: parsed.data.requestId,
+        });
+        return jsonResponse({ attempt }, 201);
+      }
+
+      const submitParts = routeParts(
+        path,
+        /^\/api\/student\/competitions\/([^/]+)\/rounds\/([^/]+)\/attempts\/([^/]+)\/submit$/,
+      );
+      if (submitParts && method === 'POST') {
+        const [campaignId, roundId, attemptId] = submitParts;
+        const body = await jsonBody(request);
+        if (!body) return errorResponse('Invalid JSON body', 400);
+        const parsed = SubmitCompetitionRoundAttemptRequestSchema.safeParse(body);
+        if (!parsed.success) return errorResponse('Invalid competition attempt submit payload', 400);
+        if (parsed.data.attemptId !== attemptId) return errorResponse('COMPETITION_ATTEMPT_ROUTE_MISMATCH', 400);
+        const result = await submitRoundAttempt(env.DB, {
+          attemptId,
+          studentId,
+          campaignId,
+          roundId,
+          answers: parsed.data.answers,
+          timeTaken: parsed.data.timeTaken,
+          requestId: parsed.data.idempotencyKey,
+        });
+        return jsonResponse({ result });
+      }
+
+      return null;
+    } catch (error) {
+      return routeError(error);
+    }
+  }
+
+  if (!requireTeacher(user)) return errorResponse('Forbidden', 403);
   const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
   if (isMutation && !requireAdmin(user)) return errorResponse('Forbidden', 403);
 
@@ -126,6 +242,47 @@ export async function handleCompetitionRoutes(
         classIds,
       });
       return jsonResponse(audience);
+    }
+
+    const roundListParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/rounds$/);
+    if (roundListParts && method === 'GET') {
+      const [campaignId] = roundListParts;
+      const items = await listCompetitionRounds(env.DB, campaignId);
+      return jsonResponse({ items });
+    }
+
+    const roundFinalizeParts = routeParts(
+      path,
+      /^\/api\/competitions\/([^/]+)\/rounds\/([^/]+)\/finalize$/,
+    );
+    if (roundFinalizeParts && method === 'POST') {
+      const [campaignId, roundId] = roundFinalizeParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = FinalizeCompetitionRoundRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid competition round finalize payload', 400);
+      if (parsed.data.campaignId !== campaignId || parsed.data.roundId !== roundId) {
+        return errorResponse('COMPETITION_ROUND_ROUTE_MISMATCH', 400);
+      }
+      const round = await finalizeCompetitionRound(
+        env.DB,
+        campaignId,
+        roundId,
+        user.username,
+        parsed.data.requestId,
+      );
+      return jsonResponse({ round });
+    }
+
+    const roundPatchParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/rounds\/([^/]+)$/);
+    if (roundPatchParts && method === 'PATCH') {
+      const [campaignId, roundId] = roundPatchParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = UpdateCompetitionRoundRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid competition round payload', 400);
+      const round = await updateCompetitionRound(env.DB, campaignId, roundId, parsed.data, user.username);
+      return jsonResponse({ round });
     }
 
     const campaignId = routeCampaignId(path);

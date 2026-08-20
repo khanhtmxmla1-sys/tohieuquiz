@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { signJWT } from '../workers/src/utils/jwt';
 import { handleCompetitionRoutes } from '../workers/src/routes/competitions';
+import { createOrReuseQuizSnapshot } from '../workers/src/competition/quizSnapshotService';
 import { createSqliteD1 } from './helpers/sqliteD1';
 
 const migration = readFileSync(
@@ -16,6 +17,7 @@ let sqlite: DatabaseSync;
 let env: { DB: D1Database; JWT_SECRET: string };
 let adminCookie: string;
 let teacherCookie: string;
+let studentCookie: string;
 
 function createBaseSchema(db: DatabaseSync): void {
   db.exec(`
@@ -46,8 +48,58 @@ function createBaseSchema(db: DatabaseSync): void {
       archived_at TEXT
     );
 
-    CREATE TABLE quizzes (id TEXT PRIMARY KEY);
-    CREATE TABLE results (id INTEGER PRIMARY KEY AUTOINCREMENT);
+    CREATE TABLE quizzes (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT '',
+      class_level TEXT,
+      category TEXT,
+      time_limit INTEGER,
+      created_at TEXT NOT NULL DEFAULT '',
+      created_by TEXT NOT NULL DEFAULT '',
+      tags TEXT,
+      source_type TEXT,
+      parent_quiz_id TEXT,
+      version_number INTEGER,
+      revision INTEGER,
+      updated_at TEXT
+    );
+    CREATE TABLE questions (
+      id TEXT PRIMARY KEY,
+      quiz_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      question TEXT NOT NULL,
+      options TEXT,
+      correct_answer TEXT,
+      items TEXT,
+      text_field TEXT,
+      blanks TEXT,
+      distractors TEXT,
+      sentence TEXT,
+      words TEXT,
+      correct_word_indexes TEXT,
+      image TEXT,
+      svg_content TEXT,
+      svg_alt TEXT,
+      difficulty TEXT,
+      answer_schema_version INTEGER
+    );
+    CREATE TABLE results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id TEXT,
+      assignment_id TEXT,
+      class_id TEXT,
+      student_name TEXT,
+      class_name TEXT,
+      quiz_id TEXT,
+      quiz_title TEXT,
+      score REAL,
+      correct_count INTEGER,
+      total_questions INTEGER,
+      time_taken INTEGER,
+      submitted_at TEXT,
+      answers TEXT,
+      grading_version TEXT
+    );
 
     CREATE TABLE admin_audit_logs (
       id TEXT PRIMARY KEY,
@@ -77,6 +129,17 @@ function createBaseSchema(db: DatabaseSync): void {
       ('student-2', 'Binh', 'student2', 'hash', 'class-4a', '2026-08-01T00:00:00.000Z', NULL),
       ('student-3', 'Chi', 'student3', 'hash', 'class-4b', '2026-08-01T00:00:00.000Z', NULL),
       ('student-4', 'Dung', 'student4', 'hash', 'class-5a', '2026-08-01T00:00:00.000Z', NULL);
+
+    INSERT INTO quizzes (
+      id, title, class_level, category, time_limit, created_at, created_by,
+      tags, source_type, version_number, revision, updated_at
+    ) VALUES (
+      'quiz-round', 'Đề vòng 1 khối 4', '4', 'Tiếng Việt', 30,
+      '2026-08-01T00:00:00.000Z', 'admin', '[]', 'manual', 1, 1,
+      '2026-08-01T00:00:00.000Z'
+    );
+    INSERT INTO questions (id, quiz_id, type, question, options, correct_answer)
+    VALUES ('q-round-1', 'quiz-round', 'MCQ', '1 + 1 = ?', '1|2', 'B');
   `);
 }
 
@@ -121,18 +184,29 @@ beforeEach(async () => {
     role: 'admin',
     tokenVersion: 1,
     purpose: 'session',
-  }, secret);
+  }, secret, '30d');
   const teacherToken = await signJWT({
     username: 'teacher-4',
     role: 'teacher',
     tokenVersion: 1,
     purpose: 'session',
-  }, secret);
+  }, secret, '30d');
+  const studentToken = await signJWT({
+    id: 'student-1',
+    username: 'student1',
+    role: 'student',
+    fullName: 'An',
+    classId: 'class-4a',
+    tokenVersion: 1,
+    purpose: 'session',
+  }, secret, '30d');
   adminCookie = `auth_token=${adminToken}`;
   teacherCookie = `auth_token=${teacherToken}`;
+  studentCookie = `auth_token=${studentToken}`;
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   sqlite.close();
 });
 
@@ -209,5 +283,140 @@ describe('Competition V1 campaign routes', () => {
 
     const detailResponse = await request(`/api/competitions/${campaignId}`, 'GET', undefined, teacherCookie);
     expect(detailResponse.status).toBe(200);
+  });
+
+  it('exposes round list/config/finalize endpoints with Admin mutation guards', async () => {
+    const createResponse = await request('/api/competitions', 'POST', createBody);
+    const campaignId = (await createResponse.json() as any).campaign.id as string;
+    const roundBody = {
+      campaignId,
+      roundId: 'round-route-1',
+      roundNumber: 1,
+      opensAt: '2026-09-10T00:00:00.000Z',
+      closesAt: '2026-09-11T00:00:00.000Z',
+      maxAttempts: 2,
+      passingRuleType: 'MIN_SCORE',
+      passingScore: 7,
+      requestId: 'round-route-config-0001',
+    };
+
+    const patch = await request(`/api/competitions/${campaignId}/rounds/round-route-1`, 'PATCH', roundBody);
+    expect(patch.status).toBe(200);
+    expect((await patch.json() as any).round).toMatchObject({ roundNumber: 1, status: 'SCHEDULED' });
+
+    const teacherPatch = await request(
+      `/api/competitions/${campaignId}/rounds/round-route-1`,
+      'PATCH',
+      { ...roundBody, requestId: 'round-route-config-0002' },
+      teacherCookie,
+    );
+    expect(teacherPatch.status).toBe(403);
+
+    const list = await request(`/api/competitions/${campaignId}/rounds`, 'GET', undefined, teacherCookie);
+    expect(list.status).toBe(200);
+    expect((await list.json() as any).items).toHaveLength(1);
+
+    const tooEarly = await request(
+      `/api/competitions/${campaignId}/rounds/round-route-1/finalize`,
+      'POST',
+      { campaignId, roundId: 'round-route-1', requestId: 'round-route-finalize-0001' },
+    );
+    expect(tooEarly.status).toBe(409);
+  });
+
+  it('derives student identity from JWT for attempt start/submit and rejects client studentId', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-10T12:00:00.000Z'));
+
+    const createResponse = await request('/api/competitions', 'POST', createBody);
+    const campaignId = (await createResponse.json() as any).campaign.id as string;
+    const snapshotResponse = await request(`/api/competitions/${campaignId}/audience/snapshot`, 'POST', {
+      requestId: 'route-student-audience-0001',
+    });
+    expect(snapshotResponse.status).toBe(201);
+
+    const quizSnapshot = await createOrReuseQuizSnapshot(env.DB, 'quiz-round');
+    sqlite.prepare(`
+      INSERT INTO competition_rounds (
+        id, campaign_id, round_number, opens_at, closes_at, max_attempts,
+        passing_rule_type, passing_score, status, created_at
+      ) VALUES (?, ?, 1, ?, ?, 2, 'MIN_SCORE', 7, 'SCHEDULED', ?)
+    `).run(
+      'round-route-1', campaignId,
+      '2026-09-10T00:00:00.000Z', '2026-09-11T00:00:00.000Z',
+      '2026-08-20T00:00:00.000Z',
+    );
+    sqlite.prepare(`
+      INSERT INTO competition_round_quizzes (
+        id, round_id, grade_level, class_id, quiz_id, quiz_snapshot_id, quiz_snapshot_hash, locked_at
+      ) VALUES (?, ?, 4, NULL, ?, ?, ?, ?)
+    `).run(
+      'round-route-quiz-1', 'round-route-1', 'quiz-round', quizSnapshot.id, quizSnapshot.sha256,
+      '2026-08-20T00:00:00.000Z',
+    );
+
+    const spoofed = await request(
+      `/api/student/competitions/${campaignId}/rounds/round-route-1/attempts`,
+      'POST',
+      {
+        campaignId,
+        roundId: 'round-route-1',
+        requestId: 'route-student-start-spoof-0001',
+        studentId: 'student-2',
+      },
+      studentCookie,
+    );
+    expect(spoofed.status).toBe(400);
+
+    const start = await request(
+      `/api/student/competitions/${campaignId}/rounds/round-route-1/attempts`,
+      'POST',
+      { campaignId, roundId: 'round-route-1', requestId: 'route-student-start-0001' },
+      studentCookie,
+    );
+    expect(start.status).toBe(201);
+    const attempt = (await start.json() as any).attempt;
+    expect(attempt.studentId).toBe('student-1');
+
+    const mismatchedSubmit = await request(
+      `/api/student/competitions/wrong-campaign/rounds/round-route-1/attempts/${attempt.id}/submit`,
+      'POST',
+      {
+        attemptId: attempt.id,
+        answers: { 'q-round-1': 'B' },
+        timeTaken: 25,
+        idempotencyKey: 'route-submit-wrong-path-0001',
+      },
+      studentCookie,
+    );
+    expect(mismatchedSubmit.status).toBe(400);
+    expect((sqlite.prepare('SELECT COUNT(*) AS count FROM results').get() as { count: number }).count).toBe(0);
+
+    const submit = await request(
+      `/api/student/competitions/${campaignId}/rounds/round-route-1/attempts/${attempt.id}/submit`,
+      'POST',
+      {
+        attemptId: attempt.id,
+        answers: { 'q-round-1': 'B' },
+        timeTaken: 25,
+        idempotencyKey: 'route-submit-key-0001',
+      },
+      studentCookie,
+    );
+    expect(submit.status).toBe(200);
+    const result = (await submit.json() as any).result;
+    expect(result).toMatchObject({ studentId: 'student-1', score: 10, correctCount: 1 });
+    expect(sqlite.prepare('SELECT student_id, assignment_id FROM results WHERE id = ?').get(result.resultId))
+      .toMatchObject({ student_id: 'student-1', assignment_id: null });
+
+    vi.setSystemTime(new Date('2026-09-11T00:00:00.000Z'));
+    const finalize = await request(
+      `/api/competitions/${campaignId}/rounds/round-route-1/finalize`,
+      'POST',
+      { campaignId, roundId: 'round-route-1', requestId: 'route-round-finalize-ok-0001' },
+      adminCookie,
+    );
+    expect(finalize.status).toBe(200);
+    expect((await finalize.json() as any).round.status).toBe('FINALIZED');
   });
 });
