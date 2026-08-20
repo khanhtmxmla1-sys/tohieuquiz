@@ -105,12 +105,6 @@ export async function saveAnswerSnapshot(
     timestamp,
   ).run();
 
-  await db.prepare(`
-    INSERT INTO live_exam_connection_events (
-      id, live_exam_id, student_id, event_type, attempt_version, created_at
-    ) VALUES (?, ?, ?, 'autosave', ?, ?)
-  `).bind(crypto.randomUUID(), params.liveExamId, params.studentId, params.attemptVersion, timestamp).run();
-
   return { attemptVersion: params.attemptVersion, answers: params.answers, updatedAt: timestamp };
 }
 

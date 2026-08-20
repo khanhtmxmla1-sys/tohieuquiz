@@ -15,8 +15,23 @@ class Database {
   participantReads = 0;
   participantRows: Array<Record<string, unknown>> = [];
   updateChanges = 1;
-  prepare(sql: string) { return new Statement(sql, this); }
+  prepareSql: string[] = [];
+  prepare(sql: string) { this.prepareSql.push(sql); return new Statement(sql, this); }
   first(sql: string, _bindings: unknown[]): unknown {
+    if (sql.includes('LEFT JOIN live_exam_participants participants')) {
+      const participant = this.participantRows[Math.min(this.participantReads, this.participantRows.length - 1)] ?? null;
+      this.participantReads += 1;
+      return {
+        id: 'live-1', title: 'Exam', quiz_id: 'quiz-1', quiz_title: 'Quiz', teacher_id: 'teacher-1',
+        class_id: 'class-1', class_name: 'Class 1', duration: 30, scheduled_at: null,
+        started_at: '2026-07-28T00:00:00.000Z', ends_at: '2099-07-28T00:30:00.000Z',
+        closed_at: null, settings: '{}', status: 'active', access_code: 'ABC123', chat_enabled: 1,
+        archived_at: null, created_at: '2026-07-28T00:00:00.000Z', updated_at: '2026-07-28T00:00:00.000Z',
+        participant_id: participant?.id ?? null,
+        participant_submitted_at: participant?.submitted_at ?? null,
+        participant_individual_ends_at: participant?.individual_ends_at ?? null,
+      };
+    }
     if (sql.includes('FROM live_exam_sessions s')) return {
       id: 'live-1', title: 'Exam', quiz_id: 'quiz-1', quiz_title: 'Quiz', teacher_id: 'teacher-1',
       class_id: 'class-1', class_name: 'Class 1', duration: 30, scheduled_at: null,
@@ -51,6 +66,16 @@ class Database {
   }
 }
 
+const freshParticipant = () => ({
+  id: 'participant-1',
+  submitted_at: null,
+  answers: null,
+  score: null,
+  correct_count: null,
+  wrong_count: null,
+  individual_ends_at: null,
+});
+
 const submittedParticipant = (answers: Record<string, string>) => ({
   id: 'participant-1',
   submitted_at: '2026-07-28T00:10:00.000Z',
@@ -62,6 +87,22 @@ const submittedParticipant = (answers: Record<string, string>) => ({
 });
 
 describe('Live Exam idempotent submit', () => {
+  it('loads session and participant state with one D1 read on a fresh submit', async () => {
+    const db = new Database();
+    db.participantRows = [freshParticipant()];
+
+    await expect(submitAnswers(db as any, {
+      liveExamId: 'live-1', studentId: 'student-1', answers: { q1: 'B' },
+      idempotencyKey: 'live-exam-submit:fresh',
+    })).resolves.toMatchObject({ score: 10, correctCount: 1, wrongCount: 0 });
+
+    const stateReads = db.prepareSql.filter((sql) => (
+      sql.includes('FROM live_exam_sessions') || sql.includes('FROM live_exam_participants')
+    ));
+    expect(stateReads).toHaveLength(1);
+    expect(stateReads[0]).toContain('LEFT JOIN live_exam_participants participants');
+  });
+
   it('returns the stored result for a replay with the same answers', async () => {
     const db = new Database();
     db.participantRows = [submittedParticipant({ q1: 'B' })];
@@ -92,7 +133,7 @@ describe('Live Exam idempotent submit', () => {
     const db = new Database();
     db.updateChanges = 0;
     db.participantRows = [
-      { id: 'participant-1', submitted_at: null, answers: null, score: null, correct_count: null, wrong_count: null },
+      freshParticipant(),
       submittedParticipant({ q1: 'B' }),
     ];
 

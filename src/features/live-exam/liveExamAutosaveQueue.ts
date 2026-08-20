@@ -27,6 +27,7 @@ interface CreateLiveExamAutosaveQueueOptions {
   onStatus: (status: LiveExamSyncStatus) => void;
   onRemoteAnswers?: (answers: LiveExamAnswerMap) => void;
   createId?: () => string;
+  remoteDebounceMs?: number;
 }
 
 export interface LiveExamAutosaveQueue {
@@ -58,6 +59,7 @@ export const createLiveExamAutosaveQueue = ({
   onStatus,
   onRemoteAnswers,
   createId = () => crypto.randomUUID(),
+  remoteDebounceMs = 1_750,
 }: CreateLiveExamAutosaveQueueOptions): LiveExamAutosaveQueue => {
   let latestAnswers = cloneAnswers(initialAnswers);
   let pendingAnswers: LiveExamAnswerMap | null = hasAnswers(latestAnswers)
@@ -71,6 +73,7 @@ export const createLiveExamAutosaveQueue = ({
   let reinitializeRequested = false;
   let inFlight = false;
   let disposed = false;
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
   const emit = (status: LiveExamSyncStatus) => {
     if (!disposed) onStatus(status);
@@ -106,7 +109,7 @@ export const createLiveExamAutosaveQueue = ({
       if (!online) {
         emit('offline');
       } else if (pendingAnswers) {
-        await flush();
+        scheduleFlush();
       } else {
         emit('synced');
       }
@@ -131,9 +134,27 @@ export const createLiveExamAutosaveQueue = ({
     }
   };
 
+  const clearScheduledFlush = () => {
+    if (flushTimer !== null) clearTimeout(flushTimer);
+    flushTimer = null;
+  };
+
+  const scheduleFlush = () => {
+    clearScheduledFlush();
+    if (disposed || !online || !initialized || !pendingAnswers) return;
+    if (remoteDebounceMs <= 0) {
+      void flush();
+      return;
+    }
+    flushTimer = setTimeout(() => {
+      flushTimer = null;
+      void flush();
+    }, remoteDebounceMs);
+  };
+
   const initialize = async (): Promise<void> => {
     if (disposed || !online || initialized) {
-      if (initialized) await flush();
+      if (initialized) scheduleFlush();
       return;
     }
     if (initializing) {
@@ -172,7 +193,7 @@ export const createLiveExamAutosaveQueue = ({
         if (!pendingAnswers && hasAnswers(latestAnswers)) {
           pendingAnswers = cloneAnswers(latestAnswers);
         }
-        if (pendingAnswers) await flush();
+        if (pendingAnswers) scheduleFlush();
         else emit('synced');
       } catch {
         if (!disposed && online) {
@@ -200,13 +221,14 @@ export const createLiveExamAutosaveQueue = ({
       return;
     }
     if (!initialized) void initialize();
-    else void flush();
+    else scheduleFlush();
   };
 
   const setOnline = (nextOnline: boolean) => {
     if (disposed || online === nextOnline) return;
     online = nextOnline;
     if (!online) {
+      clearScheduledFlush();
       initialized = false;
       emit('offline');
       return;
@@ -217,7 +239,10 @@ export const createLiveExamAutosaveQueue = ({
   const retry = () => {
     if (disposed || !online) return;
     if (!initialized) void initialize();
-    else void flush();
+    else {
+      clearScheduledFlush();
+      void flush();
+    }
   };
 
   if (online) void initialize();
@@ -229,6 +254,7 @@ export const createLiveExamAutosaveQueue = ({
     retry,
     dispose: () => {
       disposed = true;
+      clearScheduledFlush();
       pendingAnswers = null;
     },
   };

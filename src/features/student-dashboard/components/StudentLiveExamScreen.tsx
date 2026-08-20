@@ -12,7 +12,7 @@ export const StudentLiveExamScreen = ({ controller }: {
   const { joinedExam, joinedQuiz, questions, stage, status } = controller;
   if (!joinedExam) return null;
   if (stage === 'waiting') return <WaitingRoomStudent sessionId={joinedExam.sessionId}
-    sessionTitle={joinedExam.sessionTitle} onExamStart={controller.markActive} />;
+    sessionTitle={joinedExam.sessionTitle} onExamStart={controller.markActive} status={status} />;
   if (stage === 'paused') return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 text-center" role="status" aria-live="polite">

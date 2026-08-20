@@ -79,27 +79,27 @@ export async function calculateScoresAndClose(
     previousRank = participant.rank;
   });
 
-  for (const participant of scoredParticipants) {
-    await db.prepare(`
-      UPDATE live_exam_participants
-      SET score = ?, correct_count = ?, wrong_count = ?, rank = ?, grading_version = ?, updated_at = ?
-      WHERE id = ?
-    `).bind(
-      participant.score,
-      participant.correctCount,
-      participant.wrongCount,
-      participant.rank,
-      QUIZ_SCORING_ENGINE_VERSION,
-      now(),
-      participant.id,
-    ).run();
-  }
-
-  await db.prepare(`
+  const timestamp = now();
+  const scoringStatements = scoredParticipants.map((participant) => db.prepare(`
+    UPDATE live_exam_participants
+    SET score = ?, correct_count = ?, wrong_count = ?, rank = ?, grading_version = ?, updated_at = ?
+    WHERE id = ?
+  `).bind(
+    participant.score,
+    participant.correctCount,
+    participant.wrongCount,
+    participant.rank,
+    QUIZ_SCORING_ENGINE_VERSION,
+    timestamp,
+    participant.id,
+  ));
+  const closeStatement = db.prepare(`
     UPDATE live_exam_sessions
     SET status = 'closed', closed_at = ?, updated_at = ?
     WHERE id = ?
-  `).bind(now(), now(), sessionId).run();
+  `).bind(timestamp, timestamp, sessionId);
+
+  await db.batch([...scoringStatements, closeStatement]);
 
   try {
     await awardClosedLiveExamRewards(db, sessionId);

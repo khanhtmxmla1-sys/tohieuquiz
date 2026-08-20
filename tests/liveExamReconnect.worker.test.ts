@@ -11,6 +11,7 @@ class Statement {
 }
 class Database {
   snapshot: any = null;
+  runSql: string[] = [];
   prepare(sql: string) { return new Statement(sql, this); }
   first(sql: string) {
     if (sql.includes('FROM live_exam_sessions s')) return {
@@ -25,6 +26,7 @@ class Database {
     return null;
   }
   run(sql: string, bindings: unknown[]) {
+    this.runSql.push(sql);
     if (sql.includes('INSERT INTO live_exam_answer_snapshots')) {
       this.snapshot = { attempt_version: bindings[2], answers: bindings[3], idempotency_key: bindings[4], updated_at: bindings[5] };
     }
@@ -33,6 +35,15 @@ class Database {
 }
 
 describe('Live Exam reconnect autosave', () => {
+  it('does not write a connection-event row for every answer autosave', async () => {
+    const db = new Database();
+    await saveAnswerSnapshot(db as any, {
+      liveExamId: 'live-1', studentId: 'student-1', attemptVersion: 1,
+      idempotencyKey: 'autosave:live-1:1:no-event', answers: { q1: 'A' },
+    });
+
+    expect(db.runSql.some((sql) => sql.includes('live_exam_connection_events'))).toBe(false);
+  });
   it('accepts increasing versions and replays the same idempotency key', async () => {
     const db = new Database();
     const params = { liveExamId: 'live-1', studentId: 'student-1', attemptVersion: 1, idempotencyKey: 'autosave:live-1:1:abcdef', answers: { q1: 'B' } };

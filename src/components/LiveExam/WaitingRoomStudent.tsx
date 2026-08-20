@@ -7,9 +7,9 @@
 
 import React, { useEffect } from 'react';
 import { Clock, Users, Loader2 } from 'lucide-react';
-import { useLiveExamStatus } from '../../hooks';
+import type { LiveExamStatusResponse } from '../../types/liveExam.types';
 import { getStatusLabel } from '../../services/liveExamService';
-import { useWaitingRoomChat } from '../../hooks/useWaitingRoomChat';
+import { useStudentWaitingRoomChat } from '../../features/live-exam/hooks/useStudentWaitingRoomChat';
 import { useClassroomStore } from '../../stores/useClassroomStore';
 import WaitingRoomChatPanel from './WaitingRoomChatPanel';
 
@@ -17,22 +17,24 @@ interface WaitingRoomStudentProps {
     sessionId: string;
     sessionTitle: string;
     onExamStart: () => void;
+    status: LiveExamStatusResponse | null;
 }
 
 export const WaitingRoomStudent: React.FC<WaitingRoomStudentProps> = ({
     sessionId,
     sessionTitle,
     onExamStart,
+    status,
 }) => {
     const studentSession = useClassroomStore((state) => state.studentSession);
-    const { status, isLoading } = useLiveExamStatus({
-        sessionId,
-        enabled: true,
-    });
-    const chat = useWaitingRoomChat({
+
+
+
+
+    const chat = useStudentWaitingRoomChat({
         sessionId,
         enabled: status?.session.status !== 'active' && status?.session.status !== 'closed',
-        asTeacher: false,
+
     });
 
     // Detect when exam starts
@@ -42,7 +44,7 @@ export const WaitingRoomStudent: React.FC<WaitingRoomStudentProps> = ({
         }
     }, [status?.session.status, onExamStart]);
 
-    if (isLoading && !status) {
+    if (!status) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
                 <div className="text-center">

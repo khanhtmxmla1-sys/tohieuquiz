@@ -10,6 +10,7 @@ export async function updateActivity(
   params: UpdateActivityParams,
 ): Promise<void> {
   const timestamp = now();
+  const throttleCutoff = new Date(Date.now() - 5_000).toISOString();
   const session = await getLiveExamById(db, params.liveExamId);
   if (!session || session.archivedAt) throw new LiveExamServiceError('Session not found', 404);
   await requireParticipantWorkWindow(db, session, params.studentId);
@@ -24,12 +25,14 @@ export async function updateActivity(
       answered_count = excluded.answered_count,
       last_activity = excluded.last_activity,
       is_online = 1
+    WHERE live_exam_activity.last_activity <= ?
   `).bind(
     params.liveExamId,
     params.studentId,
     params.currentQuestion || null,
     params.answeredCount,
     timestamp,
+    throttleCutoff,
   ).run();
 }
 

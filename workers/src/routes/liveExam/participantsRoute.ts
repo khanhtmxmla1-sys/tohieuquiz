@@ -15,7 +15,6 @@ export const handleParticipantsRoute: LiveExamRouteHandler = async (context) => 
   if (isAuthResponse(auth)) return auth.response;
 
   try {
-    await LiveExamService.markInactiveParticipants(context.db, sessionId);
     const participants = await LiveExamService.getParticipants(context.db, sessionId);
     const activityRows = await context.db.prepare(`
       SELECT * FROM live_exam_activity WHERE live_exam_id = ?
@@ -31,10 +30,12 @@ export const handleParticipantsRoute: LiveExamRouteHandler = async (context) => 
     const combined = participants.map((participant) => {
       const activity = activityMap.get(participant.studentId);
       const lastSeen = activity?.lastSeen || participant.joinedAt;
-      const isOnline = activity?.isOnline || false;
+      const lastSeenAt = Date.parse(lastSeen);
+      const presenceAgeMs = Number.isFinite(lastSeenAt) ? Math.max(0, Date.now() - lastSeenAt) : Number.POSITIVE_INFINITY;
+      const isOnline = Boolean(activity) && presenceAgeMs <= 15_000;
       const connectionState = isOnline
         ? 'online'
-        : Date.now() - Date.parse(lastSeen) <= 60_000
+        : presenceAgeMs <= 60_000
           ? 'reconnecting'
           : 'offline';
       return {

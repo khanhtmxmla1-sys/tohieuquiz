@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuizStore } from '../../../../stores/quizStore';
-import { useLiveExamStatus } from '../../../hooks/useLiveExamStatus';
+import { getSessionStatus } from '../../../services/liveExamService';
+import { usePollingQuery } from '../../live-exam/hooks/usePollingQuery';
 import type { Question } from '../../../types';
-import type { LiveExamSubmissionResponse } from '../../../types/liveExam.types';
+import type { LiveExamStatusResponse, LiveExamSubmissionResponse } from '../../../types/liveExam.types';
 import type { JoinedLiveExam, JoinedSessionPayload, LiveExamStage } from './liveExam.types';
 import { useLiveExamQuizPreparation } from './useLiveExamQuizPreparation';
 
 const LIVE_EXAM_STORAGE_PREFIX = 'tohieuquiz_live_exam_v1:';
+const STATUS_POLL_BASE_MS = 3_000;
+const STATUS_POLL_JITTER_WINDOW_MS = 800;
 
 const readStoredExam = (sessionId?: string): JoinedLiveExam | null => {
   if (!sessionId || typeof window === 'undefined') return null;
@@ -50,8 +53,25 @@ export const useStudentLiveExam = ({
   const [joinedExam, setJoinedExam] = useState<JoinedLiveExam | null>(() => readStoredExam(initialSessionId));
   const [stage, setStage] = useState<LiveExamStage>('waiting');
   const [submission, setSubmission] = useState<LiveExamSubmissionResponse['participant'] | null>(null);
-  const { status } = useLiveExamStatus({
-    sessionId: joinedExam?.sessionId || '', enabled: Boolean(joinedExam),
+  const statusPollIntervalMs = useMemo(
+    () => STATUS_POLL_BASE_MS + Math.round((Math.random() - 0.5) * STATUS_POLL_JITTER_WINDOW_MS),
+    [joinedExam?.sessionId],
+  );
+  const fetchStatus = useCallback(
+    () => getSessionStatus(joinedExam?.sessionId || ''),
+    [joinedExam?.sessionId],
+  );
+  const shouldPollStatus = useCallback(
+    (data: LiveExamStatusResponse | null) => data?.session?.status !== 'closed',
+    [],
+  );
+  const { data: status } = usePollingQuery<LiveExamStatusResponse>({
+    enabled: Boolean(joinedExam),
+    intervalMs: statusPollIntervalMs,
+    fetcher: fetchStatus,
+    shouldPoll: shouldPollStatus,
+    errorLabel: '[useStudentLiveExam] Status polling error:',
+    fallbackError: 'Failed to fetch live exam status',
   });
   const joinedQuiz = useMemo(() => joinedExam
     ? quizzes.find((quiz) => quiz.id === joinedExam.quizId) || null : null,
