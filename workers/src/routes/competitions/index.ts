@@ -16,6 +16,7 @@ import {
   SubmitCompetitionRoundAttemptRequestSchema,
   UpdateCompetitionCampaignRequestSchema,
   UpdateCompetitionRoundRequestSchema,
+  UpsertCompetitionRoundQuizRequestSchema,
 } from '../../../../schemas/competition.schema';
 import type { Env } from '../../types';
 import { requireAdmin, requireTeacher, verifyJWTMiddleware } from '../../middleware/jwtAuth';
@@ -40,6 +41,7 @@ import {
   startRoundAttempt,
   submitRoundAttempt,
   updateCompetitionRound,
+  upsertCompetitionRoundQuiz,
 } from '../../competition/roundService';
 import {
   createSchoolExamEvent,
@@ -126,6 +128,7 @@ function routeError(error: unknown): Response {
   if ([
     'COMPETITION_CAMPAIGN_NOT_FOUND',
     'COMPETITION_ROUND_NOT_FOUND',
+    'COMPETITION_ROUND_CLASS_NOT_FOUND',
     'COMPETITION_ATTEMPT_NOT_FOUND',
     'COMPETITION_ROUND_QUIZ_NOT_FOUND',
     'COMPETITION_ELIGIBILITY_VERSION_NOT_FOUND',
@@ -628,6 +631,29 @@ export async function handleCompetitionRoutes(
       const [campaignId] = roundListParts;
       const items = await listCompetitionRounds(env.DB, campaignId);
       return jsonResponse({ items });
+    }
+
+    const roundQuizParts = routeParts(
+      path,
+      /^\/api\/competitions\/([^/]+)\/rounds\/([^/]+)\/quizzes$/,
+    );
+    if (roundQuizParts && method === 'PUT') {
+      const [campaignId, roundId] = roundQuizParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = UpsertCompetitionRoundQuizRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid competition round quiz payload', 400);
+      if (parsed.data.campaignId !== campaignId || parsed.data.roundId !== roundId) {
+        return errorResponse('COMPETITION_ROUND_ROUTE_MISMATCH', 400);
+      }
+      const mapping = await upsertCompetitionRoundQuiz(
+        env.DB,
+        campaignId,
+        roundId,
+        parsed.data,
+        user.username,
+      );
+      return jsonResponse({ mapping });
     }
 
     const roundFinalizeParts = routeParts(

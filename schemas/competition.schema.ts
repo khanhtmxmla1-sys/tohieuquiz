@@ -80,6 +80,15 @@ export const UpdateCompetitionRoundRequestSchema = z.object({
   { message: 'closesAt must be after opensAt', path: ['closesAt'] },
 );
 
+export const UpsertCompetitionRoundQuizRequestSchema = z.object({
+  campaignId: IdentifierSchema,
+  roundId: IdentifierSchema,
+  gradeLevel: z.number().int().min(1).max(12),
+  classId: IdentifierSchema.optional(),
+  quizId: IdentifierSchema,
+  requestId: RequestIdSchema,
+}).strict();
+
 export const FinalizeCompetitionRoundRequestSchema = z.object({
   campaignId: IdentifierSchema,
   roundId: IdentifierSchema,
@@ -226,6 +235,7 @@ export const CreateCompetitionExportRequestSchema = z.object({
 export type CreateCompetitionCampaignRequest = z.infer<typeof CreateCompetitionCampaignRequestSchema>;
 export type UpdateCompetitionCampaignRequest = z.infer<typeof UpdateCompetitionCampaignRequestSchema>;
 export type UpdateCompetitionRoundRequest = z.infer<typeof UpdateCompetitionRoundRequestSchema>;
+export type UpsertCompetitionRoundQuizRequest = z.infer<typeof UpsertCompetitionRoundQuizRequestSchema>;
 export type StartCompetitionRoundAttemptRequest = z.infer<typeof StartCompetitionRoundAttemptRequestSchema>;
 export type SubmitCompetitionRoundAttemptRequest = z.infer<typeof SubmitCompetitionRoundAttemptRequestSchema>;
 export type FinalizeCompetitionEligibilityRequest = z.infer<typeof FinalizeCompetitionEligibilityRequestSchema>;

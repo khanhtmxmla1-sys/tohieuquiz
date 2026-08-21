@@ -45,6 +45,10 @@ export const competitionRoutes: RouteRegistry = {
   get_competition_rounds: {
     method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/rounds`,
   },
+  upsert_competition_round_quiz: {
+    method: 'PUT', auth: 'session', path: ({ campaignId, roundId }) => `/api/competitions/${encoded(campaignId)}/rounds/${encoded(roundId)}/quizzes`,
+    body: identityBody,
+  },
   get_competition_progress: {
     method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/progress`,
   },

@@ -13,6 +13,9 @@ describe('Competition V1 dashboard API registry', () => {
       .toBe('/api/competitions/campaign%201');
     expect(resolveApiRoute('get_competition_rounds').path({ campaignId: 'campaign 1' }))
       .toBe('/api/competitions/campaign%201/rounds');
+    expect(resolveApiRoute('upsert_competition_round_quiz')).toMatchObject({ method: 'PUT', auth: 'session' });
+    expect(resolveApiRoute('upsert_competition_round_quiz').path({ campaignId: 'campaign 1', roundId: 'round 1' }))
+      .toBe('/api/competitions/campaign%201/rounds/round%201/quizzes');
     expect(resolveApiRoute('get_competition_progress').path({ campaignId: 'campaign 1' }))
       .toBe('/api/competitions/campaign%201/progress');
     expect(resolveApiRoute('get_competition_eligibility').path({ campaignId: 'campaign 1' }))
@@ -42,6 +45,11 @@ describe('Competition V1 dashboard API registry', () => {
     const freeze = resolveApiRoute('freeze_competition_audience');
     expect(freeze.body?.('freeze_competition_audience', { campaignId: 'c1', requestId: 'request-123' }))
       .toEqual({ requestId: 'request-123' });
+
+    const roundQuiz = resolveApiRoute('upsert_competition_round_quiz');
+    expect(roundQuiz.body?.('upsert_competition_round_quiz', {
+      campaignId: 'c1', roundId: 'r1', gradeLevel: 4, classId: 'class-4a', quizId: 'quiz-1', requestId: 'request-123',
+    })).toEqual({ campaignId: 'c1', roundId: 'r1', gradeLevel: 4, classId: 'class-4a', quizId: 'quiz-1', requestId: 'request-123' });
 
     const preflight = resolveApiRoute('run_school_exam_preflight');
     expect(preflight.body?.('run_school_exam_preflight', { eventId: 'e1', requestId: 'request-123' }))

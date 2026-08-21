@@ -399,6 +399,82 @@ describe('Competition V1 campaign routes', () => {
     expect(tooEarly.status).toBe(409);
   });
 
+  it('lets Admin map an immutable quiz snapshot by grade or class while Teacher remains read-only', async () => {
+    const createResponse = await request('/api/competitions', 'POST', createBody);
+    const campaignId = (await createResponse.json() as any).campaign.id as string;
+    const roundBody = {
+      campaignId,
+      roundId: 'round-mapping-1',
+      roundNumber: 1,
+      opensAt: '2026-09-10T00:00:00.000Z',
+      closesAt: '2026-09-11T00:00:00.000Z',
+      maxAttempts: 2,
+      passingRuleType: 'MIN_SCORE',
+      passingScore: 7,
+      requestId: 'round-mapping-config-0001',
+    };
+    expect((await request(`/api/competitions/${campaignId}/rounds/round-mapping-1`, 'PATCH', roundBody)).status)
+      .toBe(200);
+
+    const mappingBody = {
+      campaignId,
+      roundId: 'round-mapping-1',
+      gradeLevel: 4,
+      quizId: 'quiz-round',
+      requestId: 'round-mapping-upsert-0001',
+    };
+    const mapped = await request(
+      `/api/competitions/${campaignId}/rounds/round-mapping-1/quizzes`,
+      'PUT',
+      mappingBody,
+    );
+    expect(mapped.status).toBe(200);
+    const mappedBody = await mapped.json() as any;
+    expect(mappedBody.mapping).toMatchObject({
+      roundId: 'round-mapping-1',
+      gradeLevel: 4,
+      classId: null,
+      quizId: 'quiz-round',
+      quizSnapshotId: expect.any(String),
+      quizSnapshotHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
+
+    const remapped = await request(
+      `/api/competitions/${campaignId}/rounds/round-mapping-1/quizzes`,
+      'PUT',
+      { ...mappingBody, requestId: 'round-mapping-upsert-0002' },
+    );
+    expect(remapped.status).toBe(200);
+    expect((await remapped.json() as any).mapping.id).toBe(mappedBody.mapping.id);
+
+    const classMapping = await request(
+      `/api/competitions/${campaignId}/rounds/round-mapping-1/quizzes`,
+      'PUT',
+      { ...mappingBody, classId: 'class-4a', requestId: 'round-mapping-upsert-0003' },
+    );
+    expect(classMapping.status).toBe(200);
+    expect((await classMapping.json() as any).mapping).toMatchObject({ gradeLevel: 4, classId: 'class-4a' });
+
+    const teacherMutation = await request(
+      `/api/competitions/${campaignId}/rounds/round-mapping-1/quizzes`,
+      'PUT',
+      { ...mappingBody, classId: 'class-4b', requestId: 'round-mapping-upsert-0004' },
+      teacherCookie,
+    );
+    expect(teacherMutation.status).toBe(403);
+
+    const listed = await request(`/api/competitions/${campaignId}/rounds`, 'GET', undefined, teacherCookie);
+    expect(listed.status).toBe(200);
+    expect((await listed.json() as any).items[0]).toMatchObject({
+      quizSnapshot: { status: 'LOCKED', mappingCount: 2 },
+    });
+    expect((await (await request(`/api/competitions/${campaignId}/rounds`, 'GET')).json() as any).items[0].quizMappings)
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({ gradeLevel: 4, classId: null, quizId: 'quiz-round' }),
+        expect.objectContaining({ gradeLevel: 4, classId: 'class-4a', quizId: 'quiz-round' }),
+      ]));
+  });
+
   it('derives student identity from JWT for attempt start/submit and rejects client studentId', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-10T12:00:00.000Z'));

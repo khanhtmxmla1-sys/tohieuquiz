@@ -218,6 +218,45 @@ describe('Competition V1 admin and teacher dashboard surface', () => {
     ));
   });
 
+  it('lets Admin map a round quiz by grade and shows the locked mapping read-only to Teacher', async () => {
+    api.callApi.mockImplementation(async (action: string, payload?: any) => {
+      if (action === 'list_competitions') return {
+        items: [{ id: 'campaign-1', title: 'Hội thi 2026', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh', status: 'ACTIVE', audienceSnapshotId: 'audience-1' }],
+      };
+      if (action === 'get_competition_rounds') return {
+        items: [{
+          id: 'round-1', campaignId: 'campaign-1', roundNumber: 1,
+          opensAt: '2026-09-01T01:00:00.000Z', closesAt: '2026-09-01T02:00:00.000Z',
+          maxAttempts: 2, passingScore: 8, status: 'SCHEDULED',
+          quizSnapshot: { status: 'LOCKED', mappingCount: 1 },
+          quizMappings: [{ gradeLevel: 4, classId: null, quizId: 'quiz-round', quizSnapshotId: 'snapshot-1', quizSnapshotHash: 'a'.repeat(64) }],
+        }],
+      };
+      if (action === 'upsert_competition_round_quiz') return {
+        mapping: { ...payload, classId: null, quizSnapshotId: 'snapshot-1', quizSnapshotHash: 'a'.repeat(64) },
+      };
+      if (action === 'get_competition_eligibility') throw new Error('not finalized');
+      return { items: [] };
+    });
+
+    const { unmount } = render(<CompetitionDashboardPage isAdmin username="admin" />);
+    await screen.findByRole('option', { name: 'Hội thi 2026' });
+    fireEvent.change(screen.getByLabelText('Khối quiz vòng 1'), { target: { value: '4' } });
+    fireEvent.change(screen.getByLabelText('Quiz ID vòng 1'), { target: { value: 'quiz-round' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Gán quiz vòng 1' }));
+    await waitFor(() => expect(api.callApi).toHaveBeenCalledWith(
+      'upsert_competition_round_quiz',
+      expect.objectContaining({
+        campaignId: 'campaign-1', roundId: 'round-1', gradeLevel: 4, quizId: 'quiz-round', requestId: expect.any(String),
+      }),
+    ));
+    unmount();
+
+    render(<CompetitionDashboardPage isAdmin={false} username="teacher-4" />);
+    expect(await screen.findByText(/Khối 4 · mặc định · quiz-round/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gán quiz vòng 1' })).not.toBeInTheDocument();
+  });
+
   it('creates a School Exam event and room plan through Admin server mutations', async () => {
     api.callApi.mockImplementation(async (action: string, payload?: any) => {
       if (action === 'list_competitions') return {

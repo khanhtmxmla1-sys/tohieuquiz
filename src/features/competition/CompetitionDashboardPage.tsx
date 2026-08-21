@@ -39,6 +39,12 @@ type RoundDraft = {
   passingScore: string;
 };
 
+type RoundQuizDraft = {
+  gradeLevel: string;
+  classId: string;
+  quizId: string;
+};
+
 const ROUND_NUMBERS = [1, 2, 3, 4, 5, 6] as const;
 
 const splitIds = (value: string) => value.split(',').map(item => item.trim()).filter(Boolean);
@@ -86,6 +92,7 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
     requiredPassedRounds: '6', startsAt: '', endsAt: '',
   });
   const [roundDrafts, setRoundDrafts] = useState<Record<number, RoundDraft>>({});
+  const [roundQuizDrafts, setRoundQuizDrafts] = useState<Record<number, RoundQuizDraft>>({});
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -175,6 +182,20 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
     () => campaigns.find(item => item.id === selectedCampaignId) || null,
     [campaigns, selectedCampaignId],
   );
+
+  useEffect(() => {
+    const drafts: Record<number, RoundQuizDraft> = {};
+    for (const roundNumber of ROUND_NUMBERS) {
+      const round = rounds.find(item => item.roundNumber === roundNumber);
+      const mapping = round?.quizMappings?.[0];
+      drafts[roundNumber] = {
+        gradeLevel: String(mapping?.gradeLevel || selectedCampaign?.audienceRule?.gradeLevels?.[0] || 1),
+        classId: mapping?.classId || '',
+        quizId: mapping?.quizId || '',
+      };
+    }
+    setRoundQuizDrafts(drafts);
+  }, [rounds, selectedCampaign]);
 
   useEffect(() => {
     if (!selectedCampaign || selectedCampaign.status !== 'DRAFT') return;
@@ -284,6 +305,13 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
     }));
   };
 
+  const updateRoundQuizDraft = (roundNumber: number, patch: Partial<RoundQuizDraft>) => {
+    setRoundQuizDrafts(current => ({
+      ...current,
+      [roundNumber]: { ...current[roundNumber], ...patch },
+    }));
+  };
+
   const previewAudience = async () => {
     if (!selectedCampaign || !isAdmin) return;
     setPendingAction('audience-preview');
@@ -374,6 +402,49 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
       setActionMessage(`Đã chốt vòng ${roundNumber}.`);
     } catch {
       setActionError(`Không thể chốt vòng ${roundNumber}.`);
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const saveRoundQuiz = async (roundNumber: number) => {
+    if (!selectedCampaign || !isAdmin) return;
+    const round = rounds.find(item => item.roundNumber === roundNumber);
+    const draft = roundQuizDrafts[roundNumber];
+    const gradeLevel = Number(draft?.gradeLevel);
+    if (!round || !draft?.quizId.trim() || !Number.isInteger(gradeLevel) || gradeLevel < 1 || gradeLevel > 12) {
+      setActionError(`Cấu hình quiz vòng ${roundNumber} chưa hợp lệ.`);
+      return;
+    }
+    setPendingAction(`round-quiz-${roundNumber}`);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      const mapping = await competitionDashboardService.upsertRoundQuiz({
+        campaignId: selectedCampaign.id,
+        roundId: round.id,
+        gradeLevel,
+        ...(draft.classId.trim() ? { classId: draft.classId.trim() } : {}),
+        quizId: draft.quizId.trim(),
+        requestId: createRequestId(`round-${roundNumber}-quiz`),
+      });
+      setRounds(current => current.map(item => {
+        if (item.id !== round.id) return item;
+        const mappings = [
+          ...(item.quizMappings || []).filter(existing => !(
+            existing.gradeLevel === mapping.gradeLevel && existing.classId === mapping.classId
+          )),
+          mapping,
+        ];
+        return {
+          ...item,
+          quizMappings: mappings,
+          quizSnapshot: { status: 'LOCKED' as const, mappingCount: mappings.length },
+        };
+      }));
+      setActionMessage(`Đã gán quiz cho vòng ${roundNumber}.`);
+    } catch {
+      setActionError(`Không thể gán quiz cho vòng ${roundNumber}.`);
     } finally {
       setPendingAction(null);
     }
@@ -780,11 +851,41 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
                           )}
                         </div>
                       </div>
+                      {round && (
+                        <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                          <div className="grid gap-2 sm:grid-cols-3">
+                            <label className="text-xs font-semibold text-slate-600">Khối quiz vòng {roundNumber}
+                              <input aria-label={`Khối quiz vòng ${roundNumber}`} type="number" min="1" max="12" value={roundQuizDrafts[roundNumber]?.gradeLevel || '1'} onChange={event => updateRoundQuizDraft(roundNumber, { gradeLevel: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1.5 font-normal" />
+                            </label>
+                            <label className="text-xs font-semibold text-slate-600">Lớp ghi đè vòng {roundNumber}
+                              <input aria-label={`Lớp ghi đè vòng ${roundNumber}`} value={roundQuizDrafts[roundNumber]?.classId || ''} onChange={event => updateRoundQuizDraft(roundNumber, { classId: event.target.value })} placeholder="Để trống = mặc định khối" className="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1.5 font-normal" />
+                            </label>
+                            <label className="text-xs font-semibold text-slate-600">Quiz ID vòng {roundNumber}
+                              <input aria-label={`Quiz ID vòng ${roundNumber}`} value={roundQuizDrafts[roundNumber]?.quizId || ''} onChange={event => updateRoundQuizDraft(roundNumber, { quizId: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1.5 font-normal" />
+                            </label>
+                          </div>
+                          <button type="button" onClick={() => saveRoundQuiz(roundNumber)} disabled={pendingAction !== null || round.status === 'FINALIZED'} className="mt-2 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-50">Gán quiz vòng {roundNumber}</button>
+                        </div>
+                      )}
+                      {round?.quizMappings && round.quizMappings.length > 0 && (
+                        <div className="sm:col-span-2 space-y-1 text-xs text-slate-600">
+                          {round.quizMappings.map(mapping => (
+                            <div key={mapping.id || `${mapping.gradeLevel}-${mapping.classId || 'default'}`}>
+                              Khối {mapping.gradeLevel} · {mapping.classId || 'mặc định'} · {mapping.quizId}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-2 grid gap-1 text-slate-600 sm:grid-cols-2">
                       <span>Mở: {formatDateTime(round?.opensAt)}</span><span>Đóng: {formatDateTime(round?.closesAt)}</span>
                       <span>Tối đa: {round?.maxAttempts ?? '—'} lượt</span><span>Điểm đạt: {round?.passingScore ?? '—'}</span>
+                      {round?.quizMappings?.map(mapping => (
+                        <span key={mapping.id || `${mapping.gradeLevel}-${mapping.classId || 'default'}`} className="sm:col-span-2">
+                          Khối {mapping.gradeLevel} · {mapping.classId || 'mặc định'} · {mapping.quizId}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>

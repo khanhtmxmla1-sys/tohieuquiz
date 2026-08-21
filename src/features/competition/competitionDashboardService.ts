@@ -24,6 +24,18 @@ export interface CompetitionRoundView {
   status: string;
   finalizedAt?: string | null;
   quizSnapshot?: { status: 'MISSING' | 'LOCKED' | 'INVALID'; mappingCount: number };
+  quizMappings?: CompetitionRoundQuizMappingView[];
+}
+
+export interface CompetitionRoundQuizMappingView {
+  id: string;
+  roundId: string;
+  gradeLevel: number;
+  classId: string | null;
+  quizId: string;
+  quizSnapshotId: string;
+  quizSnapshotHash: string;
+  lockedAt?: string;
 }
 
 export interface CompetitionEligibilityItemView {
@@ -238,6 +250,21 @@ export const competitionDashboardService = {
   }): Promise<CompetitionRoundView> {
     const response = await callApi<{ round: CompetitionRoundView }>('update_competition_round', payload);
     return response.round;
+  },
+
+  async upsertRoundQuiz(payload: {
+    campaignId: string;
+    roundId: string;
+    gradeLevel: number;
+    classId?: string;
+    quizId: string;
+    requestId: string;
+  }): Promise<CompetitionRoundQuizMappingView> {
+    const response = await callApi<{ mapping: CompetitionRoundQuizMappingView }>(
+      'upsert_competition_round_quiz',
+      payload,
+    );
+    return response.mapping;
   },
 
   async finalizeRound(campaignId: string, roundId: string, requestId: string): Promise<CompetitionRoundView> {

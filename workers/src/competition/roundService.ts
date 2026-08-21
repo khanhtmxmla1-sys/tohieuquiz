@@ -1,5 +1,7 @@
 import {
+  UpsertCompetitionRoundQuizRequestSchema,
   UpdateCompetitionRoundRequestSchema,
+  type UpsertCompetitionRoundQuizRequest,
   type UpdateCompetitionRoundRequest,
 } from '../../../schemas/competition.schema';
 import { gradeQuiz } from '../../../src/domain/quiz-scoring';
@@ -7,7 +9,7 @@ import { mapLiveExamQuestionRow } from '../services/liveExamQuestionMapper';
 import { buildAuthoritativeStoredAnswers } from '../services/quizGradingService';
 import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
-import { assertQuizSnapshotIntegrity } from './quizSnapshotService';
+import { assertQuizSnapshotIntegrity, createOrReuseQuizSnapshot } from './quizSnapshotService';
 
 interface CompetitionRoundRow {
   id: string;
@@ -54,8 +56,20 @@ interface RoundQuizRow {
   quiz_id: string;
   quiz_snapshot_id: string;
   quiz_snapshot_hash: string;
+  locked_at?: string;
   canonical_payload_json: string;
   snapshot_sha256: string;
+}
+
+export interface RoundQuizMappingView {
+  id: string;
+  roundId: string;
+  gradeLevel: number;
+  classId: string | null;
+  quizId: string;
+  quizSnapshotId: string;
+  quizSnapshotHash: string;
+  lockedAt: string;
 }
 
 interface FrozenStudentRow {
@@ -157,6 +171,19 @@ function mapAttempt(row: CompetitionAttemptRow): RoundAttemptView {
     quizSnapshotId: row.quiz_snapshot_id,
     status: row.status,
     startedAt: row.started_at,
+  };
+}
+
+function mapRoundQuiz(row: RoundQuizRow): RoundQuizMappingView {
+  return {
+    id: row.id,
+    roundId: row.round_id,
+    gradeLevel: Number(row.grade_level),
+    classId: row.class_id,
+    quizId: row.quiz_id,
+    quizSnapshotId: row.quiz_snapshot_id,
+    quizSnapshotHash: row.quiz_snapshot_hash,
+    lockedAt: String(row.locked_at || ''),
   };
 }
 
@@ -342,28 +369,127 @@ export async function listCompetitionRounds(db: D1Database, campaignId: string) 
     ORDER BY round_number ASC, id ASC
   `).bind(normalizedCampaignId).all<CompetitionRoundRow>();
   const snapshotResult = await db.prepare(`
-    SELECT mapping.round_id,
-           COUNT(*) AS mapping_count,
-           SUM(CASE WHEN snapshot.id IS NULL OR mapping.quiz_snapshot_hash <> snapshot.sha256 THEN 1 ELSE 0 END) AS invalid_count
+    SELECT mapping.id, mapping.round_id, mapping.grade_level, mapping.class_id,
+           mapping.quiz_id, mapping.quiz_snapshot_id, mapping.quiz_snapshot_hash,
+           mapping.locked_at, snapshot.sha256 AS snapshot_sha256,
+           snapshot.canonical_payload_json
     FROM competition_round_quizzes AS mapping
     INNER JOIN competition_rounds AS round ON round.id = mapping.round_id
     LEFT JOIN competition_quiz_snapshots AS snapshot ON snapshot.id = mapping.quiz_snapshot_id
     WHERE round.campaign_id = ?
-    GROUP BY mapping.round_id
-  `).bind(normalizedCampaignId).all<{ round_id: string; mapping_count: number; invalid_count: number }>();
-  const snapshotByRound = new Map((snapshotResult.results || []).map((row) => [row.round_id, row]));
+    ORDER BY mapping.round_id ASC, mapping.grade_level ASC, mapping.class_id ASC, mapping.id ASC
+  `).bind(normalizedCampaignId).all<RoundQuizRow>();
+  const mappingsByRound = new Map<string, RoundQuizRow[]>();
+  for (const mapping of snapshotResult.results || []) {
+    const mappings = mappingsByRound.get(mapping.round_id) || [];
+    mappings.push(mapping);
+    mappingsByRound.set(mapping.round_id, mappings);
+  }
   return (result.results || []).map((row) => {
-    const snapshot = snapshotByRound.get(row.id);
-    const mappingCount = Number(snapshot?.mapping_count || 0);
-    const invalidCount = Number(snapshot?.invalid_count || 0);
+    const mappings = mappingsByRound.get(row.id) || [];
+    const mappingCount = mappings.length;
+    const invalidCount = mappings.filter(mapping => (
+      !mapping.snapshot_sha256 || mapping.quiz_snapshot_hash !== mapping.snapshot_sha256
+    )).length;
     return {
       ...mapRound(row),
       quizSnapshot: {
         status: mappingCount === 0 ? 'MISSING' : invalidCount > 0 ? 'INVALID' : 'LOCKED',
         mappingCount,
       },
+      quizMappings: mappings.map(mapRoundQuiz),
     };
   });
+}
+
+export async function upsertCompetitionRoundQuiz(
+  db: D1Database,
+  campaignId: string,
+  roundId: string,
+  input: UpsertCompetitionRoundQuizRequest,
+  actorUsername: string,
+): Promise<RoundQuizMappingView> {
+  const normalizedCampaignId = normalizedId(campaignId, 'COMPETITION_CAMPAIGN_ID_REQUIRED');
+  const normalizedRoundId = normalizedId(roundId, 'COMPETITION_ROUND_ID_REQUIRED');
+  const actor = normalizedId(actorUsername, 'COMPETITION_ACTOR_REQUIRED');
+  const parsed = UpsertCompetitionRoundQuizRequestSchema.parse(input);
+  if (parsed.campaignId !== normalizedCampaignId || parsed.roundId !== normalizedRoundId) {
+    throw new Error('COMPETITION_ROUND_ROUTE_MISMATCH');
+  }
+
+  const round = await getRoundRow(db, normalizedCampaignId, normalizedRoundId);
+  if (!round) throw new Error('COMPETITION_ROUND_NOT_FOUND');
+  if (round.status === 'FINALIZED') throw new Error('COMPETITION_ROUND_FINALIZED');
+  if (round.status !== 'DRAFT' && effectiveRoundStatus(round) !== 'SCHEDULED') {
+    throw new Error('COMPETITION_ROUND_CONFIG_LOCKED');
+  }
+  if (parsed.classId) {
+    const classroom = await db.prepare('SELECT id FROM classes WHERE id = ? LIMIT 1')
+      .bind(parsed.classId)
+      .first<{ id: string }>();
+    if (!classroom) throw new Error('COMPETITION_ROUND_CLASS_NOT_FOUND');
+  }
+
+  const existing = await db.prepare(`
+    SELECT mapping.id, mapping.round_id, mapping.grade_level, mapping.class_id,
+           mapping.quiz_id, mapping.quiz_snapshot_id, mapping.quiz_snapshot_hash,
+           mapping.locked_at, snapshot.canonical_payload_json,
+           snapshot.sha256 AS snapshot_sha256
+    FROM competition_round_quizzes AS mapping
+    INNER JOIN competition_quiz_snapshots AS snapshot ON snapshot.id = mapping.quiz_snapshot_id
+    WHERE mapping.round_id = ? AND mapping.grade_level = ?
+      AND ((? IS NULL AND mapping.class_id IS NULL) OR mapping.class_id = ?)
+    LIMIT 1
+  `).bind(normalizedRoundId, parsed.gradeLevel, parsed.classId || null, parsed.classId || null)
+    .first<RoundQuizRow>();
+  const snapshot = await createOrReuseQuizSnapshot(db, parsed.quizId);
+  const mappingId = existing?.id || generateId('competition-round-quiz');
+  const lockedAt = new Date().toISOString();
+  const mutation = existing
+    ? db.prepare(`
+        UPDATE competition_round_quizzes
+        SET quiz_id = ?, quiz_snapshot_id = ?, quiz_snapshot_hash = ?, locked_at = ?
+        WHERE id = ?
+      `).bind(parsed.quizId, snapshot.id, snapshot.sha256, lockedAt, mappingId)
+    : db.prepare(`
+        INSERT INTO competition_round_quizzes (
+          id, round_id, grade_level, class_id, quiz_id, quiz_snapshot_id,
+          quiz_snapshot_hash, locked_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        mappingId,
+        normalizedRoundId,
+        parsed.gradeLevel,
+        parsed.classId || null,
+        parsed.quizId,
+        snapshot.id,
+        snapshot.sha256,
+        lockedAt,
+      );
+
+  const after: RoundQuizMappingView = {
+    id: mappingId,
+    roundId: normalizedRoundId,
+    gradeLevel: parsed.gradeLevel,
+    classId: parsed.classId || null,
+    quizId: parsed.quizId,
+    quizSnapshotId: snapshot.id,
+    quizSnapshotHash: snapshot.sha256,
+    lockedAt,
+  };
+  await db.batch([
+    mutation,
+    auditStatement(db, {
+      actorUsername: actor,
+      action: 'ROUND_CONFIG_CHANGED',
+      targetType: 'competition_round_quiz',
+      targetId: mappingId,
+      requestId: parsed.requestId,
+      before: existing ? mapRoundQuiz(existing) : undefined,
+      after,
+    }),
+  ]);
+  return after;
 }
 
 export async function updateCompetitionRound(
