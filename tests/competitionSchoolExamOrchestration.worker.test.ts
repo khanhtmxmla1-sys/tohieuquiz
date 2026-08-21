@@ -14,10 +14,15 @@ const orchestrationMigrationUrl = new URL('../workers/migrations/0072_competitio
 const reconcileMigrationUrl = new URL('../workers/migrations/0073_competition_school_exam_reconcile.sql', import.meta.url);
 const incidentRetestMigrationUrl = new URL('../workers/migrations/0074_competition_school_exam_incident_retest.sql', import.meta.url);
 const publicationRankingMigrationUrl = new URL('../workers/migrations/0075_competition_school_exam_publication_ranking.sql', import.meta.url);
+const certificateAdapterMigrationUrl = new URL('../workers/migrations/0076_competition_certificate_adapter.sql', import.meta.url);
 
 const secret = 'school-exam-orchestration-test-secret';
 let sqlite: DatabaseSync;
-let env: { DB: D1Database; JWT_SECRET: string };
+let env: {
+  DB: D1Database;
+  JWT_SECRET: string;
+  CERTIFICATE_QUEUE: { send: ReturnType<typeof vi.fn> };
+};
 let adminCookie: string;
 let invigilatorCookie: string;
 let unrelatedTeacherCookie: string;
@@ -83,6 +88,57 @@ function createBaseSchema(db: DatabaseSync): void {
       answer_schema_version INTEGER
     );
     CREATE TABLE results (id INTEGER PRIMARY KEY AUTOINCREMENT);
+    CREATE TABLE certificate_templates (
+      id TEXT PRIMARY KEY,
+      school_id TEXT,
+      name TEXT NOT NULL,
+      description TEXT,
+      bg_image_r2_key TEXT NOT NULL,
+      thumbnail_r2_key TEXT,
+      fields_config TEXT NOT NULL DEFAULT '[]',
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE certificate_batches (
+      id TEXT PRIMARY KEY,
+      teacher_id TEXT NOT NULL,
+      request_id TEXT NOT NULL,
+      class_id TEXT,
+      quiz_id TEXT,
+      template_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT,
+      achievement_prefix TEXT,
+      date_line TEXT,
+      student_name_font TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempt_count INTEGER NOT NULL DEFAULT 0,
+      processing_started_at TEXT,
+      error_message TEXT,
+      sent_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(teacher_id, request_id)
+    );
+    CREATE TABLE certificates (
+      id TEXT PRIMARY KEY,
+      batch_id TEXT NOT NULL,
+      student_id TEXT NOT NULL,
+      student_name TEXT NOT NULL DEFAULT '',
+      student_score REAL,
+      quiz_title TEXT,
+      image_url TEXT,
+      png_r2_key TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempt_count INTEGER NOT NULL DEFAULT 0,
+      error_message TEXT,
+      issued_at TEXT NOT NULL,
+      sent_at TEXT,
+      updated_at TEXT NOT NULL,
+      UNIQUE(batch_id, student_id)
+    );
     CREATE TABLE admin_audit_logs (
       id TEXT PRIMARY KEY,
       actor_username TEXT NOT NULL,
@@ -110,6 +166,12 @@ function createBaseSchema(db: DatabaseSync): void {
     INSERT INTO questions (id, quiz_id, type, question, options, correct_answer, difficulty) VALUES
       ('qa-1', 'quiz-a', 'MCQ', 'A?', '1|2', 'B', 'MEDIUM'),
       ('qb-1', 'quiz-b', 'MCQ', 'B?', '1|2', 'B', 'MEDIUM');
+    INSERT INTO certificate_templates (
+      id, school_id, name, bg_image_r2_key, fields_config, is_active, created_by, created_at, updated_at
+    ) VALUES (
+      'template-competition', NULL, 'Competition Winner', 'templates/competition.png', '[]', 1, 'admin',
+      '2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z'
+    );
   `);
 }
 
@@ -122,6 +184,7 @@ function seedCompetition(): void {
   if (existsSync(reconcileMigrationUrl)) sqlite.exec(readFileSync(reconcileMigrationUrl, 'utf8'));
   if (existsSync(incidentRetestMigrationUrl)) sqlite.exec(readFileSync(incidentRetestMigrationUrl, 'utf8'));
   if (existsSync(publicationRankingMigrationUrl)) sqlite.exec(readFileSync(publicationRankingMigrationUrl, 'utf8'));
+  if (existsSync(certificateAdapterMigrationUrl)) sqlite.exec(readFileSync(certificateAdapterMigrationUrl, 'utf8'));
 
   sqlite.exec(`
     INSERT INTO competition_campaigns (
@@ -372,7 +435,11 @@ beforeEach(async () => {
   sqlite = new DatabaseSync(':memory:');
   createBaseSchema(sqlite);
   seedCompetition();
-  env = { DB: createSqliteD1(sqlite), JWT_SECRET: secret };
+  env = {
+    DB: createSqliteD1(sqlite),
+    JWT_SECRET: secret,
+    CERTIFICATE_QUEUE: { send: vi.fn(async () => undefined) },
+  };
   const token = await signJWT({ username: 'admin', role: 'admin', tokenVersion: 1, purpose: 'session' }, secret, '30d');
   const invigilatorToken = await signJWT({ username: 'teacher-4', role: 'teacher', tokenVersion: 1, purpose: 'session' }, secret, '30d');
   const unrelatedTeacherToken = await signJWT({ username: 'teacher-5', role: 'teacher', tokenVersion: 1, purpose: 'session' }, secret, '30d');
@@ -1015,6 +1082,155 @@ describe('Competition V1 school-exam orchestration', () => {
       UPDATE competition_school_exam_publications SET result_digest = 'tampered'
       WHERE event_id = ? AND version = 1
     `).run(ready.eventId)).toThrow(/SCHOOL_EXAM_PUBLICATION_IMMUTABLE/);
+  });
+
+  it('creates real class certificate batches from an exact published ranking snapshot without fake classes', async () => {
+    const ready = await createReadyRankingEvent();
+    const published = await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-certificates-0001',
+    });
+    expect(published?.status).toBe(201);
+
+    const response = await request(`/api/school-exams/${ready.eventId}/certificates`, 'POST', {
+      eventId: ready.eventId,
+      publicationVersion: 1,
+      rankingVersion: 1,
+      winnerStudentIds: ['student-1', 'student-2', 'student-4'],
+      templateId: 'template-competition',
+      title: 'Competition Winners',
+      achievementPrefix: 'Đạt thành tích xuất sắc',
+      requestId: 'certificate-winners-0001',
+    });
+    expect(response?.status).toBe(201);
+    const payload = (await response!.json()) as any;
+    expect(payload.certificateBatch).toMatchObject({
+      eventId: ready.eventId,
+      publicationVersion: 1,
+      rankingVersion: 1,
+      status: 'QUEUED',
+      winnerCount: 3,
+      batchCount: 2,
+      batches: [
+        expect.objectContaining({ originalClassId: 'class-4a', winnerCount: 2, certificateBatchId: expect.any(String) }),
+        expect.objectContaining({ originalClassId: 'class-4b', winnerCount: 1, certificateBatchId: expect.any(String) }),
+      ],
+    });
+    expect(sqlite.prepare(`
+      SELECT class_id, COUNT(*) AS count FROM certificate_batches GROUP BY class_id ORDER BY class_id
+    `).all()).toEqual([
+      { class_id: 'class-4a', count: 1 },
+      { class_id: 'class-4b', count: 1 },
+    ]);
+    expect(sqlite.prepare(`
+      SELECT cb.class_id, GROUP_CONCAT(c.student_id, ',') AS students
+      FROM certificate_batches cb
+      JOIN certificates c ON c.batch_id = cb.id
+      GROUP BY cb.class_id ORDER BY cb.class_id
+    `).all()).toEqual([
+      { class_id: 'class-4a', students: 'student-1,student-4' },
+      { class_id: 'class-4b', students: 'student-2' },
+    ]);
+    expect(sqlite.prepare(`
+      SELECT original_class_id, winner_count, certificate_batch_id
+      FROM competition_school_exam_certificate_batch_items
+      WHERE parent_id = ? ORDER BY original_class_id
+    `).all(payload.certificateBatch.id)).toEqual([
+      { original_class_id: 'class-4a', winner_count: 2, certificate_batch_id: payload.certificateBatch.batches[0].certificateBatchId },
+      { original_class_id: 'class-4b', winner_count: 1, certificate_batch_id: payload.certificateBatch.batches[1].certificateBatchId },
+    ]);
+    expect(env.CERTIFICATE_QUEUE.send).toHaveBeenCalledTimes(2);
+
+    const replay = await request(`/api/school-exams/${ready.eventId}/certificates`, 'POST', {
+      eventId: ready.eventId,
+      publicationVersion: 1,
+      rankingVersion: 1,
+      winnerStudentIds: ['student-1', 'student-2', 'student-4'],
+      templateId: 'template-competition',
+      title: 'Competition Winners',
+      achievementPrefix: 'Đạt thành tích xuất sắc',
+      requestId: 'certificate-winners-0001',
+    });
+    expect(replay?.status).toBe(200);
+    expect(((await replay!.json()) as any).certificateBatch.id).toBe(payload.certificateBatch.id);
+    expect(env.CERTIFICATE_QUEUE.send).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects certificate winners that are not in the requested immutable publication version', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-certificates-invalid-winner-0001',
+    }))?.status).toBe(201);
+
+    const response = await request(`/api/school-exams/${ready.eventId}/certificates`, 'POST', {
+      eventId: ready.eventId,
+      publicationVersion: 1,
+      rankingVersion: 1,
+      winnerStudentIds: ['student-3'],
+      templateId: 'template-competition',
+      title: 'Competition Winners',
+      requestId: 'certificate-invalid-winner-0001',
+    });
+    expect(response?.status).toBe(409);
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM certificate_batches').get()).toEqual({ count: 0 });
+    expect(env.CERTIFICATE_QUEUE.send).not.toHaveBeenCalled();
+  });
+
+  it('keeps the immutable publication published when the certificate queue is unavailable', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-certificates-queue-failure-0001',
+    }))?.status).toBe(201);
+    delete (env as any).CERTIFICATE_QUEUE;
+
+    const response = await request(`/api/school-exams/${ready.eventId}/certificates`, 'POST', {
+      eventId: ready.eventId,
+      publicationVersion: 1,
+      rankingVersion: 1,
+      winnerStudentIds: ['student-2'],
+      templateId: 'template-competition',
+      title: 'Competition Winners',
+      requestId: 'certificate-queue-failure-0001',
+    });
+    expect(response?.status).toBe(503);
+    expect(sqlite.prepare(`
+      SELECT status, version, ranking_version FROM competition_school_exam_publications
+      WHERE event_id = ? AND version = 1
+    `).get(ready.eventId)).toEqual({ status: 'PUBLISHED', version: 1, ranking_version: 1 });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(ready.eventId))
+      .toEqual({ status: 'PUBLISHED' });
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM certificate_batches').get()).toEqual({ count: 0 });
+  });
+
+  it('returns a service failure without reverting publication when certificate queue delivery throws', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-certificates-queue-throw-0001',
+    }))?.status).toBe(201);
+    env.CERTIFICATE_QUEUE.send.mockRejectedValueOnce(new Error('queue transport down'));
+
+    const response = await request(`/api/school-exams/${ready.eventId}/certificates`, 'POST', {
+      eventId: ready.eventId,
+      publicationVersion: 1,
+      rankingVersion: 1,
+      winnerStudentIds: ['student-2'],
+      templateId: 'template-competition',
+      title: 'Competition Winners',
+      requestId: 'certificate-queue-throw-0001',
+    });
+    expect(response?.status).toBe(503);
+    expect(sqlite.prepare(`
+      SELECT status FROM competition_school_exam_certificate_batches
+      WHERE event_id = ? AND request_id = 'certificate-queue-throw-0001'
+    `).get(ready.eventId)).toEqual({ status: 'FAILED' });
+    expect(sqlite.prepare(`
+      SELECT status FROM competition_school_exam_publications WHERE event_id = ? AND version = 1
+    `).get(ready.eventId)).toEqual({ status: 'PUBLISHED' });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(ready.eventId))
+      .toEqual({ status: 'PUBLISHED' });
   });
 
   it('persists the full blocking issue taxonomy and withholds publication when reconciliation is not clean', async () => {

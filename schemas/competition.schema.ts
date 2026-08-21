@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CERTIFICATE_NAME_FONTS } from '../shared/certificates.contract';
 import {
   COMPETITION_ATTEMPT_STATUSES,
   COMPETITION_CAMPAIGN_STATUSES,
@@ -193,6 +194,20 @@ export const PublishCompetitionResultsRequestSchema = z.object({
   requestId: RequestIdSchema,
 }).strict();
 
+export const CreateCompetitionCertificateBatchRequestSchema = z.object({
+  eventId: IdentifierSchema,
+  publicationVersion: z.number().int().positive(),
+  rankingVersion: z.number().int().positive(),
+  winnerStudentIds: z.array(IdentifierSchema).min(1).max(1000),
+  templateId: IdentifierSchema,
+  title: z.string().trim().min(1).max(200),
+  message: z.string().trim().max(500).optional(),
+  achievementPrefix: z.string().trim().max(160).optional(),
+  dateLine: z.string().trim().max(200).optional(),
+  studentNameFont: z.enum(CERTIFICATE_NAME_FONTS).optional(),
+  requestId: RequestIdSchema,
+}).strict();
+
 export const CreateCompetitionExportRequestSchema = z.object({
   eventId: IdentifierSchema,
   scope: z.enum(['SCHOOL', 'CLASS']),
@@ -218,4 +233,5 @@ export type CreateSchoolExamEventRequest = z.infer<typeof CreateSchoolExamEventR
 export type CreateSchoolExamRoomRequest = z.infer<typeof CreateSchoolExamRoomRequestSchema>;
 export type CreateSchoolExamIncidentRequest = z.infer<typeof CreateSchoolExamIncidentRequestSchema>;
 export type GrantSchoolExamRetestRequest = z.infer<typeof GrantSchoolExamRetestRequestSchema>;
+export type CreateCompetitionCertificateBatchRequest = z.infer<typeof CreateCompetitionCertificateBatchRequestSchema>;
 export type CreateCompetitionExportRequest = z.infer<typeof CreateCompetitionExportRequestSchema>;

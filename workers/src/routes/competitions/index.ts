@@ -1,5 +1,6 @@
 import {
   CreateCompetitionCampaignRequestSchema,
+  CreateCompetitionCertificateBatchRequestSchema,
   CreateSchoolExamEventRequestSchema,
   CreateSchoolExamIncidentRequestSchema,
   CreateSchoolExamRoomRequestSchema,
@@ -58,6 +59,7 @@ import {
   publishSchoolExamResults,
   type SchoolExamRankingScope,
 } from '../../competition/schoolExamPublicationRankingService';
+import { createSchoolExamCertificateBatches } from '../../competition/schoolExamCertificateService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
 
@@ -125,6 +127,8 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_RETEST_NOT_FOUND',
     'SCHOOL_EXAM_ORIGINAL_RESULT_NOT_FOUND',
     'SCHOOL_EXAM_PUBLICATION_NOT_FOUND',
+    'SCHOOL_EXAM_CERTIFICATE_PUBLICATION_NOT_FOUND',
+    'SCHOOL_EXAM_CERTIFICATE_TEMPLATE_NOT_FOUND',
   ].includes(message)) return errorResponse(message, 404);
   if ([
     'COMPETITION_CAMPAIGN_NOT_DRAFT',
@@ -163,6 +167,8 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_PUBLISH_NOT_READY',
     'SCHOOL_EXAM_PUBLISH_RESULTS_REQUIRED',
     'SCHOOL_EXAM_PUBLISH_RECONCILE_VERSION_REQUIRED',
+    'SCHOOL_EXAM_CERTIFICATE_WINNER_INVALID',
+    'SCHOOL_EXAM_CERTIFICATE_CLASS_BATCH_TOO_LARGE',
   ].includes(message)) return errorResponse(message, 409);
   if ([
     'COMPETITION_STUDENT_NOT_IN_AUDIENCE',
@@ -170,6 +176,11 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_EVENT_FORBIDDEN',
     'SCHOOL_EXAM_INCIDENT_FORBIDDEN',
   ].includes(message)) return errorResponse(message, 403);
+  if ([
+    'CERTIFICATE_QUEUE_UNAVAILABLE',
+    'SCHOOL_EXAM_CERTIFICATE_QUEUE_FAILED',
+    'SCHOOL_EXAM_CERTIFICATE_PERSIST_FAILED',
+  ].includes(message)) return errorResponse(message, 503);
   if (message === 'COMPETITION_AUDIENCE_CURSOR_INVALID') return errorResponse(message, 400);
   return errorResponse(message, 400);
 }
@@ -420,6 +431,21 @@ export async function handleCompetitionRoutes(
         ...(url.searchParams.get('classId') ? { classId: String(url.searchParams.get('classId')) } : {}),
       });
       return jsonResponse({ rankings });
+    }
+
+    const schoolExamCertificateParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/certificates$/);
+    if (schoolExamCertificateParts && method === 'POST') {
+      const [eventId] = schoolExamCertificateParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = CreateCompetitionCertificateBatchRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam certificate payload', 400);
+      if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
+      const result = await createSchoolExamCertificateBatches(env, parsed.data, user.username);
+      return jsonResponse(
+        { certificateBatch: result.certificateBatch },
+        result.created ? 201 : 200,
+      );
     }
 
     if (path === '/api/competitions' && method === 'POST') {

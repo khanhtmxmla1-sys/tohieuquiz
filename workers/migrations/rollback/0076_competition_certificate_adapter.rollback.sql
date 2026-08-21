@@ -1,0 +1,7 @@
+DROP INDEX IF EXISTS idx_school_exam_certificate_batch_items_batch;
+DROP INDEX IF EXISTS idx_school_exam_certificate_batch_items_event_version;
+DROP TABLE IF EXISTS competition_school_exam_certificate_batch_items;
+ALTER TABLE competition_school_exam_certificate_batches DROP COLUMN error_code;
+ALTER TABLE competition_school_exam_certificate_batches DROP COLUMN winner_count;
+ALTER TABLE competition_school_exam_certificate_batches DROP COLUMN template_id;
+ALTER TABLE competition_school_exam_certificate_batches DROP COLUMN ranking_version;
