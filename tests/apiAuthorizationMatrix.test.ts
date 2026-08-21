@@ -53,6 +53,7 @@ const routeSamples = [
   ['/api/student/competitions/campaign-1', 'GET', 'student-owned'],
   ['/api/school-exams/event-1', 'GET', 'teacher-owned'],
   ['/api/school-exams/event-1/incidents', 'POST', 'teacher-owned'],
+  ['/api/school-exams/event-1/exports', 'POST', 'teacher-owned'],
   ['/api/school-exams/event-1/retests/retest-1/grant', 'POST', 'admin-only'],
   ['/api/school-exams/event-1/publish', 'POST', 'admin-only'],
 ] as const;

@@ -7,7 +7,9 @@ export const isDashboardTabAllowed = (
   tab: TeacherDashboardTab,
   isAdmin: boolean,
   giftShopEnabled: boolean,
+  competitionEnabled = false,
 ): boolean => (giftShopEnabled || tab !== 'gift-shop')
+  && (competitionEnabled || tab !== 'competition')
   && (isAdmin || !ADMIN_TABS.includes(tab));
 
 export const useDashboardPermissions = (
@@ -15,8 +17,9 @@ export const useDashboardPermissions = (
   onInvalidTab: () => void,
   isAdmin: boolean,
   giftShopEnabled: boolean,
+  competitionEnabled = false,
 ) => {
   useEffect(() => {
-    if (!isDashboardTabAllowed(activeTab, isAdmin, giftShopEnabled)) onInvalidTab();
-  }, [giftShopEnabled, activeTab, isAdmin, onInvalidTab]);
+    if (!isDashboardTabAllowed(activeTab, isAdmin, giftShopEnabled, competitionEnabled)) onInvalidTab();
+  }, [giftShopEnabled, competitionEnabled, activeTab, isAdmin, onInvalidTab]);
 };

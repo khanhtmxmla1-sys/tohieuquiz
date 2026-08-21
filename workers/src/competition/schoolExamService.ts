@@ -264,6 +264,46 @@ export async function createSchoolExamEvent(
   return mapEvent(created);
 }
 
+export async function listSchoolExamEvents(
+  db: D1Database,
+  campaignId: string,
+  options: { classIds?: string[] } = {},
+) {
+  const result = await db.prepare(`
+    SELECT id, campaign_id, eligibility_snapshot_version, title, exam_date, status,
+           ranking_policy, exam_form_policy, capacity_profile_id, create_request_id,
+           preflight_json, preflight_at, created_by, created_at, updated_at
+    FROM competition_school_exam_events
+    WHERE campaign_id = ?
+    ORDER BY exam_date DESC, created_at DESC, id DESC
+  `).bind(campaignId).all<SchoolExamEventRow>();
+  const events = result.results || [];
+
+  if (options.classIds !== undefined && options.classIds.length === 0) return [];
+
+  let allowedRoomIds: Set<string> | null = null;
+  if (options.classIds !== undefined) {
+    const placeholders = options.classIds.map(() => '?').join(', ');
+    const scoped = await db.prepare(`
+      SELECT DISTINCT member.room_id
+      FROM competition_school_exam_members AS member
+      INNER JOIN competition_school_exam_events AS event ON event.id = member.event_id
+      WHERE event.campaign_id = ?
+        AND member.original_class_id IN (${placeholders})
+    `).bind(campaignId, ...options.classIds).all<{ room_id: string }>();
+    allowedRoomIds = new Set((scoped.results || []).map((row) => row.room_id));
+  }
+
+  const items = [];
+  for (const event of events) {
+    let rooms = await roomRows(db, event.id);
+    if (allowedRoomIds) rooms = rooms.filter((room) => allowedRoomIds!.has(room.id));
+    if (allowedRoomIds && rooms.length === 0) continue;
+    items.push({ ...mapEvent(event), rooms: rooms.map(mapRoom) });
+  }
+  return items;
+}
+
 export async function getSchoolExamEvent(
   db: D1Database,
   eventId: string,

@@ -20,6 +20,7 @@ export interface TeacherDashboardLayoutProps {
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: Dispatch<SetStateAction<boolean>>;
   giftShopEnabled: boolean;
+  competitionEnabled: boolean;
   passwordGate: PasswordGateState | null;
   completePasswordChange: () => void;
   displayName: string;

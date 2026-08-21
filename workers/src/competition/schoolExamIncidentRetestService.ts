@@ -100,6 +100,75 @@ async function retestById(db: D1Database, id: string): Promise<RetestRow | null>
   `).bind(id).first<RetestRow>();
 }
 
+async function assignedRoomIds(
+  db: D1Database,
+  eventId: string,
+  viewer: { username: string; role: string },
+): Promise<Set<string> | null> {
+  if (viewer.role === 'admin') return null;
+  const rooms = await db.prepare(`
+    SELECT id, invigilator_ids_json
+    FROM competition_school_exam_rooms
+    WHERE event_id = ?
+    ORDER BY id ASC
+  `).bind(eventId).all<{ id: string; invigilator_ids_json: string }>();
+  return new Set((rooms.results || [])
+    .filter((room) => parseJson<string[]>(room.invigilator_ids_json, []).includes(viewer.username))
+    .map((room) => room.id));
+}
+
+export async function listSchoolExamIncidents(
+  db: D1Database,
+  eventId: string,
+  viewer: { username: string; role: string },
+) {
+  const event = await db.prepare('SELECT id FROM competition_school_exam_events WHERE id = ? LIMIT 1')
+    .bind(eventId).first<{ id: string }>();
+  if (!event) throw new Error('SCHOOL_EXAM_EVENT_NOT_FOUND');
+  const scopedRooms = await assignedRoomIds(db, eventId, viewer);
+  const result = await db.prepare(`
+    SELECT id, event_id, room_id, student_id, incident_type, severity, details_json,
+           reported_by, occurred_at, resolved_at, resolution_json, request_id
+    FROM competition_school_exam_incidents
+    WHERE event_id = ?
+    ORDER BY occurred_at DESC, id DESC
+  `).bind(eventId).all<IncidentRow>();
+  return (result.results || [])
+    .filter((row) => scopedRooms === null || (row.room_id !== null && scopedRooms.has(row.room_id)))
+    .map(mapIncident);
+}
+
+export async function listSchoolExamRetests(
+  db: D1Database,
+  eventId: string,
+  viewer: { username: string; role: string },
+) {
+  const event = await db.prepare('SELECT id FROM competition_school_exam_events WHERE id = ? LIMIT 1')
+    .bind(eventId).first<{ id: string }>();
+  if (!event) throw new Error('SCHOOL_EXAM_EVENT_NOT_FOUND');
+  const scopedRooms = await assignedRoomIds(db, eventId, viewer);
+  const result = await db.prepare(`
+    SELECT id, event_id, student_id, source_result_id, replacement_room_id, reason, status,
+           requested_by, requested_at, decided_by, decided_at, incident_id, reason_code,
+           reason_text, grant_request_id, expires_at, live_exam_session_id, resolution
+    FROM competition_school_exam_retests
+    WHERE event_id = ?
+    ORDER BY requested_at DESC, id DESC
+  `).bind(eventId).all<RetestRow>();
+  if (scopedRooms === null) return (result.results || []).map(mapRetest);
+  const incidentRows = await db.prepare(`
+    SELECT id, room_id
+    FROM competition_school_exam_incidents
+    WHERE event_id = ?
+  `).bind(eventId).all<{ id: string; room_id: string | null }>();
+  const allowedIncidentIds = new Set((incidentRows.results || [])
+    .filter((row) => row.room_id !== null && scopedRooms.has(row.room_id))
+    .map((row) => row.id));
+  return (result.results || [])
+    .filter((row) => row.incident_id !== null && allowedIncidentIds.has(row.incident_id))
+    .map(mapRetest);
+}
+
 async function requireIncidentScope(
   db: D1Database,
   eventId: string,

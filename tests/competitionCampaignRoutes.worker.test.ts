@@ -387,7 +387,9 @@ describe('Competition V1 campaign routes', () => {
 
     const list = await request(`/api/competitions/${campaignId}/rounds`, 'GET', undefined, teacherCookie);
     expect(list.status).toBe(200);
-    expect((await list.json() as any).items).toHaveLength(1);
+    const listedRounds = (await list.json() as any).items;
+    expect(listedRounds).toHaveLength(1);
+    expect(listedRounds[0].quizSnapshot).toEqual({ status: 'MISSING', mappingCount: 0 });
 
     const tooEarly = await request(
       `/api/competitions/${campaignId}/rounds/round-route-1/finalize`,
@@ -427,6 +429,10 @@ describe('Competition V1 campaign routes', () => {
       'round-route-quiz-1', 'round-route-1', 'quiz-round', quizSnapshot.id, quizSnapshot.sha256,
       '2026-08-20T00:00:00.000Z',
     );
+
+    const roundList = await request(`/api/competitions/${campaignId}/rounds`, 'GET', undefined, teacherCookie);
+    expect(roundList.status).toBe(200);
+    expect(((await roundList.json() as any).items[0]).quizSnapshot).toEqual({ status: 'LOCKED', mappingCount: 1 });
 
     const spoofed = await request(
       `/api/student/competitions/${campaignId}/rounds/round-route-1/attempts`,
@@ -491,6 +497,55 @@ describe('Competition V1 campaign routes', () => {
     );
     expect(finalize.status).toBe(200);
     expect((await finalize.json() as any).round.status).toBe('FINALIZED');
+  });
+
+  it('exposes class-scoped Teacher round progress with attempts and best score', async () => {
+    const createResponse = await request('/api/competitions', 'POST', createBody);
+    const campaignId = (await createResponse.json() as any).campaign.id as string;
+    expect((await request(`/api/competitions/${campaignId}/audience/snapshot`, 'POST', {
+      requestId: 'progress-audience-0001',
+    })).status).toBe(201);
+
+    sqlite.prepare(`
+      INSERT INTO competition_rounds (
+        id, campaign_id, round_number, opens_at, closes_at, max_attempts,
+        passing_rule_type, passing_score, status, created_at
+      ) VALUES ('progress-round-1', ?, 1, ?, ?, 3, 'MIN_SCORE', 7, 'SCHEDULED', ?)
+    `).run(
+      campaignId,
+      '2026-09-10T00:00:00.000Z',
+      '2026-09-11T00:00:00.000Z',
+      '2026-08-20T00:00:00.000Z',
+    );
+    sqlite.prepare(`
+      INSERT INTO competition_round_progress (
+        campaign_id, round_id, student_id, attempts_used, best_attempt_id, best_score,
+        is_passed, passed_at, status, version, updated_at
+      ) VALUES (?, 'progress-round-1', 'student-1', 2, NULL, 8.5, 0, NULL, 'IN_PROGRESS', 1, ?)
+    `).run(campaignId, '2026-09-10T01:00:00.000Z');
+    sqlite.prepare(`
+      INSERT INTO competition_round_progress (
+        campaign_id, round_id, student_id, attempts_used, best_attempt_id, best_score,
+        is_passed, passed_at, status, version, updated_at
+      ) VALUES (?, 'progress-round-1', 'student-3', 1, NULL, 6.5, 0, NULL, 'IN_PROGRESS', 1, ?)
+    `).run(campaignId, '2026-09-10T01:00:00.000Z');
+
+    const teacherProgress = await request(`/api/competitions/${campaignId}/progress`, 'GET', undefined, teacherCookie);
+    expect(teacherProgress.status).toBe(200);
+    expect((await teacherProgress.json() as any).items).toEqual([
+      expect.objectContaining({ studentId: 'student-1', classId: 'class-4a', roundNumber: 1, attemptsUsed: 2, bestScore: 8.5 }),
+      expect.objectContaining({ studentId: 'student-3', classId: 'class-4b', roundNumber: 1, attemptsUsed: 1, bestScore: 6.5 }),
+    ]);
+
+    const teacher5Token = await signJWT({ username: 'teacher-5', role: 'teacher', tokenVersion: 1, purpose: 'session' }, secret, '30d');
+    const teacher5Progress = await request(
+      `/api/competitions/${campaignId}/progress`,
+      'GET',
+      undefined,
+      `auth_token=${teacher5Token}`,
+    );
+    expect(teacher5Progress.status).toBe(200);
+    expect((await teacher5Progress.json() as any).items).toEqual([]);
   });
 
   it('finalizes a 6/6 immutable eligibility snapshot and exposes staff/student reads', async () => {

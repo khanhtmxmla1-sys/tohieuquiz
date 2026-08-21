@@ -569,6 +569,44 @@ describe('Competition V1 school-exam orchestration', () => {
     ]);
   });
 
+  it('lists school exam events for Admin and keeps Teacher reads class-scoped', async () => {
+    const eventId = await createEvent();
+    await createRoom(eventId, 'LIST', ['student-1', 'student-2']);
+
+    const adminList = await request('/api/competitions/campaign-1/school-exams');
+    expect(adminList?.status).toBe(200);
+    expect((await adminList!.json() as any).items).toEqual([
+      expect.objectContaining({
+        id: eventId,
+        campaignId: 'campaign-1',
+        rooms: [expect.objectContaining({ roomCode: 'LIST', memberCount: 2 })],
+      }),
+    ]);
+
+    const teacherList = await request(
+      '/api/competitions/campaign-1/school-exams',
+      'GET',
+      undefined,
+      invigilatorCookie,
+    );
+    expect(teacherList?.status).toBe(200);
+    expect((await teacherList!.json() as any).items).toEqual([
+      expect.objectContaining({
+        id: eventId,
+        rooms: [expect.objectContaining({ roomCode: 'LIST' })],
+      }),
+    ]);
+
+    const unrelatedList = await request(
+      '/api/competitions/campaign-1/school-exams',
+      'GET',
+      undefined,
+      unrelatedTeacherCookie,
+    );
+    expect(unrelatedList?.status).toBe(200);
+    expect((await unrelatedList!.json() as any).items).toEqual([]);
+  });
+
   it('requires approved equivalent forms with matching characteristics and warns on later-shift form reuse', async () => {
     const eventId = await createEvent('EQUIVALENT_FORM_SET');
     const first = await request(`/api/school-exams/${eventId}/rooms`, 'POST', {
@@ -837,6 +875,64 @@ describe('Competition V1 school-exam orchestration', () => {
     expect(invalidReason?.status).toBe(400);
   });
 
+  it('lists incidents and retests separately while keeping Teacher reads scoped to assigned rooms', async () => {
+    const original = await createClosedOriginalResult();
+    const incidentResponse = await reportIncident({
+      ...original,
+      studentId: 'student-1',
+      requestId: 'incident-list-0001',
+    });
+    expect(incidentResponse?.status).toBe(201);
+
+    const adminIncidents = await request(`/api/school-exams/${original.eventId}/incidents`);
+    expect(adminIncidents?.status).toBe(200);
+    expect(((await adminIncidents!.json()) as any).items).toEqual([
+      expect.objectContaining({ studentId: 'student-1', roomId: original.roomId, reasonCode: 'NETWORK_FAILURE' }),
+    ]);
+
+    const teacherIncidents = await request(
+      `/api/school-exams/${original.eventId}/incidents`,
+      'GET',
+      undefined,
+      invigilatorCookie,
+    );
+    expect(teacherIncidents?.status).toBe(200);
+    expect(((await teacherIncidents!.json()) as any).items).toHaveLength(1);
+
+    const unrelatedIncidents = await request(
+      `/api/school-exams/${original.eventId}/incidents`,
+      'GET',
+      undefined,
+      unrelatedTeacherCookie,
+    );
+    expect(unrelatedIncidents?.status).toBe(200);
+    expect(((await unrelatedIncidents!.json()) as any).items).toEqual([]);
+
+    const adminRetests = await request(`/api/school-exams/${original.eventId}/retests`);
+    expect(adminRetests?.status).toBe(200);
+    expect(((await adminRetests!.json()) as any).items).toEqual([
+      expect.objectContaining({ studentId: 'student-1', originalResultId: original.originalResultId, status: 'REQUESTED' }),
+    ]);
+
+    const teacherRetests = await request(
+      `/api/school-exams/${original.eventId}/retests`,
+      'GET',
+      undefined,
+      invigilatorCookie,
+    );
+    expect(teacherRetests?.status).toBe(200);
+    expect(((await teacherRetests!.json()) as any).items).toHaveLength(1);
+
+    const unrelatedRetests = await request(
+      `/api/school-exams/${original.eventId}/retests`,
+      'GET',
+      undefined,
+      unrelatedTeacherCookie,
+    );
+    expect(unrelatedRetests?.status).toBe(200);
+    expect(((await unrelatedRetests!.json()) as any).items).toEqual([]);
+  });
+
   it('allows only Admin to grant a retest and provisions a new withheld Competition Live Exam session with expiry', async () => {
     const original = await createClosedOriginalResult();
     const incidentResponse = await reportIncident({
@@ -1089,6 +1185,34 @@ describe('Competition V1 school-exam orchestration', () => {
     expect(classRanking?.status).toBe(200);
     expect(((await classRanking!.json()) as any).rankings.items.map((item: any) => [item.studentId, item.rank]))
       .toEqual([['student-1', 1], ['student-4', 1]]);
+
+    // Teacher ranking authorization follows owned class scope, not invigilator room scope.
+    sqlite.prepare(`UPDATE classes SET teacher_username = 'teacher-5' WHERE id = 'class-4a'`).run();
+    const classOwnerRanking = await request(
+      `/api/school-exams/${ready.eventId}/rankings?scope=CLASS&classId=class-4a`,
+      'GET',
+      undefined,
+      unrelatedTeacherCookie,
+    );
+    expect(classOwnerRanking?.status).toBe(200);
+    expect(((await classOwnerRanking!.json()) as any).rankings.items.map((item: any) => item.studentId))
+      .toEqual(['student-1', 'student-4']);
+
+    const teacherEventRanking = await request(
+      `/api/school-exams/${ready.eventId}/rankings?scope=EVENT`,
+      'GET',
+      undefined,
+      unrelatedTeacherCookie,
+    );
+    expect(teacherEventRanking?.status).toBe(403);
+
+    const invigilatorWrongClass = await request(
+      `/api/school-exams/${ready.eventId}/rankings?scope=CLASS&classId=class-4a`,
+      'GET',
+      undefined,
+      invigilatorCookie,
+    );
+    expect(invigilatorWrongClass?.status).toBe(403);
   });
 
   it('creates a new immutable publication version after a correction without mutating the prior snapshot', async () => {

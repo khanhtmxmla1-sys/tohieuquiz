@@ -31,6 +31,7 @@ interface TeacherDashboardTabContentProps {
   modifyQuiz: any;
   isAdmin: boolean;
   giftShopEnabled: boolean;
+  competitionEnabled: boolean;
   username?: string | null;
 }
 
@@ -46,6 +47,7 @@ export const TeacherDashboardTabContent = (props: TeacherDashboardTabContentProp
         activeTab={props.activeTab}
         isAdmin={props.isAdmin}
         giftShopEnabled={props.giftShopEnabled}
+        competitionEnabled={props.competitionEnabled}
         username={props.username}
       />
     </Suspense>

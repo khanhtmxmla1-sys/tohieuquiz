@@ -25,6 +25,7 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
         activeTab={props.activeTab}
         setActiveTab={props.selectTab}
         isGiftShopEnabled={props.giftShopEnabled}
+        competitionEnabled={props.competitionEnabled}
         onLogout={props.onLogout}
         isMobileOpen={props.isMobileMenuOpen}
         setIsMobileOpen={props.setIsMobileMenuOpen}
@@ -88,6 +89,7 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
             modifyQuiz={props.modifyQuiz}
             isAdmin={props.isAdmin}
             giftShopEnabled={props.giftShopEnabled}
+            competitionEnabled={props.competitionEnabled}
             username={props.username}
           />
         </main>

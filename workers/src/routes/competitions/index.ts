@@ -35,6 +35,7 @@ import {
 } from '../../competition/eligibilityService';
 import {
   finalizeCompetitionRound,
+  listCompetitionProgress,
   listCompetitionRounds,
   startRoundAttempt,
   submitRoundAttempt,
@@ -44,6 +45,7 @@ import {
   createSchoolExamEvent,
   createSchoolExamRoom,
   getSchoolExamEvent,
+  listSchoolExamEvents,
   provisionSchoolExam,
   runSchoolExamPreflight,
 } from '../../competition/schoolExamService';
@@ -53,6 +55,8 @@ import {
 } from '../../competition/schoolExamReconcileService';
 import {
   grantSchoolExamRetest,
+  listSchoolExamIncidents,
+  listSchoolExamRetests,
   reportSchoolExamIncident,
 } from '../../competition/schoolExamIncidentRetestService';
 import {
@@ -316,6 +320,12 @@ export async function handleCompetitionRoutes(
       path,
       /^\/api\/competitions\/([^/]+)\/school-exams$/,
     );
+    if (schoolExamEventCreateParts && method === 'GET') {
+      const [campaignId] = schoolExamEventCreateParts;
+      const classIds = await teacherClassIds(env.DB, user);
+      const items = await listSchoolExamEvents(env.DB, campaignId, { classIds });
+      return jsonResponse({ items });
+    }
     if (schoolExamEventCreateParts && method === 'POST') {
       const [campaignId] = schoolExamEventCreateParts;
       const body = await jsonBody(request);
@@ -370,6 +380,11 @@ export async function handleCompetitionRoutes(
       return jsonResponse({ provision }, provision.failed > 0 ? 207 : 200);
     }
 
+    if (schoolExamIncidentParts && method === 'GET') {
+      const [eventId] = schoolExamIncidentParts;
+      const items = await listSchoolExamIncidents(env.DB, eventId, { username: user.username, role: user.role });
+      return jsonResponse({ items });
+    }
     if (schoolExamIncidentParts && method === 'POST') {
       const [eventId] = schoolExamIncidentParts;
       const body = await jsonBody(request);
@@ -382,6 +397,13 @@ export async function handleCompetitionRoutes(
         role: user.role,
       });
       return jsonResponse(result, 201);
+    }
+
+    const schoolExamRetestCollectionParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/retests$/);
+    if (schoolExamRetestCollectionParts && method === 'GET') {
+      const [eventId] = schoolExamRetestCollectionParts;
+      const items = await listSchoolExamRetests(env.DB, eventId, { username: user.username, role: user.role });
+      return jsonResponse({ items });
     }
 
     const schoolExamRetestGrantParts = routeParts(
@@ -442,14 +464,21 @@ export async function handleCompetitionRoutes(
     const schoolExamRankingParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/rankings$/);
     if (schoolExamRankingParts && method === 'GET') {
       const [eventId] = schoolExamRankingParts;
-      await getSchoolExamEvent(env.DB, eventId, { username: user.username, role: user.role });
       const url = new URL(request.url);
       const scope = String(url.searchParams.get('scope') || 'EVENT').toUpperCase() as SchoolExamRankingScope;
       const gradeLevelValue = url.searchParams.get('gradeLevel');
+      const classId = url.searchParams.get('classId') ? String(url.searchParams.get('classId')) : undefined;
+      await getSchoolExamEvent(env.DB, eventId);
+      if (!requireAdmin(user)) {
+        const ownedClassIds = await teacherClassIds(env.DB, user);
+        if (scope !== 'CLASS' || !classId || !ownedClassIds?.includes(classId)) {
+          return errorResponse('SCHOOL_EXAM_RANKING_FORBIDDEN', 403);
+        }
+      }
       const rankings = await getSchoolExamRankings(env.DB, eventId, {
         scope,
         ...(gradeLevelValue === null ? {} : { gradeLevel: Number(gradeLevelValue) }),
-        ...(url.searchParams.get('classId') ? { classId: String(url.searchParams.get('classId')) } : {}),
+        ...(classId ? { classId } : {}),
       });
       return jsonResponse({ rankings });
     }
@@ -584,6 +613,14 @@ export async function handleCompetitionRoutes(
         classIds,
       });
       return jsonResponse(eligibility);
+    }
+
+    const progressParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/progress$/);
+    if (progressParts && method === 'GET') {
+      const [campaignId] = progressParts;
+      const classIds = await teacherClassIds(env.DB, user);
+      const items = await listCompetitionProgress(env.DB, campaignId, { classIds });
+      return jsonResponse({ items });
     }
 
     const roundListParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/rounds$/);

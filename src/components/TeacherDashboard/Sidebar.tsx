@@ -12,6 +12,7 @@ import {
   List,
   LogOut,
   Radio,
+  Trophy,
 } from 'lucide-react';
 import SchoolLogo from '../common/SchoolLogo';
 import { useAuthStore } from '../../../stores/authStore';
@@ -21,6 +22,7 @@ export interface SidebarProps {
   activeTab: TeacherDashboardTab;
   setActiveTab: (tab: TeacherDashboardTab) => void;
   isGiftShopEnabled?: boolean;
+  competitionEnabled?: boolean;
   onLogout: () => void;
   isMobileOpen?: boolean;
   setIsMobileOpen?: (open: boolean) => void;
@@ -37,7 +39,7 @@ type NavItem = {
 const GROUP_KEYS: GroupKey[] = ['exams', 'teaching', 'students', 'utilities', 'certificates'];
 
 const groupForTab = (tab: TeacherDashboardTab): GroupKey | null => {
-  if (['create', 'manage', 'live-exam'].includes(tab)) return 'exams';
+  if (['create', 'manage', 'live-exam', 'competition'].includes(tab)) return 'exams';
   if (['assignments', 'homework', 'results'].includes(tab)) return 'teaching';
   if (tab === 'classes') return 'students';
   if (tab === 'gift-shop') return 'utilities';
@@ -73,6 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
   isGiftShopEnabled = false,
+  competitionEnabled = false,
   onLogout,
   isMobileOpen = false,
   setIsMobileOpen = () => {},
@@ -127,6 +130,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const examItems: NavItem[] = [
     { id: 'manage', label: 'Quản lý đề', icon: <List className="size-5" /> },
     { id: 'live-exam', label: 'Thi trực tiếp', icon: <Radio className="size-5" /> },
+    ...(competitionEnabled
+      ? [{ id: 'competition' as TeacherDashboardTab, label: 'Cuộc thi', icon: <Trophy className="size-5" /> }]
+      : []),
   ];
   const teachingItems: NavItem[] = [
     { id: 'assignments', label: 'Giao bài', icon: <ClipboardList className="size-5" /> },

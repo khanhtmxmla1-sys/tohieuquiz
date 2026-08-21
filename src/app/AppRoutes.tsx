@@ -90,6 +90,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route path="/teacher/results" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/classes" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/live-exams" element={protectedRoute('teacher', <TeacherDashboard />)} />
+            <Route path="/teacher/competition" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/gift-shop" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/homework" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/certificates" element={protectedRoute('teacher', <TeacherDashboard />)} />

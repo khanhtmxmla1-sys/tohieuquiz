@@ -48,6 +48,14 @@ export const isAiSvgDiagramsEnabled = (): boolean => resolveFeatureFlag(
     false,
 );
 
+/**
+ * Competition V1 stays opt-in until the admin/teacher rollout is approved.
+ */
+export const isCompetitionV1Enabled = (): boolean => resolveFeatureFlag(
+    import.meta.env.VITE_FEATURE_COMPETITION_V1,
+    false,
+);
+
 export const isParentPortalEnabled = (): boolean => resolveFeatureFlag(
     import.meta.env.VITE_FEATURE_PARENT_PORTAL_V1,
     false,

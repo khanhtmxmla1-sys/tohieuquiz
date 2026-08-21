@@ -14,6 +14,7 @@ interface UseDashboardSearchOptions {
   manualQuizWorkspaceEnabled: boolean;
   isAdmin: boolean;
   giftShopEnabled: boolean;
+  competitionEnabled: boolean;
 }
 
 const normalizeSearchText = (value: string): string => value
@@ -40,16 +41,17 @@ export const useDashboardSearch = ({
   manualQuizWorkspaceEnabled,
   isAdmin,
   giftShopEnabled,
+  competitionEnabled,
 }: UseDashboardSearchOptions) => {
   const [searchQuery, setSearchQuery] = useState('');
   const searchOptions = useMemo<DashboardSearchDestination[]>(() => DASHBOARD_SEARCH_ITEMS
     .filter((item) => manualQuizWorkspaceEnabled || item.kind !== 'manual-quiz')
-    .filter((item) => item.kind !== 'tab' || isDashboardTabAllowed(item.tab, isAdmin, giftShopEnabled))
+    .filter((item) => item.kind !== 'tab' || isDashboardTabAllowed(item.tab, isAdmin, giftShopEnabled, competitionEnabled))
     .map((item) => (
       !manualQuizWorkspaceEnabled && item.kind === 'tab' && item.tab === 'create'
         ? { ...item, label: 'Tạo đề mới' }
         : item
-    )), [giftShopEnabled, isAdmin, manualQuizWorkspaceEnabled]);
+    )), [competitionEnabled, giftShopEnabled, isAdmin, manualQuizWorkspaceEnabled]);
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

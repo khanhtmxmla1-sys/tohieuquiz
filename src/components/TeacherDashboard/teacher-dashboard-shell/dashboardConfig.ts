@@ -36,6 +36,7 @@ export const DASHBOARD_SEARCH_ITEMS: DashboardSearchDestination[] = [
   { id: 'assignments', kind: 'tab', tab: 'assignments', label: 'Giao bài', keywords: 'bài tập hạn nộp' },
   { id: 'homework', kind: 'tab', tab: 'homework', label: 'Bài tập tự luận', keywords: 'phiếu bài tập ai' },
   { id: 'live-exam', kind: 'tab', tab: 'live-exam', label: 'Thi trực tiếp', keywords: 'live exam phòng thi' },
+  { id: 'competition', kind: 'tab', tab: 'competition', label: 'Cuộc thi', keywords: 'competition cuộc thi vòng thi cấp trường xếp hạng' },
   { id: 'certificates', kind: 'tab', tab: 'certificates', label: 'Cấp chứng nhận', keywords: 'giấy khen chứng chỉ' },
   { id: 'announcements', kind: 'tab', tab: 'announcements', label: 'Thông báo', keywords: 'cài đặt hệ thống' },
   { id: 'feature-rollout', kind: 'tab', tab: 'feature-rollout', label: 'Tính năng thử nghiệm', keywords: 'feature rollout bật tắt tính năng thử nghiệm' },

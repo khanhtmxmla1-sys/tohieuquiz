@@ -14,6 +14,7 @@ export const GiftShopTab = React.lazy(() => import('../GiftShopTab'));
 export const HomeworkTab = React.lazy(() => import('../../../features/homework/components/HomeworkTab')
   .then(module => ({ default: module.HomeworkTab })));
 export const LiveExamTab = React.lazy(() => import('../../LiveExam/TeacherLiveExamDashboardContainer'));
+export const CompetitionDashboardPage = React.lazy(() => import('../../../features/competition/CompetitionDashboardPage'));
 export const TeacherCertificatesPage = React.lazy(() => import('../../../features/certificates/TeacherCertificatesPage'));
 export const AdminTemplatesPage = React.lazy(() => import('../../../features/certificates/AdminTemplatesPage'));
 export const MathAuditPage = React.lazy(() => import('../../../features/math-audit/MathAuditPage'));

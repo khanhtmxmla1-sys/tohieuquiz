@@ -266,6 +266,67 @@ function parseSnapshotPayload(row: RoundQuizRow): {
   }
 }
 
+export async function listCompetitionProgress(
+  db: D1Database,
+  campaignId: string,
+  options: { classIds?: string[] } = {},
+) {
+  const normalizedCampaignId = normalizedId(campaignId, 'COMPETITION_CAMPAIGN_ID_REQUIRED');
+  const campaign = await db.prepare('SELECT id FROM competition_campaigns WHERE id = ? LIMIT 1')
+    .bind(normalizedCampaignId)
+    .first<{ id: string }>();
+  if (!campaign) throw new Error('COMPETITION_CAMPAIGN_NOT_FOUND');
+  if (options.classIds !== undefined && options.classIds.length === 0) return [];
+  const classIds = options.classIds?.map(value => String(value || '').trim()).filter(Boolean);
+  const classFilter = classIds && classIds.length > 0
+    ? ` AND member.class_id_at_snapshot IN (${classIds.map(() => '?').join(', ')})`
+    : '';
+  const result = await db.prepare(`
+    SELECT progress.campaign_id, progress.round_id, progress.student_id,
+           progress.attempts_used, progress.best_attempt_id, progress.best_score,
+           progress.is_passed, progress.passed_at, progress.status, progress.version,
+           progress.updated_at, round.round_number, member.class_id_at_snapshot
+    FROM competition_round_progress AS progress
+    INNER JOIN competition_rounds AS round
+      ON round.id = progress.round_id AND round.campaign_id = progress.campaign_id
+    INNER JOIN competition_campaigns AS campaign ON campaign.id = progress.campaign_id
+    INNER JOIN competition_audience_members AS member
+      ON member.audience_snapshot_id = campaign.audience_snapshot_id
+     AND member.student_id = progress.student_id
+    WHERE progress.campaign_id = ?${classFilter}
+    ORDER BY round.round_number ASC, member.class_id_at_snapshot ASC, progress.student_id ASC
+  `).bind(normalizedCampaignId, ...(classIds || [])).all<{
+    campaign_id: string;
+    round_id: string;
+    student_id: string;
+    attempts_used: number;
+    best_attempt_id: string | null;
+    best_score: number | null;
+    is_passed: number;
+    passed_at: string | null;
+    status: string;
+    version: number;
+    updated_at: string;
+    round_number: number;
+    class_id_at_snapshot: string;
+  }>();
+  return (result.results || []).map(row => ({
+    campaignId: row.campaign_id,
+    roundId: row.round_id,
+    roundNumber: Number(row.round_number),
+    studentId: row.student_id,
+    classId: row.class_id_at_snapshot,
+    attemptsUsed: Number(row.attempts_used),
+    bestAttemptId: row.best_attempt_id,
+    bestScore: row.best_score === null ? null : Number(row.best_score),
+    isPassed: Number(row.is_passed) === 1,
+    passedAt: row.passed_at,
+    status: row.status,
+    version: Number(row.version),
+    updatedAt: row.updated_at,
+  }));
+}
+
 export async function listCompetitionRounds(db: D1Database, campaignId: string) {
   const normalizedCampaignId = normalizedId(campaignId, 'COMPETITION_CAMPAIGN_ID_REQUIRED');
   const campaign = await db.prepare('SELECT id FROM competition_campaigns WHERE id = ? LIMIT 1')
@@ -280,7 +341,29 @@ export async function listCompetitionRounds(db: D1Database, campaignId: string) 
     WHERE campaign_id = ?
     ORDER BY round_number ASC, id ASC
   `).bind(normalizedCampaignId).all<CompetitionRoundRow>();
-  return (result.results || []).map((row) => mapRound(row));
+  const snapshotResult = await db.prepare(`
+    SELECT mapping.round_id,
+           COUNT(*) AS mapping_count,
+           SUM(CASE WHEN snapshot.id IS NULL OR mapping.quiz_snapshot_hash <> snapshot.sha256 THEN 1 ELSE 0 END) AS invalid_count
+    FROM competition_round_quizzes AS mapping
+    INNER JOIN competition_rounds AS round ON round.id = mapping.round_id
+    LEFT JOIN competition_quiz_snapshots AS snapshot ON snapshot.id = mapping.quiz_snapshot_id
+    WHERE round.campaign_id = ?
+    GROUP BY mapping.round_id
+  `).bind(normalizedCampaignId).all<{ round_id: string; mapping_count: number; invalid_count: number }>();
+  const snapshotByRound = new Map((snapshotResult.results || []).map((row) => [row.round_id, row]));
+  return (result.results || []).map((row) => {
+    const snapshot = snapshotByRound.get(row.id);
+    const mappingCount = Number(snapshot?.mapping_count || 0);
+    const invalidCount = Number(snapshot?.invalid_count || 0);
+    return {
+      ...mapRound(row),
+      quizSnapshot: {
+        status: mappingCount === 0 ? 'MISSING' : invalidCount > 0 ? 'INVALID' : 'LOCKED',
+        mappingCount,
+      },
+    };
+  });
 }
 
 export async function updateCompetitionRound(
