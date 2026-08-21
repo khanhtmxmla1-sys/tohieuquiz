@@ -114,6 +114,15 @@ export const CreateSchoolExamEventRequestSchema = z.object({
   requestId: RequestIdSchema,
 }).strict();
 
+export const SchoolExamFormDefinitionSchema = z.object({
+  blueprintId: IdentifierSchema,
+  durationMinutes: z.number().int().min(1).max(300),
+  totalScore: z.number().positive().max(1000),
+  difficulty: z.string().trim().min(1).max(64),
+  gradeLevel: z.number().int().min(1).max(12),
+  objectiveIds: z.array(IdentifierSchema).min(1).max(100),
+}).strict();
+
 export const CreateSchoolExamRoomRequestSchema = z.object({
   eventId: IdentifierSchema,
   name: z.string().trim().min(1).max(100),
@@ -125,6 +134,9 @@ export const CreateSchoolExamRoomRequestSchema = z.object({
   formCode: z.string().trim().min(1).max(32),
   quizId: IdentifierSchema,
   invigilatorIds: z.array(IdentifierSchema).min(1).max(20),
+  studentIds: z.array(IdentifierSchema).min(1).max(1000),
+  formDefinition: SchoolExamFormDefinitionSchema,
+  equivalentFormApproved: z.boolean().optional(),
   requestId: RequestIdSchema,
 }).strict();
 

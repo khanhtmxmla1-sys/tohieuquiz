@@ -1,7 +1,11 @@
 import {
   CreateCompetitionCampaignRequestSchema,
+  CreateSchoolExamEventRequestSchema,
+  CreateSchoolExamRoomRequestSchema,
   FinalizeCompetitionEligibilityRequestSchema,
   FinalizeCompetitionRoundRequestSchema,
+  ProvisionSchoolExamRequestSchema,
+  RunSchoolExamPreflightRequestSchema,
   StartCompetitionRoundAttemptRequestSchema,
   SubmitCompetitionRoundAttemptRequestSchema,
   UpdateCompetitionCampaignRequestSchema,
@@ -30,6 +34,13 @@ import {
   submitRoundAttempt,
   updateCompetitionRound,
 } from '../../competition/roundService';
+import {
+  createSchoolExamEvent,
+  createSchoolExamRoom,
+  getSchoolExamEvent,
+  provisionSchoolExam,
+  runSchoolExamPreflight,
+} from '../../competition/schoolExamService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
 
@@ -89,6 +100,9 @@ function routeError(error: unknown): Response {
     'COMPETITION_ATTEMPT_NOT_FOUND',
     'COMPETITION_ROUND_QUIZ_NOT_FOUND',
     'COMPETITION_ELIGIBILITY_VERSION_NOT_FOUND',
+    'SCHOOL_EXAM_EVENT_NOT_FOUND',
+    'SCHOOL_EXAM_ROOM_NOT_FOUND',
+    'SCHOOL_EXAM_CAPACITY_PROFILE_NOT_FOUND',
   ].includes(message)) return errorResponse(message, 404);
   if ([
     'COMPETITION_CAMPAIGN_NOT_DRAFT',
@@ -105,10 +119,24 @@ function routeError(error: unknown): Response {
     'COMPETITION_ATTEMPT_NOT_SUBMITTABLE',
     'COMPETITION_ATTEMPT_EXPIRED',
     'COMPETITION_QUIZ_SNAPSHOT_HASH_MISMATCH',
+    'SCHOOL_EXAM_EVENT_CONFIG_LOCKED',
+    'SCHOOL_EXAM_ROOM_MEMBER_NOT_QUALIFIED',
+    'SCHOOL_EXAM_ROOM_MEMBERS_INVALID',
+    'SCHOOL_EXAM_MEMBER_ALREADY_ASSIGNED',
+    'SCHOOL_EXAM_SAME_FORM_REQUIRED',
+    'SCHOOL_EXAM_EQUIVALENT_FORM_APPROVAL_REQUIRED',
+    'SCHOOL_EXAM_EQUIVALENT_FORM_MISMATCH',
+    'SCHOOL_EXAM_FORM_DEFINITION_INVALID',
+    'SCHOOL_EXAM_FORM_DURATION_MISMATCH',
+    'SCHOOL_EXAM_FORM_GRADE_MISMATCH',
+    'SCHOOL_EXAM_FORM_DIFFICULTY_MISMATCH',
+    'SCHOOL_EXAM_ROOMS_REQUIRED',
+    'SCHOOL_EXAM_PREFLIGHT_REQUIRED',
   ].includes(message)) return errorResponse(message, 409);
   if ([
     'COMPETITION_STUDENT_NOT_IN_AUDIENCE',
     'COMPETITION_ADMIN_REQUIRED',
+    'SCHOOL_EXAM_EVENT_FORBIDDEN',
   ].includes(message)) return errorResponse(message, 403);
   if (message === 'COMPETITION_AUDIENCE_CURSOR_INVALID') return errorResponse(message, 400);
   return errorResponse(message, 400);
@@ -138,8 +166,9 @@ export async function handleCompetitionRoutes(
   method: string,
 ): Promise<Response | null> {
   const isStaffNamespace = path === '/api/competitions' || path.startsWith('/api/competitions/');
+  const isSchoolExamNamespace = path.startsWith('/api/school-exams/');
   const isStudentNamespace = path.startsWith('/api/student/competitions/');
-  if (!isStaffNamespace && !isStudentNamespace) return null;
+  if (!isStaffNamespace && !isSchoolExamNamespace && !isStudentNamespace) return null;
 
   const authResult = await verifyJWTMiddleware(request, env);
   if (authResult instanceof Response) return authResult;
@@ -217,6 +246,64 @@ export async function handleCompetitionRoutes(
   if (isMutation && !requireAdmin(user)) return errorResponse('Forbidden', 403);
 
   try {
+    const schoolExamEventCreateParts = routeParts(
+      path,
+      /^\/api\/competitions\/([^/]+)\/school-exams$/,
+    );
+    if (schoolExamEventCreateParts && method === 'POST') {
+      const [campaignId] = schoolExamEventCreateParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = CreateSchoolExamEventRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam event payload', 400);
+      if (parsed.data.campaignId !== campaignId) return errorResponse('SCHOOL_EXAM_CAMPAIGN_ROUTE_MISMATCH', 400);
+      const event = await createSchoolExamEvent(env.DB, parsed.data, user.username);
+      return jsonResponse({ event }, 201);
+    }
+
+    const schoolExamDetailParts = routeParts(path, /^\/api\/school-exams\/([^/]+)$/);
+    if (schoolExamDetailParts && method === 'GET') {
+      const [eventId] = schoolExamDetailParts;
+      const event = await getSchoolExamEvent(env.DB, eventId, { username: user.username, role: user.role });
+      return jsonResponse({ event });
+    }
+
+    const schoolExamRoomParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/rooms$/);
+    if (schoolExamRoomParts && method === 'POST') {
+      const [eventId] = schoolExamRoomParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = CreateSchoolExamRoomRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam room payload', 400);
+      if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
+      const result = await createSchoolExamRoom(env.DB, parsed.data, user.username);
+      return jsonResponse(result, 201);
+    }
+
+    const schoolExamPreflightParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/preflight$/);
+    if (schoolExamPreflightParts && method === 'POST') {
+      const [eventId] = schoolExamPreflightParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = RunSchoolExamPreflightRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam preflight payload', 400);
+      if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
+      const preflight = await runSchoolExamPreflight(env.DB, eventId, user.username, parsed.data.requestId);
+      return jsonResponse({ preflight }, preflight.status === 'PREFLIGHT_BLOCKED' ? 409 : 200);
+    }
+
+    const schoolExamProvisionParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/provision$/);
+    if (schoolExamProvisionParts && method === 'POST') {
+      const [eventId] = schoolExamProvisionParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = ProvisionSchoolExamRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam provision payload', 400);
+      if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
+      const provision = await provisionSchoolExam(env.DB, eventId, user.username, parsed.data.requestId);
+      return jsonResponse({ provision }, provision.failed > 0 ? 207 : 200);
+    }
+
     if (path === '/api/competitions' && method === 'POST') {
       const body = await jsonBody(request);
       if (!body) return errorResponse('Invalid JSON body', 400);

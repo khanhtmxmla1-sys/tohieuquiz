@@ -191,6 +191,15 @@ describe('Competition V1 contracts', () => {
       formCode: 'A',
       quizId: 'quiz-1',
       invigilatorIds: ['teacher-1'],
+      studentIds: ['student-1'],
+      formDefinition: {
+        blueprintId: 'tv4-school-v1',
+        durationMinutes: 60,
+        totalScore: 10,
+        difficulty: 'MEDIUM',
+        gradeLevel: 4,
+        objectiveIds: ['obj-1'],
+      },
       requestId,
     };
     expect(CreateSchoolExamRoomRequestSchema.safeParse(room).success).toBe(true);
