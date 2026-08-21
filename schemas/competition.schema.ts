@@ -150,6 +150,39 @@ export const ProvisionSchoolExamRequestSchema = z.object({
   requestId: RequestIdSchema,
 }).strict();
 
+export const SCHOOL_EXAM_INCIDENT_REASONS = [
+  'NETWORK_FAILURE',
+  'DEVICE_FAILURE',
+  'SERVER_INCIDENT',
+  'EXAM_INTERRUPTED',
+  'ADMINISTRATIVE_ERROR',
+] as const;
+
+export const SCHOOL_EXAM_RECONCILE_RESOLUTIONS = [
+  'KEEP_ORIGINAL',
+  'REPLACE_WITH_RETEST',
+  'INVALIDATE_RESULT',
+] as const;
+
+export const CreateSchoolExamIncidentRequestSchema = z.object({
+  eventId: IdentifierSchema,
+  roomId: IdentifierSchema,
+  studentId: IdentifierSchema,
+  originalResultId: IdentifierSchema,
+  reasonCode: z.enum(SCHOOL_EXAM_INCIDENT_REASONS),
+  reasonText: z.string().trim().min(1).max(1000).optional(),
+  occurredAt: DateTimeSchema.optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
+  requestId: RequestIdSchema,
+}).strict();
+
+export const GrantSchoolExamRetestRequestSchema = z.object({
+  eventId: IdentifierSchema,
+  expiresAt: DateTimeSchema,
+  resolution: z.enum(SCHOOL_EXAM_RECONCILE_RESOLUTIONS),
+  requestId: RequestIdSchema,
+}).strict();
+
 export const StartCompetitionReconcileRequestSchema = z.object({
   eventId: IdentifierSchema,
   requestId: RequestIdSchema,
@@ -183,4 +216,6 @@ export type SubmitCompetitionRoundAttemptRequest = z.infer<typeof SubmitCompetit
 export type FinalizeCompetitionEligibilityRequest = z.infer<typeof FinalizeCompetitionEligibilityRequestSchema>;
 export type CreateSchoolExamEventRequest = z.infer<typeof CreateSchoolExamEventRequestSchema>;
 export type CreateSchoolExamRoomRequest = z.infer<typeof CreateSchoolExamRoomRequestSchema>;
+export type CreateSchoolExamIncidentRequest = z.infer<typeof CreateSchoolExamIncidentRequestSchema>;
+export type GrantSchoolExamRetestRequest = z.infer<typeof GrantSchoolExamRetestRequestSchema>;
 export type CreateCompetitionExportRequest = z.infer<typeof CreateCompetitionExportRequestSchema>;

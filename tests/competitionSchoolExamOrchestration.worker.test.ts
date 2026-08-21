@@ -12,11 +12,14 @@ const schoolExamMigration = readFileSync(new URL('../workers/migrations/0070_com
 const capacityMigration = readFileSync(new URL('../workers/migrations/0071_live_exam_capacity_profiles.sql', import.meta.url), 'utf8');
 const orchestrationMigrationUrl = new URL('../workers/migrations/0072_competition_school_exam_orchestration.sql', import.meta.url);
 const reconcileMigrationUrl = new URL('../workers/migrations/0073_competition_school_exam_reconcile.sql', import.meta.url);
+const incidentRetestMigrationUrl = new URL('../workers/migrations/0074_competition_school_exam_incident_retest.sql', import.meta.url);
 
 const secret = 'school-exam-orchestration-test-secret';
 let sqlite: DatabaseSync;
 let env: { DB: D1Database; JWT_SECRET: string };
 let adminCookie: string;
+let invigilatorCookie: string;
+let unrelatedTeacherCookie: string;
 
 function createBaseSchema(db: DatabaseSync): void {
   db.exec(`
@@ -91,7 +94,7 @@ function createBaseSchema(db: DatabaseSync): void {
       created_at TEXT NOT NULL
     );
 
-    INSERT INTO teachers (username) VALUES ('admin'), ('teacher-4');
+    INSERT INTO teachers (username) VALUES ('admin'), ('teacher-4'), ('teacher-5');
     INSERT INTO classes (id, name, teacher_username, created_at) VALUES
       ('class-4a', '4A', 'teacher-4', '2026-08-01T00:00:00.000Z'),
       ('class-4b', '4B', 'teacher-4', '2026-08-01T00:00:00.000Z');
@@ -115,6 +118,7 @@ function seedCompetition(): void {
   sqlite.exec(capacityMigration);
   if (existsSync(orchestrationMigrationUrl)) sqlite.exec(readFileSync(orchestrationMigrationUrl, 'utf8'));
   if (existsSync(reconcileMigrationUrl)) sqlite.exec(readFileSync(reconcileMigrationUrl, 'utf8'));
+  if (existsSync(incidentRetestMigrationUrl)) sqlite.exec(readFileSync(incidentRetestMigrationUrl, 'utf8'));
 
   sqlite.exec(`
     INSERT INTO competition_campaigns (
@@ -159,11 +163,16 @@ function seedCompetition(): void {
   `);
 }
 
-async function request(path: string, method = 'GET', body?: unknown): Promise<Response | null> {
+async function request(
+  path: string,
+  method = 'GET',
+  body?: unknown,
+  cookie = adminCookie,
+): Promise<Response | null> {
   const req = new Request(`https://api.test${path}`, {
     method,
     headers: {
-      Cookie: adminCookie,
+      Cookie: cookie,
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -227,6 +236,73 @@ async function provisionEvent(eventId: string): Promise<void> {
   }))?.status).toBe(200);
 }
 
+async function createClosedOriginalResult(studentId = 'student-1') {
+  const eventId = await createEvent();
+  const roomId = await createRoom(eventId, 'R1', [studentId]);
+  await provisionEvent(eventId);
+  const room = sqlite.prepare(`
+    SELECT live_exam_session_id FROM competition_school_exam_rooms WHERE id = ?
+  `).get(roomId) as { live_exam_session_id: string };
+  const originalSessionId = room.live_exam_session_id;
+  sqlite.prepare(`
+    UPDATE live_exam_sessions
+    SET status = 'closed', started_at = ?, closed_at = ?, updated_at = ?
+    WHERE id = ?
+  `).run(
+    '2027-05-10T01:00:00.000Z',
+    '2027-05-10T01:03:00.000Z',
+    '2027-05-10T01:03:00.000Z',
+    originalSessionId,
+  );
+  const participantId = `participant-original-${studentId}`;
+  sqlite.prepare(`
+    INSERT INTO live_exam_participants (
+      id, live_exam_id, student_id, username, joined_at, started_at, submitted_at,
+      answers, score, correct_count, wrong_count, rank, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 90, 9, 1, 1, ?, ?)
+  `).run(
+    participantId,
+    originalSessionId,
+    studentId,
+    studentId === 'student-1' ? 'student1' : 'student2',
+    '2027-05-10T00:59:00.000Z',
+    '2027-05-10T01:00:00.000Z',
+    '2027-05-10T01:02:00.000Z',
+    '{"qa-1":"B"}',
+    '2027-05-10T00:59:00.000Z',
+    '2027-05-10T01:02:00.000Z',
+  );
+  const reconcile = await request(`/api/school-exams/${eventId}/reconcile`, 'POST', {
+    eventId,
+    requestId: `reconcile-original-${studentId}-0001`,
+  });
+  expect(reconcile?.status).toBe(200);
+  const originalResult = sqlite.prepare(`
+    SELECT id FROM competition_school_exam_results WHERE event_id = ? AND student_id = ?
+  `).get(eventId, studentId) as { id: string };
+  return { eventId, roomId, originalSessionId, participantId, originalResultId: originalResult.id };
+}
+
+async function reportIncident(input: {
+  eventId: string;
+  roomId: string;
+  studentId: string;
+  originalResultId: string;
+  requestId: string;
+}, cookie = invigilatorCookie) {
+  return request(`/api/school-exams/${input.eventId}/incidents`, 'POST', {
+    eventId: input.eventId,
+    roomId: input.roomId,
+    studentId: input.studentId,
+    originalResultId: input.originalResultId,
+    reasonCode: 'NETWORK_FAILURE',
+    reasonText: 'Network dropped during submission',
+    occurredAt: '2027-05-10T01:01:30.000Z',
+    details: { source: 'invigilator-console' },
+    requestId: input.requestId,
+  }, cookie);
+}
+
 beforeEach(async () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2027-04-01T00:00:00.000Z'));
@@ -235,7 +311,11 @@ beforeEach(async () => {
   seedCompetition();
   env = { DB: createSqliteD1(sqlite), JWT_SECRET: secret };
   const token = await signJWT({ username: 'admin', role: 'admin', tokenVersion: 1, purpose: 'session' }, secret, '30d');
+  const invigilatorToken = await signJWT({ username: 'teacher-4', role: 'teacher', tokenVersion: 1, purpose: 'session' }, secret, '30d');
+  const unrelatedTeacherToken = await signJWT({ username: 'teacher-5', role: 'teacher', tokenVersion: 1, purpose: 'session' }, secret, '30d');
   adminCookie = `auth_token=${token}`;
+  invigilatorCookie = `auth_token=${invigilatorToken}`;
+  unrelatedTeacherCookie = `auth_token=${unrelatedTeacherToken}`;
 });
 
 afterEach(() => {
@@ -510,6 +590,231 @@ describe('Competition V1 school-exam orchestration', () => {
       SELECT live_exam_id, student_id, submitted_at, answers, score, correct_count, wrong_count, rank
       FROM live_exam_participants WHERE id = 'participant-1'
     `).get()).toEqual(rawBefore);
+  });
+
+  it('allows only the assigned invigilator to report a student incident and creates a pending retest request with immutable lineage', async () => {
+    const original = await createClosedOriginalResult();
+
+    const forbidden = await reportIncident({
+      ...original,
+      studentId: 'student-1',
+      requestId: 'incident-forbidden-0001',
+    }, unrelatedTeacherCookie);
+    expect(forbidden?.status).toBe(403);
+
+    const response = await reportIncident({
+      ...original,
+      studentId: 'student-1',
+      requestId: 'incident-network-0001',
+    });
+    expect(response?.status).toBe(201);
+    const payload = (await response!.json()) as any;
+    expect(payload.incident).toMatchObject({
+      eventId: original.eventId,
+      roomId: original.roomId,
+      studentId: 'student-1',
+      reasonCode: 'NETWORK_FAILURE',
+      reportedBy: 'teacher-4',
+    });
+    expect(payload.retest).toMatchObject({
+      eventId: original.eventId,
+      studentId: 'student-1',
+      originalResultId: original.originalResultId,
+      incidentId: payload.incident.id,
+      reasonCode: 'NETWORK_FAILURE',
+      status: 'REQUESTED',
+    });
+    expect(sqlite.prepare(`
+      SELECT reported_by FROM competition_school_exam_incidents WHERE id = ?
+    `).get(payload.incident.id)).toEqual({ reported_by: 'teacher-4' });
+    expect(sqlite.prepare(`
+      SELECT source_result_id FROM competition_school_exam_retests WHERE id = ?
+    `).get(payload.retest.id)).toEqual({ source_result_id: original.originalResultId });
+
+    const forbiddenReplay = await reportIncident({
+      ...original,
+      studentId: 'student-1',
+      requestId: 'incident-network-0001',
+    }, unrelatedTeacherCookie);
+    expect(forbiddenReplay?.status).toBe(403);
+
+    const invalidReason = await request(`/api/school-exams/${original.eventId}/incidents`, 'POST', {
+      eventId: original.eventId,
+      roomId: original.roomId,
+      studentId: 'student-1',
+      originalResultId: original.originalResultId,
+      reasonCode: 'LOW_SCORE',
+      requestId: 'incident-low-score-0001',
+    }, invigilatorCookie);
+    expect(invalidReason?.status).toBe(400);
+  });
+
+  it('allows only Admin to grant a retest and provisions a new withheld Competition Live Exam session with expiry', async () => {
+    const original = await createClosedOriginalResult();
+    const incidentResponse = await reportIncident({
+      ...original,
+      studentId: 'student-1',
+      requestId: 'incident-grant-0001',
+    });
+    expect(incidentResponse?.status).toBe(201);
+    const { retest } = (await incidentResponse!.json()) as any;
+    const grantBody = {
+      eventId: original.eventId,
+      expiresAt: '2027-06-01T00:00:00.000Z',
+      resolution: 'REPLACE_WITH_RETEST',
+      requestId: 'retest-grant-network-0001',
+    };
+
+    const teacherGrant = await request(
+      `/api/school-exams/${original.eventId}/retests/${retest.id}/grant`,
+      'POST',
+      grantBody,
+      invigilatorCookie,
+    );
+    expect(teacherGrant?.status).toBe(403);
+
+    const adminGrant = await request(
+      `/api/school-exams/${original.eventId}/retests/${retest.id}/grant`,
+      'POST',
+      grantBody,
+    );
+    expect(adminGrant?.status).toBe(201);
+    const granted = ((await adminGrant!.json()) as any).retest;
+    expect(granted).toMatchObject({
+      id: retest.id,
+      eventId: original.eventId,
+      studentId: 'student-1',
+      originalResultId: original.originalResultId,
+      incidentId: expect.any(String),
+      reasonCode: 'NETWORK_FAILURE',
+      reasonText: 'Network dropped during submission',
+      grantedBy: 'admin',
+      grantedAt: expect.any(String),
+      expiresAt: '2027-06-01T00:00:00.000Z',
+      status: 'PROVISIONED',
+      resolution: 'REPLACE_WITH_RETEST',
+      liveExamSessionId: expect.any(String),
+    });
+    expect(granted.liveExamSessionId).not.toBe(original.originalSessionId);
+    expect(sqlite.prepare(`
+      SELECT participant_scope_type, participant_scope_id, result_visibility, class_id, status
+      FROM live_exam_sessions WHERE id = ?
+    `).get(granted.liveExamSessionId)).toEqual({
+      participant_scope_type: 'SCHOOL_EXAM_ROOM',
+      participant_scope_id: original.roomId,
+      result_visibility: 'WITHHELD',
+      class_id: null,
+      status: 'scheduled',
+    });
+    expect(sqlite.prepare(`
+      SELECT id FROM competition_school_exam_results WHERE id = ?
+    `).get(original.originalResultId)).toEqual({ id: original.originalResultId });
+    expect(sqlite.prepare(`
+      SELECT id FROM live_exam_participants WHERE id = ?
+    `).get(original.participantId)).toEqual({ id: original.participantId });
+  });
+
+  it.each([
+    ['KEEP_ORIGINAL', 90, 'RECONCILED'],
+    ['REPLACE_WITH_RETEST', 95, 'RECONCILED'],
+    ['INVALIDATE_RESULT', 90, 'VOID'],
+  ] as const)('reconciles a completed retest with %s without deleting the original result', async (
+    resolution,
+    expectedScore,
+    expectedStatus,
+  ) => {
+    const original = await createClosedOriginalResult();
+    const incidentResponse = await reportIncident({
+      ...original,
+      studentId: 'student-1',
+      requestId: `incident-resolution-${resolution.toLowerCase()}-0001`,
+    });
+    expect(incidentResponse?.status).toBe(201);
+    const { retest } = (await incidentResponse!.json()) as any;
+    const grantResponse = await request(
+      `/api/school-exams/${original.eventId}/retests/${retest.id}/grant`,
+      'POST',
+      {
+        eventId: original.eventId,
+        expiresAt: '2027-06-01T00:00:00.000Z',
+        resolution,
+        requestId: `grant-resolution-${resolution.toLowerCase()}-0001`,
+      },
+    );
+    expect(grantResponse?.status).toBe(201);
+    const granted = ((await grantResponse!.json()) as any).retest;
+
+    sqlite.prepare(`
+      UPDATE live_exam_sessions
+      SET status = 'closed', started_at = ?, closed_at = ?, updated_at = ?
+      WHERE id = ?
+    `).run(
+      '2027-05-11T01:00:00.000Z',
+      '2027-05-11T01:03:00.000Z',
+      '2027-05-11T01:03:00.000Z',
+      granted.liveExamSessionId,
+    );
+    sqlite.prepare(`
+      INSERT INTO live_exam_participants (
+        id, live_exam_id, student_id, username, joined_at, started_at, submitted_at,
+        answers, score, correct_count, wrong_count, rank, created_at, updated_at
+      ) VALUES (?, ?, 'student-1', 'student1', ?, ?, ?, '{}', 95, 10, 0, 1, ?, ?)
+    `).run(
+      `participant-retest-${resolution}`,
+      granted.liveExamSessionId,
+      '2027-05-11T00:59:00.000Z',
+      '2027-05-11T01:00:00.000Z',
+      '2027-05-11T01:02:00.000Z',
+      '2027-05-11T00:59:00.000Z',
+      '2027-05-11T01:02:00.000Z',
+    );
+
+    const reconcile = await request(`/api/school-exams/${original.eventId}/reconcile`, 'POST', {
+      eventId: original.eventId,
+      requestId: `reconcile-resolution-${resolution.toLowerCase()}-0001`,
+    });
+    expect(reconcile?.status).toBe(200);
+    const reconciled = ((await reconcile!.json()) as any).reconcile;
+    expect(reconciled).toMatchObject({ status: 'SUCCEEDED', blockingIssues: 0, eventStatus: 'READY_TO_PUBLISH' });
+    expect(reconciled.issues.map((issue: any) => issue.issueType)).not.toContain('RETEST_PENDING');
+
+    const canonical = sqlite.prepare(`
+      SELECT id, score, status, live_exam_session_id, retest_id, resolution
+      FROM competition_school_exam_results WHERE event_id = ? AND student_id = 'student-1'
+    `).get(original.eventId) as any;
+    expect(canonical).toMatchObject({
+      id: original.originalResultId,
+      score: expectedScore,
+      status: expectedStatus,
+      resolution,
+    });
+    if (resolution === 'REPLACE_WITH_RETEST') {
+      expect(canonical.live_exam_session_id).toBe(granted.liveExamSessionId);
+      expect(canonical.retest_id).toBe(retest.id);
+      expect(sqlite.prepare(`
+        SELECT canonical_result_id, score, disposition
+        FROM competition_school_exam_result_history
+        WHERE canonical_result_id = ? AND retest_id = ?
+      `).get(original.originalResultId, retest.id)).toEqual({
+        canonical_result_id: original.originalResultId,
+        score: 90,
+        disposition: 'SUPERSEDED',
+      });
+    } else {
+      expect(canonical.live_exam_session_id).toBe(original.originalSessionId);
+    }
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM competition_school_exam_results WHERE id = ?`)
+      .get(original.originalResultId)).toEqual({ count: 1 });
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM live_exam_participants WHERE id = ?`)
+      .get(original.participantId)).toEqual({ count: 1 });
+  });
+
+  it('forbids deleting a canonical school-exam result at the database boundary', async () => {
+    const original = await createClosedOriginalResult();
+    expect(() => sqlite.prepare('DELETE FROM competition_school_exam_results WHERE id = ?').run(original.originalResultId))
+      .toThrow(/SCHOOL_EXAM_RESULT_DELETE_FORBIDDEN/);
+    expect(sqlite.prepare('SELECT id FROM competition_school_exam_results WHERE id = ?').get(original.originalResultId))
+      .toEqual({ id: original.originalResultId });
   });
 
   it('persists the full blocking issue taxonomy and withholds publication when reconciliation is not clean', async () => {

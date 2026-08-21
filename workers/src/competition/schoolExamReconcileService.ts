@@ -46,6 +46,19 @@ interface RetestRow {
   id: string;
   student_id: string;
   status: string;
+  source_result_id: string | null;
+  replacement_room_id: string | null;
+  incident_id: string | null;
+  expires_at: string | null;
+  live_exam_session_id: string | null;
+  resolution: 'KEEP_ORIGINAL' | 'REPLACE_WITH_RETEST' | 'INVALIDATE_RESULT' | null;
+  retest_session_status: string | null;
+  retest_participant_id: string | null;
+  retest_joined_at: string | null;
+  retest_started_at: string | null;
+  retest_submitted_at: string | null;
+  retest_score: number | null;
+  retest_correct_count: number | null;
 }
 
 interface ReconcileRunRow {
@@ -249,10 +262,24 @@ export async function reconcileSchoolExam(
   const participants = participantsResult.results || [];
 
   const retestsResult = await db.prepare(`
-    SELECT id, student_id, status
-    FROM competition_school_exam_retests
-    WHERE event_id = ? AND status IN ('REQUESTED', 'APPROVED', 'PROVISIONED')
-    ORDER BY student_id ASC, requested_at ASC, id ASC
+    SELECT retests.id, retests.student_id, retests.status, retests.source_result_id,
+           retests.replacement_room_id, retests.incident_id, retests.expires_at,
+           retests.live_exam_session_id, retests.resolution,
+           sessions.status AS retest_session_status,
+           participants.id AS retest_participant_id,
+           participants.joined_at AS retest_joined_at,
+           participants.started_at AS retest_started_at,
+           participants.submitted_at AS retest_submitted_at,
+           participants.score AS retest_score,
+           participants.correct_count AS retest_correct_count
+    FROM competition_school_exam_retests AS retests
+    LEFT JOIN live_exam_sessions AS sessions ON sessions.id = retests.live_exam_session_id
+    LEFT JOIN live_exam_participants AS participants
+      ON participants.live_exam_id = retests.live_exam_session_id
+     AND participants.student_id = retests.student_id
+    WHERE retests.event_id = ?
+      AND retests.status IN ('REQUESTED', 'APPROVED', 'PROVISIONED', 'COMPLETED')
+    ORDER BY retests.student_id ASC, retests.requested_at ASC, retests.id ASC
   `).bind(eventId).all<RetestRow>();
   const retests = retestsResult.results || [];
 
@@ -366,12 +393,31 @@ export async function reconcileSchoolExam(
     );
   }
 
+  const completedRetests: RetestRow[] = [];
   for (const retest of retests) {
     const member = memberByStudent.get(retest.student_id);
+    const retestComplete = (
+      Boolean(retest.live_exam_session_id)
+      && String(retest.retest_session_status || '').toLowerCase() === 'closed'
+      && Boolean(retest.retest_participant_id)
+      && Boolean(retest.retest_submitted_at)
+      && retest.retest_score !== null
+      && retest.retest_score !== undefined
+      && Boolean(retest.resolution)
+    );
+    if (retestComplete) {
+      completedRetests.push(retest);
+      continue;
+    }
     addIssue(
       issues,
       'RETEST_PENDING',
-      { retestId: retest.id, status: retest.status },
+      {
+        retestId: retest.id,
+        status: retest.status,
+        liveExamSessionId: retest.live_exam_session_id,
+        sessionStatus: retest.retest_session_status,
+      },
       member?.room_id,
       retest.student_id,
     );
@@ -395,8 +441,8 @@ export async function reconcileSchoolExam(
       INSERT INTO competition_school_exam_results (
         id, event_id, room_id, student_id, original_class_id, live_exam_session_id,
         live_exam_participant_id, score, correct_count, time_taken, rank, status,
-        source_result_id, computed_at, published_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'RECONCILED', NULL, ?, NULL)
+        source_result_id, computed_at, published_at, retest_id, resolution, reconcile_version
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'RECONCILED', NULL, ?, NULL, NULL, NULL, ?)
       ON CONFLICT(event_id, student_id) DO UPDATE SET
         room_id = excluded.room_id,
         original_class_id = excluded.original_class_id,
@@ -409,7 +455,10 @@ export async function reconcileSchoolExam(
         status = 'RECONCILED',
         source_result_id = NULL,
         computed_at = excluded.computed_at,
-        published_at = NULL
+        published_at = NULL,
+        retest_id = NULL,
+        resolution = NULL,
+        reconcile_version = excluded.reconcile_version
     `).bind(
       generateId('school-exam-result'),
       eventId,
@@ -424,7 +473,100 @@ export async function reconcileSchoolExam(
         : Number(participant.correct_count),
       secondsBetween(participant.started_at || participant.joined_at, participant.submitted_at),
       completedAt,
+      version,
     )];
+  });
+
+  const retestResolutionStatements = completedRetests.flatMap((retest) => {
+    const member = memberByStudent.get(retest.student_id);
+    if (!member || !retest.resolution || !retest.retest_participant_id || !retest.live_exam_session_id) return [];
+    const completionStatements: D1PreparedStatement[] = [
+      db.prepare(`
+        UPDATE competition_school_exam_retests
+        SET status = 'COMPLETED'
+        WHERE id = ? AND event_id = ?
+      `).bind(retest.id, eventId),
+    ];
+    if (retest.incident_id) {
+      completionStatements.push(db.prepare(`
+        UPDATE competition_school_exam_incidents
+        SET resolved_at = ?, resolution_json = ?
+        WHERE id = ? AND event_id = ?
+      `).bind(
+        completedAt,
+        JSON.stringify({ retestId: retest.id, resolution: retest.resolution }),
+        retest.incident_id,
+        eventId,
+      ));
+    }
+
+    if (retest.resolution === 'KEEP_ORIGINAL') {
+      return [
+        db.prepare(`
+          UPDATE competition_school_exam_results
+          SET retest_id = ?, resolution = 'KEEP_ORIGINAL', reconcile_version = ?
+          WHERE event_id = ? AND student_id = ?
+        `).bind(retest.id, version, eventId, retest.student_id),
+        ...completionStatements,
+      ];
+    }
+
+    if (retest.resolution === 'INVALIDATE_RESULT') {
+      return [
+        db.prepare(`
+          UPDATE competition_school_exam_results
+          SET status = 'VOID', rank = NULL, published_at = NULL,
+              retest_id = ?, resolution = 'INVALIDATE_RESULT', reconcile_version = ?
+          WHERE event_id = ? AND student_id = ?
+        `).bind(retest.id, version, eventId, retest.student_id),
+        ...completionStatements,
+      ];
+    }
+
+    return [
+      db.prepare(`
+        INSERT OR IGNORE INTO competition_school_exam_result_history (
+          id, canonical_result_id, event_id, student_id, room_id, original_class_id,
+          live_exam_session_id, live_exam_participant_id, score, correct_count, time_taken,
+          rank, result_status, disposition, retest_id, reconcile_version, superseded_at
+        )
+        SELECT ?, id, event_id, student_id, room_id, original_class_id,
+               live_exam_session_id, live_exam_participant_id, score, correct_count, time_taken,
+               rank, status, 'SUPERSEDED', ?, ?, ?
+        FROM competition_school_exam_results
+        WHERE event_id = ? AND student_id = ?
+      `).bind(
+        generateId('school-exam-result-history'),
+        retest.id,
+        version,
+        completedAt,
+        eventId,
+        retest.student_id,
+      ),
+      db.prepare(`
+        UPDATE competition_school_exam_results
+        SET room_id = ?, live_exam_session_id = ?, live_exam_participant_id = ?,
+            score = ?, correct_count = ?, time_taken = ?, rank = NULL,
+            status = 'RECONCILED', published_at = NULL, computed_at = ?,
+            retest_id = ?, resolution = 'REPLACE_WITH_RETEST', reconcile_version = ?
+        WHERE event_id = ? AND student_id = ?
+      `).bind(
+        retest.replacement_room_id || member.room_id,
+        retest.live_exam_session_id,
+        retest.retest_participant_id,
+        Number(retest.retest_score),
+        retest.retest_correct_count === null || retest.retest_correct_count === undefined
+          ? null
+          : Number(retest.retest_correct_count),
+        secondsBetween(retest.retest_started_at || retest.retest_joined_at, retest.retest_submitted_at),
+        completedAt,
+        retest.id,
+        version,
+        eventId,
+        retest.student_id,
+      ),
+      ...completionStatements,
+    ];
   });
 
   const issueStatements = finalIssues.map((issue) => db.prepare(`
@@ -453,6 +595,7 @@ export async function reconcileSchoolExam(
     memberCount: members.length,
     participantCount: participants.length,
     canonicalResults,
+    completedRetests: completedRetests.length,
     issueCount: finalIssues.length,
     blockingIssues,
     issueCounts,
@@ -467,6 +610,7 @@ export async function reconcileSchoolExam(
       WHERE event_id = ? AND status <> 'PUBLISHED'
     `).bind(eventId),
     ...canonicalStatements,
+    ...retestResolutionStatements,
     ...issueStatements,
     db.prepare(`
       UPDATE competition_school_exam_reconcile_runs

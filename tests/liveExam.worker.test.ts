@@ -232,6 +232,84 @@ describe('live exam P0 authorization and integrity', () => {
     });
   });
 
+  it('rejects another RoomMember from a student-specific retest session even when the room access code is valid', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => {
+      if (sql.includes('WHERE s.access_code')) {
+        return activeSessionRow({
+          id: 'retest-live-1',
+          status: 'waiting',
+          class_id: null,
+          class_name: null,
+          participant_scope_type: 'SCHOOL_EXAM_ROOM',
+          participant_scope_id: 'room-1',
+          result_visibility: 'WITHHELD',
+        });
+      }
+      if (sql.includes('FROM students')) return { id: 'student-b', class_id: 'class-4b' };
+      if (sql.includes('FROM competition_school_exam_retests')) {
+        return {
+          id: 'retest-1',
+          student_id: 'student-a',
+          status: 'PROVISIONED',
+          expires_at: '2099-01-01T00:00:00.000Z',
+        };
+      }
+      if (sql.includes('FROM competition_school_exam_members')) {
+        return { id: 'member-b', room_id: 'room-1', student_id: 'student-b', original_class_id: 'class-4b' };
+      }
+      return null;
+    };
+
+    await expect(LiveExamService.joinSession(db as any, {
+      accessCode: 'ABC123',
+      studentId: 'student-b',
+      username: 'student-b',
+    })).rejects.toSatisfy((error: unknown) => {
+      expectServiceError(error, 403, /not authorized for this retest/i);
+      return true;
+    });
+  });
+
+  it('rejects the intended student after a retest authorization expires', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => {
+      if (sql.includes('WHERE s.access_code')) {
+        return activeSessionRow({
+          id: 'retest-live-expired',
+          status: 'waiting',
+          class_id: null,
+          class_name: null,
+          participant_scope_type: 'SCHOOL_EXAM_ROOM',
+          participant_scope_id: 'room-1',
+          result_visibility: 'WITHHELD',
+        });
+      }
+      if (sql.includes('FROM students')) return { id: 'student-a', class_id: 'class-4a' };
+      if (sql.includes('FROM competition_school_exam_retests')) {
+        return {
+          id: 'retest-expired',
+          student_id: 'student-a',
+          status: 'PROVISIONED',
+          expires_at: '2020-01-01T00:00:00.000Z',
+        };
+      }
+      if (sql.includes('FROM competition_school_exam_members')) {
+        return { id: 'member-a', room_id: 'room-1', student_id: 'student-a', original_class_id: 'class-4a' };
+      }
+      return null;
+    };
+
+    await expect(LiveExamService.joinSession(db as any, {
+      accessCode: 'ABC123',
+      studentId: 'student-a',
+      username: 'student-a',
+    })).rejects.toSatisfy((error: unknown) => {
+      expectServiceError(error, 409, /retest authorization has expired/i);
+      return true;
+    });
+  });
+
   it('allows an assigned school-exam RoomMember to join without a synthetic class', async () => {
     const db = new FakeDB();
     db.first = (sql) => {

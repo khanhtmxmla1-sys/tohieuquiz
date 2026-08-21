@@ -1,7 +1,9 @@
 import {
   CreateCompetitionCampaignRequestSchema,
   CreateSchoolExamEventRequestSchema,
+  CreateSchoolExamIncidentRequestSchema,
   CreateSchoolExamRoomRequestSchema,
+  GrantSchoolExamRetestRequestSchema,
   FinalizeCompetitionEligibilityRequestSchema,
   FinalizeCompetitionRoundRequestSchema,
   ProvisionSchoolExamRequestSchema,
@@ -46,6 +48,10 @@ import {
   getSchoolExamReconcile,
   reconcileSchoolExam,
 } from '../../competition/schoolExamReconcileService';
+import {
+  grantSchoolExamRetest,
+  reportSchoolExamIncident,
+} from '../../competition/schoolExamIncidentRetestService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
 
@@ -109,6 +115,9 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_ROOM_NOT_FOUND',
     'SCHOOL_EXAM_CAPACITY_PROFILE_NOT_FOUND',
     'SCHOOL_EXAM_RECONCILE_NOT_FOUND',
+    'SCHOOL_EXAM_INCIDENT_NOT_FOUND',
+    'SCHOOL_EXAM_RETEST_NOT_FOUND',
+    'SCHOOL_EXAM_ORIGINAL_RESULT_NOT_FOUND',
   ].includes(message)) return errorResponse(message, 404);
   if ([
     'COMPETITION_CAMPAIGN_NOT_DRAFT',
@@ -139,11 +148,17 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_ROOMS_REQUIRED',
     'SCHOOL_EXAM_PREFLIGHT_REQUIRED',
     'SCHOOL_EXAM_RECONCILE_PUBLISHED_LOCKED',
+    'SCHOOL_EXAM_RETEST_PUBLISHED_LOCKED',
+    'SCHOOL_EXAM_RETEST_NOT_REQUESTED',
+    'SCHOOL_EXAM_RETEST_LINEAGE_INVALID',
+    'SCHOOL_EXAM_RETEST_EXPIRY_INVALID',
+    'SCHOOL_EXAM_INCIDENT_REQUEST_CONFLICT',
   ].includes(message)) return errorResponse(message, 409);
   if ([
     'COMPETITION_STUDENT_NOT_IN_AUDIENCE',
     'COMPETITION_ADMIN_REQUIRED',
     'SCHOOL_EXAM_EVENT_FORBIDDEN',
+    'SCHOOL_EXAM_INCIDENT_FORBIDDEN',
   ].includes(message)) return errorResponse(message, 403);
   if (message === 'COMPETITION_AUDIENCE_CURSOR_INVALID') return errorResponse(message, 400);
   return errorResponse(message, 400);
@@ -249,8 +264,10 @@ export async function handleCompetitionRoutes(
   }
 
   if (!requireTeacher(user)) return errorResponse('Forbidden', 403);
+  const schoolExamIncidentParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/incidents$/);
+  const isTeacherIncidentMutation = Boolean(schoolExamIncidentParts) && method === 'POST';
   const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
-  if (isMutation && !requireAdmin(user)) return errorResponse('Forbidden', 403);
+  if (isMutation && !requireAdmin(user) && !isTeacherIncidentMutation) return errorResponse('Forbidden', 403);
 
   try {
     const schoolExamEventCreateParts = routeParts(
@@ -309,6 +326,45 @@ export async function handleCompetitionRoutes(
       if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
       const provision = await provisionSchoolExam(env.DB, eventId, user.username, parsed.data.requestId);
       return jsonResponse({ provision }, provision.failed > 0 ? 207 : 200);
+    }
+
+    if (schoolExamIncidentParts && method === 'POST') {
+      const [eventId] = schoolExamIncidentParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = CreateSchoolExamIncidentRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam incident payload', 400);
+      if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
+      const result = await reportSchoolExamIncident(env.DB, parsed.data, {
+        username: user.username,
+        role: user.role,
+      });
+      return jsonResponse(result, 201);
+    }
+
+    const schoolExamRetestGrantParts = routeParts(
+      path,
+      /^\/api\/school-exams\/([^/]+)\/retests\/([^/]+)\/grant$/,
+    );
+    if (schoolExamRetestGrantParts && method === 'POST') {
+      const [eventId, retestId] = schoolExamRetestGrantParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = GrantSchoolExamRetestRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam retest grant payload', 400);
+      if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
+      const retest = await grantSchoolExamRetest(
+        env.DB,
+        eventId,
+        retestId,
+        {
+          expiresAt: parsed.data.expiresAt,
+          resolution: parsed.data.resolution,
+          requestId: parsed.data.requestId,
+        },
+        user.username,
+      );
+      return jsonResponse({ retest }, 201);
     }
 
     const schoolExamReconcileParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/reconcile$/);

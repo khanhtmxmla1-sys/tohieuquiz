@@ -35,6 +35,28 @@ export async function joinSession(
     if (!session.participantScopeId) {
       throw new LiveExamServiceError('School exam room scope is not configured', 409);
     }
+    const retest = await db.prepare(`
+      SELECT id, student_id, status, expires_at
+      FROM competition_school_exam_retests
+      WHERE live_exam_session_id = ? LIMIT 1
+    `).bind(session.id).first<{
+      id: string;
+      student_id: string;
+      status: string;
+      expires_at: string | null;
+    }>();
+    if (retest) {
+      if (retest.student_id !== params.studentId) {
+        throw new LiveExamServiceError('Forbidden: Student is not authorized for this retest', 403);
+      }
+      if (retest.status !== 'PROVISIONED') {
+        throw new LiveExamServiceError('Retest authorization is not active', 409);
+      }
+      const expiresAt = Date.parse(String(retest.expires_at || ''));
+      if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+        throw new LiveExamServiceError('Retest authorization has expired', 409);
+      }
+    }
     const roomMember = await db.prepare(`
       SELECT id, original_class_id
       FROM competition_school_exam_members

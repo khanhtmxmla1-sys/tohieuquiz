@@ -21,12 +21,13 @@ export type ApiOwnershipKey =
   | 'roomId'
   | 'attemptId'
   | 'exportId'
+  | 'retestId'
   | 'route-handler';
 
 export interface ApiAuthorizationPolicy {
   id: string;
   path: string;
-  match: 'exact' | 'prefix';
+  match: 'exact' | 'prefix' | 'template';
   methods?: readonly string[];
   authorization: ApiAuthorizationClass;
   ownership: readonly ApiOwnershipKey[];
@@ -39,7 +40,7 @@ const policy = (
   authorization: ApiAuthorizationClass,
   ownership: readonly ApiOwnershipKey[],
   enforcedBy: string,
-  options: { match?: 'exact' | 'prefix'; methods?: readonly string[] } = {},
+  options: { match?: 'exact' | 'prefix' | 'template'; methods?: readonly string[] } = {},
 ): ApiAuthorizationPolicy => ({
   id,
   path,
@@ -136,6 +137,8 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('competition-student', '/api/student/competitions', 'student-owned', ['session', 'campaignId', 'roundId', 'attemptId'], 'Competition handler derives student identity from authenticated session'),
   policy('competition-admin-mutations', '/api/competitions', 'admin-only', ['campaignId', 'roundId', 'classId', 'route-handler'], 'Competition Admin mutation guards', { methods: ['POST', 'PUT', 'PATCH', 'DELETE'] }),
   policy('competition-staff-read', '/api/competitions', 'teacher-owned', ['session', 'campaignId', 'roundId', 'classId'], 'Competition Admin/Teacher scoped read guards', { methods: ['GET'] }),
+  policy('school-exam-incident-report', '/api/school-exams/:eventId/incidents', 'teacher-owned', ['session', 'eventId', 'roomId', 'studentId', 'resultId', 'route-handler'], 'assigned-invigilator incident scope guard', { match: 'template', methods: ['POST'] }),
+  policy('school-exam-retest-grant', '/api/school-exams/:eventId/retests/:retestId/grant', 'admin-only', ['eventId', 'retestId', 'route-handler'], 'School Exam Admin retest grant guard', { match: 'template', methods: ['POST'] }),
   policy('school-exam-admin-mutations', '/api/school-exams', 'admin-only', ['eventId', 'roomId', 'exportId', 'route-handler'], 'School Exam Admin mutation guards', { methods: ['POST', 'PUT', 'PATCH', 'DELETE'] }),
   policy('school-exam-staff-read', '/api/school-exams', 'teacher-owned', ['session', 'eventId', 'roomId', 'classId', 'exportId'], 'School Exam Admin/Teacher scoped read guards', { methods: ['GET'] }),
   policy('homework', '/api/homework', 'authenticated', ['studentId', 'classId', 'route-handler'], 'homework ownership checks'),
@@ -152,6 +155,13 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
 
 function matchesPath(entry: ApiAuthorizationPolicy, path: string): boolean {
   if (entry.match === 'exact') return path === entry.path;
+  if (entry.match === 'template') {
+    const expected = entry.path.split('/').filter(Boolean);
+    const actual = path.split('/').filter(Boolean);
+    return expected.length === actual.length && expected.every((segment, index) => (
+      segment.startsWith(':') || segment === actual[index]
+    ));
+  }
   if (entry.path.endsWith('/')) return path.startsWith(entry.path);
   return path === entry.path || path.startsWith(`${entry.path}/`);
 }
