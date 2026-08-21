@@ -1,6 +1,7 @@
 import {
   CreateCompetitionCampaignRequestSchema,
   CreateCompetitionCertificateBatchRequestSchema,
+  CreateCompetitionExportRequestSchema,
   CreateSchoolExamEventRequestSchema,
   CreateSchoolExamIncidentRequestSchema,
   CreateSchoolExamRoomRequestSchema,
@@ -60,6 +61,11 @@ import {
   type SchoolExamRankingScope,
 } from '../../competition/schoolExamPublicationRankingService';
 import { createSchoolExamCertificateBatches } from '../../competition/schoolExamCertificateService';
+import {
+  createSchoolExamExport,
+  downloadSchoolExamExport,
+  getSchoolExamExport,
+} from '../../competition/schoolExamExportService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
 
@@ -129,6 +135,8 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_PUBLICATION_NOT_FOUND',
     'SCHOOL_EXAM_CERTIFICATE_PUBLICATION_NOT_FOUND',
     'SCHOOL_EXAM_CERTIFICATE_TEMPLATE_NOT_FOUND',
+    'SCHOOL_EXAM_EXPORT_NOT_FOUND',
+    'SCHOOL_EXAM_EXPORT_ARTIFACT_NOT_FOUND',
   ].includes(message)) return errorResponse(message, 404);
   if ([
     'COMPETITION_CAMPAIGN_NOT_DRAFT',
@@ -169,17 +177,26 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_PUBLISH_RECONCILE_VERSION_REQUIRED',
     'SCHOOL_EXAM_CERTIFICATE_WINNER_INVALID',
     'SCHOOL_EXAM_CERTIFICATE_CLASS_BATCH_TOO_LARGE',
+    'SCHOOL_EXAM_EXPORT_PUBLICATION_NOT_FOUND',
+    'SCHOOL_EXAM_EXPORT_CLASS_NOT_IN_PUBLICATION',
+    'SCHOOL_EXAM_EXPORT_NOT_READY',
+    'SCHOOL_EXAM_EXPORT_EMPTY_SCOPE',
   ].includes(message)) return errorResponse(message, 409);
   if ([
     'COMPETITION_STUDENT_NOT_IN_AUDIENCE',
     'COMPETITION_ADMIN_REQUIRED',
     'SCHOOL_EXAM_EVENT_FORBIDDEN',
     'SCHOOL_EXAM_INCIDENT_FORBIDDEN',
+    'SCHOOL_EXAM_EXPORT_FORBIDDEN',
   ].includes(message)) return errorResponse(message, 403);
   if ([
     'CERTIFICATE_QUEUE_UNAVAILABLE',
     'SCHOOL_EXAM_CERTIFICATE_QUEUE_FAILED',
     'SCHOOL_EXAM_CERTIFICATE_PERSIST_FAILED',
+    'SCHOOL_EXAM_EXPORT_QUEUE_UNAVAILABLE',
+    'SCHOOL_EXAM_EXPORT_QUEUE_FAILED',
+    'SCHOOL_EXAM_EXPORT_PERSIST_FAILED',
+    'SCHOOL_EXAM_EXPORT_STORAGE_UNAVAILABLE',
   ].includes(message)) return errorResponse(message, 503);
   if (message === 'COMPETITION_AUDIENCE_CURSOR_INVALID') return errorResponse(message, 400);
   return errorResponse(message, 400);
@@ -286,9 +303,13 @@ export async function handleCompetitionRoutes(
 
   if (!requireTeacher(user)) return errorResponse('Forbidden', 403);
   const schoolExamIncidentParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/incidents$/);
+  const schoolExamExportCollectionParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/exports$/);
   const isTeacherIncidentMutation = Boolean(schoolExamIncidentParts) && method === 'POST';
+  const isTeacherExportMutation = Boolean(schoolExamExportCollectionParts) && method === 'POST';
   const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
-  if (isMutation && !requireAdmin(user) && !isTeacherIncidentMutation) return errorResponse('Forbidden', 403);
+  if (isMutation && !requireAdmin(user) && !isTeacherIncidentMutation && !isTeacherExportMutation) {
+    return errorResponse('Forbidden', 403);
+  }
 
   try {
     const schoolExamEventCreateParts = routeParts(
@@ -431,6 +452,36 @@ export async function handleCompetitionRoutes(
         ...(url.searchParams.get('classId') ? { classId: String(url.searchParams.get('classId')) } : {}),
       });
       return jsonResponse({ rankings });
+    }
+
+    if (schoolExamExportCollectionParts && method === 'POST') {
+      const [eventId] = schoolExamExportCollectionParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = CreateCompetitionExportRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam export payload', 400);
+      if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
+      const result = await createSchoolExamExport(env, parsed.data, {
+        username: user.username,
+        role: user.role,
+      });
+      return jsonResponse({ export: result.export }, result.created ? 201 : 200);
+    }
+
+    const schoolExamExportDownloadParts = routeParts(
+      path,
+      /^\/api\/school-exams\/([^/]+)\/exports\/([^/]+)\/download$/,
+    );
+    if (schoolExamExportDownloadParts && method === 'GET') {
+      const [eventId, exportId] = schoolExamExportDownloadParts;
+      return await downloadSchoolExamExport(env, eventId, exportId, { username: user.username, role: user.role });
+    }
+
+    const schoolExamExportDetailParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/exports\/([^/]+)$/);
+    if (schoolExamExportDetailParts && method === 'GET') {
+      const [eventId, exportId] = schoolExamExportDetailParts;
+      const exportJob = await getSchoolExamExport(env.DB, eventId, exportId, { username: user.username, role: user.role });
+      return jsonResponse({ export: exportJob });
     }
 
     const schoolExamCertificateParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/certificates$/);

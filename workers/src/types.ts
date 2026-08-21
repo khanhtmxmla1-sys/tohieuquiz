@@ -37,7 +37,9 @@ export interface Env {
     // Task 1.4: Cloudflare Queues binding
     CERTIFICATE_QUEUE: Queue<{ batchId: string }>;
     CERTIFICATE_DLQ?: Queue;
-    CERT_IMAGES: R2Bucket;           // R2 bucket for rendered certificate PNGs
+    CERT_IMAGES: R2Bucket;
+    COMPETITION_EXPORT_QUEUE: Queue<{ exportId: string }>;
+    COMPETITION_EXPORTS: R2Bucket;           // R2 bucket for rendered certificate PNGs
 }
 
 export interface Quiz {

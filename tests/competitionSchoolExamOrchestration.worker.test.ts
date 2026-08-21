@@ -2,8 +2,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readSheet } from 'read-excel-file/node';
 import { signJWT } from '../workers/src/utils/jwt';
 import { handleCompetitionRoutes } from '../workers/src/routes/competitions';
+import { processCompetitionExportQueue } from '../workers/src/queues/competitionExportQueue';
 import { createSqliteD1 } from './helpers/sqliteD1';
 
 const liveExamMigration = readFileSync(new URL('../workers/migrations/0016_add_live_exam_tables.sql', import.meta.url), 'utf8');
@@ -15,13 +17,66 @@ const reconcileMigrationUrl = new URL('../workers/migrations/0073_competition_sc
 const incidentRetestMigrationUrl = new URL('../workers/migrations/0074_competition_school_exam_incident_retest.sql', import.meta.url);
 const publicationRankingMigrationUrl = new URL('../workers/migrations/0075_competition_school_exam_publication_ranking.sql', import.meta.url);
 const certificateAdapterMigrationUrl = new URL('../workers/migrations/0076_competition_certificate_adapter.sql', import.meta.url);
+const exportAdapterMigrationUrl = new URL('../workers/migrations/0077_competition_async_xlsx_export.sql', import.meta.url);
 
 const secret = 'school-exam-orchestration-test-secret';
 let sqlite: DatabaseSync;
+class MockR2Object {
+  constructor(
+    private readonly bytes: Uint8Array,
+    readonly httpMetadata?: Record<string, string>,
+  ) {}
+
+  async arrayBuffer(): Promise<ArrayBuffer> {
+    return this.bytes.buffer.slice(
+      this.bytes.byteOffset,
+      this.bytes.byteOffset + this.bytes.byteLength,
+    ) as ArrayBuffer;
+  }
+
+  get body(): ReadableStream<Uint8Array> {
+    const bytes = this.bytes;
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      },
+    });
+  }
+}
+
+class MockR2Bucket {
+  readonly objects = new Map<string, MockR2Object>();
+
+  async put(key: string, value: ArrayBuffer | ArrayBufferView | Blob, options?: { httpMetadata?: Record<string, string> }) {
+    let bytes: Uint8Array;
+    if (value instanceof Blob) {
+      bytes = new Uint8Array(await value.arrayBuffer());
+    } else if (ArrayBuffer.isView(value)) {
+      bytes = new Uint8Array(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
+    } else {
+      bytes = new Uint8Array(value);
+    }
+    const object = new MockR2Object(bytes, options?.httpMetadata);
+    this.objects.set(key, object);
+    return object;
+  }
+
+  async get(key: string) {
+    return this.objects.get(key) || null;
+  }
+
+  async head(key: string) {
+    return this.objects.get(key) || null;
+  }
+}
+
 let env: {
   DB: D1Database;
   JWT_SECRET: string;
   CERTIFICATE_QUEUE: { send: ReturnType<typeof vi.fn> };
+  COMPETITION_EXPORT_QUEUE: { send: ReturnType<typeof vi.fn> };
+  COMPETITION_EXPORTS: MockR2Bucket;
 };
 let adminCookie: string;
 let invigilatorCookie: string;
@@ -185,6 +240,7 @@ function seedCompetition(): void {
   if (existsSync(incidentRetestMigrationUrl)) sqlite.exec(readFileSync(incidentRetestMigrationUrl, 'utf8'));
   if (existsSync(publicationRankingMigrationUrl)) sqlite.exec(readFileSync(publicationRankingMigrationUrl, 'utf8'));
   if (existsSync(certificateAdapterMigrationUrl)) sqlite.exec(readFileSync(certificateAdapterMigrationUrl, 'utf8'));
+  if (existsSync(exportAdapterMigrationUrl)) sqlite.exec(readFileSync(exportAdapterMigrationUrl, 'utf8'));
 
   sqlite.exec(`
     INSERT INTO competition_campaigns (
@@ -439,6 +495,8 @@ beforeEach(async () => {
     DB: createSqliteD1(sqlite),
     JWT_SECRET: secret,
     CERTIFICATE_QUEUE: { send: vi.fn(async () => undefined) },
+    COMPETITION_EXPORT_QUEUE: { send: vi.fn(async () => undefined) },
+    COMPETITION_EXPORTS: new MockR2Bucket(),
   };
   const token = await signJWT({ username: 'admin', role: 'admin', tokenVersion: 1, purpose: 'session' }, secret, '30d');
   const invigilatorToken = await signJWT({ username: 'teacher-4', role: 'teacher', tokenVersion: 1, purpose: 'session' }, secret, '30d');
@@ -1318,5 +1376,298 @@ describe('Competition V1 school-exam orchestration', () => {
       SELECT COUNT(*) AS count FROM competition_school_exam_reconcile_issues
       WHERE run_id = ? AND blocking = 1
     `).get(reconcile.id)).toEqual({ count: reconcile.blockingIssues });
+  });
+
+  it('queues an idempotent school export from the latest immutable publication without doing XLSX work on the request path', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-export-0001',
+    }))?.status).toBe(201);
+
+    const response = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'SCHOOL',
+      requestId: 'export-school-0001',
+    });
+    expect(response?.status).toBe(201);
+    const payload = (await response!.json()) as any;
+    expect(payload.export).toMatchObject({
+      eventId: ready.eventId,
+      publicationVersion: 1,
+      scope: 'SCHOOL',
+      classId: null,
+      status: 'QUEUED',
+      artifactKey: null,
+    });
+    expect(env.COMPETITION_EXPORT_QUEUE.send).toHaveBeenCalledTimes(1);
+    expect(env.COMPETITION_EXPORT_QUEUE.send).toHaveBeenCalledWith({ exportId: payload.export.id });
+    expect(env.COMPETITION_EXPORTS.objects.size).toBe(0);
+
+    const replay = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'SCHOOL',
+      requestId: 'export-school-0001',
+    });
+    expect(replay?.status).toBe(200);
+    expect(((await replay!.json()) as any).export.id).toBe(payload.export.id);
+    expect(env.COMPETITION_EXPORT_QUEUE.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed when the export queue is unavailable without changing the published snapshot', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-export-queue-unavailable-0001',
+    }))?.status).toBe(201);
+    delete (env as any).COMPETITION_EXPORT_QUEUE;
+
+    const response = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'SCHOOL',
+      requestId: 'export-queue-unavailable-0001',
+    });
+    expect(response?.status).toBe(503);
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM competition_school_exam_exports WHERE event_id = ?')
+      .get(ready.eventId)).toEqual({ count: 0 });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_publications WHERE event_id = ? AND version = 1')
+      .get(ready.eventId)).toEqual({ status: 'PUBLISHED' });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(ready.eventId))
+      .toEqual({ status: 'PUBLISHED' });
+  });
+
+  it('marks a queue delivery failure without reverting publication', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-export-queue-throw-0001',
+    }))?.status).toBe(201);
+    env.COMPETITION_EXPORT_QUEUE.send.mockRejectedValueOnce(new Error('queue transport down'));
+
+    const response = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'SCHOOL',
+      requestId: 'export-queue-throw-0001',
+    });
+    expect(response?.status).toBe(503);
+    expect(sqlite.prepare(`
+      SELECT status, error_code FROM competition_school_exam_exports
+      WHERE event_id = ? AND request_id = ?
+    `).get(ready.eventId, 'export-queue-throw-0001')).toEqual({
+      status: 'FAILED',
+      error_code: 'SCHOOL_EXAM_EXPORT_QUEUE_FAILED',
+    });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_publications WHERE event_id = ? AND version = 1')
+      .get(ready.eventId)).toEqual({ status: 'PUBLISHED' });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(ready.eventId))
+      .toEqual({ status: 'PUBLISHED' });
+  });
+
+  it('allows teacher exports only for owned original classes and re-authorizes export status reads', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-export-teacher-0001',
+    }))?.status).toBe(201);
+
+    const schoolScope = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'SCHOOL',
+      requestId: 'export-teacher-school-0001',
+    }, invigilatorCookie);
+    expect(schoolScope?.status).toBe(403);
+
+    const ownClass = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'CLASS',
+      classId: 'class-4a',
+      requestId: 'export-teacher-class-0001',
+    }, invigilatorCookie);
+    expect(ownClass?.status).toBe(201);
+    const exportJob = ((await ownClass!.json()) as any).export;
+    expect(exportJob).toMatchObject({ scope: 'CLASS', classId: 'class-4a', status: 'QUEUED' });
+
+    const forbiddenCreate = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'CLASS',
+      classId: 'class-4a',
+      requestId: 'export-unrelated-class-0001',
+    }, unrelatedTeacherCookie);
+    expect(forbiddenCreate?.status).toBe(403);
+
+    const ownStatus = await request(`/api/school-exams/${ready.eventId}/exports/${exportJob.id}`, 'GET', undefined, invigilatorCookie);
+    expect(ownStatus?.status).toBe(200);
+    const forbiddenStatus = await request(`/api/school-exams/${ready.eventId}/exports/${exportJob.id}`, 'GET', undefined, unrelatedTeacherCookie);
+    expect(forbiddenStatus?.status).toBe(403);
+  });
+
+  it('processes queued exports into a real multi-sheet XLSX in R2 and re-authorizes downloads', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-export-worker-0001',
+    }))?.status).toBe(201);
+
+    for (let roundNumber = 1; roundNumber <= 6; roundNumber += 1) {
+      sqlite.prepare(`
+        INSERT INTO competition_rounds (
+          id, campaign_id, round_number, opens_at, closes_at, max_attempts,
+          passing_rule_type, passing_score, status, created_at, finalized_at
+        ) VALUES (?, 'campaign-1', ?, ?, ?, 2, 'MIN_SCORE', 70, 'FINALIZED', ?, ?)
+      `).run(
+        `round-${roundNumber}`,
+        roundNumber,
+        `2027-0${roundNumber}-01T00:00:00.000Z`,
+        `2027-0${roundNumber}-02T00:00:00.000Z`,
+        `2027-0${roundNumber}-01T00:00:00.000Z`,
+        `2027-0${roundNumber}-02T00:00:00.000Z`,
+      );
+      for (const studentId of ['student-1', 'student-2', 'student-4']) {
+        sqlite.prepare(`
+          INSERT INTO competition_round_progress (
+            campaign_id, round_id, student_id, attempts_used, best_score,
+            is_passed, status, version, updated_at
+          ) VALUES ('campaign-1', ?, ?, 1, ?, 0, 'IN_PROGRESS', 1, ?)
+        `).run(`round-${roundNumber}`, studentId, 80 + roundNumber, `2027-0${roundNumber}-02T00:00:00.000Z`);
+      }
+    }
+
+    const created = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'CLASS',
+      classId: 'class-4a',
+      requestId: 'export-worker-class-0001',
+    }, invigilatorCookie);
+    expect(created?.status).toBe(201);
+    const exportJob = ((await created!.json()) as any).export;
+
+    const processor = processCompetitionExportQueue;
+    expect(typeof processor).toBe('function');
+    const ack = vi.fn();
+    const retry = vi.fn();
+    await processor({
+      messages: [{ body: { exportId: exportJob.id }, attempts: 1, ack, retry }],
+    } as any, env as any, {} as ExecutionContext);
+    expect(ack).toHaveBeenCalledTimes(1);
+    expect(retry).not.toHaveBeenCalled();
+
+    const status = await request(`/api/school-exams/${ready.eventId}/exports/${exportJob.id}`, 'GET', undefined, invigilatorCookie);
+    expect(status?.status).toBe(200);
+    const completed = ((await status!.json()) as any).export;
+    expect(completed).toMatchObject({ status: 'READY', artifactKey: expect.stringMatching(/\.xlsx$/) });
+
+    const download = await request(`/api/school-exams/${ready.eventId}/exports/${exportJob.id}/download`, 'GET', undefined, invigilatorCookie);
+    expect(download?.status).toBe(200);
+    expect(download?.headers.get('Content-Type')).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    const workbook = Buffer.from(await download!.arrayBuffer());
+    expect(workbook.subarray(0, 2).toString('ascii')).toBe('PK');
+    for (const sheet of ['Tong_hop', 'Vong_1', 'Vong_2', 'Vong_3', 'Vong_4', 'Vong_5', 'Vong_6', 'Thi_cap_truong', 'Metadata']) {
+      const rows = await readSheet(workbook, sheet);
+      expect(rows.length, sheet).toBeGreaterThan(0);
+    }
+    const summaryRows = await readSheet(workbook, 'Tong_hop');
+    expect(summaryRows.flat()).toContain('student-1');
+    expect(summaryRows.flat()).toContain('student-4');
+    expect(summaryRows.flat()).not.toContain('student-2');
+
+    const forbiddenDownload = await request(
+      `/api/school-exams/${ready.eventId}/exports/${exportJob.id}/download`,
+      'GET',
+      undefined,
+      unrelatedTeacherCookie,
+    );
+    expect(forbiddenDownload?.status).toBe(403);
+  });
+
+  it('retries transient export generation failures without reverting publication', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-export-retry-0001',
+    }))?.status).toBe(201);
+    const created = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'SCHOOL',
+      requestId: 'export-retry-0001',
+    });
+    expect(created?.status).toBe(201);
+    const exportJob = ((await created!.json()) as any).export;
+    (env as any).COMPETITION_EXPORTS = {
+      put: vi.fn(async () => { throw new Error('temporary r2 outage'); }),
+      get: vi.fn(async () => null),
+      head: vi.fn(async () => null),
+    };
+
+    const processor = processCompetitionExportQueue;
+    expect(typeof processor).toBe('function');
+    const ack = vi.fn();
+    const retry = vi.fn();
+    await processor({
+      messages: [{ body: { exportId: exportJob.id }, attempts: 1, ack, retry }],
+    } as any, env as any, {} as ExecutionContext);
+    expect(ack).not.toHaveBeenCalled();
+    expect(retry).toHaveBeenCalledTimes(1);
+    expect(sqlite.prepare(`
+      SELECT status, error_code, processing_started_at
+      FROM competition_school_exam_exports WHERE id = ?
+    `).get(exportJob.id)).toMatchObject({
+      status: 'QUEUED',
+      error_code: 'SCHOOL_EXAM_EXPORT_GENERATION_FAILED',
+      processing_started_at: null,
+    });
+    const finalAck = vi.fn();
+    const finalRetry = vi.fn();
+    await processor({
+      messages: [{ body: { exportId: exportJob.id }, attempts: 3, ack: finalAck, retry: finalRetry }],
+    } as any, env as any, {} as ExecutionContext);
+    expect(finalAck).toHaveBeenCalledTimes(1);
+    expect(finalRetry).not.toHaveBeenCalled();
+    expect(sqlite.prepare(`
+      SELECT status, error_code, processing_started_at
+      FROM competition_school_exam_exports WHERE id = ?
+    `).get(exportJob.id)).toMatchObject({
+      status: 'FAILED',
+      error_code: 'SCHOOL_EXAM_EXPORT_GENERATION_FAILED',
+      processing_started_at: null,
+    });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_publications WHERE event_id = ? AND version = 1')
+      .get(ready.eventId)).toEqual({ status: 'PUBLISHED' });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(ready.eventId))
+      .toEqual({ status: 'PUBLISHED' });
+  });
+
+  it('recovers a stale PROCESSING export job and completes it from the pinned publication', async () => {
+    const ready = await createReadyRankingEvent();
+    expect((await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-export-stale-0001',
+    }))?.status).toBe(201);
+    const created = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
+      eventId: ready.eventId,
+      scope: 'SCHOOL',
+      requestId: 'export-stale-0001',
+    });
+    expect(created?.status).toBe(201);
+    const exportJob = ((await created!.json()) as any).export;
+    sqlite.prepare(`
+      UPDATE competition_school_exam_exports
+      SET status = 'PROCESSING', processing_started_at = '2000-01-01T00:00:00.000Z'
+      WHERE id = ?
+    `).run(exportJob.id);
+
+    const ack = vi.fn();
+    const retry = vi.fn();
+    await processCompetitionExportQueue({
+      messages: [{ body: { exportId: exportJob.id }, attempts: 2, ack, retry }],
+    } as any, env as any, {} as ExecutionContext);
+    expect(ack).toHaveBeenCalledTimes(1);
+    expect(retry).not.toHaveBeenCalled();
+    expect(sqlite.prepare(`
+      SELECT status, artifact_key, processing_started_at FROM competition_school_exam_exports WHERE id = ?
+    `).get(exportJob.id)).toMatchObject({
+      status: 'READY',
+      artifact_key: expect.stringMatching(/\.xlsx$/),
+      processing_started_at: null,
+    });
   });
 });
