@@ -7,6 +7,7 @@ import {
   FinalizeCompetitionEligibilityRequestSchema,
   FinalizeCompetitionRoundRequestSchema,
   ProvisionSchoolExamRequestSchema,
+  PublishCompetitionResultsRequestSchema,
   RunSchoolExamPreflightRequestSchema,
   StartCompetitionReconcileRequestSchema,
   StartCompetitionRoundAttemptRequestSchema,
@@ -52,6 +53,11 @@ import {
   grantSchoolExamRetest,
   reportSchoolExamIncident,
 } from '../../competition/schoolExamIncidentRetestService';
+import {
+  getSchoolExamRankings,
+  publishSchoolExamResults,
+  type SchoolExamRankingScope,
+} from '../../competition/schoolExamPublicationRankingService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
 
@@ -118,6 +124,7 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_INCIDENT_NOT_FOUND',
     'SCHOOL_EXAM_RETEST_NOT_FOUND',
     'SCHOOL_EXAM_ORIGINAL_RESULT_NOT_FOUND',
+    'SCHOOL_EXAM_PUBLICATION_NOT_FOUND',
   ].includes(message)) return errorResponse(message, 404);
   if ([
     'COMPETITION_CAMPAIGN_NOT_DRAFT',
@@ -153,6 +160,9 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_RETEST_LINEAGE_INVALID',
     'SCHOOL_EXAM_RETEST_EXPIRY_INVALID',
     'SCHOOL_EXAM_INCIDENT_REQUEST_CONFLICT',
+    'SCHOOL_EXAM_PUBLISH_NOT_READY',
+    'SCHOOL_EXAM_PUBLISH_RESULTS_REQUIRED',
+    'SCHOOL_EXAM_PUBLISH_RECONCILE_VERSION_REQUIRED',
   ].includes(message)) return errorResponse(message, 409);
   if ([
     'COMPETITION_STUDENT_NOT_IN_AUDIENCE',
@@ -383,6 +393,33 @@ export async function handleCompetitionRoutes(
       await getSchoolExamEvent(env.DB, eventId, { username: user.username, role: user.role });
       const reconcile = await getSchoolExamReconcile(env.DB, eventId);
       return jsonResponse({ reconcile });
+    }
+
+    const schoolExamPublishParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/publish$/);
+    if (schoolExamPublishParts && method === 'POST') {
+      const [eventId] = schoolExamPublishParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = PublishCompetitionResultsRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam publish payload', 400);
+      if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
+      const publication = await publishSchoolExamResults(env.DB, eventId, user.username, parsed.data.requestId);
+      return jsonResponse({ publication }, 201);
+    }
+
+    const schoolExamRankingParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/rankings$/);
+    if (schoolExamRankingParts && method === 'GET') {
+      const [eventId] = schoolExamRankingParts;
+      await getSchoolExamEvent(env.DB, eventId, { username: user.username, role: user.role });
+      const url = new URL(request.url);
+      const scope = String(url.searchParams.get('scope') || 'EVENT').toUpperCase() as SchoolExamRankingScope;
+      const gradeLevelValue = url.searchParams.get('gradeLevel');
+      const rankings = await getSchoolExamRankings(env.DB, eventId, {
+        scope,
+        ...(gradeLevelValue === null ? {} : { gradeLevel: Number(gradeLevelValue) }),
+        ...(url.searchParams.get('classId') ? { classId: String(url.searchParams.get('classId')) } : {}),
+      });
+      return jsonResponse({ rankings });
     }
 
     if (path === '/api/competitions' && method === 'POST') {

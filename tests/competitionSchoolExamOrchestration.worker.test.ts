@@ -13,6 +13,7 @@ const capacityMigration = readFileSync(new URL('../workers/migrations/0071_live_
 const orchestrationMigrationUrl = new URL('../workers/migrations/0072_competition_school_exam_orchestration.sql', import.meta.url);
 const reconcileMigrationUrl = new URL('../workers/migrations/0073_competition_school_exam_reconcile.sql', import.meta.url);
 const incidentRetestMigrationUrl = new URL('../workers/migrations/0074_competition_school_exam_incident_retest.sql', import.meta.url);
+const publicationRankingMigrationUrl = new URL('../workers/migrations/0075_competition_school_exam_publication_ranking.sql', import.meta.url);
 
 const secret = 'school-exam-orchestration-test-secret';
 let sqlite: DatabaseSync;
@@ -101,7 +102,8 @@ function createBaseSchema(db: DatabaseSync): void {
     INSERT INTO students (id, full_name, username, password_hash, class_id, created_at) VALUES
       ('student-1', 'An', 'student1', 'hash', 'class-4a', '2026-08-01T00:00:00.000Z'),
       ('student-2', 'Binh', 'student2', 'hash', 'class-4b', '2026-08-01T00:00:00.000Z'),
-      ('student-3', 'Chi', 'student3', 'hash', 'class-4a', '2026-08-01T00:00:00.000Z');
+      ('student-3', 'Chi', 'student3', 'hash', 'class-4a', '2026-08-01T00:00:00.000Z'),
+      ('student-4', 'Duong', 'student4', 'hash', 'class-4a', '2026-08-01T00:00:00.000Z');
     INSERT INTO quizzes (id, title, class_level, category, time_limit, created_at, created_by, tags, source_type, version_number, revision, updated_at) VALUES
       ('quiz-a', 'School Form A', '4', 'Tiếng Việt', 45, '2026-08-01T00:00:00.000Z', 'admin', '[]', 'manual', 1, 1, '2026-08-01T00:00:00.000Z'),
       ('quiz-b', 'School Form B', '4', 'Tiếng Việt', 45, '2026-08-01T00:00:00.000Z', 'admin', '[]', 'manual', 1, 1, '2026-08-01T00:00:00.000Z');
@@ -119,6 +121,7 @@ function seedCompetition(): void {
   if (existsSync(orchestrationMigrationUrl)) sqlite.exec(readFileSync(orchestrationMigrationUrl, 'utf8'));
   if (existsSync(reconcileMigrationUrl)) sqlite.exec(readFileSync(reconcileMigrationUrl, 'utf8'));
   if (existsSync(incidentRetestMigrationUrl)) sqlite.exec(readFileSync(incidentRetestMigrationUrl, 'utf8'));
+  if (existsSync(publicationRankingMigrationUrl)) sqlite.exec(readFileSync(publicationRankingMigrationUrl, 'utf8'));
 
   sqlite.exec(`
     INSERT INTO competition_campaigns (
@@ -133,7 +136,7 @@ function seedCompetition(): void {
     INSERT INTO competition_audience_snapshots (
       id, campaign_id, version, status, member_count, snapshot_hash, created_at, locked_at, created_by
     ) VALUES (
-      'audience-1', 'campaign-1', 1, 'BUILDING', 3, 'hash',
+      'audience-1', 'campaign-1', 1, 'BUILDING', 4, 'hash',
       '2026-08-20T00:00:00.000Z', NULL, 'admin'
     );
     INSERT INTO competition_audience_members (
@@ -141,7 +144,8 @@ function seedCompetition(): void {
     ) VALUES
       ('audience-1', 'student-1', 4, 'class-4a', 'ACTIVE'),
       ('audience-1', 'student-2', 4, 'class-4b', 'ACTIVE'),
-      ('audience-1', 'student-3', 4, 'class-4a', 'ACTIVE');
+      ('audience-1', 'student-3', 4, 'class-4a', 'ACTIVE'),
+      ('audience-1', 'student-4', 4, 'class-4a', 'ACTIVE');
     UPDATE competition_audience_snapshots
     SET status = 'LOCKED', locked_at = '2026-08-20T00:05:00.000Z', snapshot_hash = '${'a'.repeat(64)}'
     WHERE id = 'audience-1';
@@ -151,7 +155,8 @@ function seedCompetition(): void {
     ) VALUES
       ('elig-1', 'campaign-1', 1, 'student-1', 1, '["QUALIFIED"]', '2027-03-01T00:00:00.000Z', '2027-03-01T00:00:00.000Z', '${'b'.repeat(64)}'),
       ('elig-2', 'campaign-1', 1, 'student-2', 1, '["QUALIFIED"]', '2027-03-01T00:00:00.000Z', '2027-03-01T00:00:00.000Z', '${'c'.repeat(64)}'),
-      ('elig-3', 'campaign-1', 1, 'student-3', 0, '["ROUND_6_NOT_PASSED"]', NULL, '2027-03-01T00:00:00.000Z', '${'d'.repeat(64)}');
+      ('elig-3', 'campaign-1', 1, 'student-3', 0, '["ROUND_6_NOT_PASSED"]', NULL, '2027-03-01T00:00:00.000Z', '${'d'.repeat(64)}'),
+      ('elig-4', 'campaign-1', 1, 'student-4', 1, '["QUALIFIED"]', '2027-03-01T00:00:00.000Z', '2027-03-01T00:00:00.000Z', '${'e'.repeat(64)}');
     INSERT INTO live_exam_capacity_profiles (
       id, benchmark_run_id, build_sha, runtime_config_version, polling_profile_version,
       certified_concurrent_students, status_p95_ms, submit_p95_ms, lost_answers,
@@ -301,6 +306,64 @@ async function reportIncident(input: {
     details: { source: 'invigilator-console' },
     requestId: input.requestId,
   }, cookie);
+}
+
+async function createReadyRankingEvent() {
+  const eventId = await createEvent();
+  const roomId = await createRoom(eventId, 'RANK', ['student-1', 'student-2', 'student-4']);
+  await provisionEvent(eventId);
+  const room = sqlite.prepare(`
+    SELECT live_exam_session_id FROM competition_school_exam_rooms WHERE id = ?
+  `).get(roomId) as { live_exam_session_id: string };
+  sqlite.prepare(`
+    UPDATE live_exam_sessions
+    SET status = 'closed', started_at = ?, closed_at = ?, updated_at = ?
+    WHERE id = ?
+  `).run(
+    '2027-05-10T01:00:00.000Z',
+    '2027-05-10T01:03:00.000Z',
+    '2027-05-10T01:03:00.000Z',
+    room.live_exam_session_id,
+  );
+
+  const insert = sqlite.prepare(`
+    INSERT INTO live_exam_participants (
+      id, live_exam_id, student_id, username, joined_at, started_at, submitted_at,
+      answers, score, correct_count, wrong_count, rank, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, '{}', ?, ?, 0, NULL, ?, ?)
+  `);
+  for (const row of [
+    ['rank-p1', 'student-1', 'student1', '2027-05-10T01:02:00.000Z', 95, 9],
+    ['rank-p2', 'student-2', 'student2', '2027-05-10T01:01:40.000Z', 95, 9],
+    ['rank-p4', 'student-4', 'student4', '2027-05-10T01:02:00.000Z', 95, 9],
+  ] as const) {
+    insert.run(
+      row[0],
+      room.live_exam_session_id,
+      row[1],
+      row[2],
+      '2027-05-10T00:59:00.000Z',
+      '2027-05-10T01:00:00.000Z',
+      row[3],
+      row[4],
+      row[5],
+      '2027-05-10T00:59:00.000Z',
+      row[3],
+    );
+  }
+
+  const reconcile = await request(`/api/school-exams/${eventId}/reconcile`, 'POST', {
+    eventId,
+    requestId: 'reconcile-ranking-0001',
+  });
+  expect(reconcile?.status).toBe(200);
+  expect(((await reconcile!.json()) as any).reconcile).toMatchObject({
+    status: 'SUCCEEDED',
+    blockingIssues: 0,
+    allRoomsClosed: true,
+    eventStatus: 'READY_TO_PUBLISH',
+  });
+  return { eventId, roomId, liveExamSessionId: room.live_exam_session_id };
 }
 
 beforeEach(async () => {
@@ -817,6 +880,143 @@ describe('Competition V1 school-exam orchestration', () => {
       .toEqual({ id: original.originalResultId });
   });
 
+  it('blocks publication until all required rooms are closed and the latest reconcile has zero blocking issues', async () => {
+    const eventId = await createEvent();
+    await createRoom(eventId, 'PUB-BLOCK', ['student-1']);
+    await provisionEvent(eventId);
+
+    const reconcile = await request(`/api/school-exams/${eventId}/reconcile`, 'POST', {
+      eventId,
+      requestId: 'reconcile-publish-blocked-0001',
+    });
+    expect(reconcile?.status).toBe(200);
+    expect(((await reconcile!.json()) as any).reconcile.blockingIssues).toBeGreaterThan(0);
+    expect(() => sqlite.prepare(`
+      UPDATE live_exam_sessions SET result_visibility = 'PUBLISHED'
+      WHERE participant_scope_type = 'SCHOOL_EXAM_ROOM' AND participant_scope_id IN (
+        SELECT id FROM competition_school_exam_rooms WHERE event_id = ?
+      )
+    `).run(eventId)).toThrow(/LIVE_EXAM_SCOPE_VISIBILITY_INVALID/);
+
+    const publish = await request(`/api/school-exams/${eventId}/publish`, 'POST', {
+      eventId,
+      requestId: 'publish-blocked-0001',
+    });
+    expect(publish?.status).toBe(409);
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM competition_school_exam_publications WHERE event_id = ?')
+      .get(eventId)).toEqual({ count: 0 });
+    expect(sqlite.prepare(`
+      SELECT COUNT(*) AS count FROM live_exam_sessions
+      WHERE participant_scope_type = 'SCHOOL_EXAM_ROOM' AND participant_scope_id IN (
+        SELECT id FROM competition_school_exam_rooms WHERE event_id = ?
+      ) AND result_visibility = 'PUBLISHED'
+    `).get(eventId)).toEqual({ count: 0 });
+  });
+
+  it('publishes an immutable versioned result snapshot and ranks only published results with official ties', async () => {
+    const ready = await createReadyRankingEvent();
+    const unpublishedRankings = await request(`/api/school-exams/${ready.eventId}/rankings?scope=EVENT`);
+    expect(unpublishedRankings?.status).toBe(404);
+    const teacherPublish = await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-ranking-teacher-0001',
+    }, invigilatorCookie);
+    expect(teacherPublish?.status).toBe(403);
+    const publish = await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-ranking-0001',
+    });
+    expect(publish?.status, await publish?.clone().text()).toBe(201);
+    const publication = ((await publish!.json()) as any).publication;
+    expect(publication).toMatchObject({
+      eventId: ready.eventId,
+      publicationVersion: 1,
+      rankingVersion: 1,
+      resultDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+      publishedAt: expect.any(String),
+      publishedBy: 'admin',
+    });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(ready.eventId))
+      .toEqual({ status: 'PUBLISHED' });
+    expect(sqlite.prepare('SELECT result_visibility FROM live_exam_sessions WHERE id = ?').get(ready.liveExamSessionId))
+      .toEqual({ result_visibility: 'PUBLISHED' });
+
+    const eventRanking = await request(`/api/school-exams/${ready.eventId}/rankings?scope=EVENT`);
+    expect(eventRanking?.status).toBe(200);
+    expect(((await eventRanking!.json()) as any).rankings).toMatchObject({
+      eventId: ready.eventId,
+      publicationVersion: 1,
+      rankingVersion: 1,
+      scope: 'EVENT',
+      items: [
+        expect.objectContaining({ studentId: 'student-2', score: 95, correctCount: 9, timeTaken: 100, rank: 1 }),
+        expect.objectContaining({ studentId: 'student-1', score: 95, correctCount: 9, timeTaken: 120, rank: 2 }),
+        expect.objectContaining({ studentId: 'student-4', score: 95, correctCount: 9, timeTaken: 120, rank: 2 }),
+      ],
+    });
+
+    const gradeRanking = await request(`/api/school-exams/${ready.eventId}/rankings?scope=GRADE&gradeLevel=4`);
+    expect(gradeRanking?.status).toBe(200);
+    expect(((await gradeRanking!.json()) as any).rankings.items.map((item: any) => [item.studentId, item.rank]))
+      .toEqual([['student-2', 1], ['student-1', 2], ['student-4', 2]]);
+
+    const classRanking = await request(`/api/school-exams/${ready.eventId}/rankings?scope=CLASS&classId=class-4a`);
+    expect(classRanking?.status).toBe(200);
+    expect(((await classRanking!.json()) as any).rankings.items.map((item: any) => [item.studentId, item.rank]))
+      .toEqual([['student-1', 1], ['student-4', 1]]);
+  });
+
+  it('creates a new immutable publication version after a correction without mutating the prior snapshot', async () => {
+    const ready = await createReadyRankingEvent();
+    const first = await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-correction-v1-0001',
+    });
+    expect(first?.status, await first?.clone().text()).toBe(201);
+    const firstPublication = ((await first!.json()) as any).publication;
+    const firstSnapshot = sqlite.prepare(`
+      SELECT score, rank_event FROM competition_school_exam_publication_results
+      WHERE event_id = ? AND publication_version = 1 AND student_id = 'student-1'
+    `).get(ready.eventId);
+    expect(firstSnapshot).toEqual({ score: 95, rank_event: 2 });
+
+    sqlite.prepare(`
+      UPDATE competition_school_exam_results
+      SET score = 99, correct_count = 10, status = 'RECONCILED', rank = NULL, published_at = NULL
+      WHERE event_id = ? AND student_id = 'student-1'
+    `).run(ready.eventId);
+    sqlite.prepare(`UPDATE competition_school_exam_events SET status = 'READY_TO_PUBLISH' WHERE id = ?`).run(ready.eventId);
+    sqlite.prepare(`
+      UPDATE live_exam_sessions SET result_visibility = 'WITHHELD'
+      WHERE participant_scope_type = 'SCHOOL_EXAM_ROOM' AND participant_scope_id IN (
+        SELECT id FROM competition_school_exam_rooms WHERE event_id = ?
+      )
+    `).run(ready.eventId);
+
+    const second = await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
+      eventId: ready.eventId,
+      requestId: 'publish-correction-v2-0001',
+    });
+    expect(second?.status).toBe(201);
+    const secondPublication = ((await second!.json()) as any).publication;
+    expect(secondPublication).toMatchObject({ publicationVersion: 2, rankingVersion: 2 });
+    expect(secondPublication.resultDigest).not.toBe(firstPublication.resultDigest);
+    expect(sqlite.prepare(`
+      SELECT score, rank_event FROM competition_school_exam_publication_results
+      WHERE event_id = ? AND publication_version = 1 AND student_id = 'student-1'
+    `).get(ready.eventId)).toEqual(firstSnapshot);
+    expect(sqlite.prepare(`
+      SELECT score, rank_event FROM competition_school_exam_publication_results
+      WHERE event_id = ? AND publication_version = 2 AND student_id = 'student-1'
+    `).get(ready.eventId)).toEqual({ score: 99, rank_event: 1 });
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM competition_school_exam_publications WHERE event_id = ?`)
+      .get(ready.eventId)).toEqual({ count: 2 });
+    expect(() => sqlite.prepare(`
+      UPDATE competition_school_exam_publications SET result_digest = 'tampered'
+      WHERE event_id = ? AND version = 1
+    `).run(ready.eventId)).toThrow(/SCHOOL_EXAM_PUBLICATION_IMMUTABLE/);
+  });
+
   it('persists the full blocking issue taxonomy and withholds publication when reconciliation is not clean', async () => {
     const eventId = await createEvent();
     const room1Id = await createRoom(eventId, 'R1', ['student-1']);
@@ -840,7 +1040,7 @@ describe('Competition V1 school-exam orchestration', () => {
     `).run(eventId, room1Id, '2027-05-10T00:50:00.000Z', '2027-05-10T00:50:00.000Z');
     sqlite.exec(`
       INSERT INTO students (id, full_name, username, password_hash, class_id, created_at)
-      VALUES ('student-4', 'Duong', 'student4', 'hash', 'class-4a', '2026-08-01T00:00:00.000Z');
+      VALUES ('student-5', 'Em', 'student5', 'hash', 'class-4a', '2026-08-01T00:00:00.000Z');
     `);
     const participantInsert = sqlite.prepare(`
       INSERT INTO live_exam_participants (
@@ -864,7 +1064,7 @@ describe('Competition V1 school-exam orchestration', () => {
       null, 8, 2, 2, '2027-05-10T00:59:00.000Z', '2027-05-10T01:02:00.000Z',
     );
     participantInsert.run(
-      'participant-room-mismatch', room1Session, 'student-4', 'student4',
+      'participant-room-mismatch', room1Session, 'student-5', 'student5',
       '2027-05-10T00:59:00.000Z', '2027-05-10T01:00:00.000Z', '2027-05-10T01:02:00.000Z',
       80, 8, 2, 1, '2027-05-10T00:59:00.000Z', '2027-05-10T01:02:00.000Z',
     );
