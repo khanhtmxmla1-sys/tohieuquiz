@@ -6,6 +6,7 @@ import {
   FinalizeCompetitionRoundRequestSchema,
   ProvisionSchoolExamRequestSchema,
   RunSchoolExamPreflightRequestSchema,
+  StartCompetitionReconcileRequestSchema,
   StartCompetitionRoundAttemptRequestSchema,
   SubmitCompetitionRoundAttemptRequestSchema,
   UpdateCompetitionCampaignRequestSchema,
@@ -41,6 +42,10 @@ import {
   provisionSchoolExam,
   runSchoolExamPreflight,
 } from '../../competition/schoolExamService';
+import {
+  getSchoolExamReconcile,
+  reconcileSchoolExam,
+} from '../../competition/schoolExamReconcileService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
 
@@ -103,6 +108,7 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_EVENT_NOT_FOUND',
     'SCHOOL_EXAM_ROOM_NOT_FOUND',
     'SCHOOL_EXAM_CAPACITY_PROFILE_NOT_FOUND',
+    'SCHOOL_EXAM_RECONCILE_NOT_FOUND',
   ].includes(message)) return errorResponse(message, 404);
   if ([
     'COMPETITION_CAMPAIGN_NOT_DRAFT',
@@ -132,6 +138,7 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_FORM_DIFFICULTY_MISMATCH',
     'SCHOOL_EXAM_ROOMS_REQUIRED',
     'SCHOOL_EXAM_PREFLIGHT_REQUIRED',
+    'SCHOOL_EXAM_RECONCILE_PUBLISHED_LOCKED',
   ].includes(message)) return errorResponse(message, 409);
   if ([
     'COMPETITION_STUDENT_NOT_IN_AUDIENCE',
@@ -302,6 +309,24 @@ export async function handleCompetitionRoutes(
       if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
       const provision = await provisionSchoolExam(env.DB, eventId, user.username, parsed.data.requestId);
       return jsonResponse({ provision }, provision.failed > 0 ? 207 : 200);
+    }
+
+    const schoolExamReconcileParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/reconcile$/);
+    if (schoolExamReconcileParts && method === 'POST') {
+      const [eventId] = schoolExamReconcileParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = StartCompetitionReconcileRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam reconcile payload', 400);
+      if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
+      const reconcile = await reconcileSchoolExam(env.DB, eventId, user.username, parsed.data.requestId);
+      return jsonResponse({ reconcile });
+    }
+    if (schoolExamReconcileParts && method === 'GET') {
+      const [eventId] = schoolExamReconcileParts;
+      await getSchoolExamEvent(env.DB, eventId, { username: user.username, role: user.role });
+      const reconcile = await getSchoolExamReconcile(env.DB, eventId);
+      return jsonResponse({ reconcile });
     }
 
     if (path === '/api/competitions' && method === 'POST') {

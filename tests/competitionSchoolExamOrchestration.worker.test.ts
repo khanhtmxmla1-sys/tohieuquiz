@@ -11,6 +11,7 @@ const coreMigration = readFileSync(new URL('../workers/migrations/0069_competiti
 const schoolExamMigration = readFileSync(new URL('../workers/migrations/0070_competition_school_exam.sql', import.meta.url), 'utf8');
 const capacityMigration = readFileSync(new URL('../workers/migrations/0071_live_exam_capacity_profiles.sql', import.meta.url), 'utf8');
 const orchestrationMigrationUrl = new URL('../workers/migrations/0072_competition_school_exam_orchestration.sql', import.meta.url);
+const reconcileMigrationUrl = new URL('../workers/migrations/0073_competition_school_exam_reconcile.sql', import.meta.url);
 
 const secret = 'school-exam-orchestration-test-secret';
 let sqlite: DatabaseSync;
@@ -113,6 +114,7 @@ function seedCompetition(): void {
   sqlite.exec(schoolExamMigration);
   sqlite.exec(capacityMigration);
   if (existsSync(orchestrationMigrationUrl)) sqlite.exec(readFileSync(orchestrationMigrationUrl, 'utf8'));
+  if (existsSync(reconcileMigrationUrl)) sqlite.exec(readFileSync(reconcileMigrationUrl, 'utf8'));
 
   sqlite.exec(`
     INSERT INTO competition_campaigns (
@@ -192,6 +194,37 @@ async function createEvent(policy: 'SAME_FORM' | 'EQUIVALENT_FORM_SET' = 'SAME_F
   expect(response).not.toBeNull();
   expect(response?.status).toBe(201);
   return ((await response!.json()) as any).event.id as string;
+}
+
+async function createRoom(eventId: string, roomCode: string, studentIds: string[]): Promise<string> {
+  const response = await request(`/api/school-exams/${eventId}/rooms`, 'POST', {
+    eventId,
+    name: `Room ${roomCode}`,
+    roomCode,
+    scheduledAt: '2027-05-10T01:00:00.000Z',
+    durationMinutes: 45,
+    checkInLeadMinutes: 0,
+    closeDrainMinutes: 0,
+    formCode: 'A',
+    quizId: 'quiz-a',
+    invigilatorIds: ['teacher-4'],
+    studentIds,
+    formDefinition,
+    requestId: `create-room-${roomCode.toLowerCase()}-0001`,
+  });
+  expect(response?.status).toBe(201);
+  return ((await response!.json()) as any).room.id as string;
+}
+
+async function provisionEvent(eventId: string): Promise<void> {
+  expect((await request(`/api/school-exams/${eventId}/preflight`, 'POST', {
+    eventId,
+    requestId: `preflight-${eventId}-0001`,
+  }))?.status).toBe(200);
+  expect((await request(`/api/school-exams/${eventId}/provision`, 'POST', {
+    eventId,
+    requestId: `provision-${eventId}-0001`,
+  }))?.status).toBe(200);
 }
 
 beforeEach(async () => {
@@ -375,5 +408,194 @@ describe('Competition V1 school-exam orchestration', () => {
     `).all(eventId) as any[];
     expect(finalRooms.map((row) => row.provision_status)).toEqual(['READY', 'READY']);
     expect(finalRooms[0].live_exam_session_id).toBe(firstSessionId);
+  });
+
+  it('reconciles closed rooms into versioned canonical results and is rerunnable/idempotent without mutating Live Exam rows', async () => {
+    const eventId = await createEvent();
+    const roomId = await createRoom(eventId, 'R1', ['student-1']);
+    await provisionEvent(eventId);
+    const room = sqlite.prepare(`
+      SELECT live_exam_session_id FROM competition_school_exam_rooms WHERE id = ?
+    `).get(roomId) as { live_exam_session_id: string };
+    const liveExamId = room.live_exam_session_id;
+    sqlite.prepare(`
+      UPDATE live_exam_sessions
+      SET status = 'closed', started_at = ?, closed_at = ?, updated_at = ?
+      WHERE id = ?
+    `).run(
+      '2027-05-10T01:00:00.000Z',
+      '2027-05-10T01:03:00.000Z',
+      '2027-05-10T01:03:00.000Z',
+      liveExamId,
+    );
+    sqlite.prepare(`
+      INSERT INTO live_exam_participants (
+        id, live_exam_id, student_id, username, joined_at, started_at, submitted_at,
+        answers, score, correct_count, wrong_count, rank, created_at, updated_at
+      ) VALUES (?, ?, 'student-1', 'student1', ?, ?, ?, ?, 90, 9, 1, 1, ?, ?)
+    `).run(
+      'participant-1', liveExamId,
+      '2027-05-10T00:59:00.000Z', '2027-05-10T01:00:00.000Z', '2027-05-10T01:02:00.000Z',
+      '{"qa-1":"B"}', '2027-05-10T00:59:00.000Z', '2027-05-10T01:02:00.000Z',
+    );
+    const rawBefore = sqlite.prepare(`
+      SELECT live_exam_id, student_id, submitted_at, answers, score, correct_count, wrong_count, rank
+      FROM live_exam_participants WHERE id = 'participant-1'
+    `).get();
+
+    const first = await request(`/api/school-exams/${eventId}/reconcile`, 'POST', {
+      eventId,
+      requestId: 'reconcile-closed-0001',
+    });
+    expect(first).not.toBeNull();
+    expect(first?.status).toBe(200);
+    const firstPayload = (await first!.json()) as any;
+    expect(firstPayload.reconcile).toMatchObject({
+      eventId,
+      version: 1,
+      status: 'SUCCEEDED',
+      blockingIssues: 0,
+      canonicalResults: 1,
+      allRoomsClosed: true,
+      eventStatus: 'READY_TO_PUBLISH',
+    });
+    expect(sqlite.prepare(`
+      SELECT event_id, room_id, student_id, original_class_id, live_exam_session_id,
+             live_exam_participant_id, score, correct_count, time_taken, status
+      FROM competition_school_exam_results WHERE event_id = ? AND student_id = 'student-1'
+    `).get(eventId)).toEqual({
+      event_id: eventId,
+      room_id: roomId,
+      student_id: 'student-1',
+      original_class_id: 'class-4a',
+      live_exam_session_id: liveExamId,
+      live_exam_participant_id: 'participant-1',
+      score: 90,
+      correct_count: 9,
+      time_taken: 120,
+      status: 'RECONCILED',
+    });
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(eventId))
+      .toEqual({ status: 'READY_TO_PUBLISH' });
+
+    const replay = await request(`/api/school-exams/${eventId}/reconcile`, 'POST', {
+      eventId,
+      requestId: 'reconcile-closed-0001',
+    });
+    expect(replay?.status).toBe(200);
+    expect(((await replay!.json()) as any).reconcile).toMatchObject({
+      id: firstPayload.reconcile.id,
+      version: 1,
+    });
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM competition_school_exam_reconcile_runs WHERE event_id = ?')
+      .get(eventId)).toEqual({ count: 1 });
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM competition_school_exam_results WHERE event_id = ?')
+      .get(eventId)).toEqual({ count: 1 });
+
+    const rerun = await request(`/api/school-exams/${eventId}/reconcile`, 'POST', {
+      eventId,
+      requestId: 'reconcile-closed-0002',
+    });
+    expect(rerun?.status).toBe(200);
+    expect(((await rerun!.json()) as any).reconcile).toMatchObject({ version: 2, status: 'SUCCEEDED' });
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM competition_school_exam_reconcile_runs WHERE event_id = ?')
+      .get(eventId)).toEqual({ count: 2 });
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM competition_school_exam_results WHERE event_id = ?')
+      .get(eventId)).toEqual({ count: 1 });
+
+    const latest = await request(`/api/school-exams/${eventId}/reconcile`);
+    expect(latest?.status).toBe(200);
+    expect(((await latest!.json()) as any).reconcile).toMatchObject({ version: 2, blockingIssues: 0 });
+    expect(sqlite.prepare(`
+      SELECT live_exam_id, student_id, submitted_at, answers, score, correct_count, wrong_count, rank
+      FROM live_exam_participants WHERE id = 'participant-1'
+    `).get()).toEqual(rawBefore);
+  });
+
+  it('persists the full blocking issue taxonomy and withholds publication when reconciliation is not clean', async () => {
+    const eventId = await createEvent();
+    const room1Id = await createRoom(eventId, 'R1', ['student-1']);
+    const room2Id = await createRoom(eventId, 'R2', ['student-2']);
+    await provisionEvent(eventId);
+    const rooms = sqlite.prepare(`
+      SELECT id, live_exam_session_id FROM competition_school_exam_rooms WHERE event_id = ? ORDER BY room_code
+    `).all(eventId) as Array<{ id: string; live_exam_session_id: string }>;
+    const room1Session = rooms.find((room) => room.id === room1Id)!.live_exam_session_id;
+    const room2Session = rooms.find((room) => room.id === room2Id)!.live_exam_session_id;
+    sqlite.prepare(`UPDATE live_exam_sessions SET status = 'active', updated_at = ? WHERE id = ?`)
+      .run('2027-05-10T01:03:00.000Z', room1Session);
+    sqlite.prepare(`UPDATE live_exam_sessions SET status = 'closed', closed_at = ?, updated_at = ? WHERE id = ?`)
+      .run('2027-05-10T01:03:00.000Z', '2027-05-10T01:03:00.000Z', room2Session);
+
+    sqlite.prepare(`
+      INSERT INTO competition_school_exam_members (
+        id, event_id, room_id, student_id, original_class_id, eligibility_snapshot_version,
+        status, assigned_at, updated_at
+      ) VALUES ('member-score-missing', ?, ?, 'student-3', 'class-4a', 1, 'ASSIGNED', ?, ?)
+    `).run(eventId, room1Id, '2027-05-10T00:50:00.000Z', '2027-05-10T00:50:00.000Z');
+    sqlite.exec(`
+      INSERT INTO students (id, full_name, username, password_hash, class_id, created_at)
+      VALUES ('student-4', 'Duong', 'student4', 'hash', 'class-4a', '2026-08-01T00:00:00.000Z');
+    `);
+    const participantInsert = sqlite.prepare(`
+      INSERT INTO live_exam_participants (
+        id, live_exam_id, student_id, username, joined_at, started_at, submitted_at,
+        answers, score, correct_count, wrong_count, rank, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, '{}', ?, ?, ?, ?, ?, ?)
+    `);
+    participantInsert.run(
+      'participant-student2-room2', room2Session, 'student-2', 'student2',
+      '2027-05-10T00:59:00.000Z', '2027-05-10T01:00:00.000Z', null,
+      null, null, null, null, '2027-05-10T00:59:00.000Z', '2027-05-10T01:01:00.000Z',
+    );
+    participantInsert.run(
+      'participant-student2-room1', room1Session, 'student-2', 'student2',
+      '2027-05-10T00:59:00.000Z', '2027-05-10T01:00:00.000Z', '2027-05-10T01:02:00.000Z',
+      70, 7, 3, 1, '2027-05-10T00:59:00.000Z', '2027-05-10T01:02:00.000Z',
+    );
+    participantInsert.run(
+      'participant-score-missing', room1Session, 'student-3', 'student3',
+      '2027-05-10T00:59:00.000Z', '2027-05-10T01:00:00.000Z', '2027-05-10T01:02:00.000Z',
+      null, 8, 2, 2, '2027-05-10T00:59:00.000Z', '2027-05-10T01:02:00.000Z',
+    );
+    participantInsert.run(
+      'participant-room-mismatch', room1Session, 'student-4', 'student4',
+      '2027-05-10T00:59:00.000Z', '2027-05-10T01:00:00.000Z', '2027-05-10T01:02:00.000Z',
+      80, 8, 2, 1, '2027-05-10T00:59:00.000Z', '2027-05-10T01:02:00.000Z',
+    );
+    sqlite.prepare(`
+      INSERT INTO competition_school_exam_retests (
+        id, event_id, student_id, reason, status, requested_by, requested_at
+      ) VALUES ('retest-pending-1', ?, 'student-1', 'Network incident', 'REQUESTED', 'admin', ?)
+    `).run(eventId, '2027-05-10T01:04:00.000Z');
+
+    const response = await request(`/api/school-exams/${eventId}/reconcile`, 'POST', {
+      eventId,
+      requestId: 'reconcile-blocked-0001',
+    });
+    expect(response?.status).toBe(200);
+    const reconcile = ((await response!.json()) as any).reconcile;
+    expect(reconcile).toMatchObject({
+      version: 1,
+      status: 'BLOCKED',
+      eventStatus: 'WITHHELD',
+      allRoomsClosed: false,
+    });
+    expect(reconcile.blockingIssues).toBeGreaterThan(0);
+    expect([...new Set(reconcile.issues.map((issue: any) => issue.issueType))].sort()).toEqual([
+      'DUPLICATE_RESULT',
+      'EXAM_NOT_CLOSED',
+      'MISSING_PARTICIPANT',
+      'MISSING_SUBMISSION',
+      'RETEST_PENDING',
+      'ROOM_MEMBER_MISMATCH',
+      'SCORE_MISSING',
+    ]);
+    expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(eventId))
+      .toEqual({ status: 'WITHHELD' });
+    expect(sqlite.prepare(`
+      SELECT COUNT(*) AS count FROM competition_school_exam_reconcile_issues
+      WHERE run_id = ? AND blocking = 1
+    `).get(reconcile.id)).toEqual({ count: reconcile.blockingIssues });
   });
 });
