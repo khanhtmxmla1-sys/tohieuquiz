@@ -82,7 +82,8 @@ describe('Competition V1 student release journey', () => {
       },
     });
     cy.wait('@studentProfile');
-    cy.wait('@competitionList');
+    // The first cold Vite transform can delay the lazy Competition route on Windows.
+    cy.wait('@competitionList', { timeout: 15_000 });
     cy.contains('h1', 'Cuộc thi của em').should('be.visible');
     cy.get('article').filter(':contains("Vòng ")').should('have.length', 6);
     cy.contains('Kết quả chính thức chưa được công bố.').should('be.visible');

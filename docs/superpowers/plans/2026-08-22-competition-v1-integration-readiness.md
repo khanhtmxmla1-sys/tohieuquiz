@@ -4,11 +4,11 @@
 
 **Branch:** `feat/competition-v1`; the exact candidate SHA is recorded in each rehearsal evidence artifact.
 
-**Status:** APPROVED PLAN — WP1 AND WP2 COMPLETE LOCALLY; WP3 LOCAL REHEARSAL PARTIAL/BLOCKED; WP4 LOCAL JOURNEY CONTRACT PASS / REAL EVIDENCE BLOCKED; WP5 LOCAL CERTIFICATION CONTRACT PASS / REAL BENCHMARK BLOCKED; WP6–WP7 PENDING
+**Status:** APPROVED PLAN — WP1 AND WP2 COMPLETE LOCALLY; WP3 LOCAL REHEARSAL PARTIAL/BLOCKED; WP4 LOCAL JOURNEY CONTRACT PASS / REAL EVIDENCE BLOCKED; WP5 LOCAL CERTIFICATION CONTRACT PASS / REAL BENCHMARK BLOCKED; WP6 SYNTHETIC/LOCAL PASS / REAL SERVICE-BOUNDARY BLOCKED; WP7 PENDING
 
 **Date:** 2026-08-22
 
-**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, the WP3 local rehearsal harness, and the WP4 local artifact journey are committed on the feature branch. WP3 empty bootstrap and 0068→0078 forward rehearsal pass in isolated local D1 state, but the exit gate remains blocked without an approved representative snapshot and application-rollback evidence. WP4 is locally green but remains blocked without candidate-bound real Queue/R2/certificate evidence. WP5 now rejects benchmark reports that are not explicitly `passed: true` or are not bound to a 40-character candidate git SHA; the real capacity certificate remains blocked until an environment-backed benchmark is supplied. No remote D1, Queue, R2, or capacity-profile write, push/PR/merge has occurred.
+**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, the WP3 local rehearsal harness, WP4 local artifact journey, and WP5 fail-closed capacity contract are committed on the feature branch. WP3 remains blocked without an approved representative snapshot and application-rollback evidence. WP4 remains blocked without candidate-bound real Queue/R2/certificate evidence. WP5 remains blocked until an environment-backed benchmark is supplied. WP6 now has a clearly labelled `SYNTHETIC/LOCAL` 120-student pre-integration dataset, a complete negative-security matrix contract, green Competition regressions, and a green stubbed Cypress student journey; it is not real service-boundary evidence. No remote D1, Queue, R2, capacity-profile write, push/PR/merge has occurred.
 
 ---
 
@@ -340,6 +340,8 @@ Local contract evidence:
 
 **Priority:** P1. **TDD:** Required.
 
+**Status:** SYNTHETIC/LOCAL PASS — REAL SERVICE-BOUNDARY EVIDENCE BLOCKED. `workers/scripts/build-competition-synthetic-preintegration.cjs` produces an outside-repository artifact labelled `SYNTHETIC/LOCAL` with 120 students, four original classes, six finalized rounds, 90 qualified students, four rooms, 90 publication results, and the complete negative-security matrix. The artifact keeps WP3–WP5 blockers explicit and cannot be used as production evidence. Competition regression and the stubbed Cypress Competition journey pass locally.
+
 Integration journey:
 
 ```text
@@ -367,6 +369,21 @@ Negative security cases:
 - export ID cannot bypass scope.
 
 Exit requires real service-boundary journey, complete authorization matrix, normal CLASS Live Exam regression, and stubbed Cypress remaining green.
+
+Synthetic/local evidence:
+
+- [x] Dataset is labelled `SYNTHETIC/LOCAL` and `productionEvidence: false`.
+- [x] Original-class ownership survives eligibility, room membership, and publication.
+- [x] Negative-security matrix is complete and contains no credentials or answer payloads.
+- [x] Competition regression and stubbed Cypress journey pass.
+- [ ] Real service-boundary journey runs against an approved candidate environment.
+- [ ] WP3–WP5 P0 external evidence gates are closed.
+
+Artifact name:
+
+```text
+competition-synthetic-preintegration-<candidate-sha>.json
+```
 
 ## 12. WP7 — Final Candidate Gates
 
