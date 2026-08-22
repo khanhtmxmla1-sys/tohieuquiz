@@ -2,13 +2,13 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-22-competition-v1-integration-readiness-design.md`
 
-**Branch:** `feat/competition-v1` at `cfcef5e`
+**Branch:** `feat/competition-v1`; the exact candidate SHA is recorded in each rehearsal evidence artifact.
 
-**Status:** APPROVED PLAN — WP1 AND WP2 COMPLETE LOCALLY; WP3–WP7 PENDING
+**Status:** APPROVED PLAN — WP1 AND WP2 COMPLETE LOCALLY; WP3 LOCAL REHEARSAL PARTIAL/BLOCKED; WP4–WP7 PENDING
 
 **Date:** 2026-08-22
 
-**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, and WP2 bounded-read/artifact-authorization changes are committed locally on the feature branch. No push/PR/merge has occurred.
+**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, and the WP3 local rehearsal harness are committed on the feature branch. WP3 empty bootstrap and 0068→0078 forward rehearsal pass in isolated local D1 state, but the exit gate remains blocked without an approved representative snapshot and application-rollback evidence. No remote D1 write, push/PR/merge has occurred.
 
 ---
 
@@ -204,6 +204,8 @@ Exit:
 
 **Priority:** P0. **TDD:** Migration contract/rehearsal tests. **Risk:** High.
 
+**Status:** LOCAL REHEARSAL PARTIAL — empty bootstrap and 0068→0078 forward path pass for the recorded candidate; WP3 remains BLOCKED by the missing representative snapshot and application-rollback evidence.
+
 Preconditions:
 
 - approved anonymized/representative database snapshot;
@@ -232,11 +234,12 @@ It includes candidate SHA, snapshot hash, registry before/after, per-migration t
 
 Exit:
 
-- [ ] Empty and representative forward migrations pass.
-- [ ] Existing Live Exam data is unchanged unexpectedly.
-- [ ] Registry/indexes are correct.
+- [x] Empty bootstrap and 0068→0078 forward migrations pass in isolated local D1 state.
+- [x] Existing Live Exam data is unchanged unexpectedly in the 0068→0078 rehearsal.
+- [x] Registry/indexes/FK checks are correct after each forward migration.
+- [ ] Representative forward migration passes against an approved anonymized snapshot.
 - [ ] Application rollback preserves Competition data.
-- [ ] Evidence is archived and linked.
+- [ ] Evidence is archived and linked to the release candidate.
 
 No representative database means WP3 is BLOCKED, not PASS.
 
