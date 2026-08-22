@@ -13,6 +13,15 @@ describe('Competition V1 dashboard API registry', () => {
       .toBe('/api/competitions/campaign%201');
     expect(resolveApiRoute('get_competition_rounds').path({ campaignId: 'campaign 1' }))
       .toBe('/api/competitions/campaign%201/rounds');
+    expect(resolveApiRoute('list_student_competitions').path({})).toBe('/api/student/competitions');
+    expect(resolveApiRoute('get_student_competition').path({ campaignId: 'campaign 1' }))
+      .toBe('/api/student/competitions/campaign%201');
+    expect(resolveApiRoute('start_student_competition_round_attempt').path({ campaignId: 'campaign 1', roundId: 'round 1' }))
+      .toBe('/api/student/competitions/campaign%201/rounds/round%201/attempts');
+    expect(resolveApiRoute('submit_student_competition_round_attempt').path({ campaignId: 'campaign 1', roundId: 'round 1', attemptId: 'attempt 1' }))
+      .toBe('/api/student/competitions/campaign%201/rounds/round%201/attempts/attempt%201/submit');
+    expect(resolveApiRoute('get_student_competition_official_result').path({ campaignId: 'campaign 1' }))
+      .toBe('/api/student/competitions/campaign%201/official-result');
     expect(resolveApiRoute('upsert_competition_round_quiz')).toMatchObject({ method: 'PUT', auth: 'session' });
     expect(resolveApiRoute('upsert_competition_round_quiz').path({ campaignId: 'campaign 1', roundId: 'round 1' }))
       .toBe('/api/competitions/campaign%201/rounds/round%201/quizzes');

@@ -38,11 +38,17 @@ import {
   finalizeCompetitionRound,
   listCompetitionProgress,
   listCompetitionRounds,
+  getRoundAttemptQuiz,
   startRoundAttempt,
   submitRoundAttempt,
   updateCompetitionRound,
   upsertCompetitionRoundQuiz,
 } from '../../competition/roundService';
+import {
+  getStudentCompetition,
+  getStudentOfficialCompetitionResult,
+  listStudentCompetitions,
+} from '../../competition/studentCompetitionService';
 import {
   createSchoolExamEvent,
   createSchoolExamRoom,
@@ -234,7 +240,8 @@ export async function handleCompetitionRoutes(
 ): Promise<Response | null> {
   const isStaffNamespace = path === '/api/competitions' || path.startsWith('/api/competitions/');
   const isSchoolExamNamespace = path.startsWith('/api/school-exams/');
-  const isStudentNamespace = path.startsWith('/api/student/competitions/');
+  const isStudentNamespace = path === '/api/student/competitions'
+    || path.startsWith('/api/student/competitions/');
   if (!isStaffNamespace && !isSchoolExamNamespace && !isStudentNamespace) return null;
 
   const authResult = await verifyJWTMiddleware(request, env);
@@ -251,6 +258,28 @@ export async function handleCompetitionRoutes(
         path,
         /^\/api\/student\/competitions\/([^/]+)\/eligibility$/,
       );
+      if (path === '/api/student/competitions' && method === 'GET') {
+        const items = await listStudentCompetitions(env.DB, studentId);
+        return jsonResponse({ items });
+      }
+
+      const studentOfficialResultParts = routeParts(
+        path,
+        /^\/api\/student\/competitions\/([^/]+)\/official-result$/,
+      );
+      if (studentOfficialResultParts && method === 'GET') {
+        const [campaignId] = studentOfficialResultParts;
+        const result = await getStudentOfficialCompetitionResult(env.DB, campaignId, studentId);
+        return jsonResponse({ result });
+      }
+
+      const studentCompetitionParts = routeParts(path, /^\/api\/student\/competitions\/([^/]+)$/);
+      if (studentCompetitionParts && method === 'GET') {
+        const [campaignId] = studentCompetitionParts;
+        const competition = await getStudentCompetition(env.DB, campaignId, studentId);
+        return jsonResponse({ competition });
+      }
+
       if (studentEligibilityParts && method === 'GET') {
         const [campaignId] = studentEligibilityParts;
         const eligibility = await getStudentCompetitionEligibility(env.DB, campaignId, studentId);
@@ -276,7 +305,8 @@ export async function handleCompetitionRoutes(
           studentId,
           requestId: parsed.data.requestId,
         });
-        return jsonResponse({ attempt }, 201);
+        const quiz = await getRoundAttemptQuiz(env.DB, attempt.id, studentId);
+        return jsonResponse({ attempt, quiz }, 201);
       }
 
       const submitParts = routeParts(

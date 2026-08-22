@@ -81,6 +81,7 @@ let env: {
 let adminCookie: string;
 let invigilatorCookie: string;
 let unrelatedTeacherCookie: string;
+let studentCookie: string;
 
 function createBaseSchema(db: DatabaseSync): void {
   db.exec(`
@@ -501,9 +502,11 @@ beforeEach(async () => {
   const token = await signJWT({ username: 'admin', role: 'admin', tokenVersion: 1, purpose: 'session' }, secret, '30d');
   const invigilatorToken = await signJWT({ username: 'teacher-4', role: 'teacher', tokenVersion: 1, purpose: 'session' }, secret, '30d');
   const unrelatedTeacherToken = await signJWT({ username: 'teacher-5', role: 'teacher', tokenVersion: 1, purpose: 'session' }, secret, '30d');
+  const studentToken = await signJWT({ id: 'student-1', username: 'student1', role: 'student', tokenVersion: 1, purpose: 'session' }, secret, '30d');
   adminCookie = `auth_token=${token}`;
   invigilatorCookie = `auth_token=${invigilatorToken}`;
   unrelatedTeacherCookie = `auth_token=${unrelatedTeacherToken}`;
+  studentCookie = `auth_token=${studentToken}`;
 });
 
 afterEach(() => {
@@ -1136,6 +1139,13 @@ describe('Competition V1 school-exam orchestration', () => {
 
   it('publishes an immutable versioned result snapshot and ranks only published results with official ties', async () => {
     const ready = await createReadyRankingEvent();
+    const withheldStudentResult = await request(
+      '/api/student/competitions/campaign-1/official-result',
+      'GET',
+      undefined,
+      studentCookie,
+    );
+    expect(withheldStudentResult?.status).toBe(404);
     const unpublishedRankings = await request(`/api/school-exams/${ready.eventId}/rankings?scope=EVENT`);
     expect(unpublishedRankings?.status).toBe(404);
     const teacherPublish = await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
@@ -1156,6 +1166,26 @@ describe('Competition V1 school-exam orchestration', () => {
       resultDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
       publishedAt: expect.any(String),
       publishedBy: 'admin',
+    });
+    const officialStudentResult = await request(
+      '/api/student/competitions/campaign-1/official-result',
+      'GET',
+      undefined,
+      studentCookie,
+    );
+    expect(officialStudentResult?.status).toBe(200);
+    expect((await officialStudentResult!.json() as any).result).toMatchObject({
+      eventId: ready.eventId,
+      studentId: 'student-1',
+      publicationVersion: 1,
+      rankingVersion: 1,
+      score: 95,
+      correctCount: 9,
+      timeTaken: 120,
+      rankEvent: 2,
+      rankGrade: 2,
+      rankClass: 1,
+      publishedAt: expect.any(String),
     });
     expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(ready.eventId))
       .toEqual({ status: 'PUBLISHED' });

@@ -25,6 +25,21 @@ const rankingQuery = (payload: Record<string, any>) => {
 };
 
 export const competitionRoutes: RouteRegistry = {
+  list_student_competitions: {
+    method: 'GET', auth: 'session', path: () => '/api/student/competitions',
+  },
+  get_student_competition: {
+    method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/student/competitions/${encoded(campaignId)}`,
+  },
+  start_student_competition_round_attempt: {
+    method: 'POST', auth: 'session', path: ({ campaignId, roundId }) => `/api/student/competitions/${encoded(campaignId)}/rounds/${encoded(roundId)}/attempts`,
+  },
+  submit_student_competition_round_attempt: {
+    method: 'POST', auth: 'session', path: ({ campaignId, roundId, attemptId }) => `/api/student/competitions/${encoded(campaignId)}/rounds/${encoded(roundId)}/attempts/${encoded(attemptId)}/submit`,
+  },
+  get_student_competition_official_result: {
+    method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/student/competitions/${encoded(campaignId)}/official-result`,
+  },
   list_competitions: { method: 'GET', auth: 'session', path: () => '/api/competitions' },
   create_competition: { method: 'POST', auth: 'session', path: () => '/api/competitions' },
   update_competition: {

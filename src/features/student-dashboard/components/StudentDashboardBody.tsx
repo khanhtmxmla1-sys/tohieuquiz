@@ -4,12 +4,15 @@ import {
   SubjectPracticeGrid, WeeklyQuestsPanel,
 } from '@/src/components/HomePage/student-dashboard';
 import type { StudentDashboardContentProps } from './content.types';
+import { isCompetitionV1Enabled } from '../../../config/featureFlags';
 
 export const StudentDashboardBody = ({
   studentSession, assignments, attendance, practice, rewards,
   giftShopEnabled, isOnline, onOpenGiftShop, onOpenBadges, onSelectHomework,
-  onOpenPrimaryLearning,
-}: StudentDashboardContentProps) => (
+  onOpenPrimaryLearning, onSelectSection,
+}: StudentDashboardContentProps) => {
+  const competitionEnabled = isCompetitionV1Enabled();
+  return (
   <div className="flex flex-col gap-8 md:gap-10">
     <StudentDashboardHero
       firstName={studentSession.fullName.split(' ').pop() || studentSession.fullName}
@@ -20,6 +23,13 @@ export const StudentDashboardBody = ({
       onPrimaryAction={onOpenPrimaryLearning}
       onAttendance={attendance.open}
     />
+    {competitionEnabled && (
+      <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5" aria-labelledby="student-competition-entry-title">
+        <h2 id="student-competition-entry-title" className="text-lg font-bold text-sky-950">Cuộc thi</h2>
+        <p className="mt-1 text-sm text-sky-800">Xem vòng đang mở, số lượt còn lại và kết quả chính thức.</p>
+        <button type="button" onClick={() => onSelectSection('competition')} className="mt-3 min-h-11 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white">Mở cuộc thi</button>
+      </section>
+    )}
     <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.9fr)_minmax(300px,0.9fr)] xl:items-start">
       <div data-testid="student-dashboard-main-column" className="min-w-0 space-y-9">
         <AssignedWorkSection
@@ -91,4 +101,5 @@ export const StudentDashboardBody = ({
       </p>
     </div>
   </div>
-);
+  );
+};

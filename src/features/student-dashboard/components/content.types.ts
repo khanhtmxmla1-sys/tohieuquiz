@@ -5,7 +5,7 @@ import type { StudentAttendanceController } from '../hooks/useStudentAttendance'
 import type { StudentPracticeCatalogController } from '../hooks/useStudentPracticeCatalog';
 import type { StudentRewardsController } from '../hooks/useStudentRewards';
 
-export type StudentDashboardSection = 'dashboard' | 'achievements' | 'resultReports';
+export type StudentDashboardSection = 'dashboard' | 'achievements' | 'resultReports' | 'competition';
 
 export interface StudentDashboardContentProps {
   studentSession: StudentSession;

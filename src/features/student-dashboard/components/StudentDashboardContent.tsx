@@ -7,6 +7,7 @@ import { getAvatarUrl } from '@/src/config/avatars';
 import { StudentDashboardHeader } from '@/src/components/HomePage/student-dashboard';
 import { StudentDashboardBody } from './StudentDashboardBody';
 import type { StudentDashboardContentProps } from './content.types';
+import StudentCompetitionPage from '../../competition/StudentCompetitionPage';
 
 export const StudentDashboardContent = (props: StudentDashboardContentProps) => {
   const { studentSession, activeSection, giftShopEnabled, rewards } = props;
@@ -45,6 +46,8 @@ export const StudentDashboardContent = (props: StudentDashboardContentProps) => 
         ? <StudentAchievementsPage />
         : activeSection === 'resultReports'
           ? <StudentResultReportsPage selectedReportId={props.selectedResultReportId} />
+          : activeSection === 'competition'
+            ? <StudentCompetitionPage />
           : <StudentDashboardBody {...props} />}
     </main>
   </>;

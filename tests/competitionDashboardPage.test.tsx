@@ -241,7 +241,7 @@ describe('Competition V1 admin and teacher dashboard surface', () => {
 
     const { unmount } = render(<CompetitionDashboardPage isAdmin username="admin" />);
     await screen.findByRole('option', { name: 'Hội thi 2026' });
-    fireEvent.change(screen.getByLabelText('Khối quiz vòng 1'), { target: { value: '4' } });
+    fireEvent.change(await screen.findByLabelText('Khối quiz vòng 1'), { target: { value: '4' } });
     fireEvent.change(screen.getByLabelText('Quiz ID vòng 1'), { target: { value: 'quiz-round' } });
     fireEvent.click(screen.getByRole('button', { name: 'Gán quiz vòng 1' }));
     await waitFor(() => expect(api.callApi).toHaveBeenCalledWith(

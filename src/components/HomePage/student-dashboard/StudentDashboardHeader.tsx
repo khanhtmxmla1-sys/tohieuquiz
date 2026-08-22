@@ -4,6 +4,7 @@ import { NotificationCenter } from '../../../features/notifications/components';
 import NotificationBell from '../../common/NotificationBell';
 import SchoolLogo from '../../common/SchoolLogo';
 import type { StudentDashboardHeaderProps } from './dashboard.types';
+import { isCompetitionV1Enabled } from '../../../config/featureFlags';
 
 const baseActionClass =
   'inline-flex min-h-11 items-center justify-center rounded-[10px] px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2';
@@ -31,6 +32,7 @@ export function StudentDashboardHeader({
   onClearDeviceData,
   onLogout,
 }: StudentDashboardHeaderProps) {
+  const competitionEnabled = isCompetitionV1Enabled();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
 
@@ -110,6 +112,20 @@ export function StudentDashboardHeader({
           >
             Phiếu kết quả
           </button>
+          {competitionEnabled && (
+            <button
+              type="button"
+              onClick={() => onSelectSection('competition')}
+              aria-pressed={activeSection === 'competition'}
+              className={`${baseActionClass} ${
+                activeSection === 'competition'
+                  ? 'border-b-2 border-sky-500 text-sky-700'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Cuộc thi
+            </button>
+          )}
           <button
             type="button"
             onClick={onOpenPractice}

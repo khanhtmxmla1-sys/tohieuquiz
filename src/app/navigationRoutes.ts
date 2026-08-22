@@ -53,6 +53,7 @@ export type StudentRouteName =
   | 'shop'
   | 'achievements'
   | 'results'
+  | 'competition'
   | 'liveExam';
 
 const STUDENT_STATIC_ROUTES: Record<Exclude<StudentRouteName, 'liveExam'>, string> = {
@@ -62,6 +63,7 @@ const STUDENT_STATIC_ROUTES: Record<Exclude<StudentRouteName, 'liveExam'>, strin
   shop: '/student/shop',
   achievements: '/student/achievements',
   results: '/student/results',
+  competition: '/student/competition',
 };
 
 export const getTeacherRoute = (tab: TeacherDashboardTab): string => TEACHER_ROUTE_BY_TAB[tab];
@@ -87,12 +89,14 @@ export const resolveTeacherTabFromLocation = (
 export const getStudentSectionRoute = (section: StudentDashboardSection): string => {
   if (section === 'achievements') return STUDENT_STATIC_ROUTES.achievements;
   if (section === 'resultReports') return STUDENT_STATIC_ROUTES.results;
+  if (section === 'competition') return STUDENT_STATIC_ROUTES.competition;
   return STUDENT_STATIC_ROUTES.dashboard;
 };
 
 export const resolveStudentSectionFromLocation = (pathname: string): StudentDashboardSection => {
   if (pathname === STUDENT_STATIC_ROUTES.achievements) return 'achievements';
   if (pathname === STUDENT_STATIC_ROUTES.results) return 'resultReports';
+  if (pathname === STUDENT_STATIC_ROUTES.competition) return 'competition';
   return 'dashboard';
 };
 

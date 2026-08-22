@@ -11,12 +11,12 @@ export interface StudentDashboardHeaderProps {
   avatarUrl: string;
   level: number;
   coins: number;
-  activeSection: 'dashboard' | 'achievements' | 'resultReports';
+  activeSection: 'dashboard' | 'achievements' | 'resultReports' | 'competition';
   giftShopEnabled: boolean;
   studentId: string;
   unifiedNotificationsReady: boolean;
   unifiedNotificationsEnabled: boolean;
-  onSelectSection: (section: 'dashboard' | 'achievements' | 'resultReports') => void;
+  onSelectSection: (section: 'dashboard' | 'achievements' | 'resultReports' | 'competition') => void;
   onOpenAssignments: () => void;
   onOpenPractice: () => void;
   onOpenAssignment: (assignmentId: string) => void;

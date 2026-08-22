@@ -10,6 +10,10 @@ import { buildAuthoritativeStoredAnswers } from '../services/quizGradingService'
 import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
 import { assertQuizSnapshotIntegrity, createOrReuseQuizSnapshot } from './quizSnapshotService';
+import {
+  buildCompetitionQuestionPresentation,
+  restoreCompetitionPresentationAnswers,
+} from './competitionQuestionPresentation';
 
 interface CompetitionRoundRow {
   id: string;
@@ -677,6 +681,36 @@ export async function startRoundAttempt(
   return mapAttempt(created);
 }
 
+export async function getRoundAttemptQuiz(
+  db: D1Database,
+  attemptIdInput: string,
+  studentIdInput: string,
+) {
+  const attemptId = normalizedId(attemptIdInput, 'COMPETITION_ATTEMPT_ID_REQUIRED');
+  const studentId = normalizedId(studentIdInput, 'COMPETITION_STUDENT_ID_REQUIRED');
+  const row = await db.prepare(`
+    SELECT attempt.quiz_snapshot_hash, snapshot.canonical_payload_json,
+           snapshot.sha256 AS snapshot_sha256
+    FROM competition_round_attempts AS attempt
+    INNER JOIN competition_quiz_snapshots AS snapshot ON snapshot.id = attempt.quiz_snapshot_id
+    WHERE attempt.id = ? AND attempt.student_id = ?
+    LIMIT 1
+  `).bind(attemptId, studentId).first<{
+    quiz_snapshot_hash: string; canonical_payload_json: string; snapshot_sha256: string;
+  }>();
+  if (!row) throw new Error('COMPETITION_ATTEMPT_NOT_FOUND');
+  if (row.quiz_snapshot_hash !== row.snapshot_sha256) throw new Error('COMPETITION_QUIZ_SNAPSHOT_HASH_MISMATCH');
+  await assertQuizSnapshotIntegrity({ canonicalPayloadJson: row.canonical_payload_json, sha256: row.snapshot_sha256 });
+  try {
+    const payload = JSON.parse(row.canonical_payload_json) as {
+      quiz: Record<string, unknown>; questions: Array<Record<string, unknown>>;
+    };
+    return buildCompetitionQuestionPresentation(payload);
+  } catch {
+    throw new Error('COMPETITION_QUIZ_SNAPSHOT_INVALID');
+  }
+}
+
 async function resultForAttempt(db: D1Database, attempt: CompetitionAttemptRow): Promise<StoredResultRow> {
   if (!attempt.result_id) throw new Error('COMPETITION_ATTEMPT_RESULT_MISSING');
   const row = await db.prepare(`
@@ -832,8 +866,9 @@ export async function submitRoundAttempt(
   const questions = payload.questions.map((question) => (
     mapLiveExamQuestionRow(question) as unknown as Record<string, unknown>
   ));
-  const grading = gradeQuiz({ questions }, answers);
-  const storedAnswers = buildAuthoritativeStoredAnswers(questions, answers, grading.details);
+  const restoredAnswers = restoreCompetitionPresentationAnswers(payload.questions, answers);
+  const grading = gradeQuiz({ questions }, restoredAnswers);
+  const storedAnswers = buildAuthoritativeStoredAnswers(questions, restoredAnswers, grading.details);
   const frozenStudent = await getFrozenStudent(db, attempt.campaign_id, studentId);
   if (!frozenStudent) throw new Error('COMPETITION_STUDENT_NOT_IN_AUDIENCE');
   const submittedAt = new Date().toISOString();

@@ -4,6 +4,10 @@ Tất cả thay đổi đáng chú ý của sản phẩm được ghi lại tạ
 
 ## [Unreleased]
 
+### Added
+
+- Student Competition V1: route học sinh có feature flag, sáu vòng thi từ quiz snapshot bất biến và kết quả School Exam chỉ hiển thị sau công bố.
+
 ### Changed
 
 - Đồng bộ logo chính thức của Trường Tiểu học Tô Hiệu trên trang đăng nhập, dashboard giáo viên và học sinh, các trang công khai, footer và Cổng phụ huynh; favicon sản phẩm vẫn được giữ làm ảnh dự phòng.

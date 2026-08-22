@@ -510,6 +510,24 @@ describe('Competition V1 campaign routes', () => {
     expect(roundList.status).toBe(200);
     expect(((await roundList.json() as any).items[0]).quizSnapshot).toEqual({ status: 'LOCKED', mappingCount: 1 });
 
+    const studentCampaigns = await request('/api/student/competitions', 'GET', undefined, studentCookie);
+    expect(studentCampaigns.status).toBe(200);
+    expect((await studentCampaigns.json() as any).items).toEqual([
+      expect.objectContaining({ id: campaignId, title: 'Competition 2026-2027' }),
+    ]);
+
+    const studentDashboard = await request(
+      `/api/student/competitions/${campaignId}`,
+      'GET',
+      undefined,
+      studentCookie,
+    );
+    expect(studentDashboard.status).toBe(200);
+    expect((await studentDashboard.json() as any).competition).toMatchObject({
+      id: campaignId,
+      rounds: [expect.objectContaining({ id: 'round-route-1', roundNumber: 1, maxAttempts: 2 })],
+    });
+
     const spoofed = await request(
       `/api/student/competitions/${campaignId}/rounds/round-route-1/attempts`,
       'POST',
@@ -530,8 +548,15 @@ describe('Competition V1 campaign routes', () => {
       studentCookie,
     );
     expect(start.status).toBe(201);
-    const attempt = (await start.json() as any).attempt;
+    const started = await start.json() as any;
+    const attempt = started.attempt;
     expect(attempt.studentId).toBe('student-1');
+    expect(started.quiz).toMatchObject({
+      id: 'quiz-round',
+      title: 'Đề vòng 1 khối 4',
+      questions: [expect.objectContaining({ id: 'q-round-1', type: 'MCQ', options: ['1', '2'] })],
+    });
+    expect(JSON.stringify(started.quiz)).not.toMatch(/correctAnswer|correct_answer|explanation/);
 
     const mismatchedSubmit = await request(
       `/api/student/competitions/wrong-campaign/rounds/round-route-1/attempts/${attempt.id}/submit`,
