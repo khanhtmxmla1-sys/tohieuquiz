@@ -73,6 +73,12 @@ const isAllowedOversizedChunk = (file, entries, metric, sizeKey, now) => entries
   }
 });
 
+const isAllowedAggregateMetric = (actual, entries, metric, now) => entries.some(entry => (
+  isActiveAllowlistEntry(entry, metric, now)
+  && Number.isFinite(Number(entry.maxBytes))
+  && actual <= Number(entry.maxBytes)
+));
+
 export function evaluateBudget(report, budget, now = new Date()) {
   const errors = [];
   for (const metric of ['initialJsGzipBytes', 'cssGzipBytes', 'lazyChunkGzipBytes', 'singleChunkMinifiedBytes']) {
@@ -93,7 +99,7 @@ export function evaluateBudget(report, budget, now = new Date()) {
         const blocked = oversized.length === 0
           || oversized.some(file => !isAllowedOversizedChunk(file, budget.allowlist || [], metric, sizeKey, now));
         if (blocked) errors.push(`${metric}: ${actual} bytes exceeds ${limit}`);
-      } else if (!(budget.allowlist || []).some(entry => isActiveAllowlistEntry(entry, metric, now))) {
+      } else if (!isAllowedAggregateMetric(actual, budget.allowlist || [], metric, now)) {
         errors.push(`${metric}: ${actual} bytes exceeds ${limit}`);
       }
     }
@@ -108,6 +114,8 @@ export function evaluateBudget(report, budget, now = new Date()) {
       && (!entry.assetPattern || !Number.isFinite(Number(entry.maxBytes)))
     ) {
       errors.push('Invalid chunk allowlist entry: assetPattern and maxBytes are required');
+    } else if (!Number.isFinite(Number(entry.maxBytes))) {
+      errors.push(`Invalid performance allowlist entry for ${entry.metric}: maxBytes is required`);
     }
   }
   return errors;

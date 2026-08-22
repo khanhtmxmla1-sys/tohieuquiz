@@ -15,7 +15,7 @@ import {
 
 const greenCapacityReport = {
   benchmarkRunId: 'competition-release-100',
-  build: { sha: 'abc123' },
+  build: { sha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
   config: { runtimeConfigVersion: 'cfg-1' },
   polling: { profileVersion: 'poll-1', statusRounds: 3 },
   summary: {
@@ -51,7 +51,9 @@ describe('Competition V1 release hardening', () => {
     expect(validateCompetitionReleaseArtifacts({ VITE_FEATURE_COMPETITION_V1: 'true' }))
       .toEqual(expect.arrayContaining([
         expect.stringContaining('COMPETITION_CAPACITY_REPORT'),
+        expect.stringContaining('COMPETITION_RELEASE_SHA'),
         expect.stringContaining('COMPETITION_ROLLBACK_SHA'),
+        expect.stringContaining('COMPETITION_ROLLOUT_STAGE'),
       ]));
 
     const directory = mkdtempSync(join(tmpdir(), 'competition-release-'));
@@ -61,8 +63,29 @@ describe('Competition V1 release hardening', () => {
       expect(validateCompetitionReleaseArtifacts({
         VITE_FEATURE_COMPETITION_V1: 'true',
         COMPETITION_CAPACITY_REPORT: reportPath,
-        COMPETITION_ROLLBACK_SHA: '6fd72fb',
+        COMPETITION_RELEASE_SHA: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        COMPETITION_ROLLBACK_SHA: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        COMPETITION_ROLLOUT_STAGE: 'internal',
       })).toEqual([]);
+
+      expect(validateCompetitionReleaseArtifacts({
+        VITE_FEATURE_COMPETITION_V1: 'true',
+        COMPETITION_CAPACITY_REPORT: reportPath,
+        COMPETITION_RELEASE_SHA: 'cccccccccccccccccccccccccccccccccccccccc',
+        COMPETITION_ROLLBACK_SHA: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        COMPETITION_ROLLOUT_STAGE: 'canary',
+      })).toContain('COMPETITION_CAPACITY_REPORT build SHA must match COMPETITION_RELEASE_SHA');
+
+      expect(validateCompetitionReleaseArtifacts({
+        VITE_FEATURE_COMPETITION_V1: 'true',
+        COMPETITION_CAPACITY_REPORT: reportPath,
+        COMPETITION_RELEASE_SHA: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        COMPETITION_ROLLBACK_SHA: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        COMPETITION_ROLLOUT_STAGE: 'production',
+      })).toEqual(expect.arrayContaining([
+        'COMPETITION_ROLLBACK_SHA must differ from COMPETITION_RELEASE_SHA',
+        'COMPETITION_ROLLOUT_STAGE must be internal, canary, or school-wide',
+      ]));
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
@@ -107,7 +130,12 @@ describe('Competition V1 release hardening', () => {
     expect(workflow).toContain('Verify Competition V1 release contracts');
     expect(packageJson.scripts['cypress:run:stubbed']).toContain('competition-v1.cy.ts');
     expect(runbook).toContain('COMPETITION_CAPACITY_REPORT');
+    expect(runbook).toContain('COMPETITION_RELEASE_SHA');
     expect(runbook).toContain('COMPETITION_ROLLBACK_SHA');
+    expect(runbook).toContain('COMPETITION_ROLLOUT_STAGE');
+    expect(runbook).toContain('0078_competition_result_corrections.sql');
+    expect(runbook).toContain('0078 to 0069');
+    expect(runbook).toContain('internal → canary → school-wide');
     expect(runbook).toContain('VITE_FEATURE_COMPETITION_V1=false');
   });
 });

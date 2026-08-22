@@ -70,15 +70,29 @@ export function validateCompetitionReleaseArtifacts(values) {
 
   const errors = [];
   const reportPath = String(values.COMPETITION_CAPACITY_REPORT || '').trim();
+  const releaseSha = String(values.COMPETITION_RELEASE_SHA || '').trim();
   const rollbackSha = String(values.COMPETITION_ROLLBACK_SHA || '').trim();
+  const rolloutStage = String(values.COMPETITION_ROLLOUT_STAGE || '').trim().toLowerCase();
   if (!reportPath) errors.push('COMPETITION_CAPACITY_REPORT is required when Competition V1 is enabled');
+  if (!releaseSha || /^(?:unspecified|replace-with)/i.test(releaseSha)) {
+    errors.push('COMPETITION_RELEASE_SHA is required when Competition V1 is enabled');
+  }
   if (!rollbackSha || /^(?:unspecified|replace-with)/i.test(rollbackSha)) {
     errors.push('COMPETITION_ROLLBACK_SHA is required when Competition V1 is enabled');
+  }
+  if (!['internal', 'canary', 'school-wide'].includes(rolloutStage)) {
+    errors.push('COMPETITION_ROLLOUT_STAGE must be internal, canary, or school-wide');
+  }
+  if (releaseSha && rollbackSha && releaseSha === rollbackSha) {
+    errors.push('COMPETITION_ROLLBACK_SHA must differ from COMPETITION_RELEASE_SHA');
   }
   if (!reportPath) return errors;
 
   try {
-    certifyCapacityReport(JSON.parse(readFileSync(resolve(reportPath), 'utf8')));
+    const certification = certifyCapacityReport(JSON.parse(readFileSync(resolve(reportPath), 'utf8')));
+    if (releaseSha && certification.buildSha !== releaseSha) {
+      errors.push('COMPETITION_CAPACITY_REPORT build SHA must match COMPETITION_RELEASE_SHA');
+    }
   } catch (error) {
     errors.push(`COMPETITION_CAPACITY_REPORT is not certified: ${error instanceof Error ? error.message : String(error)}`);
   }

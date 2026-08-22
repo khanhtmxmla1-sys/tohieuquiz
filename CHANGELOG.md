@@ -11,6 +11,7 @@ Tất cả thay đổi đáng chú ý của sản phẩm được ghi lại tạ
 
 ### Changed
 
+- Competition V1 release readiness now binds capacity evidence to the exact candidate SHA, requires an explicit rollout stage and distinct rollback SHA, and rehearses rollback through migration `0078`.
 - Đồng bộ logo chính thức của Trường Tiểu học Tô Hiệu trên trang đăng nhập, dashboard giáo viên và học sinh, các trang công khai, footer và Cổng phụ huynh; favicon sản phẩm vẫn được giữ làm ảnh dự phòng.
 
 ## [1.0.0] — 2026-07-30
