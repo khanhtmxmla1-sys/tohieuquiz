@@ -18,6 +18,7 @@ const greenCapacityReport = {
   build: { sha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' },
   config: { runtimeConfigVersion: 'cfg-1' },
   polling: { profileVersion: 'poll-1', statusRounds: 3 },
+  passed: true,
   summary: {
     concurrency: 100,
     statusP95Ms: 499,

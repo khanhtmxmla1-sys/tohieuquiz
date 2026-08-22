@@ -14,11 +14,16 @@ function loadCertificationModule(): any | null {
   return require(fileURLToPath(scriptUrl));
 }
 
-const report = (overrides: Record<string, unknown> = {}) => ({
+const report = (
+  summaryOverrides: Record<string, unknown> = {},
+  metadataOverrides: Record<string, unknown> = {},
+) => ({
   benchmarkRunId: 'run-green-100',
-  build: { sha: 'abc123' },
+  build: { sha: 'a'.repeat(40), ...(metadataOverrides.build as Record<string, unknown> || {}) },
   config: { runtimeConfigVersion: 'cfg-1' },
   polling: { profileVersion: 'poll-1', statusRounds: 3 },
+  passed: true,
+  ...metadataOverrides,
   summary: {
     concurrency: 100,
     statusP95Ms: 499,
@@ -28,7 +33,7 @@ const report = (overrides: Record<string, unknown> = {}) => ({
     d1OverloadErrors: 0,
     app5xx: 0,
     networkErrors: 0,
-    ...overrides,
+    ...summaryOverrides,
   },
 });
 
@@ -40,7 +45,7 @@ describe('Live Exam capacity certification', () => {
 
     expect(certification.certifyCapacityReport(report())).toMatchObject({
       benchmarkRunId: 'run-green-100',
-      buildSha: 'abc123',
+      buildSha: 'a'.repeat(40),
       runtimeConfigVersion: 'cfg-1',
       pollingProfileVersion: 'poll-1',
       certifiedConcurrentStudents: 100,
@@ -63,6 +68,17 @@ describe('Live Exam capacity certification', () => {
       concurrency: 150,
       networkErrors: 1,
     }))).toThrow(/CAPACITY_CERTIFICATION_FAILED/);
+  });
+
+  it('fails closed when the benchmark is not explicitly passed or is not bound to a git SHA', () => {
+    const certification = loadCertificationModule();
+    expect(certification).not.toBeNull();
+    if (!certification) return;
+
+    expect(() => certification.certifyCapacityReport(report({}, { passed: false })))
+      .toThrow(/CAPACITY_CERTIFICATION_FAILED/);
+    expect(() => certification.certifyCapacityReport(report({}, { build: { sha: 'abc123' } })))
+      .toThrow(/CAPACITY_CERTIFICATION_FAILED/);
   });
 
   it('wires certification metadata through the example config and package script', () => {

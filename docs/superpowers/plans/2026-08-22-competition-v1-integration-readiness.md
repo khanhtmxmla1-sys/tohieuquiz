@@ -4,11 +4,11 @@
 
 **Branch:** `feat/competition-v1`; the exact candidate SHA is recorded in each rehearsal evidence artifact.
 
-**Status:** APPROVED PLAN — WP1 AND WP2 COMPLETE LOCALLY; WP3 LOCAL REHEARSAL PARTIAL/BLOCKED; WP4 LOCAL JOURNEY CONTRACT PASS / REAL EVIDENCE BLOCKED; WP5–WP7 PENDING
+**Status:** APPROVED PLAN — WP1 AND WP2 COMPLETE LOCALLY; WP3 LOCAL REHEARSAL PARTIAL/BLOCKED; WP4 LOCAL JOURNEY CONTRACT PASS / REAL EVIDENCE BLOCKED; WP5 LOCAL CERTIFICATION CONTRACT PASS / REAL BENCHMARK BLOCKED; WP6–WP7 PENDING
 
 **Date:** 2026-08-22
 
-**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, and the WP3 local rehearsal harness are committed on the feature branch. WP3 empty bootstrap and 0068→0078 forward rehearsal pass in isolated local D1 state, but the exit gate remains blocked without an approved representative snapshot and application-rollback evidence. WP4 now has local Queue/R2/certificate contract coverage, including idempotency, retry, authorization, XLSX shape, and sanitized artifact metadata. The WP4 rehearsal is fail-closed because no candidate-bound real Queue/R2/certificate evidence was provided. No remote D1, Queue, or R2 write, push/PR/merge has occurred.
+**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, the WP3 local rehearsal harness, and the WP4 local artifact journey are committed on the feature branch. WP3 empty bootstrap and 0068→0078 forward rehearsal pass in isolated local D1 state, but the exit gate remains blocked without an approved representative snapshot and application-rollback evidence. WP4 is locally green but remains blocked without candidate-bound real Queue/R2/certificate evidence. WP5 now rejects benchmark reports that are not explicitly `passed: true` or are not bound to a 40-character candidate git SHA; the real capacity certificate remains blocked until an environment-backed benchmark is supplied. No remote D1, Queue, R2, or capacity-profile write, push/PR/merge has occurred.
 
 ---
 
@@ -299,6 +299,8 @@ Exit requires real Queue acceptance, real R2 artifact validation, certificate li
 
 **Priority:** P0. **Risk:** High student-experience/integrity impact.
 
+**Status:** LOCAL CERTIFICATION CONTRACT PASS — REAL BENCHMARK BLOCKED. The certification script now requires explicit benchmark `passed: true`, a 40-character git SHA, all zero-integrity gates, and the latency thresholds before producing a `CERTIFIED` profile. Focused certification/release-readiness tests pass. A candidate environment benchmark is still required; fixtures or an example configuration cannot satisfy this P0 gate.
+
 Inputs are candidate deployment SHA, runtime/polling config, representative room plan/forms, environment owner, and rollback SHA.
 
 All gates pass together:
@@ -325,6 +327,14 @@ Procedure:
 6. Use the profile in School Exam preflight.
 
 Exit requires a certified report, matching SHA/config, and fail-closed readiness on any mismatch. A failed latency/integrity gate leaves Competition disabled.
+
+Local contract evidence:
+
+- [x] Explicit `passed: true` is required.
+- [x] Candidate build SHA must be a 40-character git SHA.
+- [x] Latency and zero-integrity gates remain fail-closed.
+- [ ] Candidate environment benchmark and certified report are supplied.
+- [ ] Certified profile is persisted from the approved candidate report.
 
 ## 11. WP6 — Integration E2E and Security Matrix
 

@@ -13,6 +13,10 @@ function nonEmpty(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isGitSha(value) {
+  return typeof value === 'string' && /^[a-f0-9]{40}$/i.test(value.trim());
+}
+
 function certifyCapacityReport(report) {
   const summary = report && report.summary ? report.summary : {};
   const failures = [];
@@ -38,9 +42,10 @@ function certifyCapacityReport(report) {
   const buildSha = report && report.build && report.build.sha;
   const runtimeConfigVersion = report && report.config && report.config.runtimeConfigVersion;
   const pollingProfileVersion = report && report.polling && report.polling.profileVersion;
+  if (!report || report.passed !== true) failures.push('benchmark report must have passed=true');
+  if (!isGitSha(buildSha)) failures.push('buildSha must be a 40-character git SHA');
   for (const [name, value] of [
     ['benchmarkRunId', benchmarkRunId],
-    ['buildSha', buildSha],
     ['runtimeConfigVersion', runtimeConfigVersion],
     ['pollingProfileVersion', pollingProfileVersion],
   ]) {
