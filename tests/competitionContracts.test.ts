@@ -25,6 +25,7 @@ import {
   StartCompetitionReconcileRequestSchema,
   StartCompetitionRoundAttemptRequestSchema,
   SubmitCompetitionRoundAttemptRequestSchema,
+  UpdateCompetitionCampaignRequestSchema,
   UpdateCompetitionRoundRequestSchema,
 } from '../schemas/competition.schema';
 
@@ -120,6 +121,14 @@ describe('Competition V1 contracts', () => {
     expect(CreateCompetitionCampaignRequestSchema.safeParse(valid).success).toBe(true);
     expect(CreateCompetitionCampaignRequestSchema.safeParse({ ...valid, requestId: undefined }).success).toBe(false);
     expect(CreateCompetitionCampaignRequestSchema.safeParse({ ...valid, endsAt: valid.startsAt }).success).toBe(false);
+  });
+
+  it('requires campaign updates to include at least one mutable field', () => {
+    expect(UpdateCompetitionCampaignRequestSchema.safeParse({ requestId }).success).toBe(false);
+    expect(UpdateCompetitionCampaignRequestSchema.safeParse({
+      requestId,
+      title: 'Trạng Nguyên Tiếng Việt 2027-2028',
+    }).success).toBe(true);
   });
 
   it('enforces six-round configuration bounds and mutation request IDs', () => {

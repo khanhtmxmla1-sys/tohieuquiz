@@ -165,6 +165,10 @@ export function writeReleaseReadinessReport(outputPath, report) {
 `, 'utf8');
 }
 
+export function isForwardMigrationPath(path) {
+  return /^workers\/migrations\/[^/]+\.sql$/.test(String(path).replaceAll('\\', '/'));
+}
+
 export function runReleaseReadiness(args = process.argv.slice(2), env = process.env) {
   const dist = resolve(readArg(args, '--dist', 'dist'));
   const baseRef = readArg(args, ['--base', '--base-ref'], env.RELEASE_BASE_REF || 'origin/main');
@@ -193,7 +197,7 @@ export function runReleaseReadiness(args = process.argv.slice(2), env = process.
     const output = execFileSync('git', [
       'diff', '--name-only', `${baseRef}...HEAD`, '--', 'workers/migrations/*.sql',
     ], { encoding: 'utf8' });
-    changedMigrations = output.split(/\r?\n/).filter(Boolean);
+    changedMigrations = output.split(/\r?\n/).filter(isForwardMigrationPath);
   } catch (error) {
     errors.push(`Unable to compare migrations with ${baseRef}: ${error instanceof Error ? error.message : String(error)}`);
   }

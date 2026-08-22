@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { SYSTEM_TIME_ZONE } from '../../../shared/time-zone.contract';
 import { useAuthStore } from '../../../stores/authStore';
+import {
+  formatSystemDateTime,
+  systemDateTimeLocalToIso,
+  toSystemDateTimeLocal,
+} from '../../utils/dateTime';
 import {
   competitionDashboardService,
   type CompetitionCampaignView,
@@ -59,21 +65,25 @@ const createRequestId = (prefix: string) => {
 
 const toDateTimeLocal = (value?: string | null) => {
   if (!value) return '';
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 16) : '';
+  try {
+    return toSystemDateTimeLocal(value);
+  } catch {
+    return '';
+  }
 };
 
 const toIsoDateTime = (value: string) => {
-  const date = new Date(value);
-  if (!value || !Number.isFinite(date.getTime())) throw new Error('INVALID_DATE_TIME');
-  return date.toISOString();
+  if (!value) throw new Error('INVALID_DATE_TIME');
+  try {
+    return systemDateTimeLocalToIso(value);
+  } catch {
+    throw new Error('INVALID_DATE_TIME');
+  }
 };
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return '—';
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) return value;
-  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(date);
+  return formatSystemDateTime(value, value);
 };
 
 const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isAdmin }) => {
@@ -89,7 +99,7 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
   const [loadError, setLoadError] = useState<string | null>(null);
   const [audiencePreview, setAudiencePreview] = useState<{ matchedCount: number; countsByGrade?: Record<string, number>; countsByClass?: Record<string, number> } | null>(null);
   const [campaignDraft, setCampaignDraft] = useState<CampaignDraft>({
-    title: '', schoolYear: '', timezone: 'Asia/Ho_Chi_Minh', gradeLevels: '', classIds: '',
+    title: '', schoolYear: '', timezone: SYSTEM_TIME_ZONE, gradeLevels: '', classIds: '',
     requiredPassedRounds: '6', startsAt: '', endsAt: '',
   });
   const [roundDrafts, setRoundDrafts] = useState<Record<number, RoundDraft>>({});
@@ -207,7 +217,7 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
     setCampaignDraft({
       title: selectedCampaign.title,
       schoolYear: selectedCampaign.schoolYear,
-      timezone: selectedCampaign.timezone || 'Asia/Ho_Chi_Minh',
+      timezone: selectedCampaign.timezone || SYSTEM_TIME_ZONE,
       gradeLevels: (selectedCampaign.audienceRule?.gradeLevels || []).join(', '),
       classIds: (selectedCampaign.audienceRule?.classIds || []).join(', '),
       requiredPassedRounds: String(selectedCampaign.eligibilityPolicy?.requiredPassedRounds ?? 6),

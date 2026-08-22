@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
   findDestructiveSql,
+  isForwardMigrationPath,
   REQUIRED_RELEASE_CHECKS,
   validateReleaseFlags,
   validateBundleEntries,
@@ -25,6 +26,11 @@ const releaseEnv = {
 };
 
 describe('release readiness checks', () => {
+  it('scans only forward migration files and excludes rollback artifacts', () => {
+    expect(isForwardMigrationPath('workers/migrations/0078_competition_result_corrections.sql')).toBe(true);
+    expect(isForwardMigrationPath('workers/migrations/rollback/0078_competition_result_corrections.rollback.sql')).toBe(false);
+  });
+
   it('flags destructive migration statements but permits additive schema changes', () => {
     expect(findDestructiveSql('ALTER TABLE results ADD COLUMN assignment_id TEXT;')).toEqual([]);
     expect(findDestructiveSql('DROP TABLE results; DELETE FROM students; ALTER TABLE quizzes DROP COLUMN owner;'))
