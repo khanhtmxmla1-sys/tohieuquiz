@@ -6,8 +6,9 @@ import { COMPETITION_XLSX_MIME } from './schoolExamExportService';
 const MAX_QUEUE_ATTEMPTS = 3;
 const PROCESSING_STALE_AFTER_MS = 10 * 60 * 1000;
 
-async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+async function sha256Hex(value: string | ArrayBuffer | ArrayBufferView): Promise<string> {
+  const input = typeof value === 'string' ? new TextEncoder().encode(value) : value;
+  const digest = await crypto.subtle.digest('SHA-256', input as ArrayBuffer);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
@@ -405,6 +406,10 @@ export async function processCompetitionExportQueue(
       const fresh = await exportById(env.DB, exportId);
       if (!fresh) throw new Error('SCHOOL_EXAM_EXPORT_NOT_FOUND');
       const workbook = await buildWorkbook(env, fresh);
+      const workbookBytes = new Uint8Array(await workbook.arrayBuffer());
+      if (workbookBytes[0] !== 0x50 || workbookBytes[1] !== 0x4b) {
+        throw new Error('SCHOOL_EXAM_EXPORT_INVALID_XLSX');
+      }
       const artifactKey = `competition/exports/${fresh.event_id}/${fresh.id}.xlsx`;
       await env.COMPETITION_EXPORTS.put(artifactKey, workbook, {
         httpMetadata: {
@@ -412,6 +417,23 @@ export async function processCompetitionExportQueue(
           contentDisposition: `attachment; filename="competition-${fresh.event_id}-${fresh.id}.xlsx"`,
         },
       });
+      const persistedArtifact = await env.COMPETITION_EXPORTS.get(artifactKey);
+      if (!persistedArtifact) throw new Error('SCHOOL_EXAM_EXPORT_ARTIFACT_NOT_FOUND');
+      if (persistedArtifact.httpMetadata?.contentType !== COMPETITION_XLSX_MIME) {
+        throw new Error('SCHOOL_EXAM_EXPORT_INVALID_MIME');
+      }
+      if (Number(persistedArtifact.size) !== workbookBytes.byteLength) {
+        throw new Error('SCHOOL_EXAM_EXPORT_ARTIFACT_SIZE_MISMATCH');
+      }
+      const persistedBytes = new Uint8Array(await persistedArtifact.arrayBuffer());
+      if (persistedBytes[0] !== 0x50 || persistedBytes[1] !== 0x4b) {
+        throw new Error('SCHOOL_EXAM_EXPORT_INVALID_XLSX');
+      }
+      const artifactSha256 = await sha256Hex(persistedBytes);
+      const generatedSha256 = await sha256Hex(workbookBytes);
+      if (artifactSha256 !== generatedSha256) {
+        throw new Error('SCHOOL_EXAM_EXPORT_ARTIFACT_CHECKSUM_MISMATCH');
+      }
       const completedAt = new Date().toISOString();
       const artifactKeyHash = await sha256Hex(artifactKey);
       await env.DB.batch([
@@ -433,6 +455,9 @@ export async function processCompetitionExportQueue(
             scope: fresh.scope,
             classId: fresh.class_id,
             artifactKeyHash,
+            artifactMime: persistedArtifact.httpMetadata.contentType,
+            artifactSizeBytes: persistedBytes.byteLength,
+            artifactSha256,
           },
         }),
       ]);

@@ -23,10 +23,14 @@ const resultCorrectionMigrationUrl = new URL('../workers/migrations/0078_competi
 const secret = 'school-exam-orchestration-test-secret';
 let sqlite: DatabaseSync;
 class MockR2Object {
+  readonly size: number;
+
   constructor(
     private readonly bytes: Uint8Array,
     readonly httpMetadata?: Record<string, string>,
-  ) {}
+  ) {
+    this.size = bytes.byteLength;
+  }
 
   async arrayBuffer(): Promise<ArrayBuffer> {
     return this.bytes.buffer.slice(
@@ -1969,6 +1973,15 @@ describe('Competition V1 school-exam orchestration', () => {
         request_id: 'export-worker-class-0001',
       },
     ]);
+    const exportAudit = sqlite.prepare(`
+      SELECT after_json FROM admin_audit_logs
+      WHERE action = 'XLSX_EXPORTED' AND target_id = ?
+    `).get(exportJob.id) as { after_json: string };
+    expect(JSON.parse(exportAudit.after_json)).toMatchObject({
+      artifactMime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      artifactSizeBytes: expect.any(Number),
+      artifactSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
 
     const download = await request(`/api/school-exams/${ready.eventId}/exports/${exportJob.id}/download`, 'GET', undefined, invigilatorCookie);
     expect(download?.status).toBe(200);
