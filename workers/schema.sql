@@ -2020,3 +2020,961 @@ INSERT OR IGNORE INTO feature_flag_rules (
   'Disabled until shared question-bank API and UI verification completes',
   'migration-0060', datetime('now')
 );
+
+-- Canonical migration 0069_competition_core.sql
+-- Competition V1 core domain: campaign, frozen audience, six rounds, attempts,
+-- materialized progress, and immutable/versioned eligibility snapshots.
+
+CREATE TABLE IF NOT EXISTS competition_campaigns (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  school_year TEXT NOT NULL,
+  timezone TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'DRAFT'
+    CHECK (status IN (
+      'DRAFT', 'SCHEDULED', 'ACTIVE', 'ELIGIBILITY_LOCKED', 'EXAM_PREP',
+      'EXAM_RUNNING', 'WITHHELD', 'RECONCILING', 'READY_TO_PUBLISH',
+      'PUBLISHED', 'ARCHIVED'
+    )),
+  audience_rule_json TEXT NOT NULL DEFAULT '{}',
+  audience_snapshot_id TEXT,
+  eligibility_policy_json TEXT NOT NULL DEFAULT '{"requiredRounds":6,"requiredPassedRounds":6}',
+  starts_at TEXT NOT NULL,
+  ends_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  CHECK (ends_at > starts_at)
+);
+
+CREATE TABLE IF NOT EXISTS competition_audience_snapshots (
+  id TEXT PRIMARY KEY,
+  campaign_id TEXT NOT NULL,
+  version INTEGER NOT NULL CHECK (version > 0),
+  status TEXT NOT NULL DEFAULT 'BUILDING'
+    CHECK (status IN ('BUILDING', 'LOCKED')),
+  member_count INTEGER NOT NULL DEFAULT 0 CHECK (member_count >= 0),
+  snapshot_hash TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  locked_at TEXT,
+  created_by TEXT NOT NULL,
+  UNIQUE (campaign_id, version),
+  FOREIGN KEY (campaign_id) REFERENCES competition_campaigns(id) ON DELETE CASCADE,
+  CHECK (status <> 'LOCKED' OR (locked_at IS NOT NULL AND length(snapshot_hash) > 0))
+);
+
+CREATE TABLE IF NOT EXISTS competition_audience_members (
+  audience_snapshot_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  grade_level_at_snapshot INTEGER NOT NULL CHECK (grade_level_at_snapshot BETWEEN 1 AND 12),
+  class_id_at_snapshot TEXT NOT NULL,
+  student_status_at_snapshot TEXT NOT NULL,
+  PRIMARY KEY (audience_snapshot_id, student_id),
+  FOREIGN KEY (audience_snapshot_id) REFERENCES competition_audience_snapshots(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS competition_quiz_snapshots (
+  id TEXT PRIMARY KEY,
+  quiz_id TEXT NOT NULL,
+  canonical_payload_json TEXT NOT NULL,
+  sha256 TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL,
+  UNIQUE (quiz_id, sha256),
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE RESTRICT,
+  CHECK (length(sha256) = 64 AND sha256 NOT GLOB '*[^0-9a-f]*')
+);
+
+CREATE TABLE IF NOT EXISTS competition_rounds (
+  id TEXT PRIMARY KEY,
+  campaign_id TEXT NOT NULL,
+  round_number INTEGER NOT NULL CHECK (round_number BETWEEN 1 AND 6),
+  opens_at TEXT NOT NULL,
+  closes_at TEXT NOT NULL,
+  max_attempts INTEGER NOT NULL CHECK (max_attempts > 0),
+  passing_rule_type TEXT NOT NULL DEFAULT 'MIN_SCORE'
+    CHECK (passing_rule_type IN ('MIN_SCORE')),
+  passing_score REAL NOT NULL CHECK (passing_score BETWEEN 0 AND 100),
+  status TEXT NOT NULL DEFAULT 'DRAFT'
+    CHECK (status IN ('DRAFT', 'SCHEDULED', 'OPEN', 'CLOSED', 'FINALIZED')),
+  created_at TEXT NOT NULL,
+  finalized_at TEXT,
+  UNIQUE (campaign_id, round_number),
+  FOREIGN KEY (campaign_id) REFERENCES competition_campaigns(id) ON DELETE CASCADE,
+  CHECK (closes_at > opens_at),
+  CHECK (status <> 'FINALIZED' OR finalized_at IS NOT NULL)
+);
+
+CREATE TABLE IF NOT EXISTS competition_round_quizzes (
+  id TEXT PRIMARY KEY,
+  round_id TEXT NOT NULL,
+  grade_level INTEGER NOT NULL CHECK (grade_level BETWEEN 1 AND 12),
+  class_id TEXT,
+  quiz_id TEXT NOT NULL,
+  quiz_snapshot_id TEXT NOT NULL,
+  quiz_snapshot_hash TEXT NOT NULL,
+  locked_at TEXT NOT NULL,
+  FOREIGN KEY (round_id) REFERENCES competition_rounds(id) ON DELETE CASCADE,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE RESTRICT,
+  FOREIGN KEY (quiz_snapshot_id) REFERENCES competition_quiz_snapshots(id) ON DELETE RESTRICT,
+  CHECK (length(quiz_snapshot_hash) = 64 AND quiz_snapshot_hash NOT GLOB '*[^0-9a-f]*')
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_competition_round_quizzes_grade_default
+  ON competition_round_quizzes(round_id, grade_level)
+  WHERE class_id IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_competition_round_quizzes_class_override
+  ON competition_round_quizzes(round_id, grade_level, class_id)
+  WHERE class_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS competition_round_attempts (
+  id TEXT PRIMARY KEY,
+  campaign_id TEXT NOT NULL,
+  round_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  attempt_no INTEGER NOT NULL CHECK (attempt_no > 0),
+  quiz_id TEXT NOT NULL,
+  quiz_snapshot_id TEXT NOT NULL,
+  quiz_snapshot_hash TEXT NOT NULL,
+  result_id INTEGER,
+  status TEXT NOT NULL DEFAULT 'STARTED'
+    CHECK (status IN ('STARTED', 'SUBMITTED', 'SCORED', 'EXPIRED', 'VOID')),
+  score REAL CHECK (score IS NULL OR score BETWEEN 0 AND 100),
+  correct_count INTEGER CHECK (correct_count IS NULL OR correct_count >= 0),
+  time_taken INTEGER CHECK (time_taken IS NULL OR time_taken >= 0),
+  started_at TEXT NOT NULL,
+  submitted_at TEXT,
+  scored_at TEXT,
+  voided_at TEXT,
+  voided_by TEXT,
+  void_reason TEXT,
+  idempotency_key TEXT NOT NULL,
+  UNIQUE (round_id, student_id, attempt_no),
+  UNIQUE (student_id, idempotency_key),
+  FOREIGN KEY (campaign_id) REFERENCES competition_campaigns(id) ON DELETE CASCADE,
+  FOREIGN KEY (round_id) REFERENCES competition_rounds(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE RESTRICT,
+  FOREIGN KEY (quiz_snapshot_id) REFERENCES competition_quiz_snapshots(id) ON DELETE RESTRICT,
+  FOREIGN KEY (result_id) REFERENCES results(id) ON DELETE SET NULL,
+  CHECK (length(quiz_snapshot_hash) = 64 AND quiz_snapshot_hash NOT GLOB '*[^0-9a-f]*'),
+  CHECK (status <> 'SCORED' OR (score IS NOT NULL AND scored_at IS NOT NULL)),
+  CHECK (status <> 'VOID' OR (voided_at IS NOT NULL AND length(trim(COALESCE(void_reason, ''))) > 0))
+);
+
+CREATE TABLE IF NOT EXISTS competition_round_progress (
+  campaign_id TEXT NOT NULL,
+  round_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  attempts_used INTEGER NOT NULL DEFAULT 0 CHECK (attempts_used >= 0),
+  best_attempt_id TEXT,
+  best_score REAL CHECK (best_score IS NULL OR best_score BETWEEN 0 AND 100),
+  is_passed INTEGER NOT NULL DEFAULT 0 CHECK (is_passed IN (0, 1)),
+  passed_at TEXT,
+  status TEXT NOT NULL DEFAULT 'IN_PROGRESS',
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (campaign_id, round_id, student_id),
+  FOREIGN KEY (campaign_id) REFERENCES competition_campaigns(id) ON DELETE CASCADE,
+  FOREIGN KEY (round_id) REFERENCES competition_rounds(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  FOREIGN KEY (best_attempt_id) REFERENCES competition_round_attempts(id) ON DELETE SET NULL,
+  CHECK (is_passed = 0 OR best_attempt_id IS NOT NULL)
+);
+
+CREATE TABLE IF NOT EXISTS competition_eligibility (
+  id TEXT PRIMARY KEY,
+  campaign_id TEXT NOT NULL,
+  eligibility_snapshot_version INTEGER NOT NULL CHECK (eligibility_snapshot_version > 0),
+  student_id TEXT NOT NULL,
+  qualified INTEGER NOT NULL CHECK (qualified IN (0, 1)),
+  reason_codes_json TEXT NOT NULL DEFAULT '[]',
+  qualified_at TEXT,
+  computed_at TEXT NOT NULL,
+  progress_digest TEXT NOT NULL,
+  override_reason TEXT,
+  overridden_by TEXT,
+  overridden_at TEXT,
+  UNIQUE (campaign_id, eligibility_snapshot_version, student_id),
+  FOREIGN KEY (campaign_id) REFERENCES competition_campaigns(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  CHECK (qualified = 0 OR qualified_at IS NOT NULL)
+);
+
+CREATE INDEX IF NOT EXISTS idx_competition_campaigns_status_window
+  ON competition_campaigns(status, starts_at, ends_at, id);
+
+CREATE INDEX IF NOT EXISTS idx_competition_audience_snapshots_campaign_status
+  ON competition_audience_snapshots(campaign_id, status, version DESC);
+
+CREATE INDEX IF NOT EXISTS idx_competition_audience_members_student
+  ON competition_audience_members(student_id, audience_snapshot_id);
+
+-- Frozen audience snapshots are authoritative historical inputs. Once locked,
+-- neither snapshot metadata nor membership rows may be mutated in place.
+CREATE TRIGGER IF NOT EXISTS trg_competition_audience_snapshot_locked_update
+BEFORE UPDATE ON competition_audience_snapshots
+WHEN OLD.status = 'LOCKED'
+BEGIN
+  SELECT RAISE(ABORT, 'COMPETITION_AUDIENCE_SNAPSHOT_LOCKED');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_competition_audience_snapshot_locked_delete
+BEFORE DELETE ON competition_audience_snapshots
+WHEN OLD.status = 'LOCKED'
+BEGIN
+  SELECT RAISE(ABORT, 'COMPETITION_AUDIENCE_SNAPSHOT_LOCKED');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_competition_audience_member_locked_insert
+BEFORE INSERT ON competition_audience_members
+WHEN EXISTS (
+  SELECT 1 FROM competition_audience_snapshots
+  WHERE id = NEW.audience_snapshot_id AND status = 'LOCKED'
+)
+BEGIN
+  SELECT RAISE(ABORT, 'COMPETITION_AUDIENCE_SNAPSHOT_LOCKED');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_competition_audience_member_locked_update
+BEFORE UPDATE ON competition_audience_members
+WHEN EXISTS (
+  SELECT 1 FROM competition_audience_snapshots
+  WHERE id = OLD.audience_snapshot_id AND status = 'LOCKED'
+)
+BEGIN
+  SELECT RAISE(ABORT, 'COMPETITION_AUDIENCE_SNAPSHOT_LOCKED');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_competition_audience_member_locked_delete
+BEFORE DELETE ON competition_audience_members
+WHEN EXISTS (
+  SELECT 1 FROM competition_audience_snapshots
+  WHERE id = OLD.audience_snapshot_id AND status = 'LOCKED'
+)
+BEGIN
+  SELECT RAISE(ABORT, 'COMPETITION_AUDIENCE_SNAPSHOT_LOCKED');
+END;
+
+CREATE INDEX IF NOT EXISTS idx_competition_quiz_snapshots_quiz_created
+  ON competition_quiz_snapshots(quiz_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_competition_rounds_campaign_window
+  ON competition_rounds(campaign_id, status, opens_at, closes_at, round_number);
+
+CREATE INDEX IF NOT EXISTS idx_competition_round_attempts_student_round
+  ON competition_round_attempts(student_id, round_id, attempt_no DESC);
+
+CREATE INDEX IF NOT EXISTS idx_competition_round_attempts_campaign_status
+  ON competition_round_attempts(campaign_id, status, round_id, student_id);
+
+CREATE INDEX IF NOT EXISTS idx_competition_round_attempts_result
+  ON competition_round_attempts(result_id)
+  WHERE result_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_competition_round_progress_dashboard
+  ON competition_round_progress(campaign_id, round_id, status, is_passed, student_id);
+
+CREATE INDEX IF NOT EXISTS idx_competition_round_progress_student
+  ON competition_round_progress(student_id, campaign_id, round_id);
+
+CREATE INDEX IF NOT EXISTS idx_competition_eligibility_campaign_version
+  ON competition_eligibility(campaign_id, eligibility_snapshot_version, qualified, student_id);
+
+CREATE INDEX IF NOT EXISTS idx_competition_eligibility_student
+  ON competition_eligibility(student_id, campaign_id, eligibility_snapshot_version DESC);
+
+-- Eligibility versions are append-only historical snapshots. Administrative
+-- exceptions create a new version rather than mutating rows already referenced
+-- by downstream school-exam workflows.
+CREATE TRIGGER IF NOT EXISTS trg_competition_eligibility_immutable_update
+BEFORE UPDATE ON competition_eligibility
+BEGIN
+  SELECT RAISE(ABORT, 'COMPETITION_ELIGIBILITY_IMMUTABLE');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_competition_eligibility_immutable_delete
+BEFORE DELETE ON competition_eligibility
+BEGIN
+  SELECT RAISE(ABORT, 'COMPETITION_ELIGIBILITY_IMMUTABLE');
+END;
+
+-- Canonical migration 0070_competition_school_exam.sql
+-- Competition V1 school-exam persistence and additive Live Exam participant scope.
+-- Existing class Live Exam sessions remain CLASS + PUBLISHED; competition rooms
+-- must be SCHOOL_EXAM_ROOM + WITHHELD until publication is explicitly reconciled.
+
+ALTER TABLE live_exam_sessions ADD COLUMN participant_scope_type TEXT NOT NULL DEFAULT 'CLASS'
+  CHECK (participant_scope_type IN ('CLASS', 'SCHOOL_EXAM_ROOM'));
+ALTER TABLE live_exam_sessions ADD COLUMN participant_scope_id TEXT;
+ALTER TABLE live_exam_sessions ADD COLUMN result_visibility TEXT NOT NULL DEFAULT 'PUBLISHED'
+  CHECK (result_visibility IN ('WITHHELD', 'PUBLISHED'));
+
+UPDATE live_exam_sessions
+SET participant_scope_id = class_id
+WHERE participant_scope_type = 'CLASS'
+  AND participant_scope_id IS NULL
+  AND class_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_events (
+  id TEXT PRIMARY KEY,
+  campaign_id TEXT NOT NULL,
+  eligibility_snapshot_version INTEGER NOT NULL CHECK (eligibility_snapshot_version > 0),
+  title TEXT NOT NULL,
+  exam_date TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'DRAFT'
+    CHECK (status IN (
+      'DRAFT', 'PREFLIGHT_BLOCKED', 'READY', 'SCHEDULED', 'IN_PROGRESS',
+      'WITHHELD', 'RECONCILING', 'READY_TO_PUBLISH', 'PUBLISHED'
+    )),
+  ranking_policy TEXT NOT NULL DEFAULT 'SCORE_CORRECT_TIME'
+    CHECK (ranking_policy IN ('SCORE_CORRECT_TIME')),
+  exam_form_policy TEXT NOT NULL DEFAULT 'SAME_FORM'
+    CHECK (exam_form_policy IN ('SAME_FORM', 'EQUIVALENT_FORM_SET')),
+  capacity_profile_id TEXT,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  published_at TEXT,
+  FOREIGN KEY (campaign_id) REFERENCES competition_campaigns(id) ON DELETE RESTRICT,
+  UNIQUE (campaign_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_rooms (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  room_code TEXT NOT NULL,
+  scheduled_at TEXT NOT NULL,
+  duration_minutes INTEGER NOT NULL CHECK (duration_minutes BETWEEN 1 AND 300),
+  check_in_lead_minutes INTEGER NOT NULL DEFAULT 0 CHECK (check_in_lead_minutes BETWEEN 0 AND 120),
+  close_drain_minutes INTEGER NOT NULL DEFAULT 0 CHECK (close_drain_minutes BETWEEN 0 AND 120),
+  form_code TEXT NOT NULL,
+  quiz_id TEXT NOT NULL,
+  quiz_snapshot_id TEXT,
+  live_exam_session_id TEXT,
+  invigilator_ids_json TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'DRAFT'
+    CHECK (status IN ('DRAFT', 'READY', 'SCHEDULED', 'IN_PROGRESS', 'WITHHELD', 'RECONCILING', 'READY_TO_PUBLISH', 'PUBLISHED')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (event_id, room_code),
+  UNIQUE (live_exam_session_id),
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(id) ON DELETE RESTRICT,
+  FOREIGN KEY (quiz_snapshot_id) REFERENCES competition_quiz_snapshots(id) ON DELETE RESTRICT,
+  FOREIGN KEY (live_exam_session_id) REFERENCES live_exam_sessions(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_members (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  room_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  original_class_id TEXT NOT NULL,
+  eligibility_snapshot_version INTEGER NOT NULL CHECK (eligibility_snapshot_version > 0),
+  status TEXT NOT NULL DEFAULT 'ASSIGNED'
+    CHECK (status IN ('ASSIGNED', 'CHECKED_IN', 'STARTED', 'SUBMITTED', 'ABSENT', 'VOID', 'RETEST_APPROVED')),
+  assigned_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE (event_id, student_id),
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (room_id) REFERENCES competition_school_exam_rooms(id) ON DELETE RESTRICT,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  FOREIGN KEY (original_class_id) REFERENCES classes(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_results (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  room_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  original_class_id TEXT NOT NULL,
+  live_exam_session_id TEXT NOT NULL,
+  live_exam_participant_id TEXT,
+  score REAL CHECK (score IS NULL OR score BETWEEN 0 AND 100),
+  correct_count INTEGER CHECK (correct_count IS NULL OR correct_count >= 0),
+  time_taken INTEGER CHECK (time_taken IS NULL OR time_taken >= 0),
+  rank INTEGER CHECK (rank IS NULL OR rank > 0),
+  status TEXT NOT NULL DEFAULT 'WITHHELD'
+    CHECK (status IN ('WITHHELD', 'RECONCILED', 'VOID', 'PUBLISHED')),
+  source_result_id INTEGER,
+  computed_at TEXT NOT NULL,
+  published_at TEXT,
+  UNIQUE (event_id, student_id),
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (room_id) REFERENCES competition_school_exam_rooms(id) ON DELETE RESTRICT,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  FOREIGN KEY (original_class_id) REFERENCES classes(id) ON DELETE RESTRICT,
+  FOREIGN KEY (live_exam_session_id) REFERENCES live_exam_sessions(id) ON DELETE RESTRICT,
+  FOREIGN KEY (live_exam_participant_id) REFERENCES live_exam_participants(id) ON DELETE SET NULL,
+  FOREIGN KEY (source_result_id) REFERENCES results(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_incidents (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  room_id TEXT,
+  student_id TEXT,
+  incident_type TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'INFO' CHECK (severity IN ('INFO', 'WARNING', 'CRITICAL')),
+  details_json TEXT NOT NULL DEFAULT '{}',
+  reported_by TEXT NOT NULL,
+  occurred_at TEXT NOT NULL,
+  resolved_at TEXT,
+  resolution_json TEXT,
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (room_id) REFERENCES competition_school_exam_rooms(id) ON DELETE SET NULL,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_retests (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  source_result_id TEXT,
+  replacement_room_id TEXT,
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'REQUESTED'
+    CHECK (status IN ('REQUESTED', 'APPROVED', 'DENIED', 'PROVISIONED', 'COMPLETED', 'VOID')),
+  requested_by TEXT NOT NULL,
+  requested_at TEXT NOT NULL,
+  decided_by TEXT,
+  decided_at TEXT,
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  FOREIGN KEY (source_result_id) REFERENCES competition_school_exam_results(id) ON DELETE SET NULL,
+  FOREIGN KEY (replacement_room_id) REFERENCES competition_school_exam_rooms(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_reconcile_runs (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'QUEUED'
+    CHECK (status IN ('QUEUED', 'RUNNING', 'BLOCKED', 'SUCCEEDED', 'FAILED')),
+  request_id TEXT NOT NULL,
+  summary_json TEXT NOT NULL DEFAULT '{}',
+  started_by TEXT NOT NULL,
+  started_at TEXT NOT NULL,
+  completed_at TEXT,
+  UNIQUE (event_id, request_id),
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_publications (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  version INTEGER NOT NULL CHECK (version > 0),
+  status TEXT NOT NULL DEFAULT 'PREPARED' CHECK (status IN ('PREPARED', 'PUBLISHED', 'SUPERSEDED')),
+  result_digest TEXT NOT NULL,
+  published_by TEXT,
+  prepared_at TEXT NOT NULL,
+  published_at TEXT,
+  UNIQUE (event_id, version),
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_exports (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  publication_version INTEGER,
+  scope TEXT NOT NULL CHECK (scope IN ('SCHOOL', 'CLASS')),
+  class_id TEXT,
+  status TEXT NOT NULL DEFAULT 'QUEUED' CHECK (status IN ('QUEUED', 'PROCESSING', 'READY', 'FAILED')),
+  request_id TEXT NOT NULL,
+  artifact_key TEXT,
+  error_code TEXT,
+  requested_by TEXT NOT NULL,
+  requested_at TEXT NOT NULL,
+  completed_at TEXT,
+  UNIQUE (event_id, request_id),
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL,
+  CHECK (scope <> 'CLASS' OR class_id IS NOT NULL)
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_certificate_batches (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  publication_version INTEGER NOT NULL CHECK (publication_version > 0),
+  status TEXT NOT NULL DEFAULT 'QUEUED' CHECK (status IN ('QUEUED', 'PROCESSING', 'READY', 'FAILED')),
+  request_id TEXT NOT NULL,
+  artifact_key TEXT,
+  requested_by TEXT NOT NULL,
+  requested_at TEXT NOT NULL,
+  completed_at TEXT,
+  UNIQUE (event_id, request_id),
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_audit (
+  id TEXT PRIMARY KEY,
+  event_id TEXT NOT NULL,
+  room_id TEXT,
+  student_id TEXT,
+  action TEXT NOT NULL,
+  actor_id TEXT NOT NULL,
+  request_id TEXT,
+  metadata_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (room_id) REFERENCES competition_school_exam_rooms(id) ON DELETE SET NULL,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_school_exam_events_campaign_status
+  ON competition_school_exam_events(campaign_id, status, exam_date, id);
+CREATE INDEX IF NOT EXISTS idx_school_exam_rooms_event_status
+  ON competition_school_exam_rooms(event_id, status, scheduled_at, id);
+CREATE INDEX IF NOT EXISTS idx_school_exam_members_room_status
+  ON competition_school_exam_members(room_id, status, student_id);
+CREATE INDEX IF NOT EXISTS idx_school_exam_results_event_status
+  ON competition_school_exam_results(event_id, status, rank, student_id);
+CREATE INDEX IF NOT EXISTS idx_school_exam_incidents_event_room
+  ON competition_school_exam_incidents(event_id, room_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_school_exam_retests_event_status
+  ON competition_school_exam_retests(event_id, status, student_id);
+CREATE INDEX IF NOT EXISTS idx_school_exam_reconcile_event_status
+  ON competition_school_exam_reconcile_runs(event_id, status, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_school_exam_publications_event_version
+  ON competition_school_exam_publications(event_id, version DESC);
+CREATE INDEX IF NOT EXISTS idx_school_exam_exports_event_status
+  ON competition_school_exam_exports(event_id, status, requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_school_exam_certificate_batches_event_status
+  ON competition_school_exam_certificate_batches(event_id, status, requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_school_exam_audit_event_created
+  ON competition_school_exam_audit(event_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_live_exam_sessions_participant_scope
+  ON live_exam_sessions(participant_scope_type, participant_scope_id, status);
+
+-- School-exam events must pin an eligibility snapshot version that already exists.
+CREATE TRIGGER IF NOT EXISTS trg_school_exam_event_eligibility_insert
+BEFORE INSERT ON competition_school_exam_events
+WHEN NOT EXISTS (
+  SELECT 1
+  FROM competition_eligibility
+  WHERE campaign_id = NEW.campaign_id
+    AND eligibility_snapshot_version = NEW.eligibility_snapshot_version
+)
+BEGIN
+  SELECT RAISE(ABORT, 'ELIGIBILITY_SNAPSHOT_VERSION_NOT_FOUND');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_school_exam_event_eligibility_reference_immutable
+BEFORE UPDATE OF campaign_id, eligibility_snapshot_version ON competition_school_exam_events
+WHEN NEW.campaign_id <> OLD.campaign_id
+  OR NEW.eligibility_snapshot_version <> OLD.eligibility_snapshot_version
+BEGIN
+  SELECT RAISE(ABORT, 'ELIGIBILITY_REFERENCE_IMMUTABLE');
+END;
+
+-- Preserve the existing class Live Exam path without forcing callers to know about
+-- competition scoping. New class rows inherit CLASS + PUBLISHED and scope to class_id.
+CREATE TRIGGER IF NOT EXISTS trg_live_exam_class_scope_insert
+AFTER INSERT ON live_exam_sessions
+WHEN NEW.participant_scope_type = 'CLASS'
+  AND NEW.participant_scope_id IS NULL
+  AND NEW.class_id IS NOT NULL
+BEGIN
+  UPDATE live_exam_sessions
+  SET participant_scope_id = NEW.class_id
+  WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_live_exam_class_visibility_insert
+BEFORE INSERT ON live_exam_sessions
+WHEN NEW.participant_scope_type = 'CLASS' AND NEW.result_visibility <> 'PUBLISHED'
+BEGIN
+  SELECT RAISE(ABORT, 'CLASS_RESULTS_MUST_BE_PUBLISHED');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_live_exam_school_class_forbidden_insert
+BEFORE INSERT ON live_exam_sessions
+WHEN NEW.participant_scope_type = 'SCHOOL_EXAM_ROOM'
+  AND NEW.class_id IS NOT NULL
+BEGIN
+  SELECT RAISE(ABORT, 'SCHOOL_EXAM_CLASS_SCOPE_FORBIDDEN');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_live_exam_school_scope_insert
+BEFORE INSERT ON live_exam_sessions
+WHEN NEW.participant_scope_type = 'SCHOOL_EXAM_ROOM'
+  AND (
+    NEW.result_visibility <> 'WITHHELD'
+    OR NEW.participant_scope_id IS NULL
+    OR NOT EXISTS (
+      SELECT 1 FROM competition_school_exam_rooms
+      WHERE id = NEW.participant_scope_id
+    )
+  )
+BEGIN
+  SELECT RAISE(ABORT,
+    CASE
+      WHEN NEW.result_visibility <> 'WITHHELD' THEN 'SCHOOL_EXAM_RESULTS_MUST_BE_WITHHELD'
+      ELSE 'SCHOOL_EXAM_ROOM_SCOPE_INVALID'
+    END
+  );
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_live_exam_scope_update
+BEFORE UPDATE OF class_id, participant_scope_type, participant_scope_id, result_visibility ON live_exam_sessions
+WHEN (
+  NEW.participant_scope_type = 'CLASS' AND NEW.result_visibility <> 'PUBLISHED'
+) OR (
+  NEW.participant_scope_type = 'SCHOOL_EXAM_ROOM'
+  AND (
+    NEW.class_id IS NOT NULL
+    OR NEW.result_visibility <> 'WITHHELD'
+    OR NEW.participant_scope_id IS NULL
+    OR NOT EXISTS (
+      SELECT 1 FROM competition_school_exam_rooms
+      WHERE id = NEW.participant_scope_id
+    )
+  )
+)
+BEGIN
+  SELECT RAISE(ABORT, 'LIVE_EXAM_SCOPE_VISIBILITY_INVALID');
+END;
+
+-- Canonical migration 0071_live_exam_capacity_profiles.sql
+-- Competition V1 certified Live Exam capacity profiles.
+-- Only benchmark runs that satisfy every certification gate may be persisted.
+CREATE TABLE IF NOT EXISTS live_exam_capacity_profiles (
+  id TEXT PRIMARY KEY,
+  benchmark_run_id TEXT NOT NULL UNIQUE,
+  build_sha TEXT NOT NULL,
+  runtime_config_version TEXT NOT NULL,
+  polling_profile_version TEXT NOT NULL,
+  certified_concurrent_students INTEGER NOT NULL CHECK (certified_concurrent_students > 0),
+  status_p95_ms REAL NOT NULL CHECK (status_p95_ms >= 0 AND status_p95_ms < 500),
+  submit_p95_ms REAL NOT NULL CHECK (submit_p95_ms >= 0 AND submit_p95_ms < 2000),
+  lost_answers INTEGER NOT NULL CHECK (lost_answers = 0),
+  duplicate_failures INTEGER NOT NULL CHECK (duplicate_failures = 0),
+  d1_overload INTEGER NOT NULL CHECK (d1_overload = 0),
+  app_5xx INTEGER NOT NULL CHECK (app_5xx = 0),
+  network_errors INTEGER NOT NULL CHECK (network_errors = 0),
+  status TEXT NOT NULL DEFAULT 'CERTIFIED' CHECK (status = 'CERTIFIED'),
+  passed_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_exam_capacity_profiles_passed
+  ON live_exam_capacity_profiles(passed_at DESC, certified_concurrent_students DESC);
+
+-- Canonical migration 0072_competition_school_exam_orchestration.sql
+-- Competition V1 Task 12: school-exam orchestration state needed for
+-- idempotent room planning, form-equivalence validation, capacity preflight,
+-- and retryable Live Exam provisioning.
+
+ALTER TABLE competition_school_exam_events ADD COLUMN create_request_id TEXT;
+ALTER TABLE competition_school_exam_events ADD COLUMN preflight_json TEXT;
+ALTER TABLE competition_school_exam_events ADD COLUMN preflight_at TEXT;
+
+ALTER TABLE competition_school_exam_rooms ADD COLUMN member_count INTEGER NOT NULL DEFAULT 0
+  CHECK (member_count >= 0);
+ALTER TABLE competition_school_exam_rooms ADD COLUMN form_definition_json TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE competition_school_exam_rooms ADD COLUMN equivalent_form_approved_by TEXT;
+ALTER TABLE competition_school_exam_rooms ADD COLUMN equivalent_form_approved_at TEXT;
+ALTER TABLE competition_school_exam_rooms ADD COLUMN provision_status TEXT NOT NULL DEFAULT 'PENDING'
+  CHECK (provision_status IN ('PENDING', 'READY', 'FAILED'));
+ALTER TABLE competition_school_exam_rooms ADD COLUMN provision_error_code TEXT;
+ALTER TABLE competition_school_exam_rooms ADD COLUMN create_request_id TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_exam_events_create_request
+  ON competition_school_exam_events(campaign_id, create_request_id)
+  WHERE create_request_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_exam_rooms_create_request
+  ON competition_school_exam_rooms(event_id, create_request_id)
+  WHERE create_request_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_school_exam_rooms_provision
+  ON competition_school_exam_rooms(event_id, provision_status, live_exam_session_id);
+
+-- Canonical migration 0073_competition_school_exam_reconcile.sql
+-- Competition V1 canonical result reconciliation.
+-- Adds monotonic run versions plus durable, per-run issue rows while preserving
+-- raw Live Exam sessions/participants as immutable reconciliation inputs.
+
+ALTER TABLE competition_school_exam_reconcile_runs ADD COLUMN version INTEGER;
+
+UPDATE competition_school_exam_reconcile_runs
+SET version = (
+  SELECT COUNT(*)
+  FROM competition_school_exam_reconcile_runs AS prior
+  WHERE prior.event_id = competition_school_exam_reconcile_runs.event_id
+    AND (
+      prior.started_at < competition_school_exam_reconcile_runs.started_at
+      OR (
+        prior.started_at = competition_school_exam_reconcile_runs.started_at
+        AND prior.id <= competition_school_exam_reconcile_runs.id
+      )
+    )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_exam_reconcile_event_version
+  ON competition_school_exam_reconcile_runs(event_id, version);
+
+CREATE TRIGGER IF NOT EXISTS trg_school_exam_reconcile_version_required
+BEFORE INSERT ON competition_school_exam_reconcile_runs
+WHEN NEW.version IS NULL OR NEW.version <= 0
+BEGIN
+  SELECT RAISE(ABORT, 'SCHOOL_EXAM_RECONCILE_VERSION_REQUIRED');
+END;
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_reconcile_issues (
+  id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  room_id TEXT,
+  student_id TEXT,
+  issue_type TEXT NOT NULL CHECK (issue_type IN (
+    'MISSING_PARTICIPANT',
+    'MISSING_SUBMISSION',
+    'DUPLICATE_RESULT',
+    'ROOM_MEMBER_MISMATCH',
+    'SCORE_MISSING',
+    'RETEST_PENDING',
+    'EXAM_NOT_CLOSED'
+  )),
+  blocking INTEGER NOT NULL DEFAULT 1 CHECK (blocking IN (0, 1)),
+  details_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (run_id) REFERENCES competition_school_exam_reconcile_runs(id) ON DELETE CASCADE,
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (room_id) REFERENCES competition_school_exam_rooms(id) ON DELETE SET NULL,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_school_exam_reconcile_issues_run
+  ON competition_school_exam_reconcile_issues(run_id, blocking, issue_type, id);
+CREATE INDEX IF NOT EXISTS idx_school_exam_reconcile_issues_event
+  ON competition_school_exam_reconcile_issues(event_id, issue_type, room_id, student_id);
+
+-- Canonical migration 0074_competition_school_exam_incident_retest.sql
+-- Competition V1 Task 14: scoped incidents, Admin-granted retests, and
+-- durable reconciliation lineage. Raw Live Exam rows remain immutable inputs.
+
+ALTER TABLE competition_school_exam_incidents ADD COLUMN request_id TEXT;
+
+ALTER TABLE competition_school_exam_retests ADD COLUMN incident_id TEXT;
+ALTER TABLE competition_school_exam_retests ADD COLUMN reason_code TEXT;
+ALTER TABLE competition_school_exam_retests ADD COLUMN reason_text TEXT;
+ALTER TABLE competition_school_exam_retests ADD COLUMN grant_request_id TEXT;
+ALTER TABLE competition_school_exam_retests ADD COLUMN expires_at TEXT;
+ALTER TABLE competition_school_exam_retests ADD COLUMN live_exam_session_id TEXT;
+ALTER TABLE competition_school_exam_retests ADD COLUMN resolution TEXT
+  CHECK (resolution IS NULL OR resolution IN ('KEEP_ORIGINAL', 'REPLACE_WITH_RETEST', 'INVALIDATE_RESULT'));
+
+ALTER TABLE competition_school_exam_results ADD COLUMN retest_id TEXT;
+ALTER TABLE competition_school_exam_results ADD COLUMN resolution TEXT
+  CHECK (resolution IS NULL OR resolution IN ('KEEP_ORIGINAL', 'REPLACE_WITH_RETEST', 'INVALIDATE_RESULT'));
+ALTER TABLE competition_school_exam_results ADD COLUMN reconcile_version INTEGER
+  CHECK (reconcile_version IS NULL OR reconcile_version > 0);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_exam_incidents_event_request
+  ON competition_school_exam_incidents(event_id, request_id)
+  WHERE request_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_exam_retests_incident
+  ON competition_school_exam_retests(incident_id)
+  WHERE incident_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_exam_retests_grant_request
+  ON competition_school_exam_retests(event_id, grant_request_id)
+  WHERE grant_request_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_exam_retests_live_session
+  ON competition_school_exam_retests(live_exam_session_id)
+  WHERE live_exam_session_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_result_history (
+  id TEXT PRIMARY KEY,
+  canonical_result_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  room_id TEXT NOT NULL,
+  original_class_id TEXT NOT NULL,
+  live_exam_session_id TEXT NOT NULL,
+  live_exam_participant_id TEXT,
+  score REAL,
+  correct_count INTEGER,
+  time_taken INTEGER,
+  rank INTEGER,
+  result_status TEXT NOT NULL,
+  disposition TEXT NOT NULL CHECK (disposition IN ('SUPERSEDED')),
+  retest_id TEXT NOT NULL,
+  reconcile_version INTEGER NOT NULL CHECK (reconcile_version > 0),
+  superseded_at TEXT NOT NULL,
+  UNIQUE (canonical_result_id, retest_id),
+  FOREIGN KEY (canonical_result_id) REFERENCES competition_school_exam_results(id) ON DELETE RESTRICT,
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  FOREIGN KEY (room_id) REFERENCES competition_school_exam_rooms(id) ON DELETE RESTRICT,
+  FOREIGN KEY (retest_id) REFERENCES competition_school_exam_retests(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_school_exam_result_history_event_student
+  ON competition_school_exam_result_history(event_id, student_id, reconcile_version DESC);
+
+CREATE TRIGGER IF NOT EXISTS trg_school_exam_result_delete_forbidden
+BEFORE DELETE ON competition_school_exam_results
+BEGIN
+  SELECT RAISE(ABORT, 'SCHOOL_EXAM_RESULT_DELETE_FORBIDDEN');
+END;
+
+-- Canonical migration 0075_competition_school_exam_publication_ranking.sql
+-- Competition V1 Task 15: immutable publication versions and ranking snapshots.
+-- Rankings are materialized from canonical results at publish time so later
+-- corrections can create a new version without rewriting prior official data.
+
+ALTER TABLE competition_school_exam_publications ADD COLUMN ranking_version INTEGER
+  CHECK (ranking_version IS NULL OR ranking_version > 0);
+ALTER TABLE competition_school_exam_publications ADD COLUMN request_id TEXT;
+ALTER TABLE competition_school_exam_publications ADD COLUMN reconcile_version INTEGER
+  CHECK (reconcile_version IS NULL OR reconcile_version > 0);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_exam_publications_event_request
+  ON competition_school_exam_publications(event_id, request_id)
+  WHERE request_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_school_exam_publications_event_ranking_version
+  ON competition_school_exam_publications(event_id, ranking_version)
+  WHERE ranking_version IS NOT NULL;
+
+-- Task 12 correctly forced competition sessions to stay WITHHELD before publication.
+-- Replace that update trigger with a publication-aware guard: creation is still
+-- WITHHELD-only, while a later PUBLISHED transition requires a durable official
+-- publication for the room's event.
+DROP TRIGGER IF EXISTS trg_live_exam_scope_update;
+CREATE TRIGGER trg_live_exam_scope_update
+BEFORE UPDATE OF class_id, participant_scope_type, participant_scope_id, result_visibility ON live_exam_sessions
+WHEN (
+  NEW.participant_scope_type = 'CLASS' AND NEW.result_visibility <> 'PUBLISHED'
+) OR (
+  NEW.participant_scope_type = 'SCHOOL_EXAM_ROOM'
+  AND (
+    NEW.class_id IS NOT NULL
+    OR NEW.result_visibility NOT IN ('WITHHELD', 'PUBLISHED')
+    OR NEW.participant_scope_id IS NULL
+    OR NOT EXISTS (
+      SELECT 1 FROM competition_school_exam_rooms
+      WHERE id = NEW.participant_scope_id
+    )
+    OR (
+      NEW.result_visibility = 'PUBLISHED'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM competition_school_exam_rooms AS rooms
+        JOIN competition_school_exam_publications AS publications
+          ON publications.event_id = rooms.event_id
+         AND publications.status = 'PUBLISHED'
+        WHERE rooms.id = NEW.participant_scope_id
+      )
+    )
+  )
+)
+BEGIN
+  SELECT RAISE(ABORT, 'LIVE_EXAM_SCOPE_VISIBILITY_INVALID');
+END;
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_publication_results (
+  id TEXT PRIMARY KEY,
+  publication_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  publication_version INTEGER NOT NULL CHECK (publication_version > 0),
+  ranking_version INTEGER NOT NULL CHECK (ranking_version > 0),
+  canonical_result_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
+  original_class_id TEXT NOT NULL,
+  grade_level INTEGER NOT NULL CHECK (grade_level BETWEEN 1 AND 12),
+  score REAL NOT NULL,
+  correct_count INTEGER,
+  time_taken INTEGER,
+  rank_event INTEGER NOT NULL CHECK (rank_event > 0),
+  rank_grade INTEGER NOT NULL CHECK (rank_grade > 0),
+  rank_class INTEGER NOT NULL CHECK (rank_class > 0),
+  source_reconcile_version INTEGER NOT NULL CHECK (source_reconcile_version > 0),
+  published_at TEXT NOT NULL,
+  UNIQUE (publication_id, student_id),
+  UNIQUE (event_id, publication_version, student_id),
+  FOREIGN KEY (publication_id) REFERENCES competition_school_exam_publications(id) ON DELETE RESTRICT,
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE RESTRICT,
+  FOREIGN KEY (canonical_result_id) REFERENCES competition_school_exam_results(id) ON DELETE RESTRICT,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE RESTRICT,
+  FOREIGN KEY (original_class_id) REFERENCES classes(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_school_exam_publication_results_event
+  ON competition_school_exam_publication_results(event_id, publication_version DESC, rank_event, student_id);
+CREATE INDEX IF NOT EXISTS idx_school_exam_publication_results_grade
+  ON competition_school_exam_publication_results(event_id, publication_version DESC, grade_level, rank_grade, student_id);
+CREATE INDEX IF NOT EXISTS idx_school_exam_publication_results_class
+  ON competition_school_exam_publication_results(event_id, publication_version DESC, original_class_id, rank_class, student_id);
+
+CREATE TRIGGER IF NOT EXISTS trg_school_exam_publication_immutable_update
+BEFORE UPDATE ON competition_school_exam_publications
+BEGIN
+  SELECT RAISE(ABORT, 'SCHOOL_EXAM_PUBLICATION_IMMUTABLE');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_school_exam_publication_immutable_delete
+BEFORE DELETE ON competition_school_exam_publications
+BEGIN
+  SELECT RAISE(ABORT, 'SCHOOL_EXAM_PUBLICATION_IMMUTABLE');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_school_exam_publication_result_immutable_update
+BEFORE UPDATE ON competition_school_exam_publication_results
+BEGIN
+  SELECT RAISE(ABORT, 'SCHOOL_EXAM_PUBLICATION_RESULT_IMMUTABLE');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_school_exam_publication_result_immutable_delete
+BEFORE DELETE ON competition_school_exam_publication_results
+BEGIN
+  SELECT RAISE(ABORT, 'SCHOOL_EXAM_PUBLICATION_RESULT_IMMUTABLE');
+END;
+
+-- Canonical migration 0076_competition_certificate_adapter.sql
+-- Competition V1 Task 16: adapt published ranking winners into the existing
+-- class-oriented certificate batch engine without creating fake classes.
+
+ALTER TABLE competition_school_exam_certificate_batches ADD COLUMN ranking_version INTEGER
+  CHECK (ranking_version IS NULL OR ranking_version > 0);
+ALTER TABLE competition_school_exam_certificate_batches ADD COLUMN template_id TEXT;
+ALTER TABLE competition_school_exam_certificate_batches ADD COLUMN winner_count INTEGER NOT NULL DEFAULT 0
+  CHECK (winner_count >= 0);
+ALTER TABLE competition_school_exam_certificate_batches ADD COLUMN error_code TEXT;
+
+CREATE TABLE IF NOT EXISTS competition_school_exam_certificate_batch_items (
+  id TEXT PRIMARY KEY,
+  parent_id TEXT NOT NULL,
+  event_id TEXT NOT NULL,
+  publication_version INTEGER NOT NULL CHECK (publication_version > 0),
+  ranking_version INTEGER NOT NULL CHECK (ranking_version > 0),
+  original_class_id TEXT NOT NULL,
+  certificate_batch_id TEXT NOT NULL,
+  winner_count INTEGER NOT NULL CHECK (winner_count > 0),
+  created_at TEXT NOT NULL,
+  UNIQUE (parent_id, original_class_id),
+  UNIQUE (parent_id, certificate_batch_id),
+  FOREIGN KEY (parent_id) REFERENCES competition_school_exam_certificate_batches(id) ON DELETE CASCADE,
+  FOREIGN KEY (event_id) REFERENCES competition_school_exam_events(id) ON DELETE CASCADE,
+  FOREIGN KEY (original_class_id) REFERENCES classes(id) ON DELETE RESTRICT,
+  FOREIGN KEY (certificate_batch_id) REFERENCES certificate_batches(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS idx_school_exam_certificate_batch_items_event_version
+  ON competition_school_exam_certificate_batch_items(event_id, publication_version, ranking_version, original_class_id);
+CREATE INDEX IF NOT EXISTS idx_school_exam_certificate_batch_items_batch
+  ON competition_school_exam_certificate_batch_items(certificate_batch_id);
+
+-- Canonical migration 0077_competition_async_xlsx_export.sql
+-- Competition V1 Task 17: retryable asynchronous XLSX export state.
+-- The base export table was introduced in 0070. These columns make queue
+-- processing recoverable without coupling workbook generation to exam requests.
+
+ALTER TABLE competition_school_exam_exports ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0
+  CHECK (attempt_count >= 0);
+ALTER TABLE competition_school_exam_exports ADD COLUMN processing_started_at TEXT;
+ALTER TABLE competition_school_exam_exports ADD COLUMN updated_at TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_school_exam_exports_processing
+  ON competition_school_exam_exports(status, processing_started_at, requested_at);

@@ -43,8 +43,12 @@ for (const file of walk('src')) {
   }
 }
 
-const migrations = readdirSync('workers/migrations').filter((name) => /^00(?:42|43|44)_.*\.sql$/.test(name));
-const rollbackPrefixes = new Set(readdirSync('workers/rollbacks').filter((name) => name.endsWith('.sql')).map((name) => name.slice(0, 4)));
+const migrations = readdirSync('workers/migrations')
+  .filter((name) => /^00(?:42|43|44|69|70|71|72|73|74|75|76|77)_.*\.sql$/.test(name));
+const rollbackPrefixes = new Set([
+  ...readdirSync('workers/rollbacks').filter((name) => name.endsWith('.sql')),
+  ...readdirSync('workers/migrations/rollback').filter((name) => name.endsWith('.sql')),
+].map((name) => name.slice(0, 4)));
 for (const migration of migrations) {
   if (!rollbackPrefixes.has(migration.slice(0, 4))) failures.push(`Missing rollback for ${migration}`);
 }

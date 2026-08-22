@@ -1,7 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const { certifyCapacityReport } = require('../workers/scripts/certify-live-exam-capacity.cjs');
 
 const KNOWN_FLAGS = new Set([
   'VITE_FEATURE_GIFT_SHOP_V2',
@@ -9,6 +13,7 @@ const KNOWN_FLAGS = new Set([
   'VITE_FEATURE_AI_BLUEPRINT_V3',
   'VITE_FEATURE_AI_SVG_DIAGRAMS',
   'VITE_FEATURE_PARENT_PORTAL_V1',
+  'VITE_FEATURE_COMPETITION_V1',
 ]);
 
 const stripSqlComments = sql => String(sql)
@@ -57,6 +62,26 @@ export function validateReleaseFlags(values) {
     if (!(name in values)) errors.push(`Missing release flag: ${name}`);
   }
   if (values.VITE_GIFT_SHOP_MODE !== 'api') errors.push('VITE_GIFT_SHOP_MODE must be api for release');
+  return errors;
+}
+
+export function validateCompetitionReleaseArtifacts(values) {
+  if (String(values.VITE_FEATURE_COMPETITION_V1).toLowerCase() !== 'true') return [];
+
+  const errors = [];
+  const reportPath = String(values.COMPETITION_CAPACITY_REPORT || '').trim();
+  const rollbackSha = String(values.COMPETITION_ROLLBACK_SHA || '').trim();
+  if (!reportPath) errors.push('COMPETITION_CAPACITY_REPORT is required when Competition V1 is enabled');
+  if (!rollbackSha || /^(?:unspecified|replace-with)/i.test(rollbackSha)) {
+    errors.push('COMPETITION_ROLLBACK_SHA is required when Competition V1 is enabled');
+  }
+  if (!reportPath) return errors;
+
+  try {
+    certifyCapacityReport(JSON.parse(readFileSync(resolve(reportPath), 'utf8')));
+  } catch (error) {
+    errors.push(`COMPETITION_CAPACITY_REPORT is not certified: ${error instanceof Error ? error.message : String(error)}`);
+  }
   return errors;
 }
 
@@ -113,6 +138,9 @@ export const REQUIRED_RELEASE_CHECKS = [
   'migration-contracts',
   'cypress-v2',
   'cypress-v3',
+  'competition-regression',
+  'competition-capacity',
+  'competition-e2e',
 ];
 
 export function writeReleaseReadinessReport(outputPath, report) {
@@ -144,6 +172,7 @@ export function runReleaseReadiness(args = process.argv.slice(2), env = process.
     Object.entries(env).filter(([name]) => name.startsWith('VITE_FEATURE_') || name === 'VITE_GIFT_SHOP_MODE'),
   );
   errors.push(...validateReleaseFlags(flagValues));
+  errors.push(...validateCompetitionReleaseArtifacts(env));
 
   let changedMigrations = [];
   try {

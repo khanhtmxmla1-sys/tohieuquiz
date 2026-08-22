@@ -32,7 +32,7 @@ describe('D1 migration layout', () => {
     expect(new Set(registered).size).toBe(registered.length);
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
-    expect(migrations.at(-1)).toBe('0068_login_media.sql');
+    expect(migrations.at(-1)).toBe('0077_competition_async_xlsx_export.sql');
     expect(EXPECTED_LATEST_MIGRATION).toBe(migrations.at(-1));
   });
 

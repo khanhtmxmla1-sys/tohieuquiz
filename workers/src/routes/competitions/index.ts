@@ -49,6 +49,7 @@ import {
   getStudentOfficialCompetitionResult,
   listStudentCompetitions,
 } from '../../competition/studentCompetitionService';
+import { createCompetitionEventLogger } from '../../competition/observability';
 import {
   createSchoolExamEvent,
   createSchoolExamRoom,
@@ -232,7 +233,7 @@ async function authenticatedStudentId(db: D1Database, user: JWTPayload): Promise
   return row?.id || null;
 }
 
-export async function handleCompetitionRoutes(
+async function handleCompetitionRoutesCore(
   request: Request,
   env: Env,
   path: string,
@@ -739,5 +740,53 @@ export async function handleCompetitionRoutes(
     return null;
   } catch (error) {
     return routeError(error);
+  }
+}
+
+function competitionOperation(method: string, path: string): string {
+  if (/\/attempts\/[^/]+\/submit$/.test(path)) return 'student_round_attempt_submit';
+  if (/\/rounds\/[^/]+\/attempts$/.test(path)) return 'student_round_attempt_start';
+  if (/\/publish$/.test(path)) return 'school_exam_publish';
+  if (/\/preflight$/.test(path)) return 'school_exam_preflight';
+  if (/\/provision$/.test(path)) return 'school_exam_provision';
+  if (/\/eligibility\/finalize$/.test(path)) return 'eligibility_finalize';
+  return `${method.toLowerCase()}_competition_mutation`;
+}
+
+function competitionOperationContext(method: string, path: string, request: Request) {
+  const segments = path.split('/').filter(Boolean);
+  const studentCompetitionAt = segments.indexOf('competitions');
+  const schoolExamAt = segments.indexOf('school-exams');
+  return {
+    operation: competitionOperation(method, path),
+    campaignId: studentCompetitionAt >= 0 ? segments[studentCompetitionAt + 1] : undefined,
+    eventId: schoolExamAt >= 0 ? segments[schoolExamAt + 1] : undefined,
+    requestId: request.headers.get('x-request-id') || undefined,
+  };
+}
+
+export async function handleCompetitionRoutes(
+  request: Request,
+  env: Env,
+  path: string,
+  method: string,
+): Promise<Response | null> {
+  const isMutation = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(method);
+  if (!isMutation) return handleCompetitionRoutesCore(request, env, path, method);
+
+  const startedAt = Date.now();
+  const logger = createCompetitionEventLogger();
+  const context = competitionOperationContext(method, path, request);
+  try {
+    const response = await handleCompetitionRoutesCore(request, env, path, method);
+    if (response) {
+      const metadata = { ...context, status: response.status, durationMs: Date.now() - startedAt };
+      if (response.status >= 400) logger.warn('mutation_failed', metadata);
+      else logger.info('mutation_completed', metadata);
+    }
+    return response;
+  } catch (error) {
+    logger.warn('mutation_failed', { ...context, status: 500, durationMs: Date.now() - startedAt });
+    throw error;
   }
 }

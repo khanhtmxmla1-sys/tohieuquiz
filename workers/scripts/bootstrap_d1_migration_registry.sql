@@ -74,4 +74,13 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0065_add_result_canonical_class_scope.sql'),
   ('0066_student_reward_ledger.sql'),
   ('0067_intervention_group_archive_audit.sql'),
-  ('0068_login_media.sql');
+  ('0068_login_media.sql'),
+  ('0069_competition_core.sql'),
+  ('0070_competition_school_exam.sql'),
+  ('0071_live_exam_capacity_profiles.sql'),
+  ('0072_competition_school_exam_orchestration.sql'),
+  ('0073_competition_school_exam_reconcile.sql'),
+  ('0074_competition_school_exam_incident_retest.sql'),
+  ('0075_competition_school_exam_publication_ranking.sql'),
+  ('0076_competition_certificate_adapter.sql'),
+  ('0077_competition_async_xlsx_export.sql');

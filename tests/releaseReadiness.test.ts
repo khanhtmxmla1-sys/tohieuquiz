@@ -20,6 +20,7 @@ const releaseEnv = {
   VITE_FEATURE_AI_BLUEPRINT_V3: 'false',
   VITE_FEATURE_AI_SVG_DIAGRAMS: 'false',
   VITE_FEATURE_PARENT_PORTAL_V1: 'false',
+  VITE_FEATURE_COMPETITION_V1: 'false',
   VITE_GIFT_SHOP_MODE: 'api',
 };
 
