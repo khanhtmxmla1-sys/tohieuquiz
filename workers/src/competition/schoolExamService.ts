@@ -458,6 +458,18 @@ export async function createSchoolExamRoom(
       requestId: input.requestId,
       after: { memberCount: studentIds.length, warnings, quizSnapshotId: snapshot.id },
     }),
+    auditStatement(db, {
+      actorUsername,
+      action: 'ROOM_MEMBER_CHANGED',
+      targetType: 'competition_school_exam_room',
+      targetId: id,
+      requestId: input.requestId,
+      after: {
+        memberCount: studentIds.length,
+        originalClassIds: [...new Set(qualified.results.map((member) => member.original_class_id))].sort(),
+        eligibilitySnapshotVersion: event.eligibility_snapshot_version,
+      },
+    }),
   ]);
 
   const createdRooms = await roomRows(db, input.eventId);
@@ -522,6 +534,20 @@ export async function runSchoolExamPreflight(
       targetId: eventId,
       requestId,
       after: preflight,
+    }),
+    auditStatement(db, {
+      actorUsername,
+      action: 'CAPACITY_PREFLIGHT_RUN',
+      targetType: 'competition_school_exam_event',
+      targetId: eventId,
+      requestId,
+      after: {
+        status: preflight.status,
+        reason: preflight.reason,
+        plannedConcurrency: preflight.plannedConcurrency,
+        capacityProfileId: preflight.capacityProfileId,
+        certifiedConcurrentStudents: preflight.certifiedConcurrentStudents,
+      },
     }),
   ]);
   return preflight;
@@ -613,6 +639,14 @@ export async function provisionSchoolExam(
       targetId: eventId,
       requestId,
       after: { provisioned, failed, skipped: roomsBefore.length - candidates.length, allReady, failures },
+    }),
+    auditStatement(db, {
+      actorUsername,
+      action: 'EXAM_PROVISIONED',
+      targetType: 'competition_school_exam_event',
+      targetId: eventId,
+      requestId,
+      after: { provisioned, failed, skipped: roomsBefore.length - candidates.length, allReady },
     }),
   ]);
 

@@ -1,9 +1,15 @@
 import writeExcelFile from 'write-excel-file/universal';
 import type { Env } from '../types';
+import { auditStatement } from '../utils/audit';
 import { COMPETITION_XLSX_MIME } from './schoolExamExportService';
 
 const MAX_QUEUE_ATTEMPTS = 3;
 const PROCESSING_STALE_AFTER_MS = 10 * 60 * 1000;
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
 
 type ExportScope = 'SCHOOL' | 'CLASS';
 type ExportStatus = 'QUEUED' | 'PROCESSING' | 'READY' | 'FAILED';
@@ -407,12 +413,29 @@ export async function processCompetitionExportQueue(
         },
       });
       const completedAt = new Date().toISOString();
-      await env.DB.prepare(`
-        UPDATE competition_school_exam_exports
-        SET status = 'READY', artifact_key = ?, error_code = NULL,
-            processing_started_at = NULL, completed_at = ?, updated_at = ?
-        WHERE id = ?
-      `).bind(artifactKey, completedAt, completedAt, exportId).run();
+      const artifactKeyHash = await sha256Hex(artifactKey);
+      await env.DB.batch([
+        env.DB.prepare(`
+          UPDATE competition_school_exam_exports
+          SET status = 'READY', artifact_key = ?, error_code = NULL,
+              processing_started_at = NULL, completed_at = ?, updated_at = ?
+          WHERE id = ?
+        `).bind(artifactKey, completedAt, completedAt, exportId),
+        auditStatement(env.DB, {
+          actorUsername: fresh.requested_by,
+          action: 'XLSX_EXPORTED',
+          targetType: 'competition_school_exam_export',
+          targetId: exportId,
+          requestId: fresh.request_id,
+          after: {
+            eventId: fresh.event_id,
+            publicationVersion: fresh.publication_version,
+            scope: fresh.scope,
+            classId: fresh.class_id,
+            artifactKeyHash,
+          },
+        }),
+      ]);
       message.ack();
     } catch {
       const failedAt = new Date().toISOString();

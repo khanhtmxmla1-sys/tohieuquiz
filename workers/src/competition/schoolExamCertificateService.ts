@@ -2,6 +2,7 @@ import type { CreateCompetitionCertificateBatchRequest } from '../../../schemas/
 import type { Env } from '../types';
 import { persistCertificateBatch } from '../routes/certificates/batchPersistence';
 import type { BatchInput, BatchScope, BatchStudent } from '../routes/certificates/batchTypes';
+import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
 
 interface PublicationRow {
@@ -255,11 +256,27 @@ export async function createSchoolExamCertificateBatches(
         now,
       ).run();
     }
-    await env.DB.prepare(`
-      UPDATE competition_school_exam_certificate_batches
-      SET status = 'QUEUED', error_code = NULL
-      WHERE id = ?
-    `).bind(parentId).run();
+    await env.DB.batch([
+      env.DB.prepare(`
+        UPDATE competition_school_exam_certificate_batches
+        SET status = 'QUEUED', error_code = NULL
+        WHERE id = ?
+      `).bind(parentId),
+      auditStatement(env.DB, {
+        actorUsername,
+        action: 'CERTIFICATE_BATCH_CREATED',
+        targetType: 'competition_school_exam_certificate_batch',
+        targetId: parentId,
+        requestId: input.requestId,
+        after: {
+          eventId: input.eventId,
+          publicationVersion: input.publicationVersion,
+          rankingVersion: input.rankingVersion,
+          winnerCount: winnerStudentIds.length,
+          batchCount: groups.size,
+        },
+      }),
+    ]);
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : '';
     const message = [

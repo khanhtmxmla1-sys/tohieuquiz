@@ -319,6 +319,19 @@ export async function publishSchoolExamResults(
         resultCount: rankedRows.length,
       },
     }),
+    auditStatement(db, {
+      actorUsername,
+      action: 'RESULTS_PUBLISHED',
+      targetType: 'competition_school_exam_event',
+      targetId: eventId,
+      requestId,
+      after: {
+        publicationVersion,
+        rankingVersion,
+        reconcileVersion: Number(reconcile.version),
+        resultCount: rankedRows.length,
+      },
+    }),
   ]);
 
   const persisted = await publicationByRequest(db, eventId, requestId);

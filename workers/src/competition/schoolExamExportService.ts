@@ -1,4 +1,5 @@
 import type { Env } from '../types';
+import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
 
 export const COMPETITION_XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -132,23 +133,38 @@ export async function createSchoolExamExport(
 
   const id = generateId('school-exam-export');
   const now = new Date().toISOString();
-  await env.DB.prepare(`
-    INSERT INTO competition_school_exam_exports (
-      id, event_id, publication_version, scope, class_id, status, request_id,
-      artifact_key, error_code, requested_by, requested_at, completed_at,
-      attempt_count, processing_started_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, 'QUEUED', ?, NULL, NULL, ?, ?, NULL, 0, NULL, ?)
-  `).bind(
-    id,
-    input.eventId,
-    Number(publication.version),
-    input.scope,
-    classId,
-    input.requestId,
-    actor.username,
-    now,
-    now,
-  ).run();
+  await env.DB.batch([
+    env.DB.prepare(`
+      INSERT INTO competition_school_exam_exports (
+        id, event_id, publication_version, scope, class_id, status, request_id,
+        artifact_key, error_code, requested_by, requested_at, completed_at,
+        attempt_count, processing_started_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, 'QUEUED', ?, NULL, NULL, ?, ?, NULL, 0, NULL, ?)
+    `).bind(
+      id,
+      input.eventId,
+      Number(publication.version),
+      input.scope,
+      classId,
+      input.requestId,
+      actor.username,
+      now,
+      now,
+    ),
+    auditStatement(env.DB, {
+      actorUsername: actor.username,
+      action: 'XLSX_EXPORT_REQUESTED',
+      targetType: 'competition_school_exam_export',
+      targetId: id,
+      requestId: input.requestId,
+      after: {
+        eventId: input.eventId,
+        publicationVersion: Number(publication.version),
+        scope: input.scope,
+        classId,
+      },
+    }),
+  ]);
 
   try {
     await env.COMPETITION_EXPORT_QUEUE.send({ exportId: id });

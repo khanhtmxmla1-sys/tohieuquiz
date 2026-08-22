@@ -179,6 +179,19 @@ export async function createSchoolExamResultCorrection(
       before,
       after: { ...after, reason: input.reason, sourcePublicationVersion: Number(source.publication_version) },
     }),
+    auditStatement(db, {
+      actorUsername,
+      action: 'RESULT_CORRECTED',
+      targetType: 'competition_school_exam_result',
+      targetId: canonical.id,
+      requestId: input.requestId,
+      after: {
+        sourcePublicationVersion: Number(source.publication_version),
+        correctedScore: after.score,
+        correctedCorrectCount: after.correctCount,
+        correctedTimeTaken: after.timeTaken,
+      },
+    }),
   ]);
 
   const persisted = await db.prepare(`${selectCorrection} WHERE id = ? LIMIT 1`).bind(id).first<CorrectionRow>();

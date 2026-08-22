@@ -302,6 +302,14 @@ export async function reconcileSchoolExam(
       .bind(startedAt, eventId),
     db.prepare(`UPDATE competition_school_exam_rooms SET status = 'RECONCILING', updated_at = ? WHERE event_id = ?`)
       .bind(startedAt, eventId),
+    auditStatement(db, {
+      actorUsername,
+      action: 'RECONCILE_STARTED',
+      targetType: 'competition_school_exam_reconcile_run',
+      targetId: runId,
+      requestId,
+      after: { eventId, version },
+    }),
   ]);
 
   const issues: ReconcileIssueDraft[] = [];
@@ -626,6 +634,14 @@ export async function reconcileSchoolExam(
       action: 'SCHOOL_EXAM_RECONCILED',
       targetType: 'competition_school_exam_event',
       targetId: eventId,
+      requestId,
+      after: summary,
+    }),
+    auditStatement(db, {
+      actorUsername,
+      action: 'RECONCILE_RESOLVED',
+      targetType: 'competition_school_exam_reconcile_run',
+      targetId: runId,
       requestId,
       after: summary,
     }),

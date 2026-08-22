@@ -572,6 +572,18 @@ describe('Competition V1 school-exam orchestration', () => {
       { student_id: 'student-1', original_class_id: 'class-4a' },
       { student_id: 'student-2', original_class_id: 'class-4b' },
     ]);
+    expect(sqlite.prepare(`
+      SELECT action, target_type, request_id
+      FROM admin_audit_logs
+      WHERE action = 'ROOM_MEMBER_CHANGED' AND target_type = 'competition_school_exam_room'
+      ORDER BY created_at DESC LIMIT 1
+    `).all()).toEqual([
+      {
+        action: 'ROOM_MEMBER_CHANGED',
+        target_type: 'competition_school_exam_room',
+        request_id: 'create-room-valid-0001',
+      },
+    ]);
   });
 
   it('lists school exam events for Admin and keeps Teacher reads class-scoped', async () => {
@@ -676,6 +688,18 @@ describe('Competition V1 school-exam orchestration', () => {
     });
     expect(sqlite.prepare('SELECT status FROM competition_school_exam_events WHERE id = ?').get(eventId))
       .toEqual({ status: 'PREFLIGHT_BLOCKED' });
+    expect(sqlite.prepare(`
+      SELECT action, target_type, target_id, request_id
+      FROM admin_audit_logs
+      WHERE action = 'CAPACITY_PREFLIGHT_RUN' AND target_id = ?
+    `).all(eventId)).toEqual([
+      {
+        action: 'CAPACITY_PREFLIGHT_RUN',
+        target_type: 'competition_school_exam_event',
+        target_id: eventId,
+        request_id: 'school-preflight-over-0001',
+      },
+    ]);
   });
 
   it('retries only missing/failed room sessions and never marks a partial provision READY', async () => {
@@ -719,6 +743,25 @@ describe('Competition V1 school-exam orchestration', () => {
     `).all(eventId) as any[];
     expect(finalRooms.map((row) => row.provision_status)).toEqual(['READY', 'READY']);
     expect(finalRooms[0].live_exam_session_id).toBe(firstSessionId);
+    expect(sqlite.prepare(`
+      SELECT action, target_type, target_id, request_id
+      FROM admin_audit_logs
+      WHERE action = 'EXAM_PROVISIONED' AND target_id = ?
+      ORDER BY request_id
+    `).all(eventId)).toEqual([
+      {
+        action: 'EXAM_PROVISIONED',
+        target_type: 'competition_school_exam_event',
+        target_id: eventId,
+        request_id: 'school-provision-partial-0001',
+      },
+      {
+        action: 'EXAM_PROVISIONED',
+        target_type: 'competition_school_exam_event',
+        target_id: eventId,
+        request_id: 'school-provision-retry-0001',
+      },
+    ]);
   });
 
   it('reconciles closed rooms into versioned canonical results and is rerunnable/idempotent without mutating Live Exam rows', async () => {
@@ -1291,6 +1334,18 @@ describe('Competition V1 school-exam orchestration', () => {
         status: 'PENDING',
       },
     });
+    expect(sqlite.prepare(`
+      SELECT action, target_type, target_id, request_id
+      FROM admin_audit_logs
+      WHERE action = 'RESULT_CORRECTED' AND target_id = ?
+    `).all(correctionBody.correction.canonicalResultId)).toEqual([
+      {
+        action: 'RESULT_CORRECTED',
+        target_type: 'competition_school_exam_result',
+        target_id: correctionBody.correction.canonicalResultId,
+        request_id: 'result-correction-0001',
+      },
+    ]);
 
     const replay = await request(`/api/school-exams/${ready.eventId}/corrections`, 'POST', correctionPayload);
     expect(replay?.status).toBe(200);
@@ -1371,6 +1426,18 @@ describe('Competition V1 school-exam orchestration', () => {
       requestId: 'publish-certificates-0001',
     });
     expect(published?.status).toBe(201);
+    expect(sqlite.prepare(`
+      SELECT action, target_type, target_id, request_id
+      FROM admin_audit_logs
+      WHERE action = 'RESULTS_PUBLISHED' AND target_id = ?
+    `).all(ready.eventId)).toEqual([
+      {
+        action: 'RESULTS_PUBLISHED',
+        target_type: 'competition_school_exam_event',
+        target_id: ready.eventId,
+        request_id: 'publish-certificates-0001',
+      },
+    ]);
 
     const response = await request(`/api/school-exams/${ready.eventId}/certificates`, 'POST', {
       eventId: ready.eventId,
@@ -1420,6 +1487,18 @@ describe('Competition V1 school-exam orchestration', () => {
       { original_class_id: 'class-4b', winner_count: 1, certificate_batch_id: payload.certificateBatch.batches[1].certificateBatchId },
     ]);
     expect(env.CERTIFICATE_QUEUE.send).toHaveBeenCalledTimes(2);
+    expect(sqlite.prepare(`
+      SELECT action, target_type, target_id, request_id
+      FROM admin_audit_logs
+      WHERE action = 'CERTIFICATE_BATCH_CREATED' AND target_id = ?
+    `).all(payload.certificateBatch.id)).toEqual([
+      {
+        action: 'CERTIFICATE_BATCH_CREATED',
+        target_type: 'competition_school_exam_certificate_batch',
+        target_id: payload.certificateBatch.id,
+        request_id: 'certificate-winners-0001',
+      },
+    ]);
 
     const replay = await request(`/api/school-exams/${ready.eventId}/certificates`, 'POST', {
       eventId: ready.eventId,
@@ -1598,6 +1677,25 @@ describe('Competition V1 school-exam orchestration', () => {
       SELECT COUNT(*) AS count FROM competition_school_exam_reconcile_issues
       WHERE run_id = ? AND blocking = 1
     `).get(reconcile.id)).toEqual({ count: reconcile.blockingIssues });
+    expect(sqlite.prepare(`
+      SELECT action, target_type, target_id, request_id
+      FROM admin_audit_logs
+      WHERE target_id = ? AND action IN ('RECONCILE_STARTED', 'RECONCILE_RESOLVED')
+      ORDER BY action
+    `).all(reconcile.id)).toEqual([
+      {
+        action: 'RECONCILE_RESOLVED',
+        target_type: 'competition_school_exam_reconcile_run',
+        target_id: reconcile.id,
+        request_id: 'reconcile-blocked-0001',
+      },
+      {
+        action: 'RECONCILE_STARTED',
+        target_type: 'competition_school_exam_reconcile_run',
+        target_id: reconcile.id,
+        request_id: 'reconcile-blocked-0001',
+      },
+    ]);
   });
 
   it('queues an idempotent school export from the latest immutable publication without doing XLSX work on the request path', async () => {
@@ -1625,6 +1723,18 @@ describe('Competition V1 school-exam orchestration', () => {
     expect(env.COMPETITION_EXPORT_QUEUE.send).toHaveBeenCalledTimes(1);
     expect(env.COMPETITION_EXPORT_QUEUE.send).toHaveBeenCalledWith({ exportId: payload.export.id });
     expect(env.COMPETITION_EXPORTS.objects.size).toBe(0);
+    expect(sqlite.prepare(`
+      SELECT action, target_type, target_id, request_id
+      FROM admin_audit_logs
+      WHERE action = 'XLSX_EXPORT_REQUESTED' AND target_id = ?
+    `).all(payload.export.id)).toEqual([
+      {
+        action: 'XLSX_EXPORT_REQUESTED',
+        target_type: 'competition_school_exam_export',
+        target_id: payload.export.id,
+        request_id: 'export-school-0001',
+      },
+    ]);
 
     const replay = await request(`/api/school-exams/${ready.eventId}/exports`, 'POST', {
       eventId: ready.eventId,
@@ -1777,6 +1887,18 @@ describe('Competition V1 school-exam orchestration', () => {
     expect(status?.status).toBe(200);
     const completed = ((await status!.json()) as any).export;
     expect(completed).toMatchObject({ status: 'READY', artifactKey: expect.stringMatching(/\.xlsx$/) });
+    expect(sqlite.prepare(`
+      SELECT action, target_type, target_id, request_id
+      FROM admin_audit_logs
+      WHERE action = 'XLSX_EXPORTED' AND target_id = ?
+    `).all(exportJob.id)).toEqual([
+      {
+        action: 'XLSX_EXPORTED',
+        target_type: 'competition_school_exam_export',
+        target_id: exportJob.id,
+        request_id: 'export-worker-class-0001',
+      },
+    ]);
 
     const download = await request(`/api/school-exams/${ready.eventId}/exports/${exportJob.id}/download`, 'GET', undefined, invigilatorCookie);
     expect(download?.status).toBe(200);
