@@ -203,6 +203,16 @@ export const PublishCompetitionResultsRequestSchema = z.object({
   requestId: RequestIdSchema,
 }).strict();
 
+export const CreateSchoolExamResultCorrectionRequestSchema = z.object({
+  eventId: IdentifierSchema,
+  studentId: IdentifierSchema,
+  score: z.number().min(0).max(100),
+  correctCount: z.number().int().min(0).nullable(),
+  timeTaken: z.number().int().min(0).nullable(),
+  reason: z.string().trim().min(3).max(1000),
+  requestId: RequestIdSchema,
+}).strict();
+
 export const CreateCompetitionCertificateBatchRequestSchema = z.object({
   eventId: IdentifierSchema,
   publicationVersion: z.number().int().positive(),
@@ -243,5 +253,6 @@ export type CreateSchoolExamEventRequest = z.infer<typeof CreateSchoolExamEventR
 export type CreateSchoolExamRoomRequest = z.infer<typeof CreateSchoolExamRoomRequestSchema>;
 export type CreateSchoolExamIncidentRequest = z.infer<typeof CreateSchoolExamIncidentRequestSchema>;
 export type GrantSchoolExamRetestRequest = z.infer<typeof GrantSchoolExamRetestRequestSchema>;
+export type CreateSchoolExamResultCorrectionRequest = z.infer<typeof CreateSchoolExamResultCorrectionRequestSchema>;
 export type CreateCompetitionCertificateBatchRequest = z.infer<typeof CreateCompetitionCertificateBatchRequestSchema>;
 export type CreateCompetitionExportRequest = z.infer<typeof CreateCompetitionExportRequestSchema>;

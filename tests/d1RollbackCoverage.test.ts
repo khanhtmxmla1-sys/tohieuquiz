@@ -53,6 +53,7 @@ const ROLLBACK_REQUIRED = [
     '0075',
     '0076',
     '0077',
+    '0078',
 ];
 
 function rollbackFiles(): string[] {

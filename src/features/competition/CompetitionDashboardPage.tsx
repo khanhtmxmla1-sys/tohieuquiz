@@ -13,6 +13,7 @@ import {
   type SchoolExamRankingView,
   type SchoolExamReconcileView,
   type SchoolExamRetestView,
+  type SchoolExamResultCorrectionView,
 } from './competitionDashboardService';
 
 interface CompetitionDashboardPageProps {
@@ -108,6 +109,10 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
   const [incidents, setIncidents] = useState<SchoolExamIncidentView[]>([]);
   const [retests, setRetests] = useState<SchoolExamRetestView[]>([]);
   const [rankings, setRankings] = useState<SchoolExamRankingView | null>(null);
+  const [resultCorrections, setResultCorrections] = useState<SchoolExamResultCorrectionView[]>([]);
+  const [correctionDraft, setCorrectionDraft] = useState({
+    studentId: '', score: '', correctCount: '', timeTaken: '', reason: '',
+  });
   const [exportJob, setExportJob] = useState<SchoolExamExportView | null>(null);
   const [certificateDraft, setCertificateDraft] = useState({ templateId: '', winnerStudentIds: '', title: '', message: '', achievementPrefix: '' });
   const [certificateBatch, setCertificateBatch] = useState<SchoolExamCertificateBatchView | null>(null);
@@ -224,6 +229,7 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
       setIncidents([]);
       setRetests([]);
       setRankings(null);
+      setResultCorrections([]);
       return;
     }
     let cancelled = false;
@@ -244,8 +250,16 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
       void competitionDashboardService.getRankings(selectedEventId, rankingPayload)
         .then(value => { if (!cancelled) setRankings(value); })
         .catch(() => { if (!cancelled) setRankings(null); });
+      if (isAdmin) {
+        void competitionDashboardService.listResultCorrections(selectedEventId)
+          .then(value => { if (!cancelled) setResultCorrections(value); })
+          .catch(() => { if (!cancelled) setResultCorrections([]); });
+      } else {
+        setResultCorrections([]);
+      }
     } else {
       setRankings(null);
+      setResultCorrections([]);
     }
     return () => { cancelled = true; };
   }, [isAdmin, selectedEventId, selectedEventStatus, teacherClassId]);
@@ -620,6 +634,67 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
       setActionMessage('Đã công bố kết quả chính thức.');
     } catch {
       setActionError('Không thể công bố kết quả.');
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const createResultCorrection = async () => {
+    if (!selectedEvent || !isAdmin || selectedEvent.status !== 'PUBLISHED') return;
+    const score = Number(correctionDraft.score);
+    const correctCount = Number(correctionDraft.correctCount);
+    const timeTaken = Number(correctionDraft.timeTaken);
+    if (
+      !correctionDraft.studentId.trim()
+      || !Number.isFinite(score) || score < 0 || score > 100
+      || !Number.isInteger(correctCount) || correctCount < 0
+      || !Number.isInteger(timeTaken) || timeTaken < 0
+      || correctionDraft.reason.trim().length < 3
+    ) {
+      setActionError('Thông tin điều chỉnh kết quả chưa hợp lệ.');
+      return;
+    }
+    setPendingAction('result-correction');
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      await competitionDashboardService.createResultCorrection({
+        eventId: selectedEvent.id,
+        studentId: correctionDraft.studentId.trim(),
+        score,
+        correctCount,
+        timeTaken,
+        reason: correctionDraft.reason.trim(),
+        requestId: createRequestId('school-exam-result-correction'),
+      });
+      setResultCorrections(await competitionDashboardService.listResultCorrections(selectedEvent.id));
+      setActionMessage('Đã ghi nhận điều chỉnh; phiên bản công bố hiện tại vẫn giữ nguyên.');
+    } catch {
+      setActionError('Không thể ghi nhận điều chỉnh kết quả.');
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const republishCorrectedResults = async () => {
+    if (!selectedEvent || !isAdmin || selectedEvent.status !== 'PUBLISHED') return;
+    setPendingAction('result-correction-publish');
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      await competitionDashboardService.republishCorrectedResults(
+        selectedEvent.id,
+        createRequestId('school-exam-correction-publish'),
+      );
+      const [rankingValue, correctionItems] = await Promise.all([
+        competitionDashboardService.getRankings(selectedEvent.id, { scope: 'EVENT' }),
+        competitionDashboardService.listResultCorrections(selectedEvent.id),
+      ]);
+      setRankings(rankingValue);
+      setResultCorrections(correctionItems);
+      setActionMessage(`Đã công bố phiên bản ${rankingValue.publicationVersion} sau điều chỉnh.`);
+    } catch {
+      setActionError('Không thể công bố phiên bản điều chỉnh.');
     } finally {
       setPendingAction(null);
     }
@@ -1018,6 +1093,26 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
             <div className="mt-4 space-y-2">
               <div className="text-xs font-semibold text-slate-500">Publication v{rankings.publicationVersion} · Ranking v{rankings.rankingVersion} · {rankings.scope}</div>
               {rankings.items.map(item => <div key={item.studentId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 p-3 text-sm"><span><strong>{item.studentId}</strong> · {item.score} điểm</span><span className="font-bold text-blue-700">Hạng {item.rank}</span></div>)}
+            </div>
+          )}
+          {isAdmin && selectedEvent?.status === 'PUBLISHED' && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <h3 className="font-bold text-amber-950">Điều chỉnh kết quả đã công bố</h3>
+              <p className="mt-1 text-xs text-amber-800">Bản công bố hiện tại không thay đổi cho đến khi tạo phiên bản mới.</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="text-xs font-semibold">Học sinh cần điều chỉnh<input aria-label="Học sinh cần điều chỉnh" value={correctionDraft.studentId} onChange={event => setCorrectionDraft(current => ({ ...current, studentId: event.target.value }))} className="mt-1 block w-full rounded border px-2 py-1.5 font-normal" /></label>
+                <label className="text-xs font-semibold">Điểm điều chỉnh<input aria-label="Điểm điều chỉnh" type="number" min="0" max="100" value={correctionDraft.score} onChange={event => setCorrectionDraft(current => ({ ...current, score: event.target.value }))} className="mt-1 block w-full rounded border px-2 py-1.5 font-normal" /></label>
+                <label className="text-xs font-semibold">Số câu đúng điều chỉnh<input aria-label="Số câu đúng điều chỉnh" type="number" min="0" value={correctionDraft.correctCount} onChange={event => setCorrectionDraft(current => ({ ...current, correctCount: event.target.value }))} className="mt-1 block w-full rounded border px-2 py-1.5 font-normal" /></label>
+                <label className="text-xs font-semibold">Thời gian điều chỉnh<input aria-label="Thời gian điều chỉnh" type="number" min="0" value={correctionDraft.timeTaken} onChange={event => setCorrectionDraft(current => ({ ...current, timeTaken: event.target.value }))} className="mt-1 block w-full rounded border px-2 py-1.5 font-normal" /></label>
+                <label className="text-xs font-semibold sm:col-span-2">Lý do điều chỉnh<textarea aria-label="Lý do điều chỉnh" value={correctionDraft.reason} onChange={event => setCorrectionDraft(current => ({ ...current, reason: event.target.value }))} className="mt-1 block w-full rounded border px-2 py-1.5 font-normal" /></label>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button type="button" onClick={createResultCorrection} disabled={pendingAction !== null} className="rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm font-semibold disabled:opacity-50">Ghi nhận điều chỉnh</button>
+                {resultCorrections.filter(item => item.status === 'PENDING').length > 0 && (
+                  <button type="button" onClick={republishCorrectedResults} disabled={pendingAction !== null} className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 disabled:opacity-50">Công bố phiên bản điều chỉnh</button>
+                )}
+              </div>
+              <p className="mt-2 text-xs font-semibold text-amber-900">{resultCorrections.filter(item => item.status === 'PENDING').length} điều chỉnh đang chờ công bố</p>
             </div>
           )}
         </article>

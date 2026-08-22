@@ -41,6 +41,11 @@ describe('Competition V1 dashboard API registry', () => {
       .toBe('/api/school-exams/event%201/retests');
     expect(resolveApiRoute('get_school_exam_rankings').path({ eventId: 'event 1' }))
       .toBe('/api/school-exams/event%201/rankings');
+    expect(resolveApiRoute('list_school_exam_result_corrections').path({ eventId: 'event 1' }))
+      .toBe('/api/school-exams/event%201/corrections');
+    expect(resolveApiRoute('create_school_exam_result_correction')).toMatchObject({ method: 'POST', auth: 'session' });
+    expect(resolveApiRoute('republish_corrected_school_exam_results').path({ eventId: 'event 1' }))
+      .toBe('/api/school-exams/event%201/publish');
   });
 
   it('strips route parameters from dashboard mutation bodies', () => {
@@ -71,6 +76,19 @@ describe('Competition V1 dashboard API registry', () => {
     const publish = resolveApiRoute('publish_school_exam_results');
     expect(publish.body?.('publish_school_exam_results', { eventId: 'e1', requestId: 'request-123' }))
       .toEqual({ eventId: 'e1', requestId: 'request-123' });
+
+    const correction = resolveApiRoute('create_school_exam_result_correction');
+    expect(correction.body?.('create_school_exam_result_correction', {
+      eventId: 'e1', studentId: 'student-1', score: 99, correctCount: 10, timeTaken: 90,
+      reason: 'Validated answer key', requestId: 'request-123',
+    })).toEqual({
+      studentId: 'student-1', score: 99, correctCount: 10, timeTaken: 90,
+      reason: 'Validated answer key', requestId: 'request-123',
+    });
+
+    const republish = resolveApiRoute('republish_corrected_school_exam_results');
+    expect(republish.body?.('republish_corrected_school_exam_results', { eventId: 'e1', requestId: 'request-456' }))
+      .toEqual({ eventId: 'e1', requestId: 'request-456' });
 
     const incident = resolveApiRoute('report_school_exam_incident');
     expect(incident.path({ eventId: 'e1' })).toBe('/api/school-exams/e1/incidents');

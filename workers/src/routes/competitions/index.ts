@@ -4,6 +4,7 @@ import {
   CreateCompetitionExportRequestSchema,
   CreateSchoolExamEventRequestSchema,
   CreateSchoolExamIncidentRequestSchema,
+  CreateSchoolExamResultCorrectionRequestSchema,
   CreateSchoolExamRoomRequestSchema,
   GrantSchoolExamRetestRequestSchema,
   FinalizeCompetitionEligibilityRequestSchema,
@@ -74,6 +75,10 @@ import {
   type SchoolExamRankingScope,
 } from '../../competition/schoolExamPublicationRankingService';
 import { createSchoolExamCertificateBatches } from '../../competition/schoolExamCertificateService';
+import {
+  createSchoolExamResultCorrection,
+  listSchoolExamResultCorrections,
+} from '../../competition/schoolExamResultCorrectionService';
 import {
   createSchoolExamExport,
   downloadSchoolExamExport,
@@ -147,6 +152,7 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_RETEST_NOT_FOUND',
     'SCHOOL_EXAM_ORIGINAL_RESULT_NOT_FOUND',
     'SCHOOL_EXAM_PUBLICATION_NOT_FOUND',
+    'SCHOOL_EXAM_CORRECTION_RESULT_NOT_FOUND',
     'SCHOOL_EXAM_CERTIFICATE_PUBLICATION_NOT_FOUND',
     'SCHOOL_EXAM_CERTIFICATE_TEMPLATE_NOT_FOUND',
     'SCHOOL_EXAM_EXPORT_NOT_FOUND',
@@ -189,6 +195,10 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_PUBLISH_NOT_READY',
     'SCHOOL_EXAM_PUBLISH_RESULTS_REQUIRED',
     'SCHOOL_EXAM_PUBLISH_RECONCILE_VERSION_REQUIRED',
+    'SCHOOL_EXAM_CORRECTION_NOT_PUBLISHED',
+    'SCHOOL_EXAM_CORRECTION_IDEMPOTENCY_CONFLICT',
+    'SCHOOL_EXAM_CORRECTION_PENDING_EXISTS',
+    'SCHOOL_EXAM_CORRECTION_NO_CHANGE',
     'SCHOOL_EXAM_CERTIFICATE_WINNER_INVALID',
     'SCHOOL_EXAM_CERTIFICATE_CLASS_BATCH_TOO_LARGE',
     'SCHOOL_EXAM_EXPORT_PUBLICATION_NOT_FOUND',
@@ -493,6 +503,31 @@ async function handleCompetitionRoutesCore(
       if (parsed.data.eventId !== eventId) return errorResponse('SCHOOL_EXAM_EVENT_ROUTE_MISMATCH', 400);
       const publication = await publishSchoolExamResults(env.DB, eventId, user.username, parsed.data.requestId);
       return jsonResponse({ publication }, 201);
+    }
+
+    const schoolExamCorrectionParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/corrections$/);
+    if (schoolExamCorrectionParts && method === 'POST') {
+      if (!requireAdmin(user)) return errorResponse('COMPETITION_ADMIN_REQUIRED', 403);
+      const [eventId] = schoolExamCorrectionParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = CreateSchoolExamResultCorrectionRequestSchema.safeParse({ ...body, eventId });
+      if (!parsed.success) return errorResponse('Invalid school exam correction payload', 400);
+      const result = await createSchoolExamResultCorrection(env.DB, eventId, {
+        studentId: parsed.data.studentId,
+        score: parsed.data.score,
+        correctCount: parsed.data.correctCount,
+        timeTaken: parsed.data.timeTaken,
+        reason: parsed.data.reason,
+        requestId: parsed.data.requestId,
+      }, user.username);
+      return jsonResponse({ correction: result.correction }, result.created ? 201 : 200);
+    }
+    if (schoolExamCorrectionParts && method === 'GET') {
+      if (!requireAdmin(user)) return errorResponse('COMPETITION_ADMIN_REQUIRED', 403);
+      const [eventId] = schoolExamCorrectionParts;
+      const items = await listSchoolExamResultCorrections(env.DB, eventId);
+      return jsonResponse({ items });
     }
 
     const schoolExamRankingParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/rankings$/);

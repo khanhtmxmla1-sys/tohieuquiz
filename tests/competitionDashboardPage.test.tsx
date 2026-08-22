@@ -574,4 +574,45 @@ describe('Competition V1 admin and teacher dashboard surface', () => {
     expect(screen.getByText('Phòng A')).toBeInTheDocument();
     expect(screen.getByText('80 / 100')).toBeInTheDocument();
   });
+
+  it('lets Admin record a correction and republish a new immutable version', async () => {
+    let corrections: any[] = [];
+    api.callApi.mockImplementation(async (action: string, payload?: any) => {
+      if (action === 'list_competitions') return { items: [{ id: 'campaign-1', title: 'Hội thi 2026', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh', status: 'PUBLISHED' }] };
+      if (action === 'get_competition_rounds') return { items: [] };
+      if (action === 'get_competition_eligibility') return { campaignId: 'campaign-1', version: 1, items: [] };
+      if (action === 'list_school_exam_events') return { items: [{ id: 'event-1', campaignId: 'campaign-1', title: 'Thi cấp trường', status: 'PUBLISHED', examDate: '2027-05-10T01:00:00.000Z', rooms: [] }] };
+      if (action === 'get_school_exam_rankings') return { rankings: { eventId: 'event-1', publicationVersion: corrections.length ? 2 : 1, rankingVersion: corrections.length ? 2 : 1, scope: 'EVENT', items: [{ studentId: 'student-1', originalClassId: 'class-4a', gradeLevel: 4, score: corrections.length ? 99 : 95, correctCount: corrections.length ? 10 : 9, timeTaken: corrections.length ? 90 : 120, rank: 1 }] } };
+      if (action === 'list_school_exam_result_corrections') return { items: corrections };
+      if (action === 'create_school_exam_result_correction') {
+        corrections = [{ id: 'correction-1', eventId: 'event-1', studentId: payload.studentId, sourcePublicationVersion: 1, before: { score: 95, correctCount: 9, timeTaken: 120 }, after: { score: payload.score, correctCount: payload.correctCount, timeTaken: payload.timeTaken }, reason: payload.reason, status: 'PENDING', createdAt: '2027-05-11T00:00:00.000Z' }];
+        return { correction: corrections[0] };
+      }
+      if (action === 'republish_corrected_school_exam_results') {
+        corrections = corrections.map(item => ({ ...item, status: 'APPLIED', appliedPublicationVersion: 2 }));
+        return { publication: { id: 'publication-2', eventId: 'event-1', publicationVersion: 2, rankingVersion: 2, status: 'PUBLISHED' } };
+      }
+      return { items: [] };
+    });
+
+    render(<CompetitionDashboardPage isAdmin username="admin" />);
+    expect(await screen.findByLabelText('Học sinh cần điều chỉnh')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Học sinh cần điều chỉnh'), { target: { value: 'student-1' } });
+    fireEvent.change(screen.getByLabelText('Điểm điều chỉnh'), { target: { value: '99' } });
+    fireEvent.change(screen.getByLabelText('Số câu đúng điều chỉnh'), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText('Thời gian điều chỉnh'), { target: { value: '90' } });
+    fireEvent.change(screen.getByLabelText('Lý do điều chỉnh'), { target: { value: 'Đối soát lại đáp án hợp lệ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận điều chỉnh' }));
+
+    await waitFor(() => expect(api.callApi).toHaveBeenCalledWith('create_school_exam_result_correction', expect.objectContaining({
+      eventId: 'event-1', studentId: 'student-1', score: 99, correctCount: 10, timeTaken: 90,
+      reason: 'Đối soát lại đáp án hợp lệ', requestId: expect.any(String),
+    })));
+    expect(await screen.findByText(/1 điều chỉnh đang chờ công bố/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Công bố phiên bản điều chỉnh' }));
+    await waitFor(() => expect(api.callApi).toHaveBeenCalledWith('republish_corrected_school_exam_results', {
+      eventId: 'event-1', requestId: expect.any(String),
+    }));
+    expect(await screen.findByText(/Publication v2/)).toBeInTheDocument();
+  });
 });

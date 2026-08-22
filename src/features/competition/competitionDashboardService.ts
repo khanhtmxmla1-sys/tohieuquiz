@@ -177,6 +177,19 @@ export interface SchoolExamPublicationView {
   publishedAt?: string | null;
 }
 
+export interface SchoolExamResultCorrectionView {
+  id: string;
+  eventId: string;
+  studentId: string;
+  sourcePublicationVersion: number;
+  before: { score: number; correctCount: number | null; timeTaken: number | null };
+  after: { score: number; correctCount: number | null; timeTaken: number | null };
+  reason: string;
+  status: 'PENDING' | 'APPLIED';
+  appliedPublicationVersion?: number | null;
+  createdAt: string;
+}
+
 export interface SchoolExamExportView {
   id: string;
   eventId: string;
@@ -400,6 +413,29 @@ export const competitionDashboardService = {
 
   async publish(eventId: string, requestId: string): Promise<SchoolExamPublicationView> {
     const response = await callApi<{ publication: SchoolExamPublicationView }>('publish_school_exam_results', { eventId, requestId });
+    return response.publication;
+  },
+
+  async listResultCorrections(eventId: string): Promise<SchoolExamResultCorrectionView[]> {
+    const response = await callApi<{ items?: SchoolExamResultCorrectionView[] }>('list_school_exam_result_corrections', { eventId });
+    return response.items || [];
+  },
+
+  async createResultCorrection(payload: {
+    eventId: string;
+    studentId: string;
+    score: number;
+    correctCount: number | null;
+    timeTaken: number | null;
+    reason: string;
+    requestId: string;
+  }): Promise<SchoolExamResultCorrectionView> {
+    const response = await callApi<{ correction: SchoolExamResultCorrectionView }>('create_school_exam_result_correction', payload);
+    return response.correction;
+  },
+
+  async republishCorrectedResults(eventId: string, requestId: string): Promise<SchoolExamPublicationView> {
+    const response = await callApi<{ publication: SchoolExamPublicationView }>('republish_corrected_school_exam_results', { eventId, requestId });
     return response.publication;
   },
 

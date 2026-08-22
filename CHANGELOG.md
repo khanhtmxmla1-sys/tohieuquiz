@@ -7,6 +7,7 @@ Tất cả thay đổi đáng chú ý của sản phẩm được ghi lại tạ
 ### Added
 
 - Student Competition V1: route học sinh có feature flag, sáu vòng thi từ quiz snapshot bất biến và kết quả School Exam chỉ hiển thị sau công bố.
+- Competition V1: Admin có thể ghi nhận correction có audit/idempotency và công bố publication version mới mà vẫn giữ nguyên snapshot phiên bản trước.
 
 ### Changed
 

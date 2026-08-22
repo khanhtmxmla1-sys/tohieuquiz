@@ -18,6 +18,7 @@ const incidentRetestMigrationUrl = new URL('../workers/migrations/0074_competiti
 const publicationRankingMigrationUrl = new URL('../workers/migrations/0075_competition_school_exam_publication_ranking.sql', import.meta.url);
 const certificateAdapterMigrationUrl = new URL('../workers/migrations/0076_competition_certificate_adapter.sql', import.meta.url);
 const exportAdapterMigrationUrl = new URL('../workers/migrations/0077_competition_async_xlsx_export.sql', import.meta.url);
+const resultCorrectionMigrationUrl = new URL('../workers/migrations/0078_competition_result_corrections.sql', import.meta.url);
 
 const secret = 'school-exam-orchestration-test-secret';
 let sqlite: DatabaseSync;
@@ -242,6 +243,7 @@ function seedCompetition(): void {
   if (existsSync(publicationRankingMigrationUrl)) sqlite.exec(readFileSync(publicationRankingMigrationUrl, 'utf8'));
   if (existsSync(certificateAdapterMigrationUrl)) sqlite.exec(readFileSync(certificateAdapterMigrationUrl, 'utf8'));
   if (existsSync(exportAdapterMigrationUrl)) sqlite.exec(readFileSync(exportAdapterMigrationUrl, 'utf8'));
+  if (existsSync(resultCorrectionMigrationUrl)) sqlite.exec(readFileSync(resultCorrectionMigrationUrl, 'utf8'));
 
   sqlite.exec(`
     INSERT INTO competition_campaigns (
@@ -1259,18 +1261,67 @@ describe('Competition V1 school-exam orchestration', () => {
     `).get(ready.eventId);
     expect(firstSnapshot).toEqual({ score: 95, rank_event: 2 });
 
-    sqlite.prepare(`
-      UPDATE competition_school_exam_results
-      SET score = 99, correct_count = 10, status = 'RECONCILED', rank = NULL, published_at = NULL
-      WHERE event_id = ? AND student_id = 'student-1'
-    `).run(ready.eventId);
-    sqlite.prepare(`UPDATE competition_school_exam_events SET status = 'READY_TO_PUBLISH' WHERE id = ?`).run(ready.eventId);
-    sqlite.prepare(`
-      UPDATE live_exam_sessions SET result_visibility = 'WITHHELD'
-      WHERE participant_scope_type = 'SCHOOL_EXAM_ROOM' AND participant_scope_id IN (
-        SELECT id FROM competition_school_exam_rooms WHERE event_id = ?
-      )
-    `).run(ready.eventId);
+    const correctionPayload = {
+      eventId: ready.eventId,
+      studentId: 'student-1',
+      score: 99,
+      correctCount: 10,
+      timeTaken: 90,
+      reason: 'Đối soát lại đáp án hợp lệ',
+      requestId: 'result-correction-0001',
+    };
+    const teacherCorrection = await request(
+      `/api/school-exams/${ready.eventId}/corrections`,
+      'POST',
+      correctionPayload,
+      unrelatedTeacherCookie,
+    );
+    expect(teacherCorrection?.status).toBe(403);
+
+    const correction = await request(`/api/school-exams/${ready.eventId}/corrections`, 'POST', correctionPayload);
+    expect(correction?.status, await correction?.clone().text()).toBe(201);
+    const correctionBody = (await correction!.json()) as any;
+    expect(correctionBody).toMatchObject({
+      correction: {
+        eventId: ready.eventId,
+        studentId: 'student-1',
+        sourcePublicationVersion: 1,
+        before: { score: 95, correctCount: 9, timeTaken: 120 },
+        after: { score: 99, correctCount: 10, timeTaken: 90 },
+        status: 'PENDING',
+      },
+    });
+
+    const replay = await request(`/api/school-exams/${ready.eventId}/corrections`, 'POST', correctionPayload);
+    expect(replay?.status).toBe(200);
+    expect(((await replay!.json()) as any).correction.id).toBe(correctionBody.correction.id);
+    const conflictingReplay = await request(`/api/school-exams/${ready.eventId}/corrections`, 'POST', {
+      ...correctionPayload,
+      score: 98,
+    });
+    expect(conflictingReplay?.status).toBe(409);
+
+    const officialBeforeRepublish = await request(
+      '/api/student/competitions/campaign-1/official-result',
+      'GET',
+      undefined,
+      studentCookie,
+    );
+    expect(officialBeforeRepublish?.status).toBe(200);
+    expect((await officialBeforeRepublish!.json()) as any).toMatchObject({
+      result: { publicationVersion: 1, score: 95 },
+    });
+
+    const teacherList = await request(
+      `/api/school-exams/${ready.eventId}/corrections`,
+      'GET',
+      undefined,
+      unrelatedTeacherCookie,
+    );
+    expect(teacherList?.status).toBe(403);
+    const correctionList = await request(`/api/school-exams/${ready.eventId}/corrections`, 'GET');
+    expect(correctionList?.status).toBe(200);
+    expect(((await correctionList!.json()) as any).items).toHaveLength(1);
 
     const second = await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
       eventId: ready.eventId,
@@ -1290,6 +1341,23 @@ describe('Competition V1 school-exam orchestration', () => {
     `).get(ready.eventId)).toEqual({ score: 99, rank_event: 1 });
     expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM competition_school_exam_publications WHERE event_id = ?`)
       .get(ready.eventId)).toEqual({ count: 2 });
+    expect(sqlite.prepare(`
+      SELECT source_publication_version, applied_publication_version, length(before_hash) AS before_hash_length,
+             length(after_hash) AS after_hash_length
+      FROM competition_school_exam_result_corrections
+      WHERE event_id = ? AND student_id = 'student-1'
+    `).get(ready.eventId)).toEqual({
+      source_publication_version: 1,
+      applied_publication_version: 2,
+      before_hash_length: 64,
+      after_hash_length: 64,
+    });
+    expect(() => sqlite.prepare(`
+      UPDATE competition_school_exam_result_corrections SET reason = 'tampered' WHERE event_id = ?
+    `).run(ready.eventId)).toThrow(/SCHOOL_EXAM_RESULT_CORRECTION_IMMUTABLE/);
+    expect(() => sqlite.prepare(`
+      DELETE FROM competition_school_exam_result_corrections WHERE event_id = ?
+    `).run(ready.eventId)).toThrow(/SCHOOL_EXAM_RESULT_CORRECTION_IMMUTABLE/);
     expect(() => sqlite.prepare(`
       UPDATE competition_school_exam_publications SET result_digest = 'tampered'
       WHERE event_id = ? AND version = 1

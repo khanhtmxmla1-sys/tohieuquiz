@@ -300,6 +300,11 @@ export async function publishSchoolExamResults(
       .bind(publishedAt, eventId),
     db.prepare(`UPDATE competition_school_exam_rooms SET status = 'PUBLISHED', updated_at = ? WHERE event_id = ?`)
       .bind(publishedAt, eventId),
+    db.prepare(`
+      UPDATE competition_school_exam_result_corrections
+      SET applied_publication_id = ?, applied_publication_version = ?, applied_at = ?
+      WHERE event_id = ? AND applied_publication_id IS NULL
+    `).bind(publicationId, publicationVersion, publishedAt, eventId),
     auditStatement(db, {
       actorUsername,
       action: 'SCHOOL_EXAM_RESULTS_PUBLISHED',

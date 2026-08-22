@@ -1,0 +1,5 @@
+DROP TRIGGER IF EXISTS trg_competition_result_corrections_immutable;
+DROP TRIGGER IF EXISTS trg_competition_result_corrections_no_delete;
+DROP INDEX IF EXISTS idx_competition_result_corrections_pending_student;
+DROP INDEX IF EXISTS idx_competition_result_corrections_event;
+DROP TABLE IF EXISTS competition_school_exam_result_corrections;

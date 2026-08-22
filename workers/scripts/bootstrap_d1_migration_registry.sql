@@ -83,4 +83,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0074_competition_school_exam_incident_retest.sql'),
   ('0075_competition_school_exam_publication_ranking.sql'),
   ('0076_competition_certificate_adapter.sql'),
-  ('0077_competition_async_xlsx_export.sql');
+  ('0077_competition_async_xlsx_export.sql'),
+  ('0078_competition_result_corrections.sql');

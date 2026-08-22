@@ -119,6 +119,15 @@ export const competitionRoutes: RouteRegistry = {
   publish_school_exam_results: {
     method: 'POST', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/publish`, body: identityBody,
   },
+  republish_corrected_school_exam_results: {
+    method: 'POST', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/publish`, body: identityBody,
+  },
+  list_school_exam_result_corrections: {
+    method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/corrections`,
+  },
+  create_school_exam_result_correction: {
+    method: 'POST', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/corrections`, body: omitFields('eventId'),
+  },
   get_school_exam_rankings: {
     method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/rankings`, query: rankingQuery,
   },
