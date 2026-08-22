@@ -1,6 +1,7 @@
 import { generateAccessCode, generateId as generateLiveExamId } from '../services/liveExam/utils';
 import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
+import { competitionCursor, competitionLimit, competitionPage } from './pagination';
 
 interface IncidentRow {
   id: string;
@@ -121,52 +122,109 @@ export async function listSchoolExamIncidents(
   db: D1Database,
   eventId: string,
   viewer: { username: string; role: string },
+  options: { limit?: number | string; cursor?: string } = {},
 ) {
   const event = await db.prepare('SELECT id FROM competition_school_exam_events WHERE id = ? LIMIT 1')
     .bind(eventId).first<{ id: string }>();
   if (!event) throw new Error('SCHOOL_EXAM_EVENT_NOT_FOUND');
+  const limit = competitionLimit(options.limit);
   const scopedRooms = await assignedRoomIds(db, eventId, viewer);
+  if (scopedRooms !== null && scopedRooms.size === 0) {
+    return { items: [], nextCursor: null, hasMore: false, limit };
+  }
+  const roomIds = scopedRooms ? [...scopedRooms].sort() : [];
+  const scope = `school-exam-incidents:${eventId}:${roomIds.join(',') || 'all'}`;
+  const cursor = competitionCursor(
+    options.cursor,
+    scope,
+    2,
+    'SCHOOL_EXAM_INCIDENT_CURSOR_INVALID',
+  );
+  if (cursor && (!cursor[0] || !cursor[1])) throw new Error('SCHOOL_EXAM_INCIDENT_CURSOR_INVALID');
+  const roomFilter = roomIds.length > 0
+    ? ` AND room_id IN (${roomIds.map(() => '?').join(', ')})`
+    : '';
+  const cursorFilter = cursor
+    ? ' AND (occurred_at < ? OR (occurred_at = ? AND id < ?))'
+    : '';
   const result = await db.prepare(`
     SELECT id, event_id, room_id, student_id, incident_type, severity, details_json,
            reported_by, occurred_at, resolved_at, resolution_json, request_id
     FROM competition_school_exam_incidents
-    WHERE event_id = ?
-    ORDER BY occurred_at DESC, id DESC
-  `).bind(eventId).all<IncidentRow>();
-  return (result.results || [])
-    .filter((row) => scopedRooms === null || (row.room_id !== null && scopedRooms.has(row.room_id)))
-    .map(mapIncident);
+     WHERE event_id = ?${roomFilter}${cursorFilter}
+     ORDER BY occurred_at DESC, id DESC
+     LIMIT ?
+  `).bind(
+    eventId,
+    ...roomIds,
+    ...(cursor ? [cursor[0], cursor[0], cursor[1]] : []),
+    limit + 1,
+  ).all<IncidentRow>();
+  const page = competitionPage(
+    result.results || [],
+    limit,
+    (row) => [row.occurred_at, row.id],
+    scope,
+  );
+  return { ...page, items: page.items.map(mapIncident) };
 }
 
 export async function listSchoolExamRetests(
   db: D1Database,
   eventId: string,
   viewer: { username: string; role: string },
+  options: { limit?: number | string; cursor?: string } = {},
 ) {
   const event = await db.prepare('SELECT id FROM competition_school_exam_events WHERE id = ? LIMIT 1')
     .bind(eventId).first<{ id: string }>();
   if (!event) throw new Error('SCHOOL_EXAM_EVENT_NOT_FOUND');
+  const limit = competitionLimit(options.limit);
   const scopedRooms = await assignedRoomIds(db, eventId, viewer);
+  if (scopedRooms !== null && scopedRooms.size === 0) {
+    return { items: [], nextCursor: null, hasMore: false, limit };
+  }
+  const roomIds = scopedRooms ? [...scopedRooms].sort() : [];
+  const scope = `school-exam-retests:${eventId}:${roomIds.join(',') || 'all'}`;
+  const cursor = competitionCursor(
+    options.cursor,
+    scope,
+    2,
+    'SCHOOL_EXAM_RETEST_CURSOR_INVALID',
+  );
+  if (cursor && (!cursor[0] || !cursor[1])) throw new Error('SCHOOL_EXAM_RETEST_CURSOR_INVALID');
+  const scopeJoin = roomIds.length > 0
+    ? ` INNER JOIN competition_school_exam_incidents AS incident_scope
+          ON incident_scope.id = retests.incident_id
+         AND incident_scope.event_id = retests.event_id
+         AND incident_scope.room_id IN (${roomIds.map(() => '?').join(', ')})`
+    : '';
+  const cursorFilter = cursor
+    ? ' AND (retests.requested_at < ? OR (retests.requested_at = ? AND retests.id < ?))'
+    : '';
   const result = await db.prepare(`
-    SELECT id, event_id, student_id, source_result_id, replacement_room_id, reason, status,
-           requested_by, requested_at, decided_by, decided_at, incident_id, reason_code,
-           reason_text, grant_request_id, expires_at, live_exam_session_id, resolution
-    FROM competition_school_exam_retests
-    WHERE event_id = ?
-    ORDER BY requested_at DESC, id DESC
-  `).bind(eventId).all<RetestRow>();
-  if (scopedRooms === null) return (result.results || []).map(mapRetest);
-  const incidentRows = await db.prepare(`
-    SELECT id, room_id
-    FROM competition_school_exam_incidents
-    WHERE event_id = ?
-  `).bind(eventId).all<{ id: string; room_id: string | null }>();
-  const allowedIncidentIds = new Set((incidentRows.results || [])
-    .filter((row) => row.room_id !== null && scopedRooms.has(row.room_id))
-    .map((row) => row.id));
-  return (result.results || [])
-    .filter((row) => row.incident_id !== null && allowedIncidentIds.has(row.incident_id))
-    .map(mapRetest);
+    SELECT retests.id, retests.event_id, retests.student_id, retests.source_result_id,
+           retests.replacement_room_id, retests.reason, retests.status,
+           retests.requested_by, retests.requested_at, retests.decided_by, retests.decided_at,
+           retests.incident_id, retests.reason_code, retests.reason_text,
+           retests.grant_request_id, retests.expires_at, retests.live_exam_session_id,
+           retests.resolution
+    FROM competition_school_exam_retests AS retests${scopeJoin}
+    WHERE retests.event_id = ?${cursorFilter}
+    ORDER BY retests.requested_at DESC, retests.id DESC
+    LIMIT ?
+  `).bind(
+    ...roomIds,
+    eventId,
+    ...(cursor ? [cursor[0], cursor[0], cursor[1]] : []),
+    limit + 1,
+  ).all<RetestRow>();
+  const page = competitionPage(
+    result.results || [],
+    limit,
+    (row) => [row.requested_at, row.id],
+    scope,
+  );
+  return { ...page, items: page.items.map(mapRetest) };
 }
 
 async function requireIncidentScope(

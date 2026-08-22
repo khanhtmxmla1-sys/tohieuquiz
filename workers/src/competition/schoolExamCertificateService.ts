@@ -31,6 +31,13 @@ interface CertificateRequestRow {
   error_code: string | null;
 }
 
+interface CertificateRequestMetadata {
+  publication_version: number;
+  ranking_version: number | null;
+  template_id: string | null;
+  winner_count: number;
+}
+
 interface CertificateItemRow {
   original_class_id: string;
   certificate_batch_id: string;
@@ -101,12 +108,57 @@ async function loadRequest(db: D1Database, eventId: string, requestId: string) {
   return mapRequest(row, itemsResult.results || []);
 }
 
+async function loadRequestById(db: D1Database, eventId: string, parentId: string) {
+  const row = await db.prepare(`
+    SELECT id, event_id, publication_version, ranking_version, status, winner_count,
+           request_id, requested_by, requested_at, error_code
+    FROM competition_school_exam_certificate_batches
+    WHERE event_id = ? AND id = ? LIMIT 1
+  `).bind(eventId, parentId).first<CertificateRequestRow>();
+  if (!row) return null;
+  const itemsResult = await db.prepare(`
+    SELECT original_class_id, certificate_batch_id, winner_count
+    FROM competition_school_exam_certificate_batch_items
+    WHERE parent_id = ? ORDER BY original_class_id ASC
+  `).bind(row.id).all<CertificateItemRow>();
+  return mapRequest(row, itemsResult.results || []);
+}
+
+async function loadRequestMetadata(
+  db: D1Database,
+  eventId: string,
+  requestId: string,
+): Promise<CertificateRequestMetadata | null> {
+  return db.prepare(`
+    SELECT publication_version, ranking_version, template_id, winner_count
+    FROM competition_school_exam_certificate_batches
+    WHERE event_id = ? AND request_id = ? LIMIT 1
+  `).bind(eventId, requestId).first<CertificateRequestMetadata>();
+}
+
 async function markFailed(db: D1Database, parentId: string, errorCode: string): Promise<void> {
   await db.prepare(`
     UPDATE competition_school_exam_certificate_batches
     SET status = 'FAILED', error_code = ?, completed_at = ?
     WHERE id = ?
   `).bind(errorCode, new Date().toISOString(), parentId).run();
+}
+
+export async function getSchoolExamCertificateBatch(
+  db: D1Database,
+  eventId: string,
+  parentId: string,
+) {
+  const certificateBatch = await loadRequestById(db, eventId, parentId);
+  if (!certificateBatch) throw new Error('SCHOOL_EXAM_CERTIFICATE_NOT_FOUND');
+  const publication = await db.prepare(`
+    SELECT id
+    FROM competition_school_exam_publications
+    WHERE event_id = ? AND version = ? AND status = 'PUBLISHED'
+    LIMIT 1
+  `).bind(eventId, certificateBatch.publicationVersion).first<{ id: string }>();
+  if (!publication) throw new Error('SCHOOL_EXAM_CERTIFICATE_PUBLICATION_NOT_FOUND');
+  return certificateBatch;
 }
 
 function certificatePersistenceErrorCode(payload: unknown): string {
@@ -122,6 +174,15 @@ export async function createSchoolExamCertificateBatches(
   input: CreateCompetitionCertificateBatchRequest,
   actorUsername: string,
 ) {
+  const replayMetadata = await loadRequestMetadata(env.DB, input.eventId, input.requestId);
+  if (replayMetadata && (
+    Number(replayMetadata.publication_version) !== input.publicationVersion
+    || Number(replayMetadata.ranking_version || 0) !== input.rankingVersion
+    || String(replayMetadata.template_id || '') !== input.templateId
+    || Number(replayMetadata.winner_count) !== uniqueWinnerIds(input.winnerStudentIds).length
+  )) {
+    throw new Error('SCHOOL_EXAM_CERTIFICATE_REQUEST_CONFLICT');
+  }
   const replay = await loadRequest(env.DB, input.eventId, input.requestId);
   if (replay) return { created: false, certificateBatch: replay };
 

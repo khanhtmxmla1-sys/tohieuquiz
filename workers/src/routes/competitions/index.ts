@@ -74,7 +74,10 @@ import {
   publishSchoolExamResults,
   type SchoolExamRankingScope,
 } from '../../competition/schoolExamPublicationRankingService';
-import { createSchoolExamCertificateBatches } from '../../competition/schoolExamCertificateService';
+import {
+  createSchoolExamCertificateBatches,
+  getSchoolExamCertificateBatch,
+} from '../../competition/schoolExamCertificateService';
 import {
   createSchoolExamResultCorrection,
   listSchoolExamResultCorrections,
@@ -155,6 +158,7 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_CORRECTION_RESULT_NOT_FOUND',
     'SCHOOL_EXAM_CERTIFICATE_PUBLICATION_NOT_FOUND',
     'SCHOOL_EXAM_CERTIFICATE_TEMPLATE_NOT_FOUND',
+    'SCHOOL_EXAM_CERTIFICATE_NOT_FOUND',
     'SCHOOL_EXAM_EXPORT_NOT_FOUND',
     'SCHOOL_EXAM_EXPORT_ARTIFACT_NOT_FOUND',
   ].includes(message)) return errorResponse(message, 404);
@@ -201,6 +205,7 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_CORRECTION_NO_CHANGE',
     'SCHOOL_EXAM_CERTIFICATE_WINNER_INVALID',
     'SCHOOL_EXAM_CERTIFICATE_CLASS_BATCH_TOO_LARGE',
+    'SCHOOL_EXAM_CERTIFICATE_REQUEST_CONFLICT',
     'SCHOOL_EXAM_EXPORT_PUBLICATION_NOT_FOUND',
     'SCHOOL_EXAM_EXPORT_CLASS_NOT_IN_PUBLICATION',
     'SCHOOL_EXAM_EXPORT_NOT_READY',
@@ -213,6 +218,16 @@ function routeError(error: unknown): Response {
     'SCHOOL_EXAM_INCIDENT_FORBIDDEN',
     'SCHOOL_EXAM_EXPORT_FORBIDDEN',
   ].includes(message)) return errorResponse(message, 403);
+  if ([
+    'COMPETITION_LIMIT_INVALID',
+    'COMPETITION_PROGRESS_CURSOR_INVALID',
+    'COMPETITION_ELIGIBILITY_CURSOR_INVALID',
+    'SCHOOL_EXAM_INCIDENT_CURSOR_INVALID',
+    'SCHOOL_EXAM_RETEST_CURSOR_INVALID',
+    'SCHOOL_EXAM_RECONCILE_CURSOR_INVALID',
+    'SCHOOL_EXAM_CORRECTION_CURSOR_INVALID',
+    'SCHOOL_EXAM_RANKING_CURSOR_INVALID',
+  ].includes(message)) return errorResponse(message, 400);
   if ([
     'CERTIFICATE_QUEUE_UNAVAILABLE',
     'SCHOOL_EXAM_CERTIFICATE_QUEUE_FAILED',
@@ -426,8 +441,14 @@ async function handleCompetitionRoutesCore(
 
     if (schoolExamIncidentParts && method === 'GET') {
       const [eventId] = schoolExamIncidentParts;
-      const items = await listSchoolExamIncidents(env.DB, eventId, { username: user.username, role: user.role });
-      return jsonResponse({ items });
+      const url = new URL(request.url);
+      const page = await listSchoolExamIncidents(
+        env.DB,
+        eventId,
+        { username: user.username, role: user.role },
+        { limit: url.searchParams.get('limit') || undefined, cursor: url.searchParams.get('cursor') || undefined },
+      );
+      return jsonResponse(page);
     }
     if (schoolExamIncidentParts && method === 'POST') {
       const [eventId] = schoolExamIncidentParts;
@@ -446,8 +467,14 @@ async function handleCompetitionRoutesCore(
     const schoolExamRetestCollectionParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/retests$/);
     if (schoolExamRetestCollectionParts && method === 'GET') {
       const [eventId] = schoolExamRetestCollectionParts;
-      const items = await listSchoolExamRetests(env.DB, eventId, { username: user.username, role: user.role });
-      return jsonResponse({ items });
+      const url = new URL(request.url);
+      const page = await listSchoolExamRetests(
+        env.DB,
+        eventId,
+        { username: user.username, role: user.role },
+        { limit: url.searchParams.get('limit') || undefined, cursor: url.searchParams.get('cursor') || undefined },
+      );
+      return jsonResponse(page);
     }
 
     const schoolExamRetestGrantParts = routeParts(
@@ -489,7 +516,11 @@ async function handleCompetitionRoutesCore(
     if (schoolExamReconcileParts && method === 'GET') {
       const [eventId] = schoolExamReconcileParts;
       await getSchoolExamEvent(env.DB, eventId, { username: user.username, role: user.role });
-      const reconcile = await getSchoolExamReconcile(env.DB, eventId);
+      const url = new URL(request.url);
+      const reconcile = await getSchoolExamReconcile(env.DB, eventId, {
+        limit: url.searchParams.get('limit') || undefined,
+        cursor: url.searchParams.get('cursor') || undefined,
+      });
       return jsonResponse({ reconcile });
     }
 
@@ -526,8 +557,12 @@ async function handleCompetitionRoutesCore(
     if (schoolExamCorrectionParts && method === 'GET') {
       if (!requireAdmin(user)) return errorResponse('COMPETITION_ADMIN_REQUIRED', 403);
       const [eventId] = schoolExamCorrectionParts;
-      const items = await listSchoolExamResultCorrections(env.DB, eventId);
-      return jsonResponse({ items });
+      const url = new URL(request.url);
+      const page = await listSchoolExamResultCorrections(env.DB, eventId, {
+        limit: url.searchParams.get('limit') || undefined,
+        cursor: url.searchParams.get('cursor') || undefined,
+      });
+      return jsonResponse(page);
     }
 
     const schoolExamRankingParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/rankings$/);
@@ -548,6 +583,8 @@ async function handleCompetitionRoutesCore(
         scope,
         ...(gradeLevelValue === null ? {} : { gradeLevel: Number(gradeLevelValue) }),
         ...(classId ? { classId } : {}),
+        limit: url.searchParams.get('limit') || undefined,
+        cursor: url.searchParams.get('cursor') || undefined,
       });
       return jsonResponse({ rankings });
     }
@@ -580,6 +617,17 @@ async function handleCompetitionRoutesCore(
       const [eventId, exportId] = schoolExamExportDetailParts;
       const exportJob = await getSchoolExamExport(env.DB, eventId, exportId, { username: user.username, role: user.role });
       return jsonResponse({ export: exportJob });
+    }
+
+    const schoolExamCertificateDetailParts = routeParts(
+      path,
+      /^\/api\/school-exams\/([^/]+)\/certificates\/([^/]+)$/,
+    );
+    if (schoolExamCertificateDetailParts && method === 'GET') {
+      if (!requireAdmin(user)) return errorResponse('COMPETITION_ADMIN_REQUIRED', 403);
+      const [eventId, parentId] = schoolExamCertificateDetailParts;
+      const certificateBatch = await getSchoolExamCertificateBatch(env.DB, eventId, parentId);
+      return jsonResponse({ certificateBatch });
     }
 
     const schoolExamCertificateParts = routeParts(path, /^\/api\/school-exams\/([^/]+)\/certificates$/);
@@ -680,6 +728,8 @@ async function handleCompetitionRoutesCore(
       const eligibility = await listCompetitionEligibility(env.DB, campaignId, {
         version: parsedVersion,
         classIds,
+        limit: url.searchParams.get('limit') || undefined,
+        cursor: url.searchParams.get('cursor') || undefined,
       });
       return jsonResponse(eligibility);
     }
@@ -687,9 +737,14 @@ async function handleCompetitionRoutesCore(
     const progressParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/progress$/);
     if (progressParts && method === 'GET') {
       const [campaignId] = progressParts;
+      const url = new URL(request.url);
       const classIds = await teacherClassIds(env.DB, user);
-      const items = await listCompetitionProgress(env.DB, campaignId, { classIds });
-      return jsonResponse({ items });
+      const progress = await listCompetitionProgress(env.DB, campaignId, {
+        classIds,
+        limit: url.searchParams.get('limit') || undefined,
+        cursor: url.searchParams.get('cursor') || undefined,
+      });
+      return jsonResponse(progress);
     }
 
     const roundListParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/rounds$/);

@@ -1,5 +1,6 @@
 import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
+import { competitionCursor, competitionLimit, competitionPage } from './pagination';
 
 export const SCHOOL_EXAM_RECONCILE_ISSUE_TYPES = [
   'MISSING_PARTICIPANT',
@@ -137,14 +138,51 @@ function mapIssue(row: ReconcileIssueRow) {
   };
 }
 
-async function issueRows(db: D1Database, runId: string): Promise<ReconcileIssueRow[]> {
+async function issueRows(
+  db: D1Database,
+  runId: string,
+  options: { limit?: number | string; cursor?: string } = {},
+) {
+  const limit = competitionLimit(options.limit);
+  const cursor = competitionCursor(
+    options.cursor,
+    `school-exam-reconcile-issues:${runId}`,
+    4,
+    'SCHOOL_EXAM_RECONCILE_CURSOR_INVALID',
+  );
+  if (cursor && (!cursor[0] || cursor[3] === undefined)) {
+    throw new Error('SCHOOL_EXAM_RECONCILE_CURSOR_INVALID');
+  }
+  const cursorFilter = cursor
+    ? ` AND (
+        issue_type > ?
+        OR (issue_type = ? AND COALESCE(room_id, '') > ?)
+        OR (issue_type = ? AND COALESCE(room_id, '') = ? AND COALESCE(student_id, '') > ?)
+        OR (issue_type = ? AND COALESCE(room_id, '') = ? AND COALESCE(student_id, '') = ? AND id > ?)
+      )`
+    : '';
   const result = await db.prepare(`
     SELECT id, run_id, event_id, room_id, student_id, issue_type, blocking, details_json, created_at
     FROM competition_school_exam_reconcile_issues
-    WHERE run_id = ?
-    ORDER BY issue_type ASC, room_id ASC, student_id ASC, id ASC
-  `).bind(runId).all<ReconcileIssueRow>();
-  return result.results || [];
+     WHERE run_id = ?${cursorFilter}
+     ORDER BY issue_type ASC, room_id ASC, student_id ASC, id ASC
+     LIMIT ?
+  `).bind(
+    runId,
+    ...(cursor ? [
+      cursor[0],
+      cursor[0], cursor[1] || '',
+      cursor[0], cursor[1] || '', cursor[2] || '',
+      cursor[0], cursor[1] || '', cursor[2] || '', cursor[3],
+    ] : []),
+    limit + 1,
+  ).all<ReconcileIssueRow>();
+  return competitionPage(
+    result.results || [],
+    limit,
+    (row) => [row.issue_type, row.room_id || '', row.student_id || '', row.id],
+    `school-exam-reconcile-issues:${runId}`,
+  );
 }
 
 async function runById(db: D1Database, runId: string): Promise<ReconcileRunRow | null> {
@@ -176,9 +214,13 @@ async function latestRun(db: D1Database, eventId: string): Promise<ReconcileRunR
   `).bind(eventId).first<ReconcileRunRow>();
 }
 
-async function hydrateRun(db: D1Database, row: ReconcileRunRow) {
+async function hydrateRun(
+  db: D1Database,
+  row: ReconcileRunRow,
+  options: { limit?: number | string; cursor?: string } = {},
+) {
   const summary = parseJson<Record<string, unknown>>(row.summary_json, {});
-  const issues = (await issueRows(db, row.id)).map(mapIssue);
+  const issuesPage = await issueRows(db, row.id, options);
   return {
     id: row.id,
     eventId: row.event_id,
@@ -190,7 +232,10 @@ async function hydrateRun(db: D1Database, row: ReconcileRunRow) {
     allRoomsClosed: summary.allRoomsClosed === true,
     eventStatus: String(summary.eventStatus || 'WITHHELD'),
     summary,
-    issues,
+    issues: issuesPage.items.map(mapIssue),
+    issuesNextCursor: issuesPage.nextCursor,
+    issuesHasMore: issuesPage.hasMore,
+    issuesLimit: issuesPage.limit,
     startedBy: row.started_by,
     startedAt: row.started_at,
     completedAt: row.completed_at,
@@ -207,13 +252,17 @@ function addIssue(
   issues.push({ issueType, roomId, studentId, blocking: true, details });
 }
 
-export async function getSchoolExamReconcile(db: D1Database, eventId: string) {
+export async function getSchoolExamReconcile(
+  db: D1Database,
+  eventId: string,
+  options: { limit?: number | string; cursor?: string } = {},
+) {
   const event = await db.prepare('SELECT id FROM competition_school_exam_events WHERE id = ? LIMIT 1')
     .bind(eventId).first<{ id: string }>();
   if (!event) throw new Error('SCHOOL_EXAM_EVENT_NOT_FOUND');
   const run = await latestRun(db, eventId);
   if (!run) throw new Error('SCHOOL_EXAM_RECONCILE_NOT_FOUND');
-  return hydrateRun(db, run);
+  return hydrateRun(db, run, options);
 }
 
 export async function reconcileSchoolExam(

@@ -1,5 +1,6 @@
 import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
+import { competitionCursor, competitionLimit, competitionPage } from './pagination';
 
 interface CorrectionInput {
   studentId: string;
@@ -199,11 +200,33 @@ export async function createSchoolExamResultCorrection(
   return { correction: mapCorrection(persisted), created: true };
 }
 
-export async function listSchoolExamResultCorrections(db: D1Database, eventId: string) {
+export async function listSchoolExamResultCorrections(
+  db: D1Database,
+  eventId: string,
+  options: { limit?: number | string; cursor?: string } = {},
+) {
   const event = await db.prepare('SELECT id FROM competition_school_exam_events WHERE id = ? LIMIT 1')
     .bind(eventId).first<{ id: string }>();
   if (!event) throw new Error('SCHOOL_EXAM_EVENT_NOT_FOUND');
-  const result = await db.prepare(`${selectCorrection} WHERE event_id = ? ORDER BY created_at DESC, id DESC`)
-    .bind(eventId).all<CorrectionRow>();
-  return (result.results || []).map(mapCorrection);
+  const limit = competitionLimit(options.limit);
+  const cursor = competitionCursor(
+    options.cursor,
+    `school-exam-corrections:${eventId}`,
+    2,
+    'SCHOOL_EXAM_CORRECTION_CURSOR_INVALID',
+  );
+  if (cursor && (!cursor[0] || !cursor[1])) throw new Error('SCHOOL_EXAM_CORRECTION_CURSOR_INVALID');
+  const cursorFilter = cursor
+    ? ' AND (created_at < ? OR (created_at = ? AND id < ?))'
+    : '';
+  const result = await db.prepare(`${selectCorrection} WHERE event_id = ?${cursorFilter} ORDER BY created_at DESC, id DESC LIMIT ?`)
+    .bind(eventId, ...(cursor ? [cursor[0], cursor[0], cursor[1]] : []), limit + 1)
+    .all<CorrectionRow>();
+  const page = competitionPage(
+    result.results || [],
+    limit,
+    (row) => [row.created_at, row.id],
+    `school-exam-corrections:${eventId}`,
+  );
+  return { ...page, items: page.items.map(mapCorrection) };
 }

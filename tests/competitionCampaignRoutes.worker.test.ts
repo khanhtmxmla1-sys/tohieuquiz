@@ -647,6 +647,42 @@ describe('Competition V1 campaign routes', () => {
     );
     expect(teacher5Progress.status).toBe(200);
     expect((await teacher5Progress.json() as any).items).toEqual([]);
+
+    const firstProgressPage = await request(
+      `/api/competitions/${campaignId}/progress?limit=1`,
+      'GET',
+      undefined,
+      teacherCookie,
+    );
+    expect(firstProgressPage.status).toBe(200);
+    const firstProgressPayload = await firstProgressPage.json() as any;
+    expect(firstProgressPayload.items).toHaveLength(1);
+    expect(firstProgressPayload.nextCursor).toEqual(expect.any(String));
+
+    const secondProgressPage = await request(
+      `/api/competitions/${campaignId}/progress?limit=1&cursor=${encodeURIComponent(firstProgressPayload.nextCursor)}`,
+      'GET',
+      undefined,
+      teacherCookie,
+    );
+    expect(secondProgressPage.status).toBe(200);
+    const secondProgressPayload = await secondProgressPage.json() as any;
+    expect(secondProgressPayload.items).toHaveLength(1);
+    expect(secondProgressPayload.nextCursor).toBeNull();
+
+    const adminProgressPage = await request(`/api/competitions/${campaignId}/progress?limit=1`);
+    const crossScopeProgress = await request(
+      `/api/competitions/${campaignId}/progress?limit=1&cursor=${encodeURIComponent((await adminProgressPage.json() as any).nextCursor)}`,
+      'GET',
+      undefined,
+      teacherCookie,
+    );
+    expect(crossScopeProgress.status).toBe(400);
+
+    expect((await request(`/api/competitions/${campaignId}/progress?limit=101`, 'GET', undefined, teacherCookie)).status)
+      .toBe(400);
+    expect((await request(`/api/competitions/${campaignId}/progress?cursor=broken`, 'GET', undefined, teacherCookie)).status)
+      .toBe(400);
   });
 
   it('finalizes a 6/6 immutable eligibility snapshot and exposes staff/student reads', async () => {
@@ -686,6 +722,30 @@ describe('Competition V1 campaign routes', () => {
     const staffPayload = await staffRead.json() as any;
     expect(staffPayload).toMatchObject({ campaignId, version: 1 });
     expect(staffPayload.items).toHaveLength(3);
+
+    const firstEligibilityPage = await request(
+      `/api/competitions/${campaignId}/eligibility?limit=2`,
+      'GET',
+      undefined,
+      teacherCookie,
+    );
+    expect(firstEligibilityPage.status).toBe(200);
+    const firstEligibilityPayload = await firstEligibilityPage.json() as any;
+    expect(firstEligibilityPayload.items).toHaveLength(2);
+    expect(firstEligibilityPayload.nextCursor).toEqual(expect.any(String));
+
+    const secondEligibilityPage = await request(
+      `/api/competitions/${campaignId}/eligibility?limit=2&cursor=${encodeURIComponent(firstEligibilityPayload.nextCursor)}`,
+      'GET',
+      undefined,
+      teacherCookie,
+    );
+    expect(secondEligibilityPage.status).toBe(200);
+    const secondEligibilityPayload = await secondEligibilityPage.json() as any;
+    expect(secondEligibilityPayload.items).toHaveLength(1);
+    expect(secondEligibilityPayload.nextCursor).toBeNull();
+    expect((await request(`/api/competitions/${campaignId}/eligibility?limit=101`, 'GET', undefined, teacherCookie)).status)
+      .toBe(400);
 
     const studentRead = await request(
       `/api/student/competitions/${campaignId}/eligibility`,

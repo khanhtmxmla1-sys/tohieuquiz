@@ -13,6 +13,15 @@ const omitFields = (...fields: string[]) => (_action: string, payload: Record<st
 const eligibilityQuery = (payload: Record<string, any>) => {
   const query = new URLSearchParams();
   if (payload.version !== undefined && payload.version !== null) query.set('version', String(payload.version));
+  if (payload.limit !== undefined && payload.limit !== null) query.set('limit', String(payload.limit));
+  if (payload.cursor) query.set('cursor', String(payload.cursor));
+  return query;
+};
+
+const collectionQuery = (payload: Record<string, any>) => {
+  const query = new URLSearchParams();
+  if (payload.limit !== undefined && payload.limit !== null) query.set('limit', String(payload.limit));
+  if (payload.cursor) query.set('cursor', String(payload.cursor));
   return query;
 };
 
@@ -21,6 +30,8 @@ const rankingQuery = (payload: Record<string, any>) => {
   if (payload.scope) query.set('scope', String(payload.scope));
   if (payload.gradeLevel !== undefined && payload.gradeLevel !== null) query.set('gradeLevel', String(payload.gradeLevel));
   if (payload.classId) query.set('classId', String(payload.classId));
+  if (payload.limit !== undefined && payload.limit !== null) query.set('limit', String(payload.limit));
+  if (payload.cursor) query.set('cursor', String(payload.cursor));
   return query;
 };
 
@@ -65,7 +76,7 @@ export const competitionRoutes: RouteRegistry = {
     body: identityBody,
   },
   get_competition_progress: {
-    method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/progress`,
+    method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/progress`, query: collectionQuery,
   },
   update_competition_round: {
     method: 'PATCH', auth: 'session', path: ({ campaignId, roundId }) => `/api/competitions/${encoded(campaignId)}/rounds/${encoded(roundId)}`,
@@ -98,16 +109,16 @@ export const competitionRoutes: RouteRegistry = {
     method: 'POST', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/provision`,
   },
   get_school_exam_reconcile: {
-    method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/reconcile`,
+    method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/reconcile`, query: collectionQuery,
   },
   list_school_exam_incidents: {
-    method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/incidents`,
+    method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/incidents`, query: collectionQuery,
   },
   report_school_exam_incident: {
     method: 'POST', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/incidents`, body: identityBody,
   },
   list_school_exam_retests: {
-    method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/retests`,
+    method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/retests`, query: collectionQuery,
   },
   grant_school_exam_retest: {
     method: 'POST', auth: 'session', path: ({ eventId, retestId }) => `/api/school-exams/${encoded(eventId)}/retests/${encoded(retestId)}/grant`,
@@ -123,7 +134,7 @@ export const competitionRoutes: RouteRegistry = {
     method: 'POST', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/publish`, body: identityBody,
   },
   list_school_exam_result_corrections: {
-    method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/corrections`,
+    method: 'GET', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/corrections`, query: collectionQuery,
   },
   create_school_exam_result_correction: {
     method: 'POST', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/corrections`, body: omitFields('eventId'),
@@ -139,5 +150,8 @@ export const competitionRoutes: RouteRegistry = {
   },
   create_competition_certificate_batch: {
     method: 'POST', auth: 'session', path: ({ eventId }) => `/api/school-exams/${encoded(eventId)}/certificates`,
+  },
+  get_competition_certificate_batch: {
+    method: 'GET', auth: 'session', path: ({ eventId, certificateBatchId }) => `/api/school-exams/${encoded(eventId)}/certificates/${encoded(certificateBatchId)}`,
   },
 };

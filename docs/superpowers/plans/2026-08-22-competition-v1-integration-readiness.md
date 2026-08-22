@@ -4,11 +4,11 @@
 
 **Branch:** `feat/competition-v1` at `cfcef5e`
 
-**Status:** APPROVED PLAN — WP1 COMPLETE LOCALLY; WP2–WP7 PENDING
+**Status:** APPROVED PLAN — WP1 AND WP2 COMPLETE LOCALLY; WP3–WP7 PENDING
 
 **Date:** 2026-08-22
 
-**Execution note:** WP0 documentation and WP1 canonical audit lifecycle are currently uncommitted in the worktree. No push/PR/merge has occurred.
+**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, and WP2 bounded-read/artifact-authorization changes are committed locally on the feature branch. No push/PR/merge has occurred.
 
 ---
 
@@ -171,6 +171,8 @@ Exit:
 
 **Priority:** P1. **TDD:** Required.
 
+**Status:** COMPLETE LOCALLY — committed on the feature branch; awaiting the next work-package gate.
+
 Inspect/edit only after symbol impact:
 
 - `workers/src/routes/competitions/index.ts`
@@ -194,9 +196,9 @@ RED tests must cover over-limit requests, invalid cursors, cross-class paginatio
 
 Exit:
 
-- [ ] Contract and authorization matrix updated.
-- [ ] No unbounded school-wide read remains in affected paths.
-- [ ] Focused and relevant regression tests pass.
+- [x] Contract and authorization matrix updated through cursor/query registry and certificate detail route.
+- [x] No unbounded read remains in the affected progress, eligibility, ranking, incident, retest, reconcile-issue, correction, and certificate/export artifact paths.
+- [x] Focused and relevant regression tests pass; full Competition and Live Exam suites remain green.
 
 ## 8. WP3 — Real D1 Migration Rehearsal
 

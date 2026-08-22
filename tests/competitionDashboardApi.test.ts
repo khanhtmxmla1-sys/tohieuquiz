@@ -100,6 +100,33 @@ describe('Competition V1 dashboard API registry', () => {
     expect(exportRoute.body?.('create_school_exam_export', {
       eventId: 'e1', scope: 'CLASS', classId: 'class-1', requestId: 'request-123',
     })).toEqual({ eventId: 'e1', scope: 'CLASS', classId: 'class-1', requestId: 'request-123' });
+
+    expect(resolveApiRoute('get_competition_certificate_batch').path({ eventId: 'event 1', certificateBatchId: 'batch 1' }))
+      .toBe('/api/school-exams/event%201/certificates/batch%201');
+  });
+
+  it('exposes bounded-read cursor parameters for every school-wide dashboard collection', () => {
+    const progress = resolveApiRoute('get_competition_progress');
+    expect(progress.query?.({ limit: 10, cursor: 'opaque-progress' }).toString())
+      .toBe('limit=10&cursor=opaque-progress');
+
+    const eligibility = resolveApiRoute('get_competition_eligibility');
+    expect(eligibility.query?.({ version: 2, limit: 10, cursor: 'opaque-eligibility' }).toString())
+      .toBe('version=2&limit=10&cursor=opaque-eligibility');
+
+    const ranking = resolveApiRoute('get_school_exam_rankings');
+    expect(ranking.query?.({ scope: 'CLASS', classId: 'class-4a', limit: 10, cursor: 'opaque-ranking' }).toString())
+      .toBe('scope=CLASS&classId=class-4a&limit=10&cursor=opaque-ranking');
+
+    for (const action of [
+      'get_school_exam_reconcile',
+      'list_school_exam_incidents',
+      'list_school_exam_retests',
+      'list_school_exam_result_corrections',
+    ]) {
+      expect(resolveApiRoute(action).query?.({ limit: 10, cursor: 'opaque-collection' }).toString())
+        .toBe('limit=10&cursor=opaque-collection');
+    }
   });
 
   it('uses the registered action when creating a competition certificate batch', async () => {

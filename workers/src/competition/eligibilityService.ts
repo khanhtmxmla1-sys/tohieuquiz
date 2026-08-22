@@ -1,6 +1,7 @@
 import type { CompetitionEligibilityReasonCode } from '../../../shared/competition.contract';
 import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
+import { competitionCursor, competitionLimit, competitionPage } from './pagination';
 
 interface CompetitionEligibilityCampaignRow {
   id: string;
@@ -367,22 +368,39 @@ export async function finalizeCompetitionEligibility(
 export async function listCompetitionEligibility(
   db: D1Database,
   campaignIdInput: string,
-  options: { version?: number; classIds?: string[] } = {},
-): Promise<{ campaignId: string; version: number; items: CompetitionEligibilityView[] }> {
+  options: { version?: number; classIds?: string[]; limit?: number | string; cursor?: string } = {},
+): Promise<{
+  campaignId: string;
+  version: number;
+  items: CompetitionEligibilityView[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  limit: number;
+}> {
   const campaignId = normalizedId(campaignIdInput, 'COMPETITION_CAMPAIGN_ID_REQUIRED');
   const campaign = await getCampaignRow(db, campaignId);
   if (!campaign) throw new Error('COMPETITION_CAMPAIGN_NOT_FOUND');
   const version = options.version ?? await latestVersion(db, campaignId);
   if (!Number.isInteger(version) || version <= 0) throw new Error('COMPETITION_ELIGIBILITY_NOT_FINALIZED');
+  const limit = competitionLimit(options.limit);
+  const scopedClassIds = options.classIds?.map((value) => String(value || '').trim()).filter(Boolean);
+  const scope = `competition-eligibility:${campaignId}:${version}:${scopedClassIds?.join(',') || 'all'}`;
+  const cursor = competitionCursor(
+    options.cursor,
+    scope,
+    1,
+    'COMPETITION_ELIGIBILITY_CURSOR_INVALID',
+  );
 
   if (options.classIds !== undefined && options.classIds.length === 0) {
-    return { campaignId, version, items: [] };
+    return { campaignId, version, items: [], nextCursor: null, hasMore: false, limit };
   }
 
-  const scopedClassIds = options.classIds?.map((value) => String(value || '').trim()).filter(Boolean);
   const classFilter = scopedClassIds && scopedClassIds.length > 0
     ? ` AND member.class_id_at_snapshot IN (${scopedClassIds.map(() => '?').join(', ')})`
     : '';
+  const cursorFilter = cursor ? ' AND eligibility.student_id > ?' : '';
+  if (cursor && !cursor[0]) throw new Error('COMPETITION_ELIGIBILITY_CURSOR_INVALID');
   const result = await db.prepare(`
     SELECT eligibility.id, eligibility.campaign_id, eligibility.eligibility_snapshot_version,
            eligibility.student_id, eligibility.qualified, eligibility.reason_codes_json,
@@ -392,13 +410,16 @@ export async function listCompetitionEligibility(
     LEFT JOIN competition_audience_members AS member
       ON member.audience_snapshot_id = ? AND member.student_id = eligibility.student_id
     WHERE eligibility.campaign_id = ?
-      AND eligibility.eligibility_snapshot_version = ?${classFilter}
+       AND eligibility.eligibility_snapshot_version = ?${classFilter}${cursorFilter}
     ORDER BY eligibility.student_id ASC
+    LIMIT ?
   `).bind(
     campaign.audience_snapshot_id,
     campaignId,
     version,
     ...(scopedClassIds || []),
+    ...(cursor ? [cursor[0]] : []),
+    limit + 1,
   ).all<CompetitionEligibilityRow>();
   const rows = result.results || [];
   if (rows.length === 0 && options.classIds === undefined) {
@@ -410,7 +431,20 @@ export async function listCompetitionEligibility(
     `).bind(campaignId, version).first<{ found: number }>();
     if (!versionExists) throw new Error('COMPETITION_ELIGIBILITY_VERSION_NOT_FOUND');
   }
-  return { campaignId, version, items: rows.map(mapEligibility) };
+  const page = competitionPage(
+    rows,
+    limit,
+    (row) => [row.student_id],
+    scope,
+  );
+  return {
+    campaignId,
+    version,
+    items: page.items.map(mapEligibility),
+    nextCursor: page.nextCursor,
+    hasMore: page.hasMore,
+    limit: page.limit,
+  };
 }
 
 export async function overrideCompetitionEligibility(

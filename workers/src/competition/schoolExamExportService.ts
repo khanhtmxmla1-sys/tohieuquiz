@@ -81,6 +81,35 @@ async function latestPublished(db: D1Database, eventId: string): Promise<Publica
   `).bind(eventId).first<PublicationRow>();
 }
 
+async function publishedExportPublication(
+  db: D1Database,
+  eventId: string,
+  publicationVersion: number,
+): Promise<PublicationRow | null> {
+  return db.prepare(`
+    SELECT publications.id, publications.event_id, publications.version,
+           publications.ranking_version, publications.result_digest, publications.published_at
+    FROM competition_school_exam_publications AS publications
+    JOIN competition_school_exam_events AS events ON events.id = publications.event_id
+    WHERE publications.event_id = ?
+      AND publications.version = ?
+      AND publications.status = 'PUBLISHED'
+    LIMIT 1
+  `).bind(eventId, publicationVersion).first<PublicationRow>();
+}
+
+async function authorizePublishedExport(
+  db: D1Database,
+  row: Pick<ExportRow, 'event_id' | 'publication_version' | 'scope' | 'class_id'>,
+): Promise<PublicationRow> {
+  const publication = await publishedExportPublication(db, row.event_id, Number(row.publication_version));
+  if (!publication) throw new Error('SCHOOL_EXAM_EXPORT_PUBLICATION_NOT_FOUND');
+  if (row.scope === 'CLASS' && row.class_id) {
+    await ensureClassInPublication(db, publication.id, row.class_id);
+  }
+  return publication;
+}
+
 async function ownsClass(db: D1Database, username: string, classId: string): Promise<boolean> {
   const row = await db.prepare(`
     SELECT id FROM classes
@@ -119,6 +148,7 @@ export async function createSchoolExamExport(
   const replay = await exportByRequest(env.DB, input.eventId, input.requestId);
   if (replay) {
     await authorizeExport(env.DB, replay, actor);
+    await authorizePublishedExport(env.DB, replay);
     return { export: mapExport(replay), created: false };
   }
 
@@ -190,8 +220,12 @@ export async function getSchoolExamExport(
   actor: { username: string; role: string },
 ) {
   const row = await exportRow(db, eventId, exportId);
-  if (!row) throw new Error('SCHOOL_EXAM_EXPORT_NOT_FOUND');
+  if (!row) {
+    if (actor.role !== 'admin') throw new Error('SCHOOL_EXAM_EXPORT_FORBIDDEN');
+    throw new Error('SCHOOL_EXAM_EXPORT_NOT_FOUND');
+  }
   await authorizeExport(db, row, actor);
+  await authorizePublishedExport(db, row);
   return mapExport(row);
 }
 
@@ -202,8 +236,12 @@ export async function downloadSchoolExamExport(
   actor: { username: string; role: string },
 ): Promise<Response> {
   const row = await exportRow(env.DB, eventId, exportId);
-  if (!row) throw new Error('SCHOOL_EXAM_EXPORT_NOT_FOUND');
+  if (!row) {
+    if (actor.role !== 'admin') throw new Error('SCHOOL_EXAM_EXPORT_FORBIDDEN');
+    throw new Error('SCHOOL_EXAM_EXPORT_NOT_FOUND');
+  }
   await authorizeExport(env.DB, row, actor);
+  await authorizePublishedExport(env.DB, row);
   if (row.status !== 'READY' || !row.artifact_key) throw new Error('SCHOOL_EXAM_EXPORT_NOT_READY');
   if (!env.COMPETITION_EXPORTS) throw new Error('SCHOOL_EXAM_EXPORT_STORAGE_UNAVAILABLE');
 

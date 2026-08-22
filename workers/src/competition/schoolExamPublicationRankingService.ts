@@ -1,5 +1,6 @@
 import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
+import { competitionCursor, competitionLimit, competitionPage } from './pagination';
 
 export const SCHOOL_EXAM_RANKING_SCOPES = ['GRADE', 'CLASS', 'EVENT'] as const;
 export type SchoolExamRankingScope = typeof SCHOOL_EXAM_RANKING_SCOPES[number];
@@ -342,7 +343,13 @@ export async function publishSchoolExamResults(
 export async function getSchoolExamRankings(
   db: D1Database,
   eventId: string,
-  input: { scope: SchoolExamRankingScope; gradeLevel?: number; classId?: string },
+  input: {
+    scope: SchoolExamRankingScope;
+    gradeLevel?: number;
+    classId?: string;
+    limit?: number | string;
+    cursor?: string;
+  },
 ) {
   if (!SCHOOL_EXAM_RANKING_SCOPES.includes(input.scope)) throw new Error('SCHOOL_EXAM_RANKING_SCOPE_INVALID');
   if (input.scope === 'GRADE' && (!Number.isInteger(input.gradeLevel) || Number(input.gradeLevel) < 1 || Number(input.gradeLevel) > 12)) {
@@ -352,6 +359,14 @@ export async function getSchoolExamRankings(
 
   const publication = await latestPublication(db, eventId);
   if (!publication) throw new Error('SCHOOL_EXAM_PUBLICATION_NOT_FOUND');
+  const limit = competitionLimit(input.limit);
+  const cursorScope = `school-exam-rankings:${eventId}:${publication.id}:${input.scope}:${Number(input.gradeLevel || 0)}:${String(input.classId || '')}`;
+  const cursor = competitionCursor(
+    input.cursor,
+    cursorScope,
+    7,
+    'SCHOOL_EXAM_RANKING_CURSOR_INVALID',
+  );
   const conditions = ['publication_id = ?'];
   const bindings: unknown[] = [publication.id];
   let rankColumn = 'rank_event';
@@ -364,20 +379,75 @@ export async function getSchoolExamRankings(
     bindings.push(String(input.classId));
     rankColumn = 'rank_class';
   }
+  if (cursor) {
+    const rank = Number(cursor[0]);
+    const score = Number(cursor[1]);
+    const correctFlag = Number(cursor[2]);
+    const correctSort = Number(cursor[3]);
+    const timeFlag = Number(cursor[4]);
+    const timeSort = Number(cursor[5]);
+    const studentId = cursor[6];
+    if (!Number.isFinite(rank)
+      || !Number.isFinite(score)
+      || !Number.isInteger(correctFlag) || ![0, 1].includes(correctFlag)
+      || !Number.isFinite(correctSort)
+      || !Number.isInteger(timeFlag) || ![0, 1].includes(timeFlag)
+      || !Number.isFinite(timeSort)
+      || !studentId) {
+      throw new Error('SCHOOL_EXAM_RANKING_CURSOR_INVALID');
+    }
+    const correctFlagExpr = 'CASE WHEN correct_count IS NULL THEN 1 ELSE 0 END';
+    const correctSortExpr = 'CASE WHEN correct_count IS NULL THEN -1 ELSE correct_count END';
+    const timeFlagExpr = 'CASE WHEN time_taken IS NULL THEN 1 ELSE 0 END';
+    const timeSortExpr = 'CASE WHEN time_taken IS NULL THEN 2147483647 ELSE time_taken END';
+    conditions.push(`(
+      ${rankColumn} > ?
+      OR (${rankColumn} = ? AND score < ?)
+      OR (${rankColumn} = ? AND score = ? AND ${correctFlagExpr} > ?)
+      OR (${rankColumn} = ? AND score = ? AND ${correctFlagExpr} = ? AND ${correctSortExpr} < ?)
+      OR (${rankColumn} = ? AND score = ? AND ${correctFlagExpr} = ? AND ${correctSortExpr} = ? AND ${timeFlagExpr} > ?)
+      OR (${rankColumn} = ? AND score = ? AND ${correctFlagExpr} = ? AND ${correctSortExpr} = ? AND ${timeFlagExpr} = ? AND ${timeSortExpr} > ?)
+      OR (${rankColumn} = ? AND score = ? AND ${correctFlagExpr} = ? AND ${correctSortExpr} = ? AND ${timeFlagExpr} = ? AND ${timeSortExpr} = ? AND student_id > ?)
+    )`);
+    bindings.push(
+      rank,
+      rank, score,
+      rank, score, correctFlag,
+      rank, score, correctFlag, correctSort,
+      rank, score, correctFlag, correctSort, timeFlag,
+      rank, score, correctFlag, correctSort, timeFlag, timeSort,
+      rank, score, correctFlag, correctSort, timeFlag, timeSort, studentId,
+    );
+  }
   const rowsResult = await db.prepare(`
     SELECT student_id, original_class_id, grade_level, score, correct_count, time_taken,
            rank_event, rank_grade, rank_class
     FROM competition_school_exam_publication_results
     WHERE ${conditions.join(' AND ')}
-    ORDER BY ${rankColumn} ASC,
+     ORDER BY ${rankColumn} ASC,
              score DESC,
              CASE WHEN correct_count IS NULL THEN 1 ELSE 0 END ASC,
-             correct_count DESC,
+             CASE WHEN correct_count IS NULL THEN -1 ELSE correct_count END DESC,
              CASE WHEN time_taken IS NULL THEN 1 ELSE 0 END ASC,
-             time_taken ASC,
+             CASE WHEN time_taken IS NULL THEN 2147483647 ELSE time_taken END ASC,
              student_id ASC
-  `).bind(...bindings).all<PublicationResultRow>();
+     LIMIT ?
+  `).bind(...bindings, limit + 1).all<PublicationResultRow>();
   const rows = rowsResult.results || [];
+  const page = competitionPage(
+    rows,
+    limit,
+    (row) => [
+      Number(input.scope === 'GRADE' ? row.rank_grade : input.scope === 'CLASS' ? row.rank_class : row.rank_event),
+      Number(row.score),
+      row.correct_count === null ? 1 : 0,
+      row.correct_count === null ? -1 : Number(row.correct_count),
+      row.time_taken === null ? 1 : 0,
+      row.time_taken === null ? 2147483647 : Number(row.time_taken),
+      row.student_id,
+    ],
+    cursorScope,
+  );
   return {
     eventId,
     publicationVersion: Number(publication.version),
@@ -385,7 +455,7 @@ export async function getSchoolExamRankings(
     scope: input.scope,
     ...(input.scope === 'GRADE' ? { gradeLevel: Number(input.gradeLevel) } : {}),
     ...(input.scope === 'CLASS' ? { classId: String(input.classId) } : {}),
-    items: rows.map((row) => ({
+    items: page.items.map((row) => ({
       studentId: row.student_id,
       originalClassId: row.original_class_id,
       gradeLevel: Number(row.grade_level),
@@ -398,5 +468,8 @@ export async function getSchoolExamRankings(
           ? row.rank_class
           : row.rank_event),
     })),
+    nextCursor: page.nextCursor,
+    hasMore: page.hasMore,
+    limit: page.limit,
   };
 }

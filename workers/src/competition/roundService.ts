@@ -10,6 +10,7 @@ import { buildAuthoritativeStoredAnswers } from '../services/quizGradingService'
 import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
 import { assertQuizSnapshotIntegrity, createOrReuseQuizSnapshot } from './quizSnapshotService';
+import { competitionCursor, competitionLimit, competitionPage } from './pagination';
 import {
   buildCompetitionQuestionPresentation,
   restoreCompetitionPresentationAnswers,
@@ -300,18 +301,48 @@ function parseSnapshotPayload(row: RoundQuizRow): {
 export async function listCompetitionProgress(
   db: D1Database,
   campaignId: string,
-  options: { classIds?: string[] } = {},
+  options: { classIds?: string[]; limit?: number | string; cursor?: string } = {},
 ) {
   const normalizedCampaignId = normalizedId(campaignId, 'COMPETITION_CAMPAIGN_ID_REQUIRED');
   const campaign = await db.prepare('SELECT id FROM competition_campaigns WHERE id = ? LIMIT 1')
     .bind(normalizedCampaignId)
     .first<{ id: string }>();
   if (!campaign) throw new Error('COMPETITION_CAMPAIGN_NOT_FOUND');
-  if (options.classIds !== undefined && options.classIds.length === 0) return [];
+  const limit = competitionLimit(options.limit);
   const classIds = options.classIds?.map(value => String(value || '').trim()).filter(Boolean);
+  const scope = `competition-progress:${normalizedCampaignId}:${classIds?.join(',') || 'all'}`;
+  const cursor = competitionCursor(
+    options.cursor,
+    scope,
+    4,
+    'COMPETITION_PROGRESS_CURSOR_INVALID',
+  );
+  if (options.classIds !== undefined && options.classIds.length === 0) {
+    return { items: [], nextCursor: null, hasMore: false, limit };
+  }
   const classFilter = classIds && classIds.length > 0
     ? ` AND member.class_id_at_snapshot IN (${classIds.map(() => '?').join(', ')})`
     : '';
+  let cursorFilter = '';
+  const cursorBindings: unknown[] = [];
+  if (cursor) {
+    const roundNumber = Number(cursor[0]);
+    if (!Number.isInteger(roundNumber) || !cursor[1] || !cursor[2] || !cursor[3]) {
+      throw new Error('COMPETITION_PROGRESS_CURSOR_INVALID');
+    }
+    cursorFilter = ` AND (
+      round.round_number > ?
+      OR (round.round_number = ? AND member.class_id_at_snapshot > ?)
+      OR (round.round_number = ? AND member.class_id_at_snapshot = ? AND progress.student_id > ?)
+      OR (round.round_number = ? AND member.class_id_at_snapshot = ? AND progress.student_id = ? AND round.id > ?)
+    )`;
+    cursorBindings.push(
+      roundNumber,
+      roundNumber, cursor[1],
+      roundNumber, cursor[1], cursor[2],
+      roundNumber, cursor[1], cursor[2], cursor[3],
+    );
+  }
   const result = await db.prepare(`
     SELECT progress.campaign_id, progress.round_id, progress.student_id,
            progress.attempts_used, progress.best_attempt_id, progress.best_score,
@@ -324,9 +355,10 @@ export async function listCompetitionProgress(
     INNER JOIN competition_audience_members AS member
       ON member.audience_snapshot_id = campaign.audience_snapshot_id
      AND member.student_id = progress.student_id
-    WHERE progress.campaign_id = ?${classFilter}
-    ORDER BY round.round_number ASC, member.class_id_at_snapshot ASC, progress.student_id ASC
-  `).bind(normalizedCampaignId, ...(classIds || [])).all<{
+     WHERE progress.campaign_id = ?${classFilter}${cursorFilter}
+     ORDER BY round.round_number ASC, member.class_id_at_snapshot ASC, progress.student_id ASC, round.id ASC
+     LIMIT ?
+  `).bind(normalizedCampaignId, ...(classIds || []), ...cursorBindings, limit + 1).all<{
     campaign_id: string;
     round_id: string;
     student_id: string;
@@ -341,7 +373,15 @@ export async function listCompetitionProgress(
     round_number: number;
     class_id_at_snapshot: string;
   }>();
-  return (result.results || []).map(row => ({
+  const page = competitionPage(
+    result.results || [],
+    limit,
+    (row) => [row.round_number, row.class_id_at_snapshot, row.student_id, row.round_id],
+    scope,
+  );
+  return {
+    ...page,
+    items: page.items.map(row => ({
     campaignId: row.campaign_id,
     roundId: row.round_id,
     roundNumber: Number(row.round_number),
@@ -355,7 +395,8 @@ export async function listCompetitionProgress(
     status: row.status,
     version: Number(row.version),
     updatedAt: row.updated_at,
-  }));
+    })),
+  };
 }
 
 export async function listCompetitionRounds(db: D1Database, campaignId: string) {

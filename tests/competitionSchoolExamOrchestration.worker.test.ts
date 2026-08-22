@@ -860,6 +860,14 @@ describe('Competition V1 school-exam orchestration', () => {
     const latest = await request(`/api/school-exams/${eventId}/reconcile`);
     expect(latest?.status).toBe(200);
     expect(((await latest!.json()) as any).reconcile).toMatchObject({ version: 2, blockingIssues: 0 });
+    const pagedLatest = await request(`/api/school-exams/${eventId}/reconcile?limit=1`);
+    expect(pagedLatest?.status).toBe(200);
+    expect(((await pagedLatest!.json()) as any).reconcile).toMatchObject({
+      issues: [],
+      issuesNextCursor: null,
+      issuesHasMore: false,
+    });
+    expect((await request(`/api/school-exams/${eventId}/reconcile?cursor=broken`)).status).toBe(400);
     expect(sqlite.prepare(`
       SELECT live_exam_id, student_id, submitted_at, answers, score, correct_count, wrong_count, rank
       FROM live_exam_participants WHERE id = 'participant-1'
@@ -979,6 +987,15 @@ describe('Competition V1 school-exam orchestration', () => {
     );
     expect(unrelatedRetests?.status).toBe(200);
     expect(((await unrelatedRetests!.json()) as any).items).toEqual([]);
+
+    const incidentPage = await request(`/api/school-exams/${original.eventId}/incidents?limit=1`);
+    expect(incidentPage?.status).toBe(200);
+    expect(((await incidentPage!.json()) as any)).toMatchObject({
+      items: [expect.objectContaining({ studentId: 'student-1' })],
+      nextCursor: null,
+    });
+    expect((await request(`/api/school-exams/${original.eventId}/incidents?limit=101`)).status).toBe(400);
+    expect((await request(`/api/school-exams/${original.eventId}/retests?cursor=broken`)).status).toBe(400);
   });
 
   it('allows only Admin to grant a retest and provisions a new withheld Competition Live Exam session with expiry', async () => {
@@ -1261,6 +1278,21 @@ describe('Competition V1 school-exam orchestration', () => {
     expect(((await classRanking!.json()) as any).rankings.items.map((item: any) => [item.studentId, item.rank]))
       .toEqual([['student-1', 1], ['student-4', 1]]);
 
+    const firstRankingPage = await request(`/api/school-exams/${ready.eventId}/rankings?scope=EVENT&limit=2`);
+    expect(firstRankingPage?.status).toBe(200);
+    const firstRankingPayload = await firstRankingPage!.json() as any;
+    expect(firstRankingPayload.rankings.items).toHaveLength(2);
+    expect(firstRankingPayload.rankings.nextCursor).toEqual(expect.any(String));
+    const secondRankingPage = await request(
+      `/api/school-exams/${ready.eventId}/rankings?scope=EVENT&limit=2&cursor=${encodeURIComponent(firstRankingPayload.rankings.nextCursor)}`,
+    );
+    expect(secondRankingPage?.status).toBe(200);
+    const secondRankingPayload = await secondRankingPage!.json() as any;
+    expect(secondRankingPayload.rankings.items).toHaveLength(1);
+    expect(secondRankingPayload.rankings.nextCursor).toBeNull();
+    expect((await request(`/api/school-exams/${ready.eventId}/rankings?scope=EVENT&limit=101`)).status).toBe(400);
+    expect((await request(`/api/school-exams/${ready.eventId}/rankings?scope=EVENT&cursor=broken`)).status).toBe(400);
+
     // Teacher ranking authorization follows owned class scope, not invigilator room scope.
     sqlite.prepare(`UPDATE classes SET teacher_username = 'teacher-5' WHERE id = 'class-4a'`).run();
     const classOwnerRanking = await request(
@@ -1377,6 +1409,10 @@ describe('Competition V1 school-exam orchestration', () => {
     const correctionList = await request(`/api/school-exams/${ready.eventId}/corrections`, 'GET');
     expect(correctionList?.status).toBe(200);
     expect(((await correctionList!.json()) as any).items).toHaveLength(1);
+    const correctionPage = await request(`/api/school-exams/${ready.eventId}/corrections?limit=1`, 'GET');
+    expect(correctionPage?.status).toBe(200);
+    expect(((await correctionPage!.json()) as any)).toMatchObject({ items: [expect.any(Object)], nextCursor: null });
+    expect((await request(`/api/school-exams/${ready.eventId}/corrections?limit=101`, 'GET')).status).toBe(400);
 
     const second = await request(`/api/school-exams/${ready.eventId}/publish`, 'POST', {
       eventId: ready.eventId,
@@ -1513,6 +1549,38 @@ describe('Competition V1 school-exam orchestration', () => {
     expect(replay?.status).toBe(200);
     expect(((await replay!.json()) as any).certificateBatch.id).toBe(payload.certificateBatch.id);
     expect(env.CERTIFICATE_QUEUE.send).toHaveBeenCalledTimes(2);
+
+    const conflictingReplay = await request(`/api/school-exams/${ready.eventId}/certificates`, 'POST', {
+      eventId: ready.eventId,
+      publicationVersion: 2,
+      rankingVersion: 2,
+      winnerStudentIds: ['student-1', 'student-2', 'student-4'],
+      templateId: 'template-competition',
+      title: 'Competition Winners',
+      requestId: 'certificate-winners-0001',
+    });
+    expect(conflictingReplay?.status).toBe(409);
+
+    const certificateRead = await request(
+      `/api/school-exams/${ready.eventId}/certificates/${payload.certificateBatch.id}`,
+    );
+    expect(certificateRead?.status).toBe(200);
+    expect(((await certificateRead!.json()) as any).certificateBatch).toMatchObject({
+      id: payload.certificateBatch.id,
+      eventId: ready.eventId,
+      publicationVersion: 1,
+    });
+    const teacherCertificateRead = await request(
+      `/api/school-exams/${ready.eventId}/certificates/${payload.certificateBatch.id}`,
+      'GET',
+      undefined,
+      invigilatorCookie,
+    );
+    expect(teacherCertificateRead?.status).toBe(403);
+    const crossEventCertificateRead = await request(
+      `/api/school-exams/other-event/certificates/${payload.certificateBatch.id}`,
+    );
+    expect(crossEventCertificateRead?.status).toBe(404);
   });
 
   it('rejects certificate winners that are not in the requested immutable publication version', async () => {
@@ -1831,6 +1899,8 @@ describe('Competition V1 school-exam orchestration', () => {
     expect(ownStatus?.status).toBe(200);
     const forbiddenStatus = await request(`/api/school-exams/${ready.eventId}/exports/${exportJob.id}`, 'GET', undefined, unrelatedTeacherCookie);
     expect(forbiddenStatus?.status).toBe(403);
+    const guessedStatus = await request(`/api/school-exams/${ready.eventId}/exports/guessed-export-id`, 'GET', undefined, unrelatedTeacherCookie);
+    expect(guessedStatus?.status).toBe(403);
   });
 
   it('processes queued exports into a real multi-sheet XLSX in R2 and re-authorizes downloads', async () => {
@@ -1921,6 +1991,11 @@ describe('Competition V1 school-exam orchestration', () => {
       unrelatedTeacherCookie,
     );
     expect(forbiddenDownload?.status).toBe(403);
+
+    sqlite.prepare(`UPDATE competition_school_exam_exports SET publication_version = 999 WHERE id = ?`)
+      .run(exportJob.id);
+    const supersededDownload = await request(`/api/school-exams/${ready.eventId}/exports/${exportJob.id}/download`);
+    expect(supersededDownload?.status).toBe(409);
   });
 
   it('retries transient export generation failures without reverting publication', async () => {
