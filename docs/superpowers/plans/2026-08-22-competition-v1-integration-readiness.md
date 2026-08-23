@@ -204,7 +204,26 @@ Exit:
 
 **Priority:** P0. **TDD:** Migration contract/rehearsal tests. **Risk:** High.
 
-**Status:** LOCAL REHEARSAL PARTIAL — empty bootstrap and 0068→0078 forward path pass for the recorded candidate; WP3 remains BLOCKED by the missing representative snapshot and application-rollback evidence.
+**Status:** PASS — REPRESENTATIVE FORWARD + ISOLATED STAGING APPLICATION ROLLBACK. Candidate `be38890f9f9bac7e9180996b302580df1a33b25b` passed 0069→0078 against a production-derived, locally restored, anonymized 0068 snapshot, then passed an application rollback rehearsal to known-good SHA `aad1d771cf4de89c7893cd2a0b1ba08835f33865` on isolated Cloudflare staging. The source export was read-only and encrypted, plaintext/local restore material was removed after anonymization, and no production resource was written.
+
+Recorded representative evidence:
+
+- anonymized snapshot SHA-256: `bec9d706ce36fed39307add5b72837a3e149ddc388c839dd4c4850a04588c81f`;
+- retained protected rows: 5 teachers, 3 classes, 4 students, 41 quizzes, 34 results, 2 Live Exam sessions, 2 participants, 2 activity rows, 2 answer snapshots, and 155 connection events;
+- 643 sensitive or quasi-identifying source values were removed from the retained protected columns, including credentials, names, access codes, answers, timestamps, and educational scores;
+- migrations 0069–0078: 10/10 PASS;
+- foreign-key violations: 0; missing tables/indexes: 0; existing protected row deltas: 0;
+- Competition data was not created in production; all forward migration writes used isolated local D1 state.
+
+Recorded application rollback evidence:
+
+- candidate and rollback code were deployed sequentially to the same isolated staging Worker with staging-only D1, R2, and Queue bindings;
+- candidate and rollback health/API smoke checks passed on the active `workers.dev` deployment;
+- the rollback changed application code only; no database downgrade was executed;
+- the staging registry remained at `0078_competition_result_corrections.sql`, with 26/26 expected tables, 48/48 expected indexes, and 0 foreign-key violations;
+- a synthetic Competition campaign sentinel remained unchanged across candidate → rollback;
+- protected representative row counts remained unchanged and no production route, secret, database, bucket, or queue was referenced;
+- the isolated staging Worker, D1 database, three R2 buckets, and two queues were deleted after evidence capture.
 
 Preconditions:
 
@@ -237,9 +256,9 @@ Exit:
 - [x] Empty bootstrap and 0068→0078 forward migrations pass in isolated local D1 state.
 - [x] Existing Live Exam data is unchanged unexpectedly in the 0068→0078 rehearsal.
 - [x] Registry/indexes/FK checks are correct after each forward migration.
-- [ ] Representative forward migration passes against an approved anonymized snapshot.
-- [ ] Application rollback preserves Competition data.
-- [ ] Evidence is archived and linked to the release candidate.
+- [x] Representative forward migration passes against an approved anonymized snapshot.
+- [x] Application rollback preserves Competition data.
+- [x] Evidence is archived and linked to the release candidate.
 
 No representative database means WP3 is BLOCKED, not PASS.
 
