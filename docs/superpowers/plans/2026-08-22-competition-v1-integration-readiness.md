@@ -4,11 +4,11 @@
 
 **Branch:** `feat/competition-v1`; the exact candidate SHA is recorded in each rehearsal evidence artifact.
 
-**Status:** WP1–WP6 COMPLETE; WP7 PENDING
+**Status:** WP1–WP7 COMPLETE — FINAL CANDIDATE GO, PENDING EVIDENCE COMMIT APPROVAL
 
 **Date:** 2026-08-22
 
-**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, the WP3 representative anonymized migration/application-rollback rehearsal, the WP4 real Queue/R2/certificate journey, the WP5 environment-backed capacity certification, and the WP6 real service-boundary integration/security journey are complete. WP4 evidence is bound to candidate `f14650b88417bdcddf214b1d5c1b73e0f44d3276`; WP5 evidence is bound to candidate `cbe6695592f7ebdccf8433f5f36b10d21e04d2eb`; WP6 evidence is bound to candidate `42a8bd3d965884fd8d4e1f11b00cc374d7faf8e4`. WP6 passed 50 journey steps and 14 negative-security cases on isolated staging, with two publications, one correction, two canonical results, two ready exports, and one ready certificate. No production write, push, PR, or merge has occurred.
+**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, the WP3 representative anonymized migration/application-rollback rehearsal, the WP4 real Queue/R2/certificate journey, the WP5 environment-backed capacity certification, the WP6 real service-boundary integration/security journey, and the WP7 final candidate gates are complete. WP4 evidence is bound to candidate `f14650b88417bdcddf214b1d5c1b73e0f44d3276`; WP5 evidence is bound to candidate `cbe6695592f7ebdccf8433f5f36b10d21e04d2eb`; WP6 evidence is bound to candidate `42a8bd3d965884fd8d4e1f11b00cc374d7faf8e4`; final WP7 evidence is bound to candidate `1106d8bd07b1d8c730de20216c851fc37b4319c0` with rollback SHA `aad1d771cf4de89c7893cd2a0b1ba08835f33865` and rollout stage `internal`. WP6 passed 50 journey steps and 14 negative-security cases on isolated staging, with two publications, one correction, two canonical results, two ready exports, and one ready certificate. WP7 passed 606 Vitest files/3,006 tests, all Cypress variants, typecheck/lint/build/security/performance/migration gates, SHA-matched capacity certification at concurrency 100, runtime preflight, release readiness, and low-risk GitNexus review. No production write, push, PR, or merge has occurred.
 
 ---
 
@@ -402,6 +402,14 @@ wp6-real-evidence-42a8bd3.json
 ```
 
 ## 12. WP7 — Final Candidate Gates
+
+**Status:** COMPLETE — FINAL CANDIDATE GO, PENDING EVIDENCE COMMIT APPROVAL.
+
+Candidate `1106d8bd07b1d8c730de20216c851fc37b4319c0` passed the complete local/staging gate matrix. The four Vitest shards passed 606 files and 3,006 tests; coverage passed 6 files/44 tests; root, strict, and Workers typecheck, lint, production build, security/history/policy/dependency gates, performance budget, migration/release contracts, and all stubbed/variant Cypress journeys passed. GitNexus compared the candidate with `origin/main` and reported LOW risk with zero affected processes.
+
+The final isolated-staging capacity run `mt5s5e4z` passed at concurrency 100 with status P95 `415.066 ms`, submit P95 `1094.3754 ms`, and zero lost answers, duplicate failures, D1 overload, app 5xx, network errors, or request errors. Certifier produced profile `live-capacity-69194f00-5e48-46fe-88a9-9fd6e8bca500`; runtime School Exam preflight consumed that profile and returned `READY` for planned concurrency 100. Release readiness returned `ready` for rollout stage `internal`, release SHA `1106d8bd07b1d8c730de20216c851fc37b4319c0`, and rollback SHA `aad1d771cf4de89c7893cd2a0b1ba08835f33865`.
+
+Capacity investigation retained the failed attempts as evidence. An initial run was contaminated by JWT-secret propagation; subsequent valid attempts exposed status-latency variance when reset/auth-probe traffic ran immediately before measurement. Query-plan inspection showed indexed lookups and D1 execution below 1 ms. The accepted run used the same candidate, unchanged thresholds, a DPAPI-encrypted temporary JWT secret, a 30-second cooldown after fixture reset, and no probe traffic inside the measurement window. Production was not touched.
 
 Run from the final candidate SHA:
 
