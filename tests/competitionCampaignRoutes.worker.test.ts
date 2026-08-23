@@ -11,6 +11,14 @@ const migration = readFileSync(
   new URL('../workers/migrations/0069_competition_core.sql', import.meta.url),
   'utf8',
 );
+const rolloutControlMigration = readFileSync(
+  new URL('../workers/migrations/0054_feature_rollout_control_plane.sql', import.meta.url),
+  'utf8',
+);
+const competitionRolloutMigration = readFileSync(
+  new URL('../workers/migrations/0079_competition_runtime_rollout.sql', import.meta.url),
+  'utf8',
+);
 const secret = 'competition-route-test-secret-long-enough';
 
 let sqlite: DatabaseSync;
@@ -22,6 +30,11 @@ let studentCookie: string;
 function createBaseSchema(db: DatabaseSync): void {
   db.exec(`
     PRAGMA foreign_keys = ON;
+
+    CREATE TABLE system_settings (
+      setting_key TEXT PRIMARY KEY,
+      setting_value TEXT
+    );
 
     CREATE TABLE teachers (
       username TEXT PRIMARY KEY,
@@ -249,7 +262,14 @@ async function seedEligibilityProgress(
 beforeEach(async () => {
   sqlite = new DatabaseSync(':memory:');
   createBaseSchema(sqlite);
+  sqlite.exec(rolloutControlMigration);
   sqlite.exec(migration);
+  sqlite.exec(competitionRolloutMigration);
+  sqlite.exec(`
+    UPDATE feature_flags SET enabled = 1 WHERE flag_key = 'competition_v1';
+    UPDATE feature_flag_rules SET audience = 'all', percentage = 100
+    WHERE flag_key = 'competition_v1';
+  `);
   env = { DB: createSqliteD1(sqlite), JWT_SECRET: secret };
 
   const adminToken = await signJWT({
@@ -284,6 +304,15 @@ afterEach(() => {
 });
 
 describe('Competition V1 campaign routes', () => {
+  it('fails closed before any Competition service runs when the runtime cohort excludes the caller', async () => {
+    sqlite.exec("UPDATE feature_flags SET enabled = 0 WHERE flag_key = 'competition_v1'");
+
+    const response = await request('/api/competitions');
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ status: 'error', message: 'COMPETITION_NOT_AVAILABLE' });
+  });
+
   it('exposes create, list, detail, and DRAFT patch endpoints', async () => {
     const createResponse = await request('/api/competitions', 'POST', createBody);
     expect(createResponse.status).toBe(201);

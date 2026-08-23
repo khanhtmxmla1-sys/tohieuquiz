@@ -134,8 +134,8 @@ describe('Competition V1 release hardening', () => {
     expect(runbook).toContain('COMPETITION_RELEASE_SHA');
     expect(runbook).toContain('COMPETITION_ROLLBACK_SHA');
     expect(runbook).toContain('COMPETITION_ROLLOUT_STAGE');
-    expect(runbook).toContain('0078_competition_result_corrections.sql');
-    expect(runbook).toContain('0078 to 0069');
+    expect(runbook).toContain('0079_competition_runtime_rollout.sql');
+    expect(runbook).toContain('0079 to 0069');
     expect(runbook).toContain('internal → canary → school-wide');
     expect(runbook).toContain('VITE_FEATURE_COMPETITION_V1=false');
   });

@@ -12,7 +12,8 @@ import {
   type TeacherDashboardTab,
   useTeacherDashboardUIStore,
 } from '../../../stores/useTeacherDashboardUIStore';
-import { isCompetitionV1Enabled, isManualQuizWorkspaceEnabled } from '../../../config/featureFlags';
+import { isManualQuizWorkspaceEnabled } from '../../../config/featureFlags';
+import { useCompetitionV1FeatureFlag } from '../../../features/competition/useCompetitionV1FeatureFlag';
 import { buildManualQuizSeed } from '../../../features/manual-quiz-workspace/domain/manualQuizSeed';
 import { useManualQuizWorkspaceStore } from '../../../features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 import { TeacherDashboardLayout } from './TeacherDashboardLayout';
@@ -41,7 +42,8 @@ const TeacherDashboard = () => {
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const giftShopEnabled = isGiftShopFeatureEnabled();
   const manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled();
-  const competitionEnabled = isCompetitionV1Enabled();
+  const competitionFlag = useCompetitionV1FeatureFlag();
+  const competitionEnabled = competitionFlag.ready && competitionFlag.enabled;
   const activeTab = isDashboardTabAllowed(requestedTab, authStore.isAdmin, giftShopEnabled, competitionEnabled)
     ? requestedTab
     : 'overview';

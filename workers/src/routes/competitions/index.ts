@@ -89,6 +89,7 @@ import {
 } from '../../competition/schoolExamExportService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
+import { getFeatureFlag, resolveFeatureFlag } from '../../services/featureFlagService';
 
 function routeCampaignId(path: string, suffix = ''): string | null {
   const prefix = '/api/competitions/';
@@ -258,6 +259,26 @@ async function authenticatedStudentId(db: D1Database, user: JWTPayload): Promise
   return row?.id || null;
 }
 
+async function hasCompetitionRolloutAccess(db: D1Database, user: JWTPayload): Promise<boolean> {
+  try {
+    const flag = await getFeatureFlag(db, 'competition_v1');
+    if (!flag) return false;
+    const classIds = user.role === 'student'
+      ? (user.classId ? [user.classId] : [])
+      : user.role === 'teacher'
+        ? await teacherClassIds(db, user)
+        : [];
+    const resolution = await resolveFeatureFlag(flag, {
+      role: user.role,
+      username: user.username,
+      classIds,
+    });
+    return resolution.enabled;
+  } catch {
+    return false;
+  }
+}
+
 async function handleCompetitionRoutesCore(
   request: Request,
   env: Env,
@@ -273,6 +294,9 @@ async function handleCompetitionRoutesCore(
   const authResult = await verifyJWTMiddleware(request, env);
   if (authResult instanceof Response) return authResult;
   const user = authResult.user;
+  if (!await hasCompetitionRolloutAccess(env.DB, user)) {
+    return errorResponse('COMPETITION_NOT_AVAILABLE', 404);
+  }
 
   if (isStudentNamespace) {
     if (user.role !== 'student') return errorResponse('Forbidden', 403);
