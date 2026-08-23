@@ -44,6 +44,10 @@ interface CertificateItemRow {
   winner_count: number;
 }
 
+interface CertificateChildStatusRow {
+  status: 'pending' | 'processing' | 'sent' | 'partial' | 'failed';
+}
+
 function uniqueWinnerIds(ids: string[]): string[] {
   return [...new Set(ids.map((id) => id.trim()).filter(Boolean))].sort();
 }
@@ -144,6 +148,43 @@ async function markFailed(db: D1Database, parentId: string, errorCode: string): 
   `).bind(errorCode, new Date().toISOString(), parentId).run();
 }
 
+async function synchronizeCertificateRequestStatus(
+  db: D1Database,
+  certificateBatch: ReturnType<typeof mapRequest>,
+) {
+  if (certificateBatch.status === 'READY' || certificateBatch.status === 'FAILED') {
+    return certificateBatch;
+  }
+  const childResult = await db.prepare(`
+    SELECT child.status
+    FROM competition_school_exam_certificate_batch_items AS item
+    JOIN certificate_batches AS child ON child.id = item.certificate_batch_id
+    WHERE item.parent_id = ?
+    ORDER BY item.certificate_batch_id ASC
+  `).bind(certificateBatch.id).all<CertificateChildStatusRow>();
+  const children = childResult.results || [];
+  if (children.length === 0) return certificateBatch;
+
+  const hasFailure = children.some((child) => child.status === 'failed' || child.status === 'partial');
+  const allSent = children.every((child) => child.status === 'sent');
+  const hasProcessing = children.some((child) => child.status === 'processing');
+  const status = hasFailure ? 'FAILED' : allSent ? 'READY' : hasProcessing ? 'PROCESSING' : 'QUEUED';
+  if (status === certificateBatch.status) return certificateBatch;
+
+  const completedAt = status === 'READY' || status === 'FAILED' ? new Date().toISOString() : null;
+  const errorCode = status === 'FAILED' ? 'SCHOOL_EXAM_CERTIFICATE_CHILD_FAILED' : null;
+  await db.prepare(`
+    UPDATE competition_school_exam_certificate_batches
+    SET status = ?, error_code = ?, completed_at = ?
+    WHERE id = ? AND status IN ('QUEUED', 'PROCESSING')
+  `).bind(status, errorCode, completedAt, certificateBatch.id).run();
+  return {
+    ...certificateBatch,
+    status,
+    errorCode,
+  };
+}
+
 export async function getSchoolExamCertificateBatch(
   db: D1Database,
   eventId: string,
@@ -158,7 +199,7 @@ export async function getSchoolExamCertificateBatch(
     LIMIT 1
   `).bind(eventId, certificateBatch.publicationVersion).first<{ id: string }>();
   if (!publication) throw new Error('SCHOOL_EXAM_CERTIFICATE_PUBLICATION_NOT_FOUND');
-  return certificateBatch;
+  return synchronizeCertificateRequestStatus(db, certificateBatch);
 }
 
 function certificatePersistenceErrorCode(payload: unknown): string {

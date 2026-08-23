@@ -1574,6 +1574,31 @@ describe('Competition V1 school-exam orchestration', () => {
       eventId: ready.eventId,
       publicationVersion: 1,
     });
+
+    sqlite.prepare(`
+      UPDATE certificate_batches
+      SET status = 'sent', sent_at = ?, updated_at = ?
+      WHERE id IN (
+        SELECT certificate_batch_id
+        FROM competition_school_exam_certificate_batch_items
+        WHERE parent_id = ?
+      )
+    `).run(
+      '2027-05-10T02:00:00.000Z',
+      '2027-05-10T02:00:00.000Z',
+      payload.certificateBatch.id,
+    );
+    const completedRead = await request(
+      `/api/school-exams/${ready.eventId}/certificates/${payload.certificateBatch.id}`,
+    );
+    expect(completedRead?.status).toBe(200);
+    expect(((await completedRead!.json()) as any).certificateBatch.status).toBe('READY');
+    expect(sqlite.prepare(`
+      SELECT status, error_code
+      FROM competition_school_exam_certificate_batches
+      WHERE id = ?
+    `).get(payload.certificateBatch.id)).toEqual({ status: 'READY', error_code: null });
+
     const teacherCertificateRead = await request(
       `/api/school-exams/${ready.eventId}/certificates/${payload.certificateBatch.id}`,
       'GET',
