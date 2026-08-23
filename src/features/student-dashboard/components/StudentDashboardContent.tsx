@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import StudentAchievementsPage from '@/src/features/certificates/StudentAchievementsPage';
 import StudentResultReportsPage from '@/src/features/results/components/student-reports/StudentResultReportsPage';
 import { NotificationSurfaceStack } from '@/src/features/notifications/components';
@@ -8,10 +9,20 @@ import { StudentDashboardHeader } from '@/src/components/HomePage/student-dashbo
 import { StudentDashboardBody } from './StudentDashboardBody';
 import type { StudentDashboardContentProps } from './content.types';
 import StudentCompetitionPage from '../../competition/StudentCompetitionPage';
+import { useCompetitionV1FeatureFlag } from '../../competition/useCompetitionV1FeatureFlag';
 
 export const StudentDashboardContent = (props: StudentDashboardContentProps) => {
   const { studentSession, activeSection, giftShopEnabled, rewards } = props;
   const notificationFlag = useUnifiedNotificationsFeatureFlag();
+  const competitionFlag = useCompetitionV1FeatureFlag();
+  const competitionEnabled = competitionFlag.ready && competitionFlag.enabled;
+
+  useEffect(() => {
+    if (competitionFlag.ready && !competitionEnabled && activeSection === 'competition') {
+      props.onSelectSection('dashboard');
+    }
+  }, [activeSection, competitionEnabled, competitionFlag.ready, props.onSelectSection]);
+
   return <>
     <StudentDashboardHeader
       studentName={studentSession.fullName}
@@ -21,6 +32,7 @@ export const StudentDashboardContent = (props: StudentDashboardContentProps) => 
       coins={rewards.coins}
       activeSection={activeSection}
       giftShopEnabled={giftShopEnabled}
+      competitionEnabled={competitionEnabled}
       studentId={studentSession.studentId}
       unifiedNotificationsReady={notificationFlag.ready}
       unifiedNotificationsEnabled={notificationFlag.enabled}
@@ -46,9 +58,9 @@ export const StudentDashboardContent = (props: StudentDashboardContentProps) => 
         ? <StudentAchievementsPage />
         : activeSection === 'resultReports'
           ? <StudentResultReportsPage selectedReportId={props.selectedResultReportId} />
-          : activeSection === 'competition'
+          : activeSection === 'competition' && competitionEnabled
             ? <StudentCompetitionPage />
-          : <StudentDashboardBody {...props} />}
+          : <StudentDashboardBody {...props} competitionEnabled={competitionEnabled} />}
     </main>
   </>;
 };

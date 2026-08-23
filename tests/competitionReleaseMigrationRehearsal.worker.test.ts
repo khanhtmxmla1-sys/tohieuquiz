@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 const rollbackFiles = [
   '0078_competition_result_corrections.rollback.sql',
+  '0079_competition_runtime_rollout.rollback.sql',
   '0077_competition_async_xlsx_export.rollback.sql',
   '0076_competition_certificate_adapter.rollback.sql',
   '0075_competition_school_exam_publication_ranking.rollback.sql',

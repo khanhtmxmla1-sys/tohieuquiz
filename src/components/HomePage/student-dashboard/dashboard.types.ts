@@ -13,6 +13,7 @@ export interface StudentDashboardHeaderProps {
   coins: number;
   activeSection: 'dashboard' | 'achievements' | 'resultReports' | 'competition';
   giftShopEnabled: boolean;
+  competitionEnabled: boolean;
   studentId: string;
   unifiedNotificationsReady: boolean;
   unifiedNotificationsEnabled: boolean;

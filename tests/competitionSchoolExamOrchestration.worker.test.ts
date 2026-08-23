@@ -9,6 +9,7 @@ import { processCompetitionExportQueue } from '../workers/src/queues/competition
 import { createSqliteD1 } from './helpers/sqliteD1';
 
 const liveExamMigration = readFileSync(new URL('../workers/migrations/0016_add_live_exam_tables.sql', import.meta.url), 'utf8');
+const rolloutControlMigration = readFileSync(new URL('../workers/migrations/0054_feature_rollout_control_plane.sql', import.meta.url), 'utf8');
 const coreMigration = readFileSync(new URL('../workers/migrations/0069_competition_core.sql', import.meta.url), 'utf8');
 const schoolExamMigration = readFileSync(new URL('../workers/migrations/0070_competition_school_exam.sql', import.meta.url), 'utf8');
 const capacityMigration = readFileSync(new URL('../workers/migrations/0071_live_exam_capacity_profiles.sql', import.meta.url), 'utf8');
@@ -19,6 +20,7 @@ const publicationRankingMigrationUrl = new URL('../workers/migrations/0075_compe
 const certificateAdapterMigrationUrl = new URL('../workers/migrations/0076_competition_certificate_adapter.sql', import.meta.url);
 const exportAdapterMigrationUrl = new URL('../workers/migrations/0077_competition_async_xlsx_export.sql', import.meta.url);
 const resultCorrectionMigrationUrl = new URL('../workers/migrations/0078_competition_result_corrections.sql', import.meta.url);
+const competitionRolloutMigrationUrl = new URL('../workers/migrations/0079_competition_runtime_rollout.sql', import.meta.url);
 
 const secret = 'school-exam-orchestration-test-secret';
 let sqlite: DatabaseSync;
@@ -91,6 +93,10 @@ let studentCookie: string;
 function createBaseSchema(db: DatabaseSync): void {
   db.exec(`
     PRAGMA foreign_keys = ON;
+    CREATE TABLE system_settings (
+      setting_key TEXT PRIMARY KEY,
+      setting_value TEXT
+    );
     CREATE TABLE teachers (
       username TEXT PRIMARY KEY,
       status TEXT NOT NULL DEFAULT 'ACTIVE',
@@ -238,6 +244,7 @@ function createBaseSchema(db: DatabaseSync): void {
 
 function seedCompetition(): void {
   sqlite.exec(liveExamMigration);
+  sqlite.exec(rolloutControlMigration);
   sqlite.exec(coreMigration);
   sqlite.exec(schoolExamMigration);
   sqlite.exec(capacityMigration);
@@ -248,6 +255,12 @@ function seedCompetition(): void {
   if (existsSync(certificateAdapterMigrationUrl)) sqlite.exec(readFileSync(certificateAdapterMigrationUrl, 'utf8'));
   if (existsSync(exportAdapterMigrationUrl)) sqlite.exec(readFileSync(exportAdapterMigrationUrl, 'utf8'));
   if (existsSync(resultCorrectionMigrationUrl)) sqlite.exec(readFileSync(resultCorrectionMigrationUrl, 'utf8'));
+  if (existsSync(competitionRolloutMigrationUrl)) sqlite.exec(readFileSync(competitionRolloutMigrationUrl, 'utf8'));
+  sqlite.exec(`
+    UPDATE feature_flags SET enabled = 1 WHERE flag_key = 'competition_v1';
+    UPDATE feature_flag_rules SET audience = 'all', percentage = 100
+    WHERE flag_key = 'competition_v1';
+  `);
 
   sqlite.exec(`
     INSERT INTO competition_campaigns (

@@ -1,0 +1,3 @@
+-- Roll back Competition V1 exposure through the feature rollout control plane:
+-- disable competition_v1 with an audited reason. Keep the flag and audit history
+-- so application rollback never destroys rollout evidence.

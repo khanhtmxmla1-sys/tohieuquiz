@@ -28,6 +28,7 @@ const releaseEnv = {
 describe('release readiness checks', () => {
   it('scans only forward migration files and excludes rollback artifacts', () => {
     expect(isForwardMigrationPath('workers/migrations/0078_competition_result_corrections.sql')).toBe(true);
+    expect(isForwardMigrationPath('workers/migrations/0079_competition_runtime_rollout.sql')).toBe(true);
     expect(isForwardMigrationPath('workers/migrations/rollback/0078_competition_result_corrections.rollback.sql')).toBe(false);
   });
 
