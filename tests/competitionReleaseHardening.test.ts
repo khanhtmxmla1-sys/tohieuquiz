@@ -139,4 +139,15 @@ describe('Competition V1 release hardening', () => {
     expect(runbook).toContain('internal → canary → school-wide');
     expect(runbook).toContain('VITE_FEATURE_COMPETITION_V1=false');
   });
+
+  it('enables Competition V1 for the pull-request Cypress job that runs its stubbed journey', () => {
+    const workflow = readFileSync('.github/workflows/ci.yml', 'utf8');
+    const stubbedJob = workflow.slice(
+      workflow.indexOf('  e2e-stubbed:'),
+      workflow.indexOf('  e2e-blueprint-v3:'),
+    );
+
+    expect(stubbedJob).toContain('command: npm run cypress:run:stubbed');
+    expect(stubbedJob).toContain("VITE_FEATURE_COMPETITION_V1: 'true'");
+  });
 });
