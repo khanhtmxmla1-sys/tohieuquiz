@@ -25,6 +25,21 @@ class StatusStatement {
   }
 
   async first() {
+    if (this.sql.includes('FROM live_exam_sessions AS sessions')) {
+      return {
+        id: 'live-1',
+        status: 'waiting',
+        started_at: null,
+        ends_at: null,
+        paused_at: null,
+        duration: 30,
+        chat_enabled: 1,
+        participant_id: 'participant-1',
+        individual_ends_at: null,
+        submitted_at: null,
+        participant_count: 1,
+      };
+    }
     if (this.sql.includes('FROM live_exam_sessions s')) {
       return {
         id: 'live-1',
@@ -114,6 +129,28 @@ describe('Live Exam Polling V2 worker routes', () => {
     expect(response.status).toBe(200);
     expect(preparedSql.some((sql) => sql.includes('SELECT sessions.id FROM live_exam_sessions sessions'))).toBe(false);
     expect(preparedSql.some((sql) => sql.includes('UPDATE live_exam_participants') && sql.includes('WHERE submitted_at IS NULL'))).toBe(false);
+  });
+
+  it('loads the student status payload with one D1 query after authentication', async () => {
+    currentUser = { id: 'student-1', username: 'student-1', role: 'student' };
+    const { db, preparedSql } = createStatusDb();
+
+    const response = await handleLiveExamRoutes(
+      new Request('https://test/api/live-exam/live-1/status'),
+      { DB: db, JWT_SECRET: 'test' } as any,
+      '/api/live-exam/live-1/status',
+      'GET',
+    );
+    const body = await response.json() as any;
+
+    expect(response.status).toBe(200);
+    expect(preparedSql).toHaveLength(1);
+    expect(body.session).toEqual({
+      id: 'live-1',
+      status: 'waiting',
+      duration: 30,
+      chatEnabled: true,
+    });
   });
 
   it('keeps GET /participants read-only and derives stale presence from last_activity', async () => {
