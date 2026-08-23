@@ -4,11 +4,11 @@
 
 **Branch:** `feat/competition-v1`; the exact candidate SHA is recorded in each rehearsal evidence artifact.
 
-**Status:** APPROVED PLAN — WP1–WP4 COMPLETE; WP5 LOCAL CERTIFICATION CONTRACT PASS / REAL BENCHMARK BLOCKED; WP6 SYNTHETIC/LOCAL PASS / REAL SERVICE-BOUNDARY BLOCKED; WP7 PENDING
+**Status:** WP1–WP6 COMPLETE; WP7 PENDING
 
 **Date:** 2026-08-22
 
-**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, the WP3 representative anonymized migration/application-rollback rehearsal, and the WP4 real Queue/R2/certificate journey are complete. WP4 evidence is bound to candidate `f14650b88417bdcddf214b1d5c1b73e0f44d3276`; all isolated WP4 Workers, Queues, R2 buckets, and D1 resources were removed after evidence capture. WP5 remains blocked until an environment-backed benchmark is supplied. WP6 has a clearly labelled `SYNTHETIC/LOCAL` 120-student pre-integration dataset, a complete negative-security matrix contract, green Competition regressions, and a green stubbed Cypress student journey; it is not real service-boundary evidence. No production write, capacity-profile write, push, PR, or merge has occurred.
+**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, the WP3 representative anonymized migration/application-rollback rehearsal, the WP4 real Queue/R2/certificate journey, the WP5 environment-backed capacity certification, and the WP6 real service-boundary integration/security journey are complete. WP4 evidence is bound to candidate `f14650b88417bdcddf214b1d5c1b73e0f44d3276`; WP5 evidence is bound to candidate `cbe6695592f7ebdccf8433f5f36b10d21e04d2eb`; WP6 evidence is bound to candidate `42a8bd3d965884fd8d4e1f11b00cc374d7faf8e4`. WP6 passed 50 journey steps and 14 negative-security cases on isolated staging, with two publications, one correction, two canonical results, two ready exports, and one ready certificate. No production write, push, PR, or merge has occurred.
 
 ---
 
@@ -315,7 +315,7 @@ Exit requires real Queue acceptance, real R2 artifact validation, certificate li
 
 **Priority:** P0. **Risk:** High student-experience/integrity impact.
 
-**Status:** LOCAL CERTIFICATION CONTRACT PASS — REAL BENCHMARK BLOCKED. The certification script now requires explicit benchmark `passed: true`, a 40-character git SHA, all zero-integrity gates, and the latency thresholds before producing a `CERTIFIED` profile. Focused certification/release-readiness tests pass. A candidate environment benchmark is still required; fixtures or an example configuration cannot satisfy this P0 gate.
+**Status:** COMPLETE — REAL CANDIDATE CERTIFICATION PASS. Candidate `cbe6695592f7ebdccf8433f5f36b10d21e04d2eb` passed the environment-backed benchmark at concurrency 100: status P95 `411.0954 ms`, submit P95 `1193.4543 ms`, and all integrity/error counters zero. Certification persisted profile `live-capacity-45c28b1c-3ba3-4139-80bb-8f50f91c9e28` with runtime config `wp5-staging-status-one-query-v3` and polling profile `wp5-status-3-rounds-v1`; the School Exam preflight consumed that profile and returned `READY` for planned concurrency 100. The benchmark, certified profile, preflight response, audit actions, and failure-closed checks are recorded in the external evidence artifact `outputs/competition-wp5-709c759/wp5-evidence-cbe6695.json`.
 
 Inputs are candidate deployment SHA, runtime/polling config, representative room plan/forms, environment owner, and rollback SHA.
 
@@ -349,14 +349,14 @@ Local contract evidence:
 - [x] Explicit `passed: true` is required.
 - [x] Candidate build SHA must be a 40-character git SHA.
 - [x] Latency and zero-integrity gates remain fail-closed.
-- [ ] Candidate environment benchmark and certified report are supplied.
-- [ ] Certified profile is persisted from the approved candidate report.
+- [x] Candidate environment benchmark and certified report are supplied.
+- [x] Certified profile is persisted from the approved candidate report and consumed by School Exam preflight.
 
 ## 11. WP6 — Integration E2E and Security Matrix
 
 **Priority:** P1. **TDD:** Required.
 
-**Status:** SYNTHETIC/LOCAL PASS — REAL SERVICE-BOUNDARY EVIDENCE BLOCKED. `workers/scripts/build-competition-synthetic-preintegration.cjs` produces an outside-repository artifact labelled `SYNTHETIC/LOCAL` with 120 students, four original classes, six finalized rounds, 90 qualified students, four rooms, 90 publication results, and the complete negative-security matrix. The artifact keeps WP3–WP5 blockers explicit and cannot be used as production evidence. Competition regression and the stubbed Cypress Competition journey pass locally.
+**Status:** COMPLETE — REAL SERVICE-BOUNDARY PASS. Candidate `42a8bd3d965884fd8d4e1f11b00cc374d7faf8e4` passed 50 end-to-end journey steps and 14 negative-security cases on isolated Cloudflare staging. Integrity evidence records two publications, one correction, two canonical results, two `READY` exports, and one parent certificate batch synchronized to `READY` after its child batch reached `sent`. Direct D1 readback confirmed those terminal publish/result/export/certificate states. The sanitized artifact is `outputs/competition-wp6-cbe6695/wp6-real-evidence-42a8bd3.json`; it contains no credentials or answer payloads. Production was not touched.
 
 Integration journey:
 
@@ -392,13 +392,13 @@ Synthetic/local evidence:
 - [x] Original-class ownership survives eligibility, room membership, and publication.
 - [x] Negative-security matrix is complete and contains no credentials or answer payloads.
 - [x] Competition regression and stubbed Cypress journey pass.
-- [ ] Real service-boundary journey runs against an approved candidate environment.
-- [ ] WP3–WP5 P0 external evidence gates are closed.
+- [x] Real service-boundary journey runs against an approved candidate environment.
+- [x] WP3–WP5 P0 external evidence gates are closed.
 
 Artifact name:
 
 ```text
-competition-synthetic-preintegration-<candidate-sha>.json
+wp6-real-evidence-42a8bd3.json
 ```
 
 ## 12. WP7 — Final Candidate Gates
