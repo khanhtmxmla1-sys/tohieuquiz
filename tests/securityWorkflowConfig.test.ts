@@ -26,4 +26,9 @@ describe('security workflow configuration', () => {
   it('enforces bundle budgets in the production build job', () => {
     expect(readFileSync('.github/workflows/ci.yml', 'utf8')).toContain('npm run perf:budget');
   });
+
+  it('keeps the security rollback gate aligned with the latest Competition migration', () => {
+    const policyGate = readFileSync('scripts/security-policy-gates.mjs', 'utf8');
+    expect(policyGate).toContain('|78)_.*\\.sql$/.test(name)');
+  });
 });

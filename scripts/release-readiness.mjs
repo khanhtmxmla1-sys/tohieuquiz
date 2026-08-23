@@ -1,7 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const { certifyCapacityReport } = require('../workers/scripts/certify-live-exam-capacity.cjs');
 
 const KNOWN_FLAGS = new Set([
   'VITE_FEATURE_GIFT_SHOP_V2',
@@ -9,6 +13,7 @@ const KNOWN_FLAGS = new Set([
   'VITE_FEATURE_AI_BLUEPRINT_V3',
   'VITE_FEATURE_AI_SVG_DIAGRAMS',
   'VITE_FEATURE_PARENT_PORTAL_V1',
+  'VITE_FEATURE_COMPETITION_V1',
 ]);
 
 const stripSqlComments = sql => String(sql)
@@ -57,6 +62,40 @@ export function validateReleaseFlags(values) {
     if (!(name in values)) errors.push(`Missing release flag: ${name}`);
   }
   if (values.VITE_GIFT_SHOP_MODE !== 'api') errors.push('VITE_GIFT_SHOP_MODE must be api for release');
+  return errors;
+}
+
+export function validateCompetitionReleaseArtifacts(values) {
+  if (String(values.VITE_FEATURE_COMPETITION_V1).toLowerCase() !== 'true') return [];
+
+  const errors = [];
+  const reportPath = String(values.COMPETITION_CAPACITY_REPORT || '').trim();
+  const releaseSha = String(values.COMPETITION_RELEASE_SHA || '').trim();
+  const rollbackSha = String(values.COMPETITION_ROLLBACK_SHA || '').trim();
+  const rolloutStage = String(values.COMPETITION_ROLLOUT_STAGE || '').trim().toLowerCase();
+  if (!reportPath) errors.push('COMPETITION_CAPACITY_REPORT is required when Competition V1 is enabled');
+  if (!releaseSha || /^(?:unspecified|replace-with)/i.test(releaseSha)) {
+    errors.push('COMPETITION_RELEASE_SHA is required when Competition V1 is enabled');
+  }
+  if (!rollbackSha || /^(?:unspecified|replace-with)/i.test(rollbackSha)) {
+    errors.push('COMPETITION_ROLLBACK_SHA is required when Competition V1 is enabled');
+  }
+  if (!['internal', 'canary', 'school-wide'].includes(rolloutStage)) {
+    errors.push('COMPETITION_ROLLOUT_STAGE must be internal, canary, or school-wide');
+  }
+  if (releaseSha && rollbackSha && releaseSha === rollbackSha) {
+    errors.push('COMPETITION_ROLLBACK_SHA must differ from COMPETITION_RELEASE_SHA');
+  }
+  if (!reportPath) return errors;
+
+  try {
+    const certification = certifyCapacityReport(JSON.parse(readFileSync(resolve(reportPath), 'utf8')));
+    if (releaseSha && certification.buildSha !== releaseSha) {
+      errors.push('COMPETITION_CAPACITY_REPORT build SHA must match COMPETITION_RELEASE_SHA');
+    }
+  } catch (error) {
+    errors.push(`COMPETITION_CAPACITY_REPORT is not certified: ${error instanceof Error ? error.message : String(error)}`);
+  }
   return errors;
 }
 
@@ -113,6 +152,9 @@ export const REQUIRED_RELEASE_CHECKS = [
   'migration-contracts',
   'cypress-v2',
   'cypress-v3',
+  'competition-regression',
+  'competition-capacity',
+  'competition-e2e',
 ];
 
 export function writeReleaseReadinessReport(outputPath, report) {
@@ -121,6 +163,10 @@ export function writeReleaseReadinessReport(outputPath, report) {
   mkdirSync(dirname(absolutePath), { recursive: true });
   writeFileSync(absolutePath, `${JSON.stringify(report, null, 2)}
 `, 'utf8');
+}
+
+export function isForwardMigrationPath(path) {
+  return /^workers\/migrations\/[^/]+\.sql$/.test(String(path).replaceAll('\\', '/'));
 }
 
 export function runReleaseReadiness(args = process.argv.slice(2), env = process.env) {
@@ -144,13 +190,14 @@ export function runReleaseReadiness(args = process.argv.slice(2), env = process.
     Object.entries(env).filter(([name]) => name.startsWith('VITE_FEATURE_') || name === 'VITE_GIFT_SHOP_MODE'),
   );
   errors.push(...validateReleaseFlags(flagValues));
+  errors.push(...validateCompetitionReleaseArtifacts(env));
 
   let changedMigrations = [];
   try {
     const output = execFileSync('git', [
       'diff', '--name-only', `${baseRef}...HEAD`, '--', 'workers/migrations/*.sql',
     ], { encoding: 'utf8' });
-    changedMigrations = output.split(/\r?\n/).filter(Boolean);
+    changedMigrations = output.split(/\r?\n/).filter(isForwardMigrationPath);
   } catch (error) {
     errors.push(`Unable to compare migrations with ${baseRef}: ${error instanceof Error ? error.message : String(error)}`);
   }

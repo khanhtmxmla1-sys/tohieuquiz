@@ -44,6 +44,7 @@ import { handleTestBankRoutes } from './routes/testBank';
 import { handleTeacherAiQuotaRoutes } from './routes/teacherAiQuota';
 import { handleLogoutRoute } from './routes/logout';
 import { handleLiveExamRoutes } from './routes/liveExam';
+import { handleCompetitionRoutes } from './routes/competitions';
 import { handleAdminCertificateRoutes } from './routes/adminCertificates';
 import { handleCertificateRoutes } from './routes/certificates';
 import { handlePhieuSubdomain, handlePublicPhieuApi, handlePhieuRoutes } from './routes/phieu';
@@ -100,6 +101,7 @@ const fetch = createWorkerFetch({
     handleTestBankRoutes,
     handleTeacherAiQuotaRoutes,
     handleLiveExamRoutes,
+    handleCompetitionRoutes,
     handleNotificationRoutes,
     handleCertificateRoutes,
     handleAdminCertificateRoutes,

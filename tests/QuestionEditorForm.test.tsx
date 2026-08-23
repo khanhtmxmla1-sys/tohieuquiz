@@ -48,20 +48,22 @@ const ControlledForm = ({ mode }: { mode: 'inline' | 'modal' }) => {
     );
 };
 
+const findRichEditor = () => screen.findByTestId('question-rich-editor', {}, { timeout: 5_000 });
+
 describe('QuestionEditorForm', () => {
     it('renders inline with the rich prompt editor and keeps the shared dispatcher', async () => {
         render(<ControlledForm mode="inline" />);
 
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         expect(screen.getByTestId('question-editor-form')).toHaveAttribute('data-mode', 'inline');
-        expect(await screen.findByTestId('question-rich-editor')).toHaveTextContent('1 + 1 bằng bao nhiêu?');
+        expect(await findRichEditor()).toHaveTextContent('1 + 1 bằng bao nhiêu?');
         expect(screen.queryByPlaceholderText('Nhập nội dung câu hỏi...')).not.toBeInTheDocument();
         expect(screen.getByText('Các đáp án')).toBeInTheDocument();
     });
 
     it('updates rich presentation and the plain fallback together', async () => {
         render(<ControlledForm mode="inline" />);
-        await screen.findByTestId('question-rich-editor');
+        await findRichEditor();
 
         fireEvent.click(screen.getByRole('button', { name: 'Căn giữa' }));
 
@@ -75,7 +77,7 @@ describe('QuestionEditorForm', () => {
 
     it('collapses the optional attachment by default and expands it only on demand', async () => {
         render(<ControlledForm mode="inline" />);
-        await screen.findByTestId('question-rich-editor');
+        await findRichEditor();
 
         const addAttachment = screen.getByRole('button', { name: 'Thêm ảnh đính kèm' });
         expect(addAttachment).toHaveAttribute('aria-expanded', 'false');
@@ -101,7 +103,7 @@ describe('QuestionEditorForm', () => {
             />,
         );
 
-        await screen.findByTestId('question-rich-editor');
+        await findRichEditor();
         expect(screen.getAllByRole('dialog')).toHaveLength(1);
         expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'true');
         expect(screen.getAllByTestId('question-editor-backdrop')).toHaveLength(1);

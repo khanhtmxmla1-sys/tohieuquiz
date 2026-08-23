@@ -1,4 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
+import { auditCompetitionExamLifecycle } from '../../competition/liveExamLifecycleAudit';
 import { QUIZ_SCORING_ENGINE_VERSION, gradeQuiz } from '../../../../src/domain/quiz-scoring';
 import { LiveExamServiceError } from './errors';
 import { getParticipants } from './participantService';
@@ -100,6 +101,17 @@ export async function calculateScoresAndClose(
   `).bind(timestamp, timestamp, sessionId);
 
   await db.batch([...scoringStatements, closeStatement]);
+
+  if (session.participantScopeType === 'SCHOOL_EXAM_ROOM') {
+    await auditCompetitionExamLifecycle(
+      db,
+      sessionId,
+      'EXAM_CLOSED',
+      'system',
+      `live-exam-close-${sessionId}-${timestamp}`,
+      { closedAt: timestamp },
+    );
+  }
 
   try {
     await awardClosedLiveExamRewards(db, sessionId);

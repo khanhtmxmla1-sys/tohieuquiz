@@ -1,0 +1,6 @@
+DROP INDEX IF EXISTS idx_school_exam_reconcile_issues_event;
+DROP INDEX IF EXISTS idx_school_exam_reconcile_issues_run;
+DROP TABLE IF EXISTS competition_school_exam_reconcile_issues;
+DROP TRIGGER IF EXISTS trg_school_exam_reconcile_version_required;
+DROP INDEX IF EXISTS idx_school_exam_reconcile_event_version;
+ALTER TABLE competition_school_exam_reconcile_runs DROP COLUMN version;

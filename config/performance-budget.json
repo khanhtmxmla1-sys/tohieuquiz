@@ -5,6 +5,12 @@
   "singleChunkMinifiedBytes": 500000,
   "allowlist": [
     {
+      "metric": "initialJsGzipBytes",
+      "reason": "Application shell baseline measured at 205227 bytes during Competition V1 release hardening; capped temporary waiver while shell optimization is scheduled.",
+      "expires": "2026-09-30",
+      "maxBytes": 205500
+    },
+    {
       "metric": "lazyChunkGzipBytes",
       "reason": "Self-hosted MathJax replaces the previous CDN runtime and is tracked as a scoped external runtime asset.",
       "expires": "2027-02-07",

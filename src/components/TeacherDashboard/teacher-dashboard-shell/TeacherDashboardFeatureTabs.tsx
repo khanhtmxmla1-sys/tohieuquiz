@@ -7,6 +7,7 @@ import {
   LoginMediaAdminPage,
   AssignmentTab,
   ClassManagementTab,
+  CompetitionDashboardPage,
   GiftShopTab,
   HomeworkTab,
   LiveExamTab,
@@ -22,6 +23,7 @@ interface TeacherDashboardFeatureTabsProps {
   activeTab: TeacherDashboardTab;
   isAdmin: boolean;
   giftShopEnabled: boolean;
+  competitionEnabled: boolean;
   username?: string | null;
 }
 
@@ -51,6 +53,9 @@ export const TeacherDashboardFeatureTabs = (props: TeacherDashboardFeatureTabsPr
     {props.activeTab === 'gift-shop' && props.giftShopEnabled && <GiftShopTab />}
     {props.activeTab === 'homework' && <HomeworkTab />}
     {props.activeTab === 'live-exam' && <LiveExamTab />}
+    {props.activeTab === 'competition' && props.competitionEnabled && (
+      <CompetitionDashboardPage isAdmin={props.isAdmin} username={props.username} />
+    )}
     {props.activeTab === 'certificates' && <TeacherCertificatesPage />}
     {props.activeTab === 'admin-templates' && props.isAdmin && <AdminTemplatesPage />}
     {props.activeTab === 'math-audit' && props.isAdmin && <MathAuditPage />}

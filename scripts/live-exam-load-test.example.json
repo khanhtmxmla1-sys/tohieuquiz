@@ -1,6 +1,9 @@
 {
   "baseUrl": "http://127.0.0.1:8787",
   "sessionId": "replace-with-prepared-live-exam-id",
+  "buildSha": "replace-with-deployed-build-sha",
+  "runtimeConfigVersion": "replace-with-runtime-config-version",
+  "pollingProfileVersion": "replace-with-polling-profile-version",
   "statusRounds": 3,
   "requestTimeoutMs": 12000,
   "warmupRequests": 5,

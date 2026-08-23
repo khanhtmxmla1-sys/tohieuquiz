@@ -27,6 +27,14 @@ const FillInTheBlankRenderer: React.FC<BaseRendererProps> = ({
 
     const pool = useMemo(() => {
         if (!isDragDrop) return [];
+        const presentedPool = Array.isArray((q as any).answerPool)
+            ? (q as any).answerPool.map(String).filter(Boolean)
+            : [];
+        if (presentedPool.length > 0) {
+            return shouldShuffleDragDrop
+                ? seededShuffle(presentedPool, `${q.id}:drag-drop`)
+                : presentedPool;
+        }
         const blankAnswers = Array.isArray(blanksData)
             ? blanksData.map((blank: unknown) => {
                 if (typeof blank === 'string') return blank;

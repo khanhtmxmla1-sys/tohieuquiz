@@ -28,6 +28,9 @@ interface LoadTestConfig {
   requestTimeoutMs?: number;
   warmupRequests?: number;
   probeAnswerKey?: string;
+  buildSha?: string;
+  runtimeConfigVersion?: string;
+  pollingProfileVersion?: string;
 }
 
 interface TimedResponse {
@@ -45,6 +48,7 @@ export interface AcceptanceMetrics {
   duplicateFailures: number;
   d1OverloadErrors: number;
   app5xx: number;
+  networkErrors?: number;
   requestErrors?: number;
 }
 
@@ -85,8 +89,45 @@ export function evaluateAcceptance(metrics: AcceptanceMetrics): AcceptanceResult
   if (metrics.duplicateFailures !== 0) failures.push(`duplicate submission failures: ${metrics.duplicateFailures}`);
   if (metrics.d1OverloadErrors !== 0) failures.push(`D1 overload signals: ${metrics.d1OverloadErrors}`);
   if (metrics.app5xx !== 0) failures.push(`app 5xx responses: ${metrics.app5xx}`);
-  if ((metrics.requestErrors ?? 0) !== 0) failures.push(`request/network errors: ${metrics.requestErrors}`);
+  const requestErrors = metrics.requestErrors ?? 0;
+  const networkErrors = metrics.networkErrors ?? 0;
+  if (requestErrors !== 0) failures.push(`request/network errors: ${requestErrors}`);
+  else if (networkErrors !== 0) failures.push(`network errors: ${networkErrors}`);
   return { passed: failures.length === 0, failures };
+}
+
+export interface BenchmarkReportInput {
+  benchmarkRunId: string;
+  buildSha: string;
+  runtimeConfigVersion: string;
+  pollingProfileVersion: string;
+  statusRounds: number;
+  summary: AcceptanceMetrics & { concurrency: number; [key: string]: unknown };
+}
+
+export function buildBenchmarkReport(input: BenchmarkReportInput) {
+  const metrics = input.summary;
+  const networkErrors = metrics.networkErrors ?? metrics.requestErrors ?? 0;
+  const gates = {
+    lostAnswers: { passed: metrics.lostAnswers === 0, value: metrics.lostAnswers, required: 0 },
+    duplicateFailures: { passed: metrics.duplicateFailures === 0, value: metrics.duplicateFailures, required: 0 },
+    d1Overload: { passed: metrics.d1OverloadErrors === 0, value: metrics.d1OverloadErrors, required: 0 },
+    app5xx: { passed: metrics.app5xx === 0, value: metrics.app5xx, required: 0 },
+    networkErrors: { passed: networkErrors === 0, value: networkErrors, required: 0 },
+    statusP95: { passed: metrics.statusP95Ms < 500, value: metrics.statusP95Ms, required: '<500ms' },
+    submitP95: { passed: metrics.submitP95Ms < 2_000, value: metrics.submitP95Ms, required: '<2000ms' },
+  };
+  const acceptance = evaluateAcceptance({ ...metrics, networkErrors });
+  return {
+    benchmarkRunId: input.benchmarkRunId,
+    build: { sha: input.buildSha },
+    config: { runtimeConfigVersion: input.runtimeConfigVersion },
+    polling: { profileVersion: input.pollingProfileVersion, statusRounds: input.statusRounds },
+    summary: { ...metrics, networkErrors },
+    gates,
+    passed: acceptance.passed,
+    failures: acceptance.failures,
+  };
 }
 
 export function normalizeAuthCookie(student: Pick<LoadStudentFixture, 'cookie' | 'authToken'>): string | null {
@@ -238,6 +279,7 @@ const readConfig = async (path: string): Promise<LoadTestConfig> => {
 const summarizeHttpFailures = (responses: TimedResponse[]) => ({
   app5xx: responses.filter((response) => response.status >= 500 && response.status <= 599).length,
   d1OverloadErrors: responses.filter(isD1Overload).length,
+  networkErrors: responses.filter((response) => response.status === 0).length,
   requestErrors: responses.filter((response) => !response.ok).length,
 });
 
@@ -265,6 +307,7 @@ const compareSubmissionReplay = (first: TimedResponse, replay: TimedResponse): b
 export async function runLiveExamLoadTest(options: CliOptions): Promise<{
   summary: LoadSummary;
   acceptance: AcceptanceResult;
+  report: ReturnType<typeof buildBenchmarkReport>;
 }> {
   const config = await readConfig(options.configPath);
   if (config.students.length < options.concurrency) {
@@ -394,11 +437,20 @@ export async function runLiveExamLoadTest(options: CliOptions): Promise<{
     duplicateFailures,
     d1OverloadErrors: httpFailures.d1OverloadErrors,
     app5xx: httpFailures.app5xx,
+    networkErrors: httpFailures.networkErrors,
     requestErrors: httpFailures.requestErrors,
     elapsedMs: performance.now() - startedAt,
   };
   const acceptance = evaluateAcceptance(summary);
-  return { summary, acceptance };
+  const report = buildBenchmarkReport({
+    benchmarkRunId: runId,
+    buildSha: config.buildSha?.trim() || process.env.LIVE_EXAM_BUILD_SHA?.trim() || 'UNSPECIFIED',
+    runtimeConfigVersion: config.runtimeConfigVersion?.trim() || 'UNSPECIFIED',
+    pollingProfileVersion: config.pollingProfileVersion?.trim() || 'UNSPECIFIED',
+    statusRounds,
+    summary,
+  });
+  return { summary, acceptance, report };
 }
 
 const printRun = (summary: LoadSummary, acceptance: AcceptanceResult) => {
@@ -419,8 +471,9 @@ const isMain = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(res
 if (isMain) {
   try {
     const options = parseCli(process.argv.slice(2));
-    const { summary, acceptance } = await runLiveExamLoadTest(options);
+    const { summary, acceptance, report } = await runLiveExamLoadTest(options);
     printRun(summary, acceptance);
+    process.stdout.write(`\nCapacity certification report\n${JSON.stringify(report, null, 2)}\n`);
     if (!acceptance.passed) process.exitCode = 1;
   } catch (error) {
     console.error('[live-exam-load-test]', error instanceof Error ? error.message : error);

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const root = process.cwd();
 const migrationsDir = path.join(root, 'workers', 'migrations');
 const rollbacksDir = path.join(root, 'workers', 'rollbacks');
+const migrationRollbacksDir = path.join(root, 'workers', 'migrations', 'rollback');
 
 function sqlFiles(dir: string): string[] {
     return fs.readdirSync(dir)
@@ -43,11 +44,25 @@ const ROLLBACK_REQUIRED = [
     '0060',
     '0062',
     '0063',
+    '0069',
+    '0070',
+    '0071',
+    '0072',
+    '0073',
+    '0074',
+    '0075',
+    '0076',
+    '0077',
+    '0078',
 ];
+
+function rollbackFiles(): string[] {
+    return [...sqlFiles(rollbacksDir), ...sqlFiles(migrationRollbacksDir)];
+}
 
 describe('D1 rollback coverage', () => {
     it('ships a rollback script for every high-risk migration', () => {
-        const rollbackPrefixes = new Set(sqlFiles(rollbacksDir).map(numericPrefix));
+        const rollbackPrefixes = new Set(rollbackFiles().map(numericPrefix));
         const missing = ROLLBACK_REQUIRED.filter((prefix) => !rollbackPrefixes.has(prefix));
 
         expect(missing).toEqual([]);
@@ -55,7 +70,7 @@ describe('D1 rollback coverage', () => {
 
     it('never ships a rollback without the forward migration it undoes', () => {
         const migrationPrefixes = new Set(sqlFiles(migrationsDir).map(numericPrefix));
-        const orphans = sqlFiles(rollbacksDir)
+        const orphans = rollbackFiles()
             .filter((name) => !migrationPrefixes.has(numericPrefix(name)));
 
         expect(orphans).toEqual([]);

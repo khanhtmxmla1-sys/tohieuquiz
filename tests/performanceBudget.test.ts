@@ -8,16 +8,20 @@ const roots: string[] = [];
 afterEach(() => { roots.splice(0).forEach(root => rmSync(root, { recursive: true, force: true })); });
 
 describe('performance budget', () => {
-  it('ships only scoped exceptions for the self-hosted MathJax runtime', () => {
+  it('ships only bounded, expiring exceptions for known release baselines', () => {
     const budget = JSON.parse(readFileSync('config/performance-budget.json', 'utf8'));
-    expect(budget.allowlist).toHaveLength(2);
+    expect(budget.allowlist).toHaveLength(3);
     expect(budget.allowlist.map((entry: { metric: string }) => entry.metric).sort()).toEqual([
+      'initialJsGzipBytes',
       'lazyChunkGzipBytes',
       'singleChunkMinifiedBytes',
     ]);
-    expect(budget.allowlist.every((entry: { assetPattern?: string }) => (
-      entry.assetPattern === '^vendor/mathjax/es5/tex-mml-chtml\\.js$'
-    ))).toBe(true);
+    expect(budget.allowlist.find((entry: { metric: string }) => entry.metric === 'initialJsGzipBytes'))
+      .toMatchObject({ maxBytes: 205500, expires: '2026-09-30' });
+    expect(budget.allowlist.filter((entry: { assetPattern?: string }) => entry.assetPattern)
+      .every((entry: { assetPattern?: string }) => (
+        entry.assetPattern === '^vendor/mathjax/es5/tex-mml-chtml\\.js$'
+      ))).toBe(true);
   });
 
   it('discovers initial scripts and styles from index.html', () => {
@@ -131,5 +135,43 @@ describe('performance budget', () => {
     };
     expect(evaluateBudget(report, budget))
       .toContain('singleChunkMinifiedBytes: 900000 bytes exceeds 500000');
+  });
+
+  it('caps aggregate metric exceptions instead of allowing unlimited growth', () => {
+    const report = {
+      files: [],
+      metrics: {
+        initialJsGzipBytes: 205227,
+        cssGzipBytes: 1,
+        lazyChunkGzipBytes: 1,
+        singleChunkMinifiedBytes: 1,
+      },
+    };
+    const budget = {
+      initialJsGzipBytes: 204800,
+      cssGzipBytes: 2,
+      lazyChunkGzipBytes: 2,
+      singleChunkMinifiedBytes: 2,
+      allowlist: [{
+        metric: 'initialJsGzipBytes',
+        reason: 'temporary measured release baseline',
+        expires: '2099-01-01',
+        maxBytes: 205500,
+      }],
+    };
+    expect(evaluateBudget(report, budget)).toEqual([]);
+    expect(evaluateBudget({
+      ...report,
+      metrics: { ...report.metrics, initialJsGzipBytes: 205501 },
+    }, budget)).toContain('initialJsGzipBytes: 205501 bytes exceeds 204800');
+
+    const unboundedBudget = {
+      ...budget,
+      allowlist: budget.allowlist.map(({ maxBytes: _maxBytes, ...entry }) => entry),
+    };
+    expect(evaluateBudget(report, unboundedBudget)).toEqual(expect.arrayContaining([
+      'Invalid performance allowlist entry for initialJsGzipBytes: maxBytes is required',
+      'initialJsGzipBytes: 205227 bytes exceeds 204800',
+    ]));
   });
 });

@@ -18,7 +18,7 @@ import { PageLoading } from './PageLoading';
 import { PublicPageLayout } from './PublicPageLayout';
 import { RootView } from './RootView';
 import type { RoutePath } from './routeTypes';
-import { isManualQuizWorkspaceEnabled } from '../config/featureFlags';
+import { isCompetitionV1Enabled, isManualQuizWorkspaceEnabled } from '../config/featureFlags';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
 
@@ -62,6 +62,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
     const quizStore = useQuizStore();
     const navigate = useNavigate();
     const location = useLocation();
+    const competitionV1Enabled = isCompetitionV1Enabled();
     const onNavigate = (path: RoutePath) => navigate(path);
     const goBackHome = () => {
         quizStore.goHome();
@@ -90,6 +91,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route path="/teacher/results" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/classes" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/live-exams" element={protectedRoute('teacher', <TeacherDashboard />)} />
+            <Route path="/teacher/competition" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/gift-shop" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/homework" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/certificates" element={protectedRoute('teacher', <TeacherDashboard />)} />
@@ -114,6 +116,12 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route path="/student/practice/:subjectId" element={protectedRoute('student', <StudentDashboardUI />)} />
             <Route path="/student/achievements" element={protectedRoute('student', <StudentDashboardUI />)} />
             <Route path="/student/results" element={protectedRoute('student', <StudentDashboardUI />)} />
+            <Route
+                path="/student/competition"
+                element={competitionV1Enabled
+                    ? protectedRoute('student', <StudentDashboardUI />)
+                    : <Navigate to="/student/dashboard" replace />}
+            />
             <Route path="/student/live-exam/:sessionId" element={protectedRoute('student', <StudentDashboardUI />)} />
             <Route
                 path="/student/shop"

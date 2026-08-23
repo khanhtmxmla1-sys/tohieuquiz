@@ -1,4 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
+import { auditCompetitionExamLifecycle } from '../../competition/liveExamLifecycleAudit';
 import { LiveExamServiceError } from './errors';
 import { autoSubmitIncompleteAnswers, calculateScoresAndClose } from './scoringService';
 import { getLiveExamById } from './sessionRepository';
@@ -88,6 +89,9 @@ export async function startExam(
     WHERE id = ?
   `).bind(startedAt, calculateEndTime(startedAt, session.duration), now(), sessionId).run();
   await recordControlAudit(db, sessionId, teacherId, 'start_exam', requestId);
+  if (session.participantScopeType === 'SCHOOL_EXAM_ROOM') {
+    await auditCompetitionExamLifecycle(db, sessionId, 'EXAM_STARTED', teacherId, requestId, { startedAt });
+  }
 }
 
 export async function pauseExam(

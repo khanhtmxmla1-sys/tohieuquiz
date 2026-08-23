@@ -37,6 +37,7 @@ jobs:
       VITE_FEATURE_AI_BLUEPRINT_V3: 'false'
       VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
       VITE_FEATURE_PARENT_PORTAL_V1: 'false'
+      VITE_FEATURE_COMPETITION_V1: 'false'
       VITE_GIFT_SHOP_MODE: api
       RELEASE_BASE_REF: ${{ inputs.base_ref || github.event.pull_request.base.sha || 'origin/main' }}
     steps:
@@ -66,6 +67,9 @@ jobs:
 
       - name: Verify migration and rollback contracts
         run: npm run test:run -- tests/d1MigrationLayout.test.ts tests/d1RollbackCoverage.test.ts tests/freshD1Bootstrap.test.ts
+
+      - name: Verify Competition V1 release contracts
+        run: npm run test:run -- tests/competitionReleaseHardening.test.ts tests/competitionReleaseMigrationRehearsal.worker.test.ts tests/competitionCapacityBenchmark.test.ts tests/competitionCapacityCertification.test.ts tests/competitionCapacityPreflight.test.ts
 
       - name: Write release-readiness policy report
         run: npm run release:readiness -- --base="$RELEASE_BASE_REF" --output=reports/release-readiness-policy.json
@@ -113,6 +117,7 @@ jobs:
           VITE_FEATURE_AI_BLUEPRINT_V3: 'false'
           VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
+          VITE_FEATURE_COMPETITION_V1: 'true'
           VITE_GIFT_SHOP_MODE: api
 
       - name: Upload stubbed failure screenshots
@@ -158,6 +163,7 @@ jobs:
           VITE_FEATURE_AI_BLUEPRINT_V3: 'true'
           VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
+          VITE_FEATURE_COMPETITION_V1: 'false'
           VITE_GIFT_SHOP_MODE: api
 
       - name: Upload Blueprint V3 failure screenshots
@@ -203,6 +209,7 @@ jobs:
           VITE_FEATURE_AI_BLUEPRINT_V3: 'true'
           VITE_FEATURE_AI_SVG_DIAGRAMS: 'true'
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
+          VITE_FEATURE_COMPETITION_V1: 'false'
           VITE_GIFT_SHOP_MODE: api
 
       - name: Upload AI SVG failure screenshots

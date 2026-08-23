@@ -19,6 +19,7 @@ const TEACHER_DASHBOARD_TABS = [
     'gift-shop',
     'homework',
     'live-exam',
+    'competition',
     'certificates',
     'admin-templates',
     'math-audit',

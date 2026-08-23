@@ -12,7 +12,7 @@ import {
   type TeacherDashboardTab,
   useTeacherDashboardUIStore,
 } from '../../../stores/useTeacherDashboardUIStore';
-import { isManualQuizWorkspaceEnabled } from '../../../config/featureFlags';
+import { isCompetitionV1Enabled, isManualQuizWorkspaceEnabled } from '../../../config/featureFlags';
 import { buildManualQuizSeed } from '../../../features/manual-quiz-workspace/domain/manualQuizSeed';
 import { useManualQuizWorkspaceStore } from '../../../features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 import { TeacherDashboardLayout } from './TeacherDashboardLayout';
@@ -41,7 +41,8 @@ const TeacherDashboard = () => {
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const giftShopEnabled = isGiftShopFeatureEnabled();
   const manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled();
-  const activeTab = isDashboardTabAllowed(requestedTab, authStore.isAdmin, giftShopEnabled)
+  const competitionEnabled = isCompetitionV1Enabled();
+  const activeTab = isDashboardTabAllowed(requestedTab, authStore.isAdmin, giftShopEnabled, competitionEnabled)
     ? requestedTab
     : 'overview';
   const accountGate = useTeacherAccountGate();
@@ -87,6 +88,7 @@ const TeacherDashboard = () => {
     manualQuizWorkspaceEnabled,
     isAdmin: authStore.isAdmin,
     giftShopEnabled,
+    competitionEnabled,
   });
   const accessCode = useAccessCodeEditor();
   const runLegacyLogout = useTeacherLogout(setLegacyActiveTab, clearAssignmentComposerDraft);
@@ -104,6 +106,7 @@ const TeacherDashboard = () => {
     () => navigate(getTeacherRoute('overview'), { replace: true }),
     authStore.isAdmin,
     giftShopEnabled,
+    competitionEnabled,
   );
 
   const displayName = getTeacherDisplayName(authStore.teacherName, authStore.username);
@@ -119,6 +122,7 @@ const TeacherDashboard = () => {
       isMobileMenuOpen={isMobileMenuOpen}
       setIsMobileMenuOpen={setIsMobileMenuOpen}
       giftShopEnabled={giftShopEnabled}
+      competitionEnabled={competitionEnabled}
       passwordGate={accountGate.passwordGate}
       completePasswordChange={accountGate.completePasswordChange}
       displayName={displayName}

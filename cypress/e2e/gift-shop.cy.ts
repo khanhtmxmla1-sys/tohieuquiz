@@ -208,6 +208,7 @@ const openGiftShopAsStudent = () => {
   // `@studentProfile` chỉ xác nhận API đã trả về; React vẫn có thể đang commit dashboard
   // trong lần chạy CI lạnh. Chờ đúng điều kiện người dùng có thể thao tác thay vì sleep.
   cy.contains('button', 'Xem mục tiêu quà tặng', { timeout: 10_000 })
+    .scrollIntoView()
     .should('be.visible')
     .click();
   cy.contains('h1', 'Tiệm tạp hóa').should('be.visible');

@@ -66,7 +66,8 @@ beforeEach(() => {
       id TEXT PRIMARY KEY,
       status TEXT NOT NULL,
       closed_at TEXT,
-      archived_at TEXT
+      archived_at TEXT,
+      participant_scope_type TEXT NOT NULL DEFAULT 'CLASS'
     );
     CREATE TABLE live_exam_participants (
       id TEXT PRIMARY KEY,
@@ -82,12 +83,13 @@ beforeEach(() => {
     INSERT INTO students VALUES
       ('student-a', 'student-a', 100),
       ('student-b', 'student-b', 20),
-      ('student-old', 'student-old', 10);
+      ('student-old', 'student-old', 10),
+      ('student-school', 'student-school', 30);
     INSERT INTO user_pets(username, total_exp) VALUES
-      ('student-a', 0), ('student-b', 0), ('student-old', 0);
+      ('student-a', 0), ('student-b', 0), ('student-old', 0), ('student-school', 0);
     INSERT INTO live_exam_sessions VALUES
-      ('session-1', 'closed', '2026-08-11T07:00:00.000Z', NULL),
-      ('session-old', 'closed', '2026-08-06T13:29:07.885Z', NULL);
+      ('session-1', 'closed', '2026-08-11T07:00:00.000Z', NULL, 'CLASS'),
+      ('session-old', 'closed', '2026-08-06T13:29:07.885Z', NULL, 'CLASS');
     INSERT INTO live_exam_participants VALUES
       ('p-a', 'session-1', 'student-a', 'student-a', 9.8, 1, 10, 0, '2026-08-11T07:00:00.000Z'),
       ('p-b', 'session-1', 'student-b', 'student-b', 7.4, 6, 7, 3, '2026-08-11T07:01:00.000Z'),
@@ -144,5 +146,26 @@ describe('live exam reward ledger', () => {
     expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger
       WHERE source_type='LIVE_EXAM' AND source_key='session-old'`).get()).toEqual({ count: 0 });
     expect(sqlite.prepare(`SELECT coins FROM students WHERE id='student-old'`).get()).toEqual({ coins: 10 });
+  });
+
+  it('never awards or retries LIVE_EXAM gamification for SCHOOL_EXAM_ROOM sessions', async () => {
+    sqlite.exec(`
+      INSERT INTO live_exam_sessions VALUES
+        ('session-school', 'closed', '2026-08-11T07:05:00.000Z', NULL, 'SCHOOL_EXAM_ROOM');
+      INSERT INTO live_exam_participants VALUES
+        ('p-school', 'session-school', 'student-school', 'student-school', 10, 1, 10, 0,
+          '2026-08-11T07:04:00.000Z');
+    `);
+
+    await awardClosedLiveExamRewards(db as any, 'session-school');
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger
+      WHERE source_type='LIVE_EXAM' AND source_key='session-school'`).get()).toEqual({ count: 0 });
+    expect(sqlite.prepare(`SELECT coins FROM students WHERE id='student-school'`).get()).toEqual({ coins: 30 });
+    expect(sqlite.prepare(`SELECT total_exp FROM user_pets WHERE username='student-school'`).get()).toEqual({ total_exp: 0 });
+
+    const processed = await retryMissingClosedLiveExamRewards(db as any);
+    expect(processed).toBe(1);
+    expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger
+      WHERE source_type='LIVE_EXAM' AND source_key='session-school'`).get()).toEqual({ count: 0 });
   });
 });

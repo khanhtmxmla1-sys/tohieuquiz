@@ -27,6 +27,13 @@ export const handleResultsRoute: LiveExamRouteHandler = async (context) => {
     const session = await LiveExamService.getLiveExamById(context.db, sessionId);
     if (!session) return errorResponse('Session not found', 404);
     if (session.status !== 'closed') return errorResponse('Results not available yet', 400);
+    if (session.participantScopeType === 'SCHOOL_EXAM_ROOM' && session.resultVisibility === 'WITHHELD') {
+      return jsonResponse({
+        status: 'error',
+        code: 'RESULTS_WITHHELD',
+        message: 'Results are withheld until competition results are published',
+      }, 409);
+    }
 
     const participant = await context.db.prepare(`
       SELECT * FROM live_exam_participants

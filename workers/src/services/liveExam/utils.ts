@@ -41,6 +41,13 @@ export function mapSessionRow(row: any): LiveExamSession & { chatEnabled?: boole
     teacherId: String(row.teacher_id),
     classId: String(row.class_id || ''),
     className: row.class_name ? String(row.class_name) : undefined,
+    participantScopeType: row.participant_scope_type === 'SCHOOL_EXAM_ROOM'
+      ? 'SCHOOL_EXAM_ROOM'
+      : 'CLASS',
+    participantScopeId: row.participant_scope_id
+      ? String(row.participant_scope_id)
+      : (row.class_id ? String(row.class_id) : undefined),
+    resultVisibility: row.result_visibility === 'WITHHELD' ? 'WITHHELD' : 'PUBLISHED',
     participantCount: row.participant_count === undefined ? undefined : Number(row.participant_count),
     submittedCount: row.submitted_count === undefined ? undefined : Number(row.submitted_count),
     averageScore: row.average_score === null || row.average_score === undefined

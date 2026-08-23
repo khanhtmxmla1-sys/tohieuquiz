@@ -1,0 +1,4 @@
+DROP INDEX IF EXISTS idx_school_exam_exports_processing;
+ALTER TABLE competition_school_exam_exports DROP COLUMN updated_at;
+ALTER TABLE competition_school_exam_exports DROP COLUMN processing_started_at;
+ALTER TABLE competition_school_exam_exports DROP COLUMN attempt_count;

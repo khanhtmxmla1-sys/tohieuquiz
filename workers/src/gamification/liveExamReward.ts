@@ -32,7 +32,7 @@ export const awardClosedLiveExamRewards = async (
   sessionId: string,
 ): Promise<void> => {
   const session = await db.prepare(`
-    SELECT id, status
+    SELECT id, status, participant_scope_type
     FROM live_exam_sessions
     WHERE id = ?
     LIMIT 1
@@ -41,6 +41,7 @@ export const awardClosedLiveExamRewards = async (
   if (String(session.status) !== 'closed') {
     throw new Error('Live exam rewards can only be awarded after the session is closed');
   }
+  if (String(session.participant_scope_type || 'CLASS') === 'SCHOOL_EXAM_ROOM') return;
 
   const participants = await db.prepare(`
     SELECT id, student_id, username, score, rank, correct_count, wrong_count, submitted_at
@@ -107,6 +108,7 @@ export const retryMissingClosedLiveExamRewards = async (
     WHERE sessions.status = 'closed'
       AND sessions.archived_at IS NULL
       AND sessions.closed_at IS NOT NULL
+      AND COALESCE(sessions.participant_scope_type, 'CLASS') <> 'SCHOOL_EXAM_ROOM'
       AND sessions.closed_at >= ?
       AND participants.score IS NOT NULL
       AND participants.rank IS NOT NULL

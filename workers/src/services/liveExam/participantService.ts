@@ -11,7 +11,6 @@ export async function joinSession(
 ): Promise<LiveExamParticipant> {
   const session = await getLiveExamByAccessCode(db, params.accessCode);
   if (!session) throw new LiveExamServiceError('Invalid access code', 404);
-  if (!session.classId) throw new LiveExamServiceError('Session class is not configured', 409);
 
   const mayJoinWaiting = session.status === 'waiting';
   const mayJoinActive = session.status === 'active' && session.settings.allowLateJoin;
@@ -25,8 +24,52 @@ export async function joinSession(
     WHERE id = ? AND archived_at IS NULL
   `).bind(params.studentId).first<{ id: string; class_id: string }>();
   if (!student) throw new LiveExamServiceError('Student not found or archived', 404);
-  if (student.class_id !== session.classId) {
-    throw new LiveExamServiceError('Forbidden: Student is not in the assigned class', 403);
+
+  const participantScopeType = session.participantScopeType || 'CLASS';
+  if (participantScopeType === 'CLASS') {
+    if (!session.classId) throw new LiveExamServiceError('Session class is not configured', 409);
+    if (student.class_id !== session.classId) {
+      throw new LiveExamServiceError('Forbidden: Student is not in the assigned class', 403);
+    }
+  } else {
+    if (!session.participantScopeId) {
+      throw new LiveExamServiceError('School exam room scope is not configured', 409);
+    }
+    const retest = await db.prepare(`
+      SELECT id, student_id, status, expires_at
+      FROM competition_school_exam_retests
+      WHERE live_exam_session_id = ? LIMIT 1
+    `).bind(session.id).first<{
+      id: string;
+      student_id: string;
+      status: string;
+      expires_at: string | null;
+    }>();
+    if (retest) {
+      if (retest.student_id !== params.studentId) {
+        throw new LiveExamServiceError('Forbidden: Student is not authorized for this retest', 403);
+      }
+      if (retest.status !== 'PROVISIONED') {
+        throw new LiveExamServiceError('Retest authorization is not active', 409);
+      }
+      const expiresAt = Date.parse(String(retest.expires_at || ''));
+      if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+        throw new LiveExamServiceError('Retest authorization has expired', 409);
+      }
+    }
+    const roomMember = await db.prepare(`
+      SELECT id, original_class_id
+      FROM competition_school_exam_members
+      WHERE room_id = ? AND student_id = ?
+        AND status <> 'VOID'
+      LIMIT 1
+    `).bind(session.participantScopeId, params.studentId).first<{
+      id: string;
+      original_class_id: string;
+    }>();
+    if (!roomMember) {
+      throw new LiveExamServiceError('Forbidden: Student is not assigned to this school exam room', 403);
+    }
   }
 
   const existing = await db.prepare(`

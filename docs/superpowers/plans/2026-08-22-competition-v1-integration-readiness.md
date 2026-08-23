@@ -1,0 +1,476 @@
+# Competition V1 Integration Readiness — Implementation Plan
+
+**Spec:** `docs/superpowers/specs/2026-08-22-competition-v1-integration-readiness-design.md`
+
+**Branch:** `feat/competition-v1`; the exact candidate SHA is recorded in each rehearsal evidence artifact.
+
+**Status:** WP1–WP7 COMPLETE — FINAL CANDIDATE GO, PENDING EVIDENCE COMMIT APPROVAL
+
+**Date:** 2026-08-22
+
+**Execution note:** WP0 documentation, WP1 canonical audit lifecycle, WP2 bounded-read/artifact-authorization changes, the WP3 representative anonymized migration/application-rollback rehearsal, the WP4 real Queue/R2/certificate journey, the WP5 environment-backed capacity certification, the WP6 real service-boundary integration/security journey, and the WP7 final candidate gates are complete. WP4 evidence is bound to candidate `f14650b88417bdcddf214b1d5c1b73e0f44d3276`; WP5 evidence is bound to candidate `cbe6695592f7ebdccf8433f5f36b10d21e04d2eb`; WP6 evidence is bound to candidate `42a8bd3d965884fd8d4e1f11b00cc374d7faf8e4`; final WP7 evidence is bound to candidate `1106d8bd07b1d8c730de20216c851fc37b4319c0` with rollback SHA `aad1d771cf4de89c7893cd2a0b1ba08835f33865` and rollout stage `internal`. WP6 passed 50 journey steps and 14 negative-security cases on isolated staging, with two publications, one correction, two canonical results, two ready exports, and one ready certificate. WP7 passed 606 Vitest files/3,006 tests, all Cypress variants, typecheck/lint/build/security/performance/migration gates, SHA-matched capacity certification at concurrency 100, runtime preflight, release readiness, and low-risk GitNexus review. No production write, push, PR, or merge has occurred.
+
+---
+
+## 1. Objective
+
+Close the release-blocking gaps identified by the approved Competition V1 Integration Readiness Specification and produce evidence sufficient for a feature-branch PR review.
+
+This plan does not authorize changes to `main`, push, PR, merge, deployment, feature enablement, or destructive database rollback. Production enablement remains a separate rollout approval.
+
+The plan is complete only when the branch is a reviewable integration candidate. A local passing test suite is not by itself an integration or production certificate.
+
+## 2. Current Baseline
+
+Local audit evidence at `cfcef5e`:
+
+- Competition regression: 20 files, 117 tests passed.
+- Root and Workers typecheck: passed.
+- Lint and production build: passed.
+- Security scan, history scan, and policy gates: passed.
+- Migration/release rehearsal: 10 tests passed.
+- Branch is 20 commits ahead of `origin/main`.
+
+Known gaps:
+
+| ID | Priority | Gap |
+|---|---|---|
+| GAP-P0-01 | P0 | No real capacity certificate bound to a candidate build SHA. |
+| GAP-P0-02 | P0 | No representative D1 forward-migration rehearsal evidence. |
+| GAP-P0-03 | P0 | No real Queue/R2 XLSX and certificate journey evidence. |
+| GAP-P0-04 | P0 | No candidate/rollback SHA pair and rollout stage for enabled readiness. |
+| GAP-P1-01 | P1 | Audit lifecycle events are incomplete or named inconsistently. |
+| GAP-P1-02 | P1 | E2E evidence is primarily stubbed. |
+| GAP-P1-03 | P1 | Task-level traceability was reconstructed; Tasks 1–5 share one commit. |
+| GAP-P1-04 | P1 | Bounded reads are not proven for every school-wide path. |
+
+## 3. Delivery Rules
+
+All work remains in `C:\quizpro\.worktrees\competition-v1` on `feat/competition-v1`. `C:\quizpro` on `main` is read-only and existing unrelated dirty files remain untouched.
+
+Each work package receives a focused local commit only after its verification gate and explicit user approval. No stage/commit/push is automatic.
+
+Recommended commit boundaries:
+
+```text
+docs(competition): add integration readiness spec and plan
+fix(competition): complete canonical audit lifecycle
+fix(competition): harden bounded reads and artifact authorization
+test(competition): add migration and integration journeys
+chore(competition): close capacity and release evidence gates
+```
+
+Executable changes use RED → GREEN → refactor. Documentation-only work is TDD N/A.
+
+Before editing any existing function/class/method, refresh GitNexus if stale and run upstream impact for every symbol. Report risk and stop for confirmation on HIGH/CRITICAL. Before each commit, run `detect_changes` against `origin/main`.
+
+## 4. Work Package Order
+
+| WP | Name | Priority | Dependency | Main output |
+|---|---|---|---|---|
+| WP0 | Spec and traceability package | P1 | Spec approval | Approved docs and task matrix |
+| WP1 | Canonical audit lifecycle | P1 | WP0 | Complete audit events/tests |
+| WP2 | Bounded reads and artifact authorization | P1 | WP0 | Safe pagination/download contracts |
+| WP3 | Real D1 migration rehearsal | P0 | WP0 | Forward/recovery evidence |
+| WP4 | Real Queue/R2/certificate integration | P0 | WP1, WP2 | Artifact journey evidence |
+| WP5 | Candidate capacity certification | P0 | WP3 | SHA-bound certified report |
+| WP6 | Integration E2E and security matrix | P1 | WP1–WP5 | Environment-backed acceptance |
+| WP7 | Final candidate gates | P0/P1 | WP0–WP6 | GO/NO-GO package |
+
+WP3 and WP5 require an approved candidate environment. Local SQLite fixtures and stubbed E2E do not satisfy those gates.
+
+## 5. WP0 — Spec and Traceability
+
+**Code:** N/A. **TDD:** N/A (documentation-only).
+
+Files:
+
+- `docs/superpowers/specs/2026-08-22-competition-v1-integration-readiness-design.md`
+- `docs/superpowers/plans/2026-08-22-competition-v1-integration-readiness.md`
+
+Tasks:
+
+1. Preserve stable requirement IDs and the P0/P1/P2 gap register.
+2. Maintain Task 1–24 → commit → test → evidence mapping.
+3. Record that Tasks 1–5 share `d605f91`; do not rewrite history to manufacture task commits.
+4. Add artifact paths for migration, capacity, Queue/R2, and integration evidence.
+5. Record owners for retention, alert thresholds, form reuse warning, and environment access.
+
+Exit:
+
+- [ ] Spec and plan are internally consistent.
+- [ ] Each gap has an owner, evidence, and blocking rule.
+- [ ] User approves this implementation plan.
+
+## 6. WP1 — Canonical Audit Lifecycle
+
+**Priority:** P1. **TDD:** Required. **Risk:** Medium/high because services and Live Exam adapters are shared.
+
+Primary files/surfaces:
+
+- `workers/src/competition/campaignService.ts`
+- `workers/src/competition/roundService.ts`
+- `workers/src/competition/eligibilityService.ts`
+- `workers/src/competition/schoolExamService.ts`
+- `workers/src/competition/schoolExamIncidentRetestService.ts`
+- `workers/src/competition/schoolExamReconcileService.ts`
+- `workers/src/competition/schoolExamPublicationRankingService.ts`
+- `workers/src/competition/schoolExamResultCorrectionService.ts`
+- `workers/src/competition/schoolExamCertificateService.ts`
+- `workers/src/competition/schoolExamExportService.ts`
+- `workers/src/competition/schoolExamExportProcessor.ts`
+- `workers/src/routes/competitions/index.ts`
+- `competition_school_exam_audit` migration/table and related worker tests.
+
+Canonical action mapping:
+
+```text
+CAMPAIGN_CREATED, CAMPAIGN_UPDATED, AUDIENCE_SNAPSHOTTED
+ROUND_CONFIG_CHANGED, ROUND_FINALIZED, ROUND_ATTEMPT_VOIDED
+ELIGIBILITY_FINALIZED, ELIGIBILITY_OVERRIDDEN
+ROOM_CREATED, ROOM_MEMBER_CHANGED, CAPACITY_PREFLIGHT_RUN
+EXAM_PROVISIONED, EXAM_STARTED, EXAM_CLOSED
+INCIDENT_REPORTED, RETEST_GRANTED
+RECONCILE_STARTED, RECONCILE_RESOLVED
+RESULTS_PUBLISHED, RESULT_CORRECTED
+CERTIFICATE_BATCH_CREATED, XLSX_EXPORT_REQUESTED, XLSX_EXPORTED
+```
+
+Implementation-specific names such as `SCHOOL_EXAM_ROOM_CREATED` may remain only with an explicit canonical mapping and test.
+
+RED tests:
+
+1. room-member changes contain event, room, student, original class, snapshot, actor, and request ID;
+2. preflight records certified profile and peak without sensitive data;
+3. provisioning records counts and never logs access codes;
+4. Live Exam start/close maps to Competition event/room;
+5. reconcile emits started and resolved events;
+6. certificate creation emits publication/ranking versions;
+7. export request and completion emit separate events;
+8. audit payload rejects answers, credentials, tokens, access codes, and raw bodies;
+9. same request ID is idempotent.
+
+Implementation order:
+
+1. Add a typed action union/mapping helper.
+2. Add common event/event-scope metadata.
+3. Instrument missing service transitions.
+4. Add Live Exam lifecycle mapping without changing normal CLASS sessions.
+5. Refactor only after GREEN.
+
+Rollback is additive: disable only new emission if operationally necessary; never drop audit data.
+
+Exit:
+
+- [ ] Focused audit tests pass.
+- [ ] Competition and normal Live Exam regressions pass.
+- [ ] Security scan proves payload sanitization.
+- [ ] GitNexus impact is recorded for every edited symbol.
+
+## 7. WP2 — Bounded Reads and Artifact Authorization
+
+**Priority:** P1. **TDD:** Required.
+
+**Status:** COMPLETE LOCALLY — committed on the feature branch; awaiting the next work-package gate.
+
+Inspect/edit only after symbol impact:
+
+- `workers/src/routes/competitions/index.ts`
+- `workers/src/competition/schoolExamExportService.ts`
+- `workers/src/competition/schoolExamCertificateService.ts`
+- `workers/src/competition/schoolExamPublicationRankingService.ts`
+- `src/services/api/routes/competitions.ts`
+- `schemas/competition.schema.ts`
+- authorization policies and tests.
+
+Required behavior:
+
+1. progress, eligibility, ranking, incidents, reconcile, corrections, exports, and certificate reads are bounded;
+2. cursor/page-token semantics are explicit and stable;
+3. Teacher class scope is enforced in the query;
+4. export download rechecks event, scope, publication, and actor scope;
+5. R2 key is derived server-side and cannot be substituted by user input;
+6. certificate reads cannot cross event/publication scope.
+
+RED tests must cover over-limit requests, invalid cursors, cross-class pagination, guessed export IDs, unpublished artifacts, R2 key substitution, and Admin school-wide access.
+
+Exit:
+
+- [x] Contract and authorization matrix updated through cursor/query registry and certificate detail route.
+- [x] No unbounded read remains in the affected progress, eligibility, ranking, incident, retest, reconcile-issue, correction, and certificate/export artifact paths.
+- [x] Focused and relevant regression tests pass; full Competition and Live Exam suites remain green.
+
+## 8. WP3 — Real D1 Migration Rehearsal
+
+**Priority:** P0. **TDD:** Migration contract/rehearsal tests. **Risk:** High.
+
+**Status:** PASS — REPRESENTATIVE FORWARD + ISOLATED STAGING APPLICATION ROLLBACK. Candidate `be38890f9f9bac7e9180996b302580df1a33b25b` passed 0069→0078 against a production-derived, locally restored, anonymized 0068 snapshot, then passed an application rollback rehearsal to known-good SHA `aad1d771cf4de89c7893cd2a0b1ba08835f33865` on isolated Cloudflare staging. The source export was read-only and encrypted, plaintext/local restore material was removed after anonymization, and no production resource was written.
+
+Recorded representative evidence:
+
+- anonymized snapshot SHA-256: `bec9d706ce36fed39307add5b72837a3e149ddc388c839dd4c4850a04588c81f`;
+- retained protected rows: 5 teachers, 3 classes, 4 students, 41 quizzes, 34 results, 2 Live Exam sessions, 2 participants, 2 activity rows, 2 answer snapshots, and 155 connection events;
+- 643 sensitive or quasi-identifying source values were removed from the retained protected columns, including credentials, names, access codes, answers, timestamps, and educational scores;
+- migrations 0069–0078: 10/10 PASS;
+- foreign-key violations: 0; missing tables/indexes: 0; existing protected row deltas: 0;
+- Competition data was not created in production; all forward migration writes used isolated local D1 state.
+
+Recorded application rollback evidence:
+
+- candidate and rollback code were deployed sequentially to the same isolated staging Worker with staging-only D1, R2, and Queue bindings;
+- candidate and rollback health/API smoke checks passed on the active `workers.dev` deployment;
+- the rollback changed application code only; no database downgrade was executed;
+- the staging registry remained at `0078_competition_result_corrections.sql`, with 26/26 expected tables, 48/48 expected indexes, and 0 foreign-key violations;
+- a synthetic Competition campaign sentinel remained unchanged across candidate → rollback;
+- protected representative row counts remained unchanged and no production route, secret, database, bucket, or queue was referenced;
+- the isolated staging Worker, D1 database, three R2 buckets, and two queues were deleted after evidence capture.
+
+Preconditions:
+
+- approved anonymized/representative database snapshot;
+- environment owner and backup location;
+- candidate SHA;
+- migration registry at 0068;
+- no production write without separate approval.
+
+Procedure:
+
+1. Record schema, registry, counts, and indexes at baseline.
+2. Apply 0069–0078 in order.
+3. Record duration, warnings, registry, schema, indexes, and count deltas.
+4. Run integrity queries for campaign, audience, round, exam, audit, publication, correction, export, and certificate tables.
+5. Test rerun/no-op behavior where supported.
+6. Restore a copy and rehearse application rollback with Competition disabled.
+7. Keep destructive database rollback separate and explicitly approved.
+
+Evidence artifact:
+
+```text
+competition-migration-rehearsal-<candidate-sha>.json
+```
+
+It includes candidate SHA, snapshot hash, registry before/after, per-migration timing, integrity results, row deltas, failure/recovery, operator, and environment.
+
+Exit:
+
+- [x] Empty bootstrap and 0068→0078 forward migrations pass in isolated local D1 state.
+- [x] Existing Live Exam data is unchanged unexpectedly in the 0068→0078 rehearsal.
+- [x] Registry/indexes/FK checks are correct after each forward migration.
+- [x] Representative forward migration passes against an approved anonymized snapshot.
+- [x] Application rollback preserves Competition data.
+- [x] Evidence is archived and linked to the release candidate.
+
+No representative database means WP3 is BLOCKED, not PASS.
+
+## 9. WP4 — Real Queue/R2/Certificate Integration
+
+**Priority:** P0. **TDD:** Required. **Risk:** High asynchronous/data-integrity impact.
+
+**Status:** COMPLETE. The candidate-bound journey for `f14650b88417bdcddf214b1d5c1b73e0f44d3276` passed real Queue acceptance, R2 XLSX readback, certificate parent/class/batch/certificate linkage, terminal retry behavior, and sanitized audit evidence. The XLSX reached `READY` on attempt 1 with the required MIME, ZIP signature, 9,639-byte size, and SHA-256 `6887a5d7ab0c8dae5bba0829f0833752c19bc353df327bfd7be67a3d0cc1a1cb`. The controlled failure reached `FAILED` on attempt 3 and released its processing lock. The certificate batch and PNG both reached `sent`. The isolated staging Workers, Queues, R2 buckets, and D1 database were deleted after evidence capture.
+
+Journey:
+
+```text
+Published event → certificate batch → certificate processor
+                → XLSX request → Queue → processor → R2
+                → authorized status/read/download
+```
+
+Cases:
+
+1. duplicate certificate/export requests are idempotent;
+2. transient queue failure retries and terminal failure is visible;
+3. generated XLSX is valid and has the required MIME type;
+4. class export contains only the original class;
+5. school export is Admin-scoped;
+6. publication/ranking version is enforced;
+7. download authorization is checked again;
+8. audit events are present and sanitized.
+
+Evidence artifact:
+
+```text
+competition-artifact-journey-<candidate-sha>.json
+```
+
+Include request IDs, versions, queue attempts, artifact checksums/sizes, and authorization outcomes; exclude credentials, tokens, and access codes.
+
+Local rehearsal artifact (outside the repository):
+
+```text
+competition-artifact-journey-<candidate-sha>.json
+```
+
+The candidate-bound artifact records local and external `PASS`, with no blocking gaps:
+
+```text
+status: PASS
+externalStatus: PASS
+blockingGaps: []
+```
+
+Exit requires real Queue acceptance, real R2 artifact validation, certificate linkage, retry behavior, and audit evidence.
+
+## 10. WP5 — Candidate Capacity Certification
+
+**Priority:** P0. **Risk:** High student-experience/integrity impact.
+
+**Status:** COMPLETE — REAL CANDIDATE CERTIFICATION PASS. Candidate `cbe6695592f7ebdccf8433f5f36b10d21e04d2eb` passed the environment-backed benchmark at concurrency 100: status P95 `411.0954 ms`, submit P95 `1193.4543 ms`, and all integrity/error counters zero. Certification persisted profile `live-capacity-45c28b1c-3ba3-4139-80bb-8f50f91c9e28` with runtime config `wp5-staging-status-one-query-v3` and polling profile `wp5-status-3-rounds-v1`; the School Exam preflight consumed that profile and returned `READY` for planned concurrency 100. The benchmark, certified profile, preflight response, audit actions, and failure-closed checks are recorded in the external evidence artifact `outputs/competition-wp5-709c759/wp5-evidence-cbe6695.json`.
+
+Inputs are candidate deployment SHA, runtime/polling config, representative room plan/forms, environment owner, and rollback SHA.
+
+All gates pass together:
+
+```text
+lostAnswers = 0
+duplicateFailures = 0
+d1Overload = 0
+app5xx = 0
+networkErrors = 0
+statusP95Ms < 500
+submitP95Ms < 2000
+```
+
+Scenarios include check-in burst, active polling/autosave, reconnect, synchronized submit, teacher monitoring, simultaneous rooms, separate shifts, and available failure injection.
+
+Procedure:
+
+1. Run benchmark against candidate SHA.
+2. Preserve raw report.
+3. Run `npm run capacity:certify -- --input <report>`.
+4. Verify report `build.sha` equals `COMPETITION_RELEASE_SHA`.
+5. Persist the profile only after certification.
+6. Use the profile in School Exam preflight.
+
+Exit requires a certified report, matching SHA/config, and fail-closed readiness on any mismatch. A failed latency/integrity gate leaves Competition disabled.
+
+Local contract evidence:
+
+- [x] Explicit `passed: true` is required.
+- [x] Candidate build SHA must be a 40-character git SHA.
+- [x] Latency and zero-integrity gates remain fail-closed.
+- [x] Candidate environment benchmark and certified report are supplied.
+- [x] Certified profile is persisted from the approved candidate report and consumed by School Exam preflight.
+
+## 11. WP6 — Integration E2E and Security Matrix
+
+**Priority:** P1. **TDD:** Required.
+
+**Status:** COMPLETE — REAL SERVICE-BOUNDARY PASS. Candidate `42a8bd3d965884fd8d4e1f11b00cc374d7faf8e4` passed 50 end-to-end journey steps and 14 negative-security cases on isolated Cloudflare staging. Integrity evidence records two publications, one correction, two canonical results, two `READY` exports, and one parent certificate batch synchronized to `READY` after its child batch reached `sent`. Direct D1 readback confirmed those terminal publish/result/export/certificate states. The sanitized artifact is `outputs/competition-wp6-cbe6695/wp6-real-evidence-42a8bd3.json`; it contains no credentials or answer payloads. Production was not touched.
+
+Integration journey:
+
+```text
+Admin campaign/audience/rounds
+→ student attempts/progress/eligibility
+→ rooms/members/preflight/provision
+→ assigned invigilator and RoomMember join
+→ Live Exam close and withheld result
+→ incident/retest/reconcile
+→ Admin publish/rank/certificate/export
+→ correction and new publication version
+```
+
+Negative security cases:
+
+- Student A cannot read Student B data;
+- student cannot change identity, attempts, room, or campaign membership;
+- Teacher class A cannot read class B data/export;
+- invigilator cannot publish/grant retest;
+- unassigned teacher cannot report an incident;
+- room code alone cannot authorize join;
+- raw Live Exam result is withheld;
+- blocking reconcile prevents publish;
+- correction cannot edit old publication;
+- export ID cannot bypass scope.
+
+Exit requires real service-boundary journey, complete authorization matrix, normal CLASS Live Exam regression, and stubbed Cypress remaining green.
+
+Synthetic/local evidence:
+
+- [x] Dataset is labelled `SYNTHETIC/LOCAL` and `productionEvidence: false`.
+- [x] Original-class ownership survives eligibility, room membership, and publication.
+- [x] Negative-security matrix is complete and contains no credentials or answer payloads.
+- [x] Competition regression and stubbed Cypress journey pass.
+- [x] Real service-boundary journey runs against an approved candidate environment.
+- [x] WP3–WP5 P0 external evidence gates are closed.
+
+Artifact name:
+
+```text
+wp6-real-evidence-42a8bd3.json
+```
+
+## 12. WP7 — Final Candidate Gates
+
+**Status:** COMPLETE — FINAL CANDIDATE GO, PENDING EVIDENCE COMMIT APPROVAL.
+
+Candidate `1106d8bd07b1d8c730de20216c851fc37b4319c0` passed the complete local/staging gate matrix. The four Vitest shards passed 606 files and 3,006 tests; coverage passed 6 files/44 tests; root, strict, and Workers typecheck, lint, production build, security/history/policy/dependency gates, performance budget, migration/release contracts, and all stubbed/variant Cypress journeys passed. GitNexus compared the candidate with `origin/main` and reported LOW risk with zero affected processes.
+
+The final isolated-staging capacity run `mt5s5e4z` passed at concurrency 100 with status P95 `415.066 ms`, submit P95 `1094.3754 ms`, and zero lost answers, duplicate failures, D1 overload, app 5xx, network errors, or request errors. Certifier produced profile `live-capacity-69194f00-5e48-46fe-88a9-9fd6e8bca500`; runtime School Exam preflight consumed that profile and returned `READY` for planned concurrency 100. Release readiness returned `ready` for rollout stage `internal`, release SHA `1106d8bd07b1d8c730de20216c851fc37b4319c0`, and rollback SHA `aad1d771cf4de89c7893cd2a0b1ba08835f33865`.
+
+Capacity investigation retained the failed attempts as evidence. An initial run was contaminated by JWT-secret propagation; subsequent valid attempts exposed status-latency variance when reset/auth-probe traffic ran immediately before measurement. Query-plan inspection showed indexed lookups and D1 execution below 1 ms. The accepted run used the same candidate, unchanged thresholds, a DPAPI-encrypted temporary JWT secret, a 30-second cooldown after fixture reset, and no probe traffic inside the measurement window. Production was not touched.
+
+Run from the final candidate SHA:
+
+```text
+Competition regression and full CI shards
+coverage, root/strict/Workers typecheck, lint, build
+performance budget
+security scan/history/policy/dependency gates
+migration contracts and representative rehearsal
+stubbed Cypress and integration E2E
+capacity certification
+release readiness
+GitNexus detect-changes compare origin/main
+```
+
+The machine-readable release report records candidate/base SHA, command, environment, timestamp, result, artifact path/hash, flaky reruns, risks, rollback SHA, and rollout stage.
+
+GO requires all P0 gaps closed, no unresolved P1 security/data-integrity defect, SHA-matched capacity, real migration/artifact journeys, passing CI, approved scope, and explicit user approval of final commit files. Otherwise status is NO-GO with blocker and next action.
+
+## 13. File/Behavior Matrix
+
+| Behavior | Primary code | RED test first | Rollback |
+|---|---|---|---|
+| Canonical audit | competition services/routes | audit lifecycle worker tests | disable additive event emission |
+| Bounded reads | route/service queries | pagination/scope tests | revert new query contract |
+| Artifact authorization | export/certificate service | cross-scope download tests | deny download until fixed |
+| D1 rehearsal | migrations/scripts/docs | migration rehearsal | application flag rollback |
+| Queue/R2 | export processor/consumer | integration journey | pause consumer, retain jobs |
+| Certificate | certificate adapter | published-version tests | retry/hold batch |
+| Capacity | benchmark/certifier/preflight | cert gate tests | keep flag disabled |
+| Integration E2E | Worker/environment fixture | full journey | remain disabled/internal |
+
+## 14. Per-Package Review Checklist
+
+Before every code package:
+
+- [ ] exact symbols and files identified;
+- [ ] GitNexus freshness checked;
+- [ ] upstream impact run and reported;
+- [ ] HIGH/CRITICAL risk confirmed before edit;
+- [ ] RED test written;
+- [ ] smallest implementation selected;
+- [ ] focused GREEN and regression scope listed;
+- [ ] rollback path documented;
+- [ ] unrelated dirty files excluded.
+
+Before every commit:
+
+- [ ] focused tests pass;
+- [ ] relevant typecheck/lint/build/security pass;
+- [ ] final diff reviewed;
+- [ ] `detect_changes` against `origin/main` pass;
+- [ ] exact files shown to user;
+- [ ] commit approval received.
+
+## 15. Approval Gate
+
+Approval authorizes planning to proceed into WP1–WP7 subject to the per-package impact and test gates. It does not authorize commit, push, PR, merge, migration, deployment, or production feature enablement.
+
+Requested gate:
+
+```text
+DUYỆT KẾ HOẠCH GAP-FIX COMPETITION V1 P0/P1
+```

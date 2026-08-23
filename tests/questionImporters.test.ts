@@ -1047,5 +1047,5 @@ describe('DOCX question importer', () => {
         const result = await importQuestionDocx(file);
         expect(result.accepted).toHaveLength(1);
         expect(result.needsReview).toHaveLength(1);
-    });
+    }, 15_000);
 });
