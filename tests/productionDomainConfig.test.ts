@@ -93,6 +93,12 @@ describe('TôHiệuQuiz production domain contract', () => {
     );
   });
 
+  it('does not expose the queue-only Competition export consumer over workers.dev', () => {
+    const consumer = read('workers/wrangler.competition-export-consumer.toml');
+
+    expect(consumer).toContain('workers_dev = false');
+  });
+
   it('keeps frontend telemetry and API example variables on independent lines', () => {
     const envExample = read('.env.example');
 
