@@ -22,7 +22,6 @@ export function StudentDashboardHeader({
   unifiedNotificationsEnabled,
   onSelectSection,
   onOpenAssignments,
-  onOpenPractice,
   onOpenAssignment,
   onOpenResultReport,
   onOpenGiftShop,
@@ -125,13 +124,6 @@ export function StudentDashboardHeader({
               Cuộc thi
             </button>
           )}
-          <button
-            type="button"
-            onClick={onOpenPractice}
-            className={`${baseActionClass} text-slate-600 hover:text-slate-900`}
-          >
-            Thư viện
-          </button>
         </nav>
 
         <div className="ml-auto hidden items-center gap-4 text-xs font-medium text-slate-500 sm:flex">
@@ -248,7 +240,7 @@ export function StudentDashboardHeader({
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-slate-200 bg-white px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t border-slate-200 bg-white px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 md:hidden"
         aria-label="Điều hướng học sinh trên điện thoại"
       >
         <button
@@ -265,13 +257,6 @@ export function StudentDashboardHeader({
           className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-slate-600"
         >
           Bài tập
-        </button>
-        <button
-          type="button"
-          onClick={onOpenPractice}
-          className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-slate-600"
-        >
-          Thư viện
         </button>
         <button
           type="button"
