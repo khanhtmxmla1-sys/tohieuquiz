@@ -99,6 +99,12 @@ describe('TôHiệuQuiz production domain contract', () => {
     expect(consumer).toContain('workers_dev = false');
   });
 
+  it('builds the production frontend with the Competition outer gate enabled', () => {
+    const vercel = JSON.parse(read('vercel.json')) as { buildCommand?: string };
+
+    expect(vercel.buildCommand).toContain('VITE_FEATURE_COMPETITION_V1=true');
+  });
+
   it('keeps frontend telemetry and API example variables on independent lines', () => {
     const envExample = read('.env.example');
 
