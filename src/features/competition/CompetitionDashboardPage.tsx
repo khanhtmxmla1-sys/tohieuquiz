@@ -378,10 +378,25 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
     if (!selectedCampaign || !isAdmin) return;
     const draft = roundDrafts[roundNumber];
     if (!draft) return;
+    const round = rounds.find(item => item.roundNumber === roundNumber);
     const maxAttempts = Number(draft.maxAttempts);
     const passingScore = Number(draft.passingScore);
     if (!draft.opensAt || !draft.closesAt || !Number.isInteger(maxAttempts) || maxAttempts <= 0 || !Number.isFinite(passingScore)) {
       setActionError(`Cấu hình vòng ${roundNumber} chưa hợp lệ.`);
+      return;
+    }
+    let opensAt: string;
+    let closesAt: string;
+    try {
+      opensAt = toIsoDateTime(draft.opensAt);
+      closesAt = toIsoDateTime(draft.closesAt);
+    } catch {
+      setActionError(`Cấu hình vòng ${roundNumber} chưa hợp lệ.`);
+      return;
+    }
+    const hasQuizMapping = Number(round?.quizSnapshot?.mappingCount || round?.quizMappings?.length || 0) > 0;
+    if (!hasQuizMapping && new Date(opensAt).getTime() <= Date.now()) {
+      setActionError(`Vòng ${roundNumber} chưa có quiz. Hãy đặt thời gian mở trong tương lai trước khi lưu.`);
       return;
     }
     setPendingAction(`round-save-${roundNumber}`);
@@ -392,8 +407,8 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
         campaignId: selectedCampaign.id,
         roundId: draft.roundId,
         roundNumber,
-        opensAt: toIsoDateTime(draft.opensAt),
-        closesAt: toIsoDateTime(draft.closesAt),
+        opensAt,
+        closesAt,
         maxAttempts,
         passingRuleType: 'MIN_SCORE',
         passingScore,
@@ -438,6 +453,11 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
     const gradeLevel = Number(draft?.gradeLevel);
     if (!round || !draft?.quizId.trim() || !Number.isInteger(gradeLevel) || gradeLevel < 1 || gradeLevel > 12) {
       setActionError(`Cấu hình quiz vòng ${roundNumber} chưa hợp lệ.`);
+      return;
+    }
+    const hasQuizMapping = Number(round.quizSnapshot?.mappingCount || round.quizMappings?.length || 0) > 0;
+    if (round.status === 'OPEN' && !hasQuizMapping) {
+      setActionError(`Vòng ${roundNumber} đang mở nhưng chưa có quiz. Hãy đặt thời gian mở trong tương lai và lưu vòng trước khi gán quiz.`);
       return;
     }
     setPendingAction(`round-quiz-${roundNumber}`);
