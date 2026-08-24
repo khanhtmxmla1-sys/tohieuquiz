@@ -559,17 +559,35 @@ export async function updateCompetitionRound(
 
   const before = await getRoundRow(db, normalizedCampaignId, normalizedRoundId);
   if (before?.status === 'FINALIZED') throw new Error('COMPETITION_ROUND_FINALIZED');
-  if (before && before.status !== 'DRAFT' && effectiveRoundStatus(before) !== 'SCHEDULED') {
+  const nowDate = new Date();
+  let isEmptyOpenRoundRecovery = false;
+  if (before && effectiveRoundStatus(before, nowDate) === 'OPEN') {
+    const replacementOpensAt = new Date(parsed.opensAt);
+    if (Number.isFinite(replacementOpensAt.getTime()) && replacementOpensAt > nowDate) {
+      const activity = await db.prepare(`
+        SELECT
+          EXISTS(SELECT 1 FROM competition_round_quizzes WHERE round_id = ? LIMIT 1) AS has_quiz,
+          EXISTS(SELECT 1 FROM competition_round_attempts WHERE round_id = ? LIMIT 1) AS has_attempt
+      `).bind(normalizedRoundId, normalizedRoundId).first<{ has_quiz: number; has_attempt: number }>();
+      isEmptyOpenRoundRecovery = !Number(activity?.has_quiz || 0) && !Number(activity?.has_attempt || 0);
+    }
+  }
+  if (
+    before
+    && before.status !== 'DRAFT'
+    && effectiveRoundStatus(before, nowDate) !== 'SCHEDULED'
+    && !isEmptyOpenRoundRecovery
+  ) {
     throw new Error('COMPETITION_ROUND_CONFIG_LOCKED');
   }
-  const now = new Date().toISOString();
+  const now = nowDate.toISOString();
 
   const mutation = before
     ? db.prepare(`
         UPDATE competition_rounds
         SET round_number = ?, opens_at = ?, closes_at = ?, max_attempts = ?,
             passing_rule_type = ?, passing_score = ?,
-            status = CASE WHEN status = 'DRAFT' THEN 'SCHEDULED' ELSE status END
+            status = CASE WHEN status = 'DRAFT' OR ? = 1 THEN 'SCHEDULED' ELSE status END
         WHERE id = ? AND campaign_id = ? AND status <> 'FINALIZED'
       `).bind(
         parsed.roundNumber,
@@ -578,6 +596,7 @@ export async function updateCompetitionRound(
         parsed.maxAttempts,
         parsed.passingRuleType,
         parsed.passingScore,
+        isEmptyOpenRoundRecovery ? 1 : 0,
         normalizedRoundId,
         normalizedCampaignId,
       )

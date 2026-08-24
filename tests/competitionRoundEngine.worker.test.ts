@@ -10,6 +10,7 @@ import {
   startRoundAttempt,
   submitRoundAttempt,
   updateCompetitionRound,
+  upsertCompetitionRoundQuiz,
   voidRoundAttempt,
 } from '../workers/src/competition/roundService';
 import { createSqliteD1 } from './helpers/sqliteD1';
@@ -508,5 +509,74 @@ describe('Competition V1 round engine', () => {
     expect(finalized.finalizedAt).toEqual(expect.any(String));
     expect(sqlite.prepare('SELECT status FROM competition_round_attempts WHERE id = ?').get(abandoned.id))
       .toMatchObject({ status: 'EXPIRED' });
+  });
+
+  it('recovers an OPEN round with no quiz or attempts by rescheduling it before quiz assignment', async () => {
+    await seedCompetition();
+    sqlite.prepare("DELETE FROM competition_round_quizzes WHERE round_id = 'round-1'").run();
+    setNow('2026-09-10T12:00:00.000Z');
+
+    const recovered = await updateCompetitionRound(d1, 'campaign-1', 'round-1', {
+      campaignId: 'campaign-1',
+      roundId: 'round-1',
+      roundNumber: 1,
+      opensAt: '2026-09-12T00:00:00.000Z',
+      closesAt: '2026-09-13T00:00:00.000Z',
+      maxAttempts: 3,
+      passingRuleType: 'MIN_SCORE',
+      passingScore: 7,
+      requestId: 'round-recovery-empty-open-0001',
+    }, 'admin');
+
+    expect(recovered).toMatchObject({ id: 'round-1', status: 'SCHEDULED' });
+    expect(sqlite.prepare("SELECT status, opens_at FROM competition_rounds WHERE id = 'round-1'").get())
+      .toMatchObject({ status: 'SCHEDULED', opens_at: '2026-09-12T00:00:00.000Z' });
+
+    await expect(upsertCompetitionRoundQuiz(d1, 'campaign-1', 'round-1', {
+      campaignId: 'campaign-1',
+      roundId: 'round-1',
+      gradeLevel: 4,
+      quizId: 'quiz-grade',
+      requestId: 'round-recovery-map-0001',
+    }, 'admin')).resolves.toMatchObject({ roundId: 'round-1', quizId: 'quiz-grade' });
+  });
+
+  it('keeps an OPEN round locked when its replacement opening time is not in the future', async () => {
+    await seedCompetition();
+    sqlite.prepare("DELETE FROM competition_round_quizzes WHERE round_id = 'round-1'").run();
+    setNow('2026-09-10T12:00:00.000Z');
+
+    await expect(updateCompetitionRound(d1, 'campaign-1', 'round-1', {
+      campaignId: 'campaign-1',
+      roundId: 'round-1',
+      roundNumber: 1,
+      opensAt: '2026-09-10T12:00:00.000Z',
+      closesAt: '2026-09-13T00:00:00.000Z',
+      maxAttempts: 3,
+      passingRuleType: 'MIN_SCORE',
+      passingScore: 7,
+      requestId: 'round-recovery-not-future-0001',
+    }, 'admin')).rejects.toThrow('COMPETITION_ROUND_CONFIG_LOCKED');
+  });
+
+  it('keeps an OPEN round locked when an attempt exists even after its quiz mapping is missing', async () => {
+    await seedCompetition();
+    setNow('2026-09-10T12:00:00.000Z');
+    await startRoundAttempt(d1, {
+      campaignId: 'campaign-1', roundId: 'round-1', studentId: 'student-2', requestId: 'round-recovery-attempt-0001',
+    });
+    sqlite.prepare("DELETE FROM competition_round_quizzes WHERE round_id = 'round-1'").run();
+
+    await expect(updateCompetitionRound(d1, 'campaign-1', 'round-1', {
+      campaignId: 'campaign-1',
+      roundId: 'round-1',
+      roundNumber: 1,
+      opensAt: '2026-09-12T00:00:00.000Z',
+      closesAt: '2026-09-13T00:00:00.000Z',
+      maxAttempts: 3,
+      passingRuleType: 'MIN_SCORE',
+      passingScore: 7,
+      requestId: 'round-recovery-attempt-blocked-0001',
+    }, 'admin')).rejects.toThrow('COMPETITION_ROUND_CONFIG_LOCKED');
   });
 });
