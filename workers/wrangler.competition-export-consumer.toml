@@ -3,6 +3,7 @@ main = "src/queues/competitionExportQueue.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 minify = true
+workers_dev = false
 
 [[d1_databases]]
 binding = "DB"
