@@ -165,6 +165,7 @@ function routeError(error: unknown): Response {
   ].includes(message)) return errorResponse(message, 404);
   if ([
     'COMPETITION_CAMPAIGN_NOT_DRAFT',
+    'COMPETITION_AUDIENCE_CHANGED_REVIEW_REQUIRED',
     'COMPETITION_AUDIENCE_NOT_SNAPSHOTTED',
     'COMPETITION_ELIGIBILITY_NOT_FINALIZED',
     'COMPETITION_ELIGIBILITY_ROUNDS_NOT_READY',
@@ -694,11 +695,19 @@ async function handleCompetitionRoutesCore(
       const body = await jsonBody(request);
       const requestId = String(body?.requestId || '').trim();
       if (requestId.length < 8) return errorResponse('requestId is required', 400);
+      const expectedMemberCount = body?.expectedMemberCount;
+      if (expectedMemberCount !== undefined
+        && (typeof expectedMemberCount !== 'number'
+          || !Number.isInteger(expectedMemberCount)
+          || expectedMemberCount < 0)) {
+        return errorResponse('expectedMemberCount is required', 400);
+      }
       const snapshot = await freezeCompetitionAudience(
         env.DB,
         snapshotCampaignId,
         user.username,
         requestId,
+        expectedMemberCount === undefined ? undefined : Number(expectedMemberCount),
       );
       return jsonResponse({ snapshot }, 201);
     }

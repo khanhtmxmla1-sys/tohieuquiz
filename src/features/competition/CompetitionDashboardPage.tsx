@@ -98,6 +98,7 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [audiencePreview, setAudiencePreview] = useState<{ matchedCount: number; countsByGrade?: Record<string, number>; countsByClass?: Record<string, number> } | null>(null);
+  const [audienceFreezeConfirmOpen, setAudienceFreezeConfirmOpen] = useState(false);
   const [campaignDraft, setCampaignDraft] = useState<CampaignDraft>({
     title: '', schoolYear: '', timezone: SYSTEM_TIME_ZONE, gradeLevels: '', classIds: '',
     requiredPassedRounds: '6', startsAt: '', endsAt: '',
@@ -308,6 +309,8 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
       if (selectedCampaign?.status === 'DRAFT') {
         const updated = await competitionDashboardService.updateCampaign(selectedCampaign.id, payload);
         setCampaigns(current => current.map(campaign => campaign.id === updated.id ? updated : campaign));
+        setAudiencePreview(null);
+        setAudienceFreezeConfirmOpen(false);
         setActionMessage('Đã lưu chiến dịch DRAFT.');
       } else {
         const created = await competitionDashboardService.createCampaign(payload);
@@ -353,7 +356,9 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
   };
 
   const freezeAudience = async () => {
-    if (!selectedCampaign || !isAdmin || selectedCampaign.audienceSnapshotId) return;
+    if (!selectedCampaign || !isAdmin || selectedCampaign.status !== 'DRAFT' || !audiencePreview || audiencePreview.matchedCount <= 0) return;
+    const replacingSnapshot = Boolean(selectedCampaign.audienceSnapshotId);
+    const expectedMemberCount = audiencePreview.matchedCount;
     setPendingAction('audience-freeze');
     setActionError(null);
     setActionMessage(null);
@@ -361,14 +366,25 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
       const response = await competitionDashboardService.freezeAudience(
         selectedCampaign.id,
         createRequestId('audience-freeze'),
+        expectedMemberCount,
       ) as any;
       const snapshotId = response?.snapshot?.id || 'LOCKED';
       setCampaigns(current => current.map(campaign => (
         campaign.id === selectedCampaign.id ? { ...campaign, audienceSnapshotId: snapshotId } : campaign
       )));
-      setActionMessage('Đã đóng băng AudienceSnapshot.');
-    } catch {
-      setActionError('Không thể đóng băng đối tượng.');
+      setAudienceFreezeConfirmOpen(false);
+      setAudiencePreview(null);
+      setActionMessage(replacingSnapshot
+        ? `Đã tạo AudienceSnapshot mới với ${expectedMemberCount} học sinh.`
+        : `Đã đóng băng AudienceSnapshot với ${expectedMemberCount} học sinh.`);
+    } catch (error) {
+      setAudienceFreezeConfirmOpen(false);
+      if (error instanceof Error && error.message.includes('COMPETITION_AUDIENCE_CHANGED_REVIEW_REQUIRED')) {
+        setAudiencePreview(null);
+        setActionError('Danh sách học sinh đã thay đổi. Hãy xem trước đối tượng lại trước khi tạo snapshot.');
+      } else {
+        setActionError('Không thể đóng băng đối tượng.');
+      }
     } finally {
       setPendingAction(null);
     }
@@ -873,7 +889,11 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
           <select
             id="competition-campaign-select"
             value={selectedCampaignId}
-            onChange={event => setSelectedCampaignId(event.target.value)}
+            onChange={event => {
+              setSelectedCampaignId(event.target.value);
+              setAudiencePreview(null);
+              setAudienceFreezeConfirmOpen(false);
+            }}
             disabled={loadingCampaigns || campaigns.length === 0}
             className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
           >
@@ -914,7 +934,12 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
           {isAdmin && (
             <div className="mt-4 flex flex-wrap gap-2" aria-label="Thao tác quản trị đối tượng">
               <button type="button" onClick={previewAudience} disabled={!selectedCampaign || loadingDetails || pendingAction !== null} className="rounded-lg border px-3 py-2 text-sm font-semibold disabled:opacity-50">Xem trước đối tượng</button>
-              <button type="button" onClick={freezeAudience} disabled={!selectedCampaign || Boolean(selectedCampaign.audienceSnapshotId) || loadingDetails || pendingAction !== null} className="rounded-lg border px-3 py-2 text-sm font-semibold disabled:opacity-50">Đóng băng đối tượng</button>
+              <button
+                type="button"
+                onClick={() => setAudienceFreezeConfirmOpen(true)}
+                disabled={!selectedCampaign || selectedCampaign.status !== 'DRAFT' || !audiencePreview || audiencePreview.matchedCount <= 0 || loadingDetails || pendingAction !== null}
+                className="rounded-lg border px-3 py-2 text-sm font-semibold disabled:opacity-50"
+              >{selectedCampaign?.audienceSnapshotId ? 'Tạo lại AudienceSnapshot' : 'Đóng băng đối tượng'}</button>
             </div>
           )}
         </article>
@@ -1182,6 +1207,32 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
           {exportJob && <p className="mt-2 text-sm text-slate-600">Export {exportJob.id}: {exportJob.status}{exportJob.errorCode ? ` · ${exportJob.errorCode}` : ''}</p>}
         </article>
       </div>
+      {audienceFreezeConfirmOpen && selectedCampaign && audiencePreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="presentation">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="audience-freeze-confirm-title"
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <h2 id="audience-freeze-confirm-title" className="text-lg font-bold text-slate-950">
+              {selectedCampaign.audienceSnapshotId ? 'Xác nhận tạo lại AudienceSnapshot' : 'Xác nhận đóng băng AudienceSnapshot'}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-700">
+              Snapshot mới sẽ chứa <strong>{audiencePreview.matchedCount} học sinh</strong> theo bản xem trước vừa tải.
+            </p>
+            {selectedCampaign.audienceSnapshotId && (
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Snapshot hiện tại vẫn được giữ bất biến để kiểm toán; chiến dịch sẽ chuyển sang dùng snapshot mới.
+              </p>
+            )}
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setAudienceFreezeConfirmOpen(false)} disabled={pendingAction !== null} className="rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50">Hủy</button>
+              <button type="button" onClick={() => void freezeAudience()} disabled={pendingAction !== null} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Xác nhận tạo snapshot mới</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

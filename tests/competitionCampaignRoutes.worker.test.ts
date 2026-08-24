@@ -352,10 +352,20 @@ describe('Competition V1 campaign routes', () => {
 
     const snapshotResponse = await request(`/api/competitions/${campaignId}/audience/snapshot`, 'POST', {
       requestId: 'req_competition_route_snapshot_0001',
+      expectedMemberCount: 3,
     });
     expect(snapshotResponse.status).toBe(201);
     const snapshot = await snapshotResponse.json() as any;
     expect(snapshot.snapshot).toMatchObject({ status: 'LOCKED', memberCount: 3 });
+
+    const stalePreviewResponse = await request(`/api/competitions/${campaignId}/audience/snapshot`, 'POST', {
+      requestId: 'req_competition_route_snapshot_stale',
+      expectedMemberCount: 2,
+    });
+    expect(stalePreviewResponse.status).toBe(409);
+    expect(await stalePreviewResponse.json()).toMatchObject({
+      status: 'error', message: 'COMPETITION_AUDIENCE_CHANGED_REVIEW_REQUIRED',
+    });
 
     const firstPageResponse = await request(`/api/competitions/${campaignId}/audience?limit=2`);
     expect(firstPageResponse.status).toBe(200);

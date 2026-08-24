@@ -7,6 +7,7 @@ import {
   freezeCompetitionAudience,
   listCompetitionAudience,
   previewCompetitionAudience,
+  updateCompetitionCampaign,
 } from '../workers/src/competition/campaignService';
 import { createSqliteD1 } from './helpers/sqliteD1';
 
@@ -215,6 +216,58 @@ describe('Competition V1 campaign and frozen audience', () => {
       target_id: snapshot.id,
       request_id: 'req_competition_snapshot_0003',
     });
+  });
+
+  it('creates a new immutable snapshot version after a reviewed DRAFT audience change', async () => {
+    const campaign = await createCompetitionCampaign(d1, campaignInput, 'admin');
+    const first = await freezeCompetitionAudience(
+      d1, campaign.id, 'admin', 'req_competition_snapshot_first', 3,
+    );
+
+    await updateCompetitionCampaign(d1, campaign.id, {
+      audienceRule: { gradeLevels: [4], classIds: ['class-4a'] },
+      requestId: 'req_competition_campaign_narrow',
+    }, 'admin');
+    expect((await previewCompetitionAudience(d1, campaign.id)).matchedCount).toBe(2);
+
+    const second = await freezeCompetitionAudience(
+      d1, campaign.id, 'admin', 'req_competition_snapshot_second', 2,
+    );
+
+    expect(second).toMatchObject({ version: 2, memberCount: 2, status: 'LOCKED' });
+    expect(second.id).not.toBe(first.id);
+    const snapshots = sqlite.prepare(`
+      SELECT id, version, member_count, status
+      FROM competition_audience_snapshots
+      WHERE campaign_id = ?
+      ORDER BY version
+    `).all(campaign.id) as Array<Record<string, unknown>>;
+    expect(snapshots).toEqual([
+      { id: first.id, version: 1, member_count: 3, status: 'LOCKED' },
+      { id: second.id, version: 2, member_count: 2, status: 'LOCKED' },
+    ]);
+    expect(sqlite.prepare('SELECT audience_snapshot_id FROM competition_campaigns WHERE id = ?')
+      .get(campaign.id)).toEqual({ audience_snapshot_id: second.id });
+  });
+
+  it('rejects snapshot creation when membership changed after preview', async () => {
+    const campaign = await createCompetitionCampaign(d1, campaignInput, 'admin');
+
+    await expect(freezeCompetitionAudience(
+      d1, campaign.id, 'admin', 'req_competition_snapshot_stale', 2,
+    )).rejects.toThrow('COMPETITION_AUDIENCE_CHANGED_REVIEW_REQUIRED');
+
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM competition_audience_snapshots WHERE campaign_id = ?')
+      .get(campaign.id)).toEqual({ count: 0 });
+  });
+
+  it('rejects audience resnapshot outside DRAFT campaign state', async () => {
+    const campaign = await createCompetitionCampaign(d1, campaignInput, 'admin');
+    sqlite.prepare("UPDATE competition_campaigns SET status = 'ACTIVE' WHERE id = ?").run(campaign.id);
+
+    await expect(freezeCompetitionAudience(
+      d1, campaign.id, 'admin', 'req_competition_snapshot_active', 3,
+    )).rejects.toThrow('COMPETITION_CAMPAIGN_NOT_DRAFT');
   });
 
   it('paginates frozen audience members with an opaque cursor and no duplicates', async () => {
