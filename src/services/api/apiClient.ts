@@ -32,6 +32,11 @@ export async function executeApiAction<T = any>(
         },
     };
 
+    if (route.method === 'DELETE' && typeof requestPayload.requestId === 'string'
+        && requestPayload.requestId.trim()) {
+        (requestInit.headers as Record<string, string>)['x-request-id'] = requestPayload.requestId.trim();
+    }
+
     if (route.method !== 'GET' && route.method !== 'DELETE') {
         const body = route.body ? route.body(action, requestPayload) : requestPayload;
         requestInit.body = JSON.stringify(body);

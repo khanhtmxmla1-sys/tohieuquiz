@@ -1,4 +1,5 @@
 import {
+  CompetitionAudienceRuleSchema,
   CreateCompetitionCampaignRequestSchema,
   UpdateCompetitionCampaignRequestSchema,
   type CreateCompetitionCampaignRequest,
@@ -147,6 +148,33 @@ function matchesAudienceRule(
     return { matches: false, gradeLevel };
   }
   return { matches: true, gradeLevel };
+}
+
+export async function competitionAudienceIntersectsClassScope(
+  db: D1Database,
+  campaignId: string,
+  classIds: string[],
+): Promise<boolean> {
+  const campaign = await getCampaignRow(db, String(campaignId || '').trim());
+  if (!campaign || classIds.length === 0) return false;
+
+  let rawRule: unknown;
+  try {
+    rawRule = JSON.parse(campaign.audience_rule_json);
+  } catch {
+    return false;
+  }
+  const parsedRule = CompetitionAudienceRuleSchema.safeParse(rawRule);
+  if (!parsedRule.success) return false;
+
+  const classScope = new Set(classIds);
+  const rows = await audienceCandidates(db);
+  return rows.some((row) => (
+    classScope.has(row.class_id)
+    && !String(row.student_archived_at || '').trim()
+    && !String(row.class_archived_at || '').trim()
+    && matchesAudienceRule(row, parsedRule.data).matches
+  ));
 }
 
 async function audienceCandidates(db: D1Database): Promise<CompetitionAudienceCandidateRow[]> {

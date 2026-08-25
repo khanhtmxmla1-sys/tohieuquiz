@@ -36,6 +36,51 @@ const rankingQuery = (payload: Record<string, any>) => {
 };
 
 export const competitionRoutes: RouteRegistry = {
+  get_competition_public_page: {
+    method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/public-page`,
+  },
+  update_competition_public_page: {
+    method: 'PUT', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/public-page`, body: omitFields('campaignId'),
+  },
+  preview_competition_public_page: {
+    method: 'POST', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/public-page/preview`, body: omitFields('campaignId'),
+  },
+  publish_competition_public_page: {
+    method: 'POST', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/public-page/publish`, body: omitFields('campaignId'),
+  },
+  archive_competition_public_page: {
+    method: 'POST', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/public-page/archive`, body: omitFields('campaignId'),
+  },
+  list_competition_articles: {
+    method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/articles`,
+  },
+  create_competition_article: {
+    method: 'POST', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/articles`, body: identityBody,
+  },
+  get_competition_article: {
+    method: 'GET', auth: 'session', path: ({ campaignId, articleId }) => `/api/competitions/${encoded(campaignId)}/articles/${encoded(articleId)}`,
+  },
+  update_competition_article: {
+    method: 'PATCH', auth: 'session', path: ({ campaignId, articleId }) => `/api/competitions/${encoded(campaignId)}/articles/${encoded(articleId)}`, body: omitFields('campaignId', 'articleId'),
+  },
+  delete_competition_article: {
+    method: 'DELETE', auth: 'session', path: ({ campaignId, articleId }) => `/api/competitions/${encoded(campaignId)}/articles/${encoded(articleId)}`,
+  },
+  get_competition_golden_board_config: {
+    method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/golden-board-config`,
+  },
+  update_competition_golden_board_config: {
+    method: 'PUT', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/golden-board-config`, body: omitFields('campaignId'),
+  },
+  list_competition_award_rules: {
+    method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/award-rules`,
+  },
+  create_competition_award_rules: {
+    method: 'POST', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/award-rules`, body: identityBody,
+  },
+  activate_competition_award_rules: {
+    method: 'POST', auth: 'session', path: ({ campaignId, version }) => `/api/competitions/${encoded(campaignId)}/award-rules/${encoded(version)}/activate`, body: omitFields('campaignId', 'version'),
+  },
   list_student_competitions: {
     method: 'GET', auth: 'session', path: () => '/api/student/competitions',
   },

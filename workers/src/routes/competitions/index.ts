@@ -89,6 +89,7 @@ import {
 } from '../../competition/schoolExamExportService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
+import { handleCompetitionPortalRoutes } from './portalRoutes';
 
 function routeCampaignId(path: string, suffix = ''): string | null {
   const prefix = '/api/competitions/';
@@ -375,6 +376,16 @@ async function handleCompetitionRoutesCore(
   }
 
   try {
+    const portalResponse = await handleCompetitionPortalRoutes(
+      request,
+      env.DB,
+      path,
+      method,
+      user,
+      await teacherClassIds(env.DB, user),
+    );
+    if (portalResponse) return portalResponse;
+
     const schoolExamEventCreateParts = routeParts(
       path,
       /^\/api\/competitions\/([^/]+)\/school-exams$/,
