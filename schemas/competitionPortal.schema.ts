@@ -151,12 +151,26 @@ export const CompetitionEntryPreflightDtoSchema = z.discriminatedUnion('status',
     campaignId: IdentifierSchema,
     roundId: IdentifierSchema,
     quizId: IdentifierSchema,
+    serverTime: DateTimeSchema,
+    window: z.object({
+      opensAt: DateTimeSchema,
+      closesAt: DateTimeSchema,
+      timezone: z.string().trim().min(1).max(100),
+    }).strict(),
+    attemptsRemaining: z.number().int().nonnegative(),
   }).strict(),
   z.object({
     status: z.literal('BLOCKED'),
     campaignId: IdentifierSchema,
     roundId: IdentifierSchema,
     reason: CompetitionEntryPreflightReasonSchema,
+    serverTime: DateTimeSchema,
+    window: z.object({
+      opensAt: DateTimeSchema,
+      closesAt: DateTimeSchema,
+      timezone: z.string().trim().min(1).max(100),
+    }).strict().nullable(),
+    attemptsRemaining: z.number().int().nonnegative().nullable(),
   }).strict(),
 ]);
 

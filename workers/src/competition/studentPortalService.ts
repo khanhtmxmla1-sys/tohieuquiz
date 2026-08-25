@@ -8,6 +8,8 @@ import {
   getStudentCompetition,
   listStudentCompetitions,
 } from './studentCompetitionService';
+import { evaluateRoundEntry } from './roundService';
+import type { CompetitionEntryPreflightDto } from '../../../shared/competition-portal.contract';
 
 export const STUDENT_COMPETITION_PORTAL_NOT_FOUND = 'COMPETITION_STUDENT_PORTAL_NOT_FOUND';
 export const STUDENT_COMPETITION_PORTAL_UNAVAILABLE = 'COMPETITION_STUDENT_PORTAL_UNAVAILABLE';
@@ -22,6 +24,16 @@ export type StudentCompetitionPortalCompetition = Awaited<ReturnType<typeof getS
 export interface StudentCompetitionPortalResolution {
   competition: StudentCompetitionPortalCompetition;
   portal: StudentCompetitionPortalDto;
+}
+
+export async function preflightStudentCompetitionRound(
+  db: D1Database,
+  campaignId: string,
+  roundId: string,
+  studentId: string,
+  now = new Date(),
+): Promise<CompetitionEntryPreflightDto> {
+  return (await evaluateRoundEntry(db, { campaignId, roundId, studentId }, now)).preflight;
 }
 
 function normalizedSlug(value: string): string {

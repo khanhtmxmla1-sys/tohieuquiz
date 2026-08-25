@@ -271,6 +271,17 @@ describe('Competition authenticated student portal slug resolver', () => {
       '/api/student/competitions/by-slug/owned%20competition',
     );
 
+    const preflightRoute = competitionRoutes.preflight_student_competition_round;
+    expect(preflightRoute).toBeDefined();
+    expect(preflightRoute.auth).toBe('session');
+    expect(preflightRoute.method).toBe('POST');
+    expect(preflightRoute.path({ campaignId: 'campaign owned', roundId: 'round/1' })).toBe(
+      '/api/student/competitions/campaign%20owned/rounds/round%2F1/preflight',
+    );
+    expect(preflightRoute.body?.('preflight_student_competition_round', {
+      campaignId: 'campaign-owned', roundId: 'round-owned-1', studentId: 'student-2',
+    })).toEqual({});
+
     expect(classifyStudentCompetitionPortalError(new ApiError('Not found', 404))).toMatchObject({
       kind: 'NOT_FOUND', status: 404, retryable: false,
     });

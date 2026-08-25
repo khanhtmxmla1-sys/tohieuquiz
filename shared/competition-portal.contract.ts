@@ -156,13 +156,25 @@ export type CompetitionEntryPreflightDto =
     campaignId: string;
     roundId: string;
     quizId: string;
+    serverTime: string;
+    window: CompetitionEntryPreflightWindowDto;
+    attemptsRemaining: number;
   }
   | {
     status: 'BLOCKED';
     campaignId: string;
     roundId: string;
     reason: CompetitionEntryPreflightReason;
+    serverTime: string;
+    window: CompetitionEntryPreflightWindowDto | null;
+    attemptsRemaining: number | null;
   };
+
+export interface CompetitionEntryPreflightWindowDto {
+  opensAt: string;
+  closesAt: string;
+  timezone: string;
+}
 
 export interface StaffCompetitionPublicPageDto {
   id: string;

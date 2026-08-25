@@ -15,6 +15,7 @@ import {
   buildCompetitionQuestionPresentation,
   restoreCompetitionPresentationAnswers,
 } from './competitionQuestionPresentation';
+import type { CompetitionEntryPreflightDto } from '../../../shared/competition-portal.contract';
 
 interface CompetitionRoundRow {
   id: string;
@@ -83,6 +84,8 @@ interface FrozenStudentRow {
   class_id_at_snapshot: string;
   full_name: string;
   class_name: string;
+  campaign_status: string;
+  campaign_timezone: string;
 }
 
 interface StoredResultRow {
@@ -228,7 +231,9 @@ async function getFrozenStudent(
            member.grade_level_at_snapshot,
            member.class_id_at_snapshot,
            student.full_name,
-           classroom.name AS class_name
+           classroom.name AS class_name,
+           campaign.status AS campaign_status,
+           campaign.timezone AS campaign_timezone
     FROM competition_campaigns AS campaign
     INNER JOIN competition_audience_snapshots AS snapshot
       ON snapshot.id = campaign.audience_snapshot_id
@@ -252,6 +257,7 @@ async function resolveRoundQuiz(
   const row = await db.prepare(`
     SELECT mapping.id, mapping.round_id, mapping.grade_level, mapping.class_id,
            mapping.quiz_id, mapping.quiz_snapshot_id, mapping.quiz_snapshot_hash,
+           snapshot.quiz_id AS snapshot_quiz_id,
            snapshot.canonical_payload_json, snapshot.sha256 AS snapshot_sha256
     FROM competition_round_quizzes AS mapping
     INNER JOIN competition_quiz_snapshots AS snapshot
@@ -261,8 +267,11 @@ async function resolveRoundQuiz(
       AND (mapping.class_id = ? OR mapping.class_id IS NULL)
     ORDER BY CASE WHEN mapping.class_id = ? THEN 0 ELSE 1 END, mapping.id ASC
     LIMIT 1
-  `).bind(roundId, gradeLevel, classId, classId).first<RoundQuizRow>();
+  `).bind(roundId, gradeLevel, classId, classId).first<RoundQuizRow & { snapshot_quiz_id: string }>();
   if (!row) throw new Error('COMPETITION_ROUND_QUIZ_NOT_FOUND');
+  if (row.quiz_id !== row.snapshot_quiz_id) {
+    throw new Error('COMPETITION_QUIZ_SNAPSHOT_INVALID');
+  }
   if (row.quiz_snapshot_hash !== row.snapshot_sha256) {
     throw new Error('COMPETITION_QUIZ_SNAPSHOT_HASH_MISMATCH');
   }
@@ -270,7 +279,134 @@ async function resolveRoundQuiz(
     canonicalPayloadJson: row.canonical_payload_json,
     sha256: row.snapshot_sha256,
   });
+  const payload = parseSnapshotPayload(row);
+  if (String(payload.quiz.id || '').trim() !== row.quiz_id) {
+    throw new Error('COMPETITION_QUIZ_SNAPSHOT_INVALID');
+  }
   return row;
+}
+
+type RoundEntryEvaluation = {
+  preflight: CompetitionEntryPreflightDto;
+  member?: FrozenStudentRow;
+  roundQuiz?: RoundQuizRow;
+  startError?: string;
+};
+
+function blockedRoundEntry(
+  campaignId: string,
+  roundId: string,
+  serverTime: string,
+  reason: Extract<CompetitionEntryPreflightDto, { status: 'BLOCKED' }>['reason'],
+  startError: string,
+  window: Extract<CompetitionEntryPreflightDto, { status: 'BLOCKED' }>['window'] = null,
+  attemptsRemaining: number | null = null,
+): RoundEntryEvaluation {
+  return {
+    preflight: { status: 'BLOCKED', campaignId, roundId, reason, serverTime, window, attemptsRemaining },
+    startError,
+  };
+}
+
+export async function evaluateRoundEntry(
+  db: D1Database,
+  input: { campaignId: string; roundId: string; studentId: string },
+  now = new Date(),
+): Promise<RoundEntryEvaluation> {
+  const campaignId = normalizedId(input.campaignId, 'COMPETITION_CAMPAIGN_ID_REQUIRED');
+  const roundId = normalizedId(input.roundId, 'COMPETITION_ROUND_ID_REQUIRED');
+  const studentId = normalizedId(input.studentId, 'COMPETITION_STUDENT_ID_REQUIRED');
+  const serverTime = now.toISOString();
+
+  // Audience ownership is intentionally established before resolving the requested round.
+  const member = await getFrozenStudent(db, campaignId, studentId);
+  if (!member) {
+    return blockedRoundEntry(
+      campaignId, roundId, serverTime, 'NOT_IN_AUDIENCE', 'COMPETITION_STUDENT_NOT_IN_AUDIENCE',
+    );
+  }
+
+  const round = await getRoundRow(db, campaignId, roundId);
+  if (!round) {
+    return blockedRoundEntry(
+      campaignId, roundId, serverTime, 'ROUND_CAMPAIGN_MISMATCH', 'COMPETITION_ROUND_NOT_FOUND',
+    );
+  }
+
+  const window = {
+    opensAt: round.opens_at,
+    closesAt: round.closes_at,
+    timezone: member.campaign_timezone,
+  };
+
+  // Finalized eligibility is canonical only after the campaign enters its locked eligibility phase.
+  let eligibilityBlocked = false;
+  if (member.campaign_status === 'ELIGIBILITY_LOCKED') {
+    const eligibility = await db.prepare(`
+      SELECT qualified
+      FROM competition_eligibility
+      WHERE campaign_id = ? AND student_id = ?
+      ORDER BY eligibility_snapshot_version DESC
+      LIMIT 1
+    `).bind(campaignId, studentId).first<{ qualified: number }>();
+    eligibilityBlocked = Boolean(eligibility && Number(eligibility.qualified) !== 1);
+  }
+
+  const roundIsOpen = effectiveRoundStatus(round, now) === 'OPEN';
+  const usage = await db.prepare(`
+    SELECT COUNT(*) AS used
+    FROM competition_round_attempts
+    WHERE round_id = ? AND student_id = ? AND status <> 'VOID'
+  `).bind(roundId, studentId).first<{ used: number }>();
+  const used = Number(usage?.used || 0);
+  const attemptsRemaining = Math.max(0, Number(round.max_attempts) - used);
+
+  if (eligibilityBlocked) {
+    return blockedRoundEntry(
+      campaignId, roundId, serverTime, 'ELIGIBILITY_BLOCKED',
+      'COMPETITION_ROUND_NOT_OPEN', window, attemptsRemaining,
+    );
+  }
+  if (!roundIsOpen) {
+    return blockedRoundEntry(
+      campaignId, roundId, serverTime, 'ROUND_NOT_OPEN',
+      'COMPETITION_ROUND_NOT_OPEN', window, attemptsRemaining,
+    );
+  }
+  if (attemptsRemaining === 0) {
+    return blockedRoundEntry(
+      campaignId, roundId, serverTime, 'ATTEMPT_LIMIT_REACHED',
+      'COMPETITION_MAX_ATTEMPTS_REACHED', window, attemptsRemaining,
+    );
+  }
+
+  let roundQuiz: RoundQuizRow;
+  try {
+    roundQuiz = await resolveRoundQuiz(
+      db, roundId, Number(member.grade_level_at_snapshot), member.class_id_at_snapshot,
+    );
+  } catch (error) {
+    const code = error instanceof Error ? error.message : '';
+    if (![
+      'COMPETITION_ROUND_QUIZ_NOT_FOUND',
+      'COMPETITION_QUIZ_SNAPSHOT_HASH_MISMATCH',
+      'COMPETITION_QUIZ_SNAPSHOT_INVALID',
+    ].includes(code)) {
+      throw error;
+    }
+    return blockedRoundEntry(
+      campaignId, roundId, serverTime, 'QUIZ_MAPPING_UNAVAILABLE', code, window, attemptsRemaining,
+    );
+  }
+
+  return {
+    preflight: {
+      status: 'READY', campaignId, roundId, quizId: roundQuiz.quiz_id,
+      serverTime, window, attemptsRemaining,
+    },
+    member,
+    roundQuiz,
+  };
 }
 
 function parseSnapshotPayload(row: RoundQuizRow): {
@@ -650,23 +786,10 @@ export async function startRoundAttempt(
     return mapAttempt(existing);
   }
 
-  const round = await getRoundRow(db, campaignId, roundId);
-  if (!round) throw new Error('COMPETITION_ROUND_NOT_FOUND');
   const now = new Date();
-  if (effectiveRoundStatus(round, now) !== 'OPEN') {
-    throw new Error('COMPETITION_ROUND_NOT_OPEN');
-  }
-
-  const member = await getFrozenStudent(db, campaignId, studentId);
-  if (!member) throw new Error('COMPETITION_STUDENT_NOT_IN_AUDIENCE');
-
-  const usage = await db.prepare(`
-    SELECT COUNT(*) AS used, COALESCE(MAX(attempt_no), 0) AS max_attempt_no
-    FROM competition_round_attempts
-    WHERE round_id = ? AND student_id = ? AND status <> 'VOID'
-  `).bind(roundId, studentId).first<{ used: number; max_attempt_no: number }>();
-  const used = Number(usage?.used || 0);
-  if (used >= Number(round.max_attempts)) throw new Error('COMPETITION_MAX_ATTEMPTS_REACHED');
+  const evaluation = await evaluateRoundEntry(db, { campaignId, roundId, studentId }, now);
+  if (evaluation.preflight.status === 'BLOCKED') throw new Error(evaluation.startError);
+  const roundQuiz = evaluation.roundQuiz!;
 
   const anyAttempt = await db.prepare(`
     SELECT COALESCE(MAX(attempt_no), 0) AS max_attempt_no
@@ -674,12 +797,6 @@ export async function startRoundAttempt(
     WHERE round_id = ? AND student_id = ?
   `).bind(roundId, studentId).first<{ max_attempt_no: number }>();
   const attemptNo = Number(anyAttempt?.max_attempt_no || 0) + 1;
-  const roundQuiz = await resolveRoundQuiz(
-    db,
-    roundId,
-    Number(member.grade_level_at_snapshot),
-    member.class_id_at_snapshot,
-  );
   const attemptId = generateId('competition-attempt');
   const startedAt = now.toISOString();
 

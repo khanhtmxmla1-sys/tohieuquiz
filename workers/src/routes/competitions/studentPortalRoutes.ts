@@ -1,4 +1,5 @@
 import {
+  preflightStudentCompetitionRound,
   resolveStudentCompetitionBySlug,
   STUDENT_COMPETITION_PORTAL_NOT_FOUND,
   STUDENT_COMPETITION_PORTAL_UNAVAILABLE,
@@ -20,6 +21,18 @@ export async function handleStudentCompetitionPortalRoutes(
   method: string,
   studentId: string,
 ): Promise<Response | null> {
+  const preflightMatch = path.match(
+    /^\/api\/student\/competitions\/([^/]+)\/rounds\/([^/]+)\/preflight$/,
+  );
+  if (preflightMatch) {
+    if (method !== 'POST') return errorResponse('Method not allowed', 405);
+    const campaignId = decodedSegment(preflightMatch[1]);
+    const roundId = decodedSegment(preflightMatch[2]);
+    if (!campaignId || !roundId) return errorResponse('Invalid competition round', 400);
+    const preflight = await preflightStudentCompetitionRound(db, campaignId, roundId, studentId);
+    return jsonResponse({ preflight });
+  }
+
   const match = path.match(/^\/api\/student\/competitions\/by-slug\/([^/]+)$/);
   if (!match) return null;
   if (method !== 'GET') return errorResponse('Method not allowed', 405);

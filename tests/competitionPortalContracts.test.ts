@@ -203,9 +203,17 @@ describe('Competition portal contracts', () => {
     }).success).toBe(true);
     expect(CompetitionEntryPreflightDtoSchema.safeParse({
       status: 'READY', campaignId: 'campaign-1', roundId: 'round-1', quizId: 'quiz-1',
+      serverTime: now, window: { opensAt: now, closesAt: later, timezone: 'Asia/Ho_Chi_Minh' },
+      attemptsRemaining: 2,
     }).success).toBe(true);
     expect(CompetitionEntryPreflightDtoSchema.safeParse({
       status: 'BLOCKED', campaignId: 'campaign-1', roundId: 'round-1', reason: 'ROUND_NOT_OPEN',
+      serverTime: now, window: { opensAt: now, closesAt: later, timezone: 'Asia/Ho_Chi_Minh' },
+      attemptsRemaining: 2,
+    }).success).toBe(true);
+    expect(CompetitionEntryPreflightDtoSchema.safeParse({
+      status: 'BLOCKED', campaignId: 'campaign-1', roundId: 'round-private',
+      reason: 'ROUND_CAMPAIGN_MISMATCH', serverTime: now, window: null, attemptsRemaining: null,
     }).success).toBe(true);
     expect(StudentCompetitionEntryPreflightRequestSchema.safeParse({ requestId }).success).toBe(true);
 

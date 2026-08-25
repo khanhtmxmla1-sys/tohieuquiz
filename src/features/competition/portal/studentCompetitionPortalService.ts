@@ -1,4 +1,7 @@
-import type { StudentCompetitionPortalDto } from '../../../../shared/competition-portal.contract';
+import type {
+  CompetitionEntryPreflightDto,
+  StudentCompetitionPortalDto,
+} from '../../../../shared/competition-portal.contract';
 import { callApi } from '../../../services/apiAdapter';
 import { toAppError } from '../../../services/api/errors';
 import type { StudentCompetitionDetail } from '../studentCompetitionService';
@@ -34,6 +37,12 @@ export function classifyStudentCompetitionPortalError(error: unknown): StudentCo
 export const studentCompetitionPortalService = {
   async resolveBySlug(campaignSlug: string): Promise<StudentCompetitionPortalResolution> {
     return callApi<StudentCompetitionPortalResolution>('get_student_competition_by_slug', { campaignSlug });
+  },
+  async preflightRound(campaignId: string, roundId: string): Promise<CompetitionEntryPreflightDto> {
+    const response = await callApi<{ preflight: CompetitionEntryPreflightDto }>(
+      'preflight_student_competition_round', { campaignId, roundId },
+    );
+    return response.preflight;
   },
   classifyError: classifyStudentCompetitionPortalError,
 };
