@@ -84,6 +84,9 @@ export const competitionRoutes: RouteRegistry = {
   list_student_competitions: {
     method: 'GET', auth: 'session', path: () => '/api/student/competitions',
   },
+  get_student_competition_by_slug: {
+    method: 'GET', auth: 'session', path: ({ campaignSlug }) => `/api/student/competitions/by-slug/${encoded(campaignSlug)}`,
+  },
   get_student_competition: {
     method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/student/competitions/${encoded(campaignId)}`,
   },

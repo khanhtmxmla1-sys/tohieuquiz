@@ -90,6 +90,7 @@ import {
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
 import { handleCompetitionPortalRoutes } from './portalRoutes';
+import { handleStudentCompetitionPortalRoutes } from './studentPortalRoutes';
 
 function routeCampaignId(path: string, suffix = ''): string | null {
   const prefix = '/api/competitions/';
@@ -280,6 +281,14 @@ async function handleCompetitionRoutesCore(
     try {
       const studentId = await authenticatedStudentId(env.DB, user);
       if (!studentId) return errorResponse('Unauthorized: Student identity not found', 401);
+
+      const studentPortalResponse = await handleStudentCompetitionPortalRoutes(
+        env.DB,
+        path,
+        method,
+        studentId,
+      );
+      if (studentPortalResponse) return studentPortalResponse;
 
       const studentEligibilityParts = routeParts(
         path,
