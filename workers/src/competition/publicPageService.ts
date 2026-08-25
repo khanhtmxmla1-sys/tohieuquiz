@@ -42,6 +42,106 @@ export interface PublishedCompetitionPublicPageDto {
   publishedAt: string;
 }
 
+export interface PublishedCompetitionPublicPageProjection {
+  campaignId: string;
+  slug: string;
+  heroTitle: string;
+  heroSubtitle: string | null;
+  heroImageUrl: string | null;
+  summary: string | null;
+  ctaLabel: string;
+  publishedAt: string;
+  updatedAt: string;
+  title: string;
+  schoolYear: string;
+  timezone: string;
+  startsAt: string;
+  endsAt: string;
+  articleSummaryAvailable: boolean;
+}
+
+interface PublishedCompetitionPublicPageProjectionRow {
+  campaign_id: string;
+  slug: string;
+  hero_title: string;
+  hero_subtitle: string | null;
+  hero_image_url: string | null;
+  summary: string | null;
+  cta_label: string;
+  published_at: string;
+  updated_at: string;
+  title: string;
+  school_year: string;
+  timezone: string;
+  starts_at: string;
+  ends_at: string;
+  article_summary_available: number;
+}
+
+const PUBLISHED_PROJECTION_COLUMNS = `
+  page.campaign_id, page.slug, page.hero_title, page.hero_subtitle,
+  page.hero_image_url, page.summary, page.cta_label, page.published_at,
+  page.updated_at, campaign.title, campaign.school_year, campaign.timezone,
+  campaign.starts_at, campaign.ends_at,
+  EXISTS (
+    SELECT 1 FROM competition_articles AS article
+    WHERE article.campaign_id = page.campaign_id
+      AND article.status = 'PUBLISHED' AND article.published_at IS NOT NULL
+  ) AS article_summary_available
+`;
+
+function mapPublishedProjection(
+  row: PublishedCompetitionPublicPageProjectionRow,
+): PublishedCompetitionPublicPageProjection {
+  return {
+    campaignId: row.campaign_id,
+    slug: row.slug,
+    heroTitle: row.hero_title,
+    heroSubtitle: row.hero_subtitle,
+    heroImageUrl: row.hero_image_url,
+    summary: row.summary,
+    ctaLabel: row.cta_label,
+    publishedAt: row.published_at,
+    updatedAt: row.updated_at,
+    title: row.title,
+    schoolYear: row.school_year,
+    timezone: row.timezone,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
+    articleSummaryAvailable: Boolean(row.article_summary_available),
+  };
+}
+
+export async function listPublishedPublicPageProjections(
+  db: D1Database,
+): Promise<PublishedCompetitionPublicPageProjection[]> {
+  const result = await db.prepare(`
+    SELECT ${PUBLISHED_PROJECTION_COLUMNS}
+    FROM competition_public_pages AS page
+    INNER JOIN competition_campaigns AS campaign ON campaign.id = page.campaign_id
+    WHERE page.status = 'PUBLISHED' AND page.published_at IS NOT NULL
+    ORDER BY page.published_at DESC, page.slug ASC
+    LIMIT 100
+  `).all<PublishedCompetitionPublicPageProjectionRow>();
+  return (result.results || []).map(mapPublishedProjection);
+}
+
+export async function getPublishedPublicPageProjectionBySlug(
+  db: D1Database,
+  slugInput: string,
+): Promise<PublishedCompetitionPublicPageProjection | null> {
+  const slug = String(slugInput || '').trim();
+  if (!slug) return null;
+  const row = await db.prepare(`
+    SELECT ${PUBLISHED_PROJECTION_COLUMNS}
+    FROM competition_public_pages AS page
+    INNER JOIN competition_campaigns AS campaign ON campaign.id = page.campaign_id
+    WHERE page.slug = ? AND page.status = 'PUBLISHED' AND page.published_at IS NOT NULL
+    LIMIT 1
+  `).bind(slug).first<PublishedCompetitionPublicPageProjectionRow>();
+  return row ? mapPublishedProjection(row) : null;
+}
+
 const PAGE_COLUMNS = `
   id, campaign_id, slug, status, hero_title, hero_subtitle, hero_image_url,
   summary, cta_label, seo_title, seo_description, og_image_url,

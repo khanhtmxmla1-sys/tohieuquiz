@@ -7,6 +7,7 @@ import {
   type StructuredLogSink,
 } from '../utils/logger';
 import { findApiAuthorizationPolicy } from '../security/apiAuthorizationPolicy';
+import { handlePublicCompetitionRoutes as defaultHandlePublicCompetitionRoutes } from '../routes/publicCompetitions';
 
 interface RateLimitOptions {
   windowMs: number;
@@ -72,6 +73,7 @@ export interface WorkerFetchDependencies {
   handleTeacherAiQuotaRoutes: RouteHandler;
   handleLiveExamRoutes: RouteHandler;
   handleCompetitionRoutes: RouteHandler;
+  handlePublicCompetitionRoutes?: RouteHandler;
   handleNotificationRoutes: RouteHandler;
   handleCertificateRoutes: RouteHandler;
   handleAdminCertificateRoutes: RouteHandler;
@@ -133,6 +135,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     handleTeacherAiQuotaRoutes,
     handleLiveExamRoutes,
     handleCompetitionRoutes,
+    handlePublicCompetitionRoutes = defaultHandlePublicCompetitionRoutes,
     handleNotificationRoutes,
     handleCertificateRoutes,
     handleAdminCertificateRoutes,
@@ -306,6 +309,12 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     if (path === '/api/login-media' && method === 'GET') {
       const loginMediaResponse = await handleLoginMediaRoutes(request, env, path, method);
       if (loginMediaResponse) return addCors(loginMediaResponse, request, env);
+    }
+
+    if (path === '/api/public/competitions' || path.startsWith('/api/public/competitions/')) {
+      const publicCompetitionResponse = await handlePublicCompetitionRoutes(request, env, path, method);
+      if (publicCompetitionResponse) return addCors(publicCompetitionResponse, request, env);
+      return addCors(errorResponse('Not found', 404), request, env);
     }
 
     const authError = verifyToken(request, env);

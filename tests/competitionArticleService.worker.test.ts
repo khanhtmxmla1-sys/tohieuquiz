@@ -459,7 +459,7 @@ describe('CompetitionArticle persistence and publication rules', () => {
     expect(await getPublishedCompetitionArticle(d1, pageA.slug, visibleUntilParentArchive.slug)).toBeNull();
   });
 
-  it('omits SQL-valid published rows that fail the full public article DTO schema', async () => {
+  it('surfaces SQL-valid malformed PUBLISHED rows as internal projection failures', async () => {
     await previewPublicPage(d1, 'campaign-a', 'admin-editor', 'req_public_page_preview_invalid_dto_0004');
     await publishPublicPage(d1, 'campaign-a', 'admin-editor', 'req_public_page_publish_invalid_dto_0004');
     const page = sqlite.prepare(`
@@ -479,8 +479,10 @@ describe('CompetitionArticle persistence and publication rules', () => {
       )
     `).run();
 
-    expect(await listPublishedCompetitionArticles(d1, page.slug)).toEqual([]);
-    expect(await getPublishedCompetitionArticle(d1, page.slug, 'malformed-legacy-article')).toBeNull();
+    await expect(listPublishedCompetitionArticles(d1, page.slug))
+      .rejects.toThrow('COMPETITION_PUBLIC_ARTICLE_PROJECTION_INVALID');
+    await expect(getPublishedCompetitionArticle(d1, page.slug, 'malformed-legacy-article'))
+      .rejects.toThrow('COMPETITION_PUBLIC_ARTICLE_PROJECTION_INVALID');
   });
 
   it('refuses to publish a preexisting draft that fails the full public article DTO schema', async () => {

@@ -48,6 +48,7 @@ const routeSamples = [
   ['/api/gift-shop/catalog/gift-1', 'DELETE', 'admin-only'],
   ['/api/gift-shop/events', 'GET', 'admin-only'],
   ['/api/media/uploads', 'POST', 'authenticated'],
+  ['/api/public/competitions/example/articles', 'GET', 'public'],
   ['/api/competitions', 'POST', 'admin-only'],
   ['/api/competitions/campaign-1', 'GET', 'teacher-owned'],
   ['/api/student/competitions/campaign-1', 'GET', 'student-owned'],
@@ -76,6 +77,16 @@ describe('API authorization matrix', () => {
       .toEqual(expect.arrayContaining(['session', 'campaignId', 'roundId', 'attemptId']));
     expect(findApiAuthorizationPolicy('/api/school-exams/event-1/exports/export-1', 'GET')?.ownership)
       .toEqual(expect.arrayContaining(['eventId', 'roomId', 'exportId']));
+  });
+
+  it('authorizes the public Competition namespace for GET only', () => {
+    expect(findApiAuthorizationPolicy('/api/public/competitions/example', 'GET')).toMatchObject({
+      id: 'competition-public-read',
+      authorization: 'public',
+      ownership: ['none'],
+      methods: ['GET'],
+    });
+    expect(findApiAuthorizationPolicy('/api/public/competitions/example', 'POST')).toBeUndefined();
   });
 
   it('fails closed for an unclassified API route', async () => {

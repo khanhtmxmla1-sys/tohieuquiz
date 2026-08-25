@@ -134,6 +134,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('certificate-batches', '/api/certificate-batches', 'teacher-owned', ['studentId', 'classId', 'batchId'], 'certificate batch ownership'),
   policy('notifications', '/api/notifications', 'authenticated', ['session', 'studentId'], 'notification recipient scope'),
   policy('media-upload', '/api/media/uploads', 'authenticated', ['session', 'route-handler'], 'JWT role, purpose, MIME, signature and size checks', { match: 'exact', methods: ['POST'] }),
+  policy('competition-public-read', '/api/public/competitions', 'public', ['none'], 'dedicated Competition public read handler', { methods: ['GET'] }),
   policy('competition-student', '/api/student/competitions', 'student-owned', ['session', 'campaignId', 'roundId', 'attemptId'], 'Competition handler derives student identity from authenticated session'),
   policy('competition-admin-mutations', '/api/competitions', 'admin-only', ['campaignId', 'roundId', 'classId', 'route-handler'], 'Competition Admin mutation guards', { methods: ['POST', 'PUT', 'PATCH', 'DELETE'] }),
   policy('competition-staff-read', '/api/competitions', 'teacher-owned', ['session', 'campaignId', 'roundId', 'classId'], 'Competition Admin/Teacher scoped read guards', { methods: ['GET'] }),

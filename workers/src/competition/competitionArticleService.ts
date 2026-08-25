@@ -73,6 +73,12 @@ function parsePublishedArticle(row: CompetitionArticleRow): PublicCompetitionArt
   return parsed.success ? parsed.data : null;
 }
 
+function requirePublishedArticleProjection(row: CompetitionArticleRow): PublicCompetitionArticleDto {
+  const article = parsePublishedArticle(row);
+  if (!article) throw new Error('COMPETITION_PUBLIC_ARTICLE_PROJECTION_INVALID');
+  return article;
+}
+
 function auditMetadata(row: CompetitionArticleRow) {
   return {
     status: row.status,
@@ -528,9 +534,7 @@ export async function listPublishedCompetitionArticles(
     LIMIT 100
   `).bind(campaignSlug).all<CompetitionArticleRow>();
 
-  return result.results
-    .map(parsePublishedArticle)
-    .filter((article): article is PublicCompetitionArticleDto => article !== null);
+  return result.results.map(requirePublishedArticleProjection);
 }
 
 export async function getPublishedCompetitionArticle(
@@ -554,5 +558,5 @@ export async function getPublishedCompetitionArticle(
     LIMIT 1
   `).bind(campaignSlug, articleSlug).first<CompetitionArticleRow>();
 
-  return row ? parsePublishedArticle(row) : null;
+  return row ? requirePublishedArticleProjection(row) : null;
 }
