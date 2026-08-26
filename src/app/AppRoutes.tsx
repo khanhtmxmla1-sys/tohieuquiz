@@ -12,6 +12,7 @@ import {
     ManualQuizWorkspacePage,
     PhieuPublicPage,
     PrivacyPolicy,
+    CompetitionStudentRoute,
     StudentCompetitionPage,
     StudentDashboardUI,
     TeacherDashboard,
@@ -150,33 +151,15 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route
                 path="/thi/:campaignSlug"
                 element={protectedRoute('student', competitionStudentPortalUxEnabled
-                    ? <StudentCompetitionPage />
+                    ? <CompetitionStudentRoute />
                     : <StudentDashboardUI />)}
-            />
-            <Route
-                path="/thi/:campaignSlug/vong/:roundNumber"
-                element={protectedRoute('student', competitionStudentPortalUxEnabled
-                    ? <StudentCompetitionPage />
-                    : <StudentDashboardUI />)}
-            />
-            <Route
-                path="/thi/:campaignSlug/vong/:roundNumber/quy-che"
-                element={protectedRoute('student', competitionStudentPortalUxEnabled
-                    ? <StudentCompetitionPage />
-                    : <StudentDashboardUI />)}
-            />
-            <Route
-                path="/thi/:campaignSlug/vong/:roundNumber/kiem-tra"
-                element={protectedRoute('student', competitionStudentPortalUxEnabled
-                    ? <StudentCompetitionPage />
-                    : <StudentDashboardUI />)}
-            />
-            <Route
-                path="/thi/:campaignSlug/vong/:roundNumber/lam-bai"
-                element={protectedRoute('student', competitionStudentPortalUxEnabled
-                    ? <StudentCompetitionPage />
-                    : <StudentDashboardUI />)}
-            />
+            >
+                <Route index element={<StudentCompetitionPage />} />
+                <Route path="vong/:roundNumber" element={<StudentCompetitionPage />} />
+                <Route path="vong/:roundNumber/quy-che" element={<StudentCompetitionPage />} />
+                <Route path="vong/:roundNumber/kiem-tra" element={<StudentCompetitionPage />} />
+                <Route path="vong/:roundNumber/lam-bai" element={<StudentCompetitionPage />} />
+            </Route>
             <Route
                 path="/student/competition"
                 element={competitionV1Enabled

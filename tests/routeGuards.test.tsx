@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router';
+import { MemoryRouter, Outlet, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppRoutes } from '../src/app/AppRoutes';
 import {
@@ -22,6 +22,7 @@ vi.mock('../src/config/featureFlags', async (importOriginal) => ({
 
 vi.mock('../src/app/lazyViews', () => ({
   AboutPage: () => <div>about-page</div>,
+  CompetitionStudentRoute: () => <Outlet />,
   ContactPage: () => <div>contact-page</div>,
   DesignSystemPage: () => <div>design-system-page</div>,
   Footer: () => <div>footer</div>,
