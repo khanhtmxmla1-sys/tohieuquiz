@@ -93,6 +93,12 @@ export const competitionRoutes: RouteRegistry = {
     path: ({ campaignId, roundId }) => `/api/student/competitions/${encoded(campaignId)}/rounds/${encoded(roundId)}/preflight`,
     body: () => ({}),
   },
+  preflight_student_competition_school_exam: {
+    method: 'POST',
+    auth: 'session',
+    path: ({ campaignId }) => `/api/student/competitions/${encoded(campaignId)}/school-exam/preflight`,
+    body: () => ({}),
+  },
   get_student_competition: {
     method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/student/competitions/${encoded(campaignId)}`,
   },
