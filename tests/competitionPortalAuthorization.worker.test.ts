@@ -1,0 +1,148 @@
+// @vitest-environment node
+import { DatabaseSync } from 'node:sqlite';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { handleCompetitionRoutes } from '../workers/src/routes/competitions';
+import { signJWT } from '../workers/src/utils/jwt';
+import { createSqliteD1 } from './helpers/sqliteD1';
+
+const secret = 'competition-portal-authorization-secret';
+let sqlite: DatabaseSync;
+let env: { DB: D1Database; JWT_SECRET: string };
+let studentCookie: string;
+let teacherCookie: string;
+
+function createSchema(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE teachers (
+      username TEXT PRIMARY KEY,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      token_version INTEGER NOT NULL DEFAULT 1,
+      must_change_password INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE classes (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      teacher_username TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      archived_at TEXT
+    );
+    CREATE TABLE students (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      full_name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      class_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      archived_at TEXT
+    );
+    CREATE TABLE competition_campaigns (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      school_year TEXT NOT NULL,
+      timezone TEXT NOT NULL,
+      status TEXT NOT NULL,
+      audience_rule_json TEXT NOT NULL DEFAULT '{}',
+      audience_snapshot_id TEXT,
+      eligibility_policy_json TEXT NOT NULL DEFAULT '{}',
+      starts_at TEXT NOT NULL,
+      ends_at TEXT NOT NULL,
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE competition_audience_members (
+      audience_snapshot_id TEXT NOT NULL,
+      student_id TEXT NOT NULL,
+      grade_level_at_snapshot INTEGER NOT NULL,
+      class_id_at_snapshot TEXT NOT NULL,
+      student_status_at_snapshot TEXT NOT NULL,
+      PRIMARY KEY (audience_snapshot_id, student_id)
+    );
+    CREATE TABLE competition_public_pages (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL UNIQUE,
+      slug TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL,
+      hero_title TEXT NOT NULL,
+      hero_subtitle TEXT,
+      hero_image_url TEXT,
+      summary TEXT,
+      cta_label TEXT NOT NULL,
+      seo_title TEXT,
+      seo_description TEXT,
+      og_image_url TEXT,
+      published_at TEXT,
+      archived_at TEXT,
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_by TEXT,
+      updated_at TEXT NOT NULL
+    );
+
+    INSERT INTO teachers (username) VALUES ('teacher-4');
+    INSERT INTO classes (id, name, teacher_username, created_at) VALUES
+      ('class-4a', '4A', 'teacher-4', '2026-08-01T00:00:00.000Z'),
+      ('class-5a', '5A', 'other-teacher', '2026-08-01T00:00:00.000Z');
+    INSERT INTO students (id, username, full_name, password_hash, class_id, created_at) VALUES
+      ('student-1', 'student1', 'Student One', 'hash', 'class-4a', '2026-08-01T00:00:00.000Z'),
+      ('student-2', 'student2', 'Student Two', 'hash', 'class-5a', '2026-08-01T00:00:00.000Z');
+    INSERT INTO competition_campaigns (
+      id, title, school_year, timezone, status, audience_rule_json, audience_snapshot_id,
+      starts_at, ends_at, created_by, created_at, updated_at
+    ) VALUES
+      ('campaign-private', 'Private Competition', '2026-2027', 'Asia/Ho_Chi_Minh', 'ACTIVE',
+       '{"gradeLevels":[5],"classIds":["class-5a"]}', 'snapshot-private',
+       '2026-09-01T00:00:00.000Z', '2027-05-31T23:59:59.000Z', 'teacher-4',
+       '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z');
+    INSERT INTO competition_audience_members
+      (audience_snapshot_id, student_id, grade_level_at_snapshot, class_id_at_snapshot, student_status_at_snapshot)
+      VALUES ('snapshot-private', 'student-2', 5, 'class-5a', 'ACTIVE');
+    INSERT INTO competition_public_pages
+      (id, campaign_id, slug, status, hero_title, cta_label, created_by, created_at, updated_at)
+      VALUES ('page-private', 'campaign-private', 'private-competition', 'DRAFT',
+        'Private Competition', 'VÀO THI', 'teacher-4', '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z');
+  `);
+}
+
+async function get(path: string, cookie: string): Promise<Response> {
+  const request = new Request(`https://api.test${path}`, {
+    method: 'GET',
+    headers: { Cookie: cookie },
+  });
+  return await handleCompetitionRoutes(request, env as any, path, 'GET')
+    ?? Response.json({ status: 'error', message: 'Not found' }, { status: 404 });
+}
+
+beforeEach(async () => {
+  sqlite = new DatabaseSync(':memory:');
+  createSchema(sqlite);
+  env = { DB: createSqliteD1(sqlite), JWT_SECRET: secret };
+  studentCookie = `auth_token=${await signJWT({
+    id: 'student-1', username: 'student1', role: 'student', tokenVersion: 1, purpose: 'session',
+  }, secret, '1d')}`;
+  teacherCookie = `auth_token=${await signJWT({
+    username: 'teacher-4', role: 'teacher', tokenVersion: 1, purpose: 'session',
+  }, secret, '1d')}`;
+});
+
+afterEach(() => sqlite.close());
+
+describe('Competition portal authorization safe errors', () => {
+  it('does not reveal whether an unrelated Student campaign slug exists', async () => {
+    const unrelated = await get('/api/student/competitions/by-slug/private-competition', studentCookie);
+    const missing = await get('/api/student/competitions/by-slug/does-not-exist', studentCookie);
+
+    expect(unrelated.status).toBe(404);
+    expect(missing.status).toBe(404);
+    expect(await unrelated.json()).toEqual(await missing.json());
+  });
+
+  it('does not reveal whether an out-of-scope staff campaign exists', async () => {
+    const unrelated = await get('/api/competitions/campaign-private/public-page', teacherCookie);
+    const missing = await get('/api/competitions/campaign-missing/public-page', teacherCookie);
+
+    expect(unrelated.status).toBe(404);
+    expect(missing.status).toBe(404);
+    expect(await unrelated.json()).toEqual(await missing.json());
+  });
+});
