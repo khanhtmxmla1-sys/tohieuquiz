@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppRoutes } from '../src/app/AppRoutes';
@@ -15,6 +15,11 @@ import {
 import { useAuthStore } from '../stores/authStore';
 import { useClassroomStore } from '../src/stores/useClassroomStore';
 
+vi.mock('../src/config/featureFlags', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../src/config/featureFlags')>(),
+  isCompetitionStudentPortalUxEnabled: () => true,
+}));
+
 vi.mock('../src/app/lazyViews', () => ({
   AboutPage: () => <div>about-page</div>,
   ContactPage: () => <div>contact-page</div>,
@@ -22,10 +27,12 @@ vi.mock('../src/app/lazyViews', () => ({
   Footer: () => <div>footer</div>,
   GiftShop: () => <div>student-shop</div>,
   HomePage: () => <div>home-page</div>,
+  LoginLandingPage: () => <div>login-landing-page</div>,
   ManualQuizWorkspacePage: () => <div>manual-workspace</div>,
   PhieuPublicPage: () => <div>phieu-public-page</div>,
   PrivacyPolicy: () => <div>privacy-page</div>,
   StudentDashboardUI: () => <div>student-dashboard</div>,
+  StudentCompetitionPage: () => <div>student-competition-portal</div>,
   TeacherDashboard: () => <div>teacher-dashboard</div>,
   TeacherResultDetailPage: () => <div>teacher-result-detail</div>,
   TermsOfService: () => <div>terms-page</div>,
@@ -114,6 +121,68 @@ describe('URL navigation contracts', () => {
     expect(resolveSafeReturnTo('//evil.example/teacher/results', 'teacher')).toBeNull();
     expect(resolveSafeReturnTo('/student/dashboard', 'teacher')).toBeNull();
     expect(resolveSafeReturnTo('/teacher/overview#token', 'teacher')).toBeNull();
+  });
+
+  it('allows exact Student Competition deep links without loosening open-redirect defenses', () => {
+    const deepLink = '/thi/campaign-a/vong/2/kiem-tra?x=1';
+    expect(resolveSafeReturnTo(deepLink, 'student')).toBe(deepLink);
+    expect(resolveSafeReturnTo(deepLink, 'teacher')).toBeNull();
+    expect(resolveSafeReturnTo('https://evil.example/thi/campaign-a', 'student')).toBeNull();
+    expect(resolveSafeReturnTo('//evil.example/thi/campaign-a', 'student')).toBeNull();
+    expect(resolveSafeReturnTo('/thi/\\\\evil.example', 'student')).toBeNull();
+    expect(resolveSafeReturnTo('/thi/campaign-a#token', 'student')).toBeNull();
+    expect(resolveSafeReturnTo('/thi/%5c%5cevil.example', 'student')).toBeNull();
+    expect(resolveSafeReturnTo('/thi/https%3a%2f%2fevil.example', 'student')).toBeNull();
+  });
+
+  it('redirects an anonymous Competition deep link through Student login with its exact returnTo', async () => {
+    renderRoutes('/thi/campaign-a/vong/2/kiem-tra?x=1');
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/?'));
+    const search = screen.getByTestId('location').textContent?.split('?')[1] || '';
+    const params = new URLSearchParams(search);
+    expect(params.get('login')).toBe('student');
+    expect(params.get('returnTo')).toBe('/thi/campaign-a/vong/2/kiem-tra?x=1');
+    expect(screen.queryByText('student-dashboard')).not.toBeInTheDocument();
+  });
+
+  it('does not let a Teacher session satisfy a Student Competition route', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'teacher.one',
+      teacherName: 'Giáo viên Một',
+      isAdmin: true,
+    });
+
+    renderRoutes('/thi/campaign-a');
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/?'));
+    const search = screen.getByTestId('location').textContent?.split('?')[1] || '';
+    expect(new URLSearchParams(search).get('login')).toBe('student');
+    expect(await screen.findByText('login-landing-page')).toBeInTheDocument();
+    expect(screen.queryByText('student-competition-portal')).not.toBeInTheDocument();
+  });
+
+  it('restores the exact Competition deep link after the requested Student login succeeds', async () => {
+    const deepLink = '/thi/campaign-a/vong/2/kiem-tra?x=1';
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'teacher.one',
+      teacherName: 'GiÃ¡o viÃªn Má»™t',
+      isAdmin: true,
+    });
+
+    renderRoutes(deepLink);
+    expect(await screen.findByText('login-landing-page')).toBeInTheDocument();
+
+    act(() => {
+      useClassroomStore.setState({ studentSession, isLoading: false, error: null });
+    });
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(deepLink));
+    expect(await screen.findByText('student-competition-portal')).toBeInTheDocument();
   });
 
   it('waits for session restoration before deciding a protected route', () => {

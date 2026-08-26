@@ -144,6 +144,52 @@ beforeEach(async () => {
 afterEach(() => sqlite.close());
 
 describe('Competition portal authorization safe errors', () => {
+  it('lists canonical DRAFT and PREVIEW slugs only for the authenticated Student audience', async () => {
+    sqlite.exec(`
+      INSERT INTO competition_campaigns (
+        id, title, school_year, timezone, status, audience_rule_json, audience_snapshot_id,
+        starts_at, ends_at, created_by, created_at, updated_at
+      ) VALUES
+        ('campaign-owned-no-page', 'Owned campaign without a public page', '2026-2027', 'Asia/Ho_Chi_Minh', 'ACTIVE',
+         '{}', 'snapshot-owned-no-page', '2026-11-01T00:00:00.000Z', '2027-05-31T23:59:59.000Z',
+         'teacher-4', '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z'),
+        ('campaign-owned-draft', 'Title must not become the slug', '2026-2027', 'Asia/Ho_Chi_Minh', 'ACTIVE',
+         '{}', 'snapshot-owned-draft', '2026-10-01T00:00:00.000Z', '2027-05-31T23:59:59.000Z',
+         'teacher-4', '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z'),
+        ('campaign-owned-preview', 'Another non-slug title', '2026-2027', 'Asia/Ho_Chi_Minh', 'ACTIVE',
+         '{}', 'snapshot-owned-preview', '2026-09-01T00:00:00.000Z', '2027-05-31T23:59:59.000Z',
+         'teacher-4', '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z');
+      INSERT INTO competition_audience_members
+        (audience_snapshot_id, student_id, grade_level_at_snapshot, class_id_at_snapshot, student_status_at_snapshot)
+      VALUES
+        ('snapshot-owned-no-page', 'student-1', 4, 'class-4a', 'ACTIVE'),
+        ('snapshot-owned-draft', 'student-1', 4, 'class-4a', 'ACTIVE'),
+        ('snapshot-owned-preview', 'student-1', 4, 'class-4a', 'ACTIVE');
+      INSERT INTO competition_public_pages
+        (id, campaign_id, slug, status, hero_title, cta_label, created_by, created_at, updated_at)
+      VALUES
+        ('page-owned-draft', 'campaign-owned-draft', 'server-owned-draft-slug', 'DRAFT',
+         'Draft Competition', 'VÀO THI', 'teacher-4', '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z'),
+        ('page-owned-preview', 'campaign-owned-preview', 'server-owned-preview-slug', 'PREVIEW',
+         'Preview Competition', 'VÀO THI', 'teacher-4', '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z');
+    `);
+
+    const response = await get('/api/student/competitions', studentCookie);
+    expect(response.status).toBe(200);
+    const body = await response.json() as { items: Array<{ id: string; slug: string | null }> };
+    expect(body.items.map(({ id, slug }) => ({ id, slug }))).toEqual([
+      { id: 'campaign-owned-no-page', slug: null },
+      { id: 'campaign-owned-draft', slug: 'server-owned-draft-slug' },
+      { id: 'campaign-owned-preview', slug: 'server-owned-preview-slug' },
+    ]);
+    expect(body.items).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'campaign-private' }),
+    ]));
+
+    const anonymous = await get('/api/student/competitions', '');
+    expect(anonymous.status).toBe(401);
+  });
+
   it('does not reveal whether an unrelated Student campaign slug exists', async () => {
     const unrelated = await get('/api/student/competitions/by-slug/private-competition', studentCookie);
     const missing = await get('/api/student/competitions/by-slug/does-not-exist', studentCookie);

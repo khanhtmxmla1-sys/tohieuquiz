@@ -1,14 +1,18 @@
 import React, { Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
+import { useAuthStore } from '../../stores/authStore';
 import { useQuizStore } from '../../stores/quizStore';
+import { useClassroomStore } from '../stores/useClassroomStore';
 import {
     AboutPage,
     ContactPage,
     DesignSystemPage,
     GiftShop,
+    LoginLandingPage,
     ManualQuizWorkspacePage,
     PhieuPublicPage,
     PrivacyPolicy,
+    StudentCompetitionPage,
     StudentDashboardUI,
     TeacherDashboard,
     TeacherResultDetailPage,
@@ -17,10 +21,17 @@ import {
 import { PageLoading } from './PageLoading';
 import { PublicPageLayout } from './PublicPageLayout';
 import { RootView } from './RootView';
+import { resolveSafeReturnTo } from './navigationRoutes';
 import type { RoutePath } from './routeTypes';
-import { isCompetitionV1Enabled, isManualQuizWorkspaceEnabled } from '../config/featureFlags';
+import {
+    isCompetitionLegacyRedirectUxEnabled,
+    isCompetitionStudentPortalUxEnabled,
+    isCompetitionV1Enabled,
+    isManualQuizWorkspaceEnabled,
+} from '../config/featureFlags';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
+import LegacyCompetitionRedirect from '../features/competition/portal/student/LegacyCompetitionRedirect';
 
 const LegacyManualQuizNewRedirect = () => {
     const location = useLocation();
@@ -59,10 +70,23 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
     manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled(),
     sessionsReady = true,
 }) => {
+    const authStore = useAuthStore();
     const quizStore = useQuizStore();
+    const classroomStore = useClassroomStore();
     const navigate = useNavigate();
     const location = useLocation();
     const competitionV1Enabled = isCompetitionV1Enabled();
+    const competitionLegacyRedirectUxEnabled = isCompetitionLegacyRedirectUxEnabled();
+    const competitionStudentPortalUxEnabled = isCompetitionStudentPortalUxEnabled();
+    const loginParams = new URLSearchParams(location.search);
+    const requestedLogin = loginParams.get('login');
+    const hasExplicitLoginRequest = requestedLogin === 'student' || requestedLogin === 'teacher';
+    const requestedReturnTo = loginParams.get('returnTo');
+    const explicitLoginDestination = requestedLogin === 'student' && classroomStore.studentSession
+        ? resolveSafeReturnTo(requestedReturnTo, 'student') || '/student/dashboard'
+        : requestedLogin === 'teacher' && authStore.isLoggedIn
+            ? resolveSafeReturnTo(requestedReturnTo, 'teacher') || '/teacher/overview'
+            : null;
     const onNavigate = (path: RoutePath) => navigate(path);
     const goBackHome = () => {
         quizStore.goHome();
@@ -83,7 +107,14 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
 
     return (
         <Routes>
-            <Route path="/" element={<RootView giftShopEnabled={giftShopEnabled} />} />
+            <Route
+                path="/"
+                element={explicitLoginDestination
+                    ? <Navigate to={explicitLoginDestination} replace />
+                    : hasExplicitLoginRequest
+                    ? suspended(<LoginLandingPage />)
+                    : <RootView giftShopEnabled={giftShopEnabled} />}
+            />
 
             <Route path="/teacher/overview" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/quizzes" element={protectedRoute('teacher', <TeacherDashboard />)} />
@@ -117,9 +148,41 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route path="/student/achievements" element={protectedRoute('student', <StudentDashboardUI />)} />
             <Route path="/student/results" element={protectedRoute('student', <StudentDashboardUI />)} />
             <Route
+                path="/thi/:campaignSlug"
+                element={protectedRoute('student', competitionStudentPortalUxEnabled
+                    ? <StudentCompetitionPage />
+                    : <StudentDashboardUI />)}
+            />
+            <Route
+                path="/thi/:campaignSlug/vong/:roundNumber"
+                element={protectedRoute('student', competitionStudentPortalUxEnabled
+                    ? <StudentCompetitionPage />
+                    : <StudentDashboardUI />)}
+            />
+            <Route
+                path="/thi/:campaignSlug/vong/:roundNumber/quy-che"
+                element={protectedRoute('student', competitionStudentPortalUxEnabled
+                    ? <StudentCompetitionPage />
+                    : <StudentDashboardUI />)}
+            />
+            <Route
+                path="/thi/:campaignSlug/vong/:roundNumber/kiem-tra"
+                element={protectedRoute('student', competitionStudentPortalUxEnabled
+                    ? <StudentCompetitionPage />
+                    : <StudentDashboardUI />)}
+            />
+            <Route
+                path="/thi/:campaignSlug/vong/:roundNumber/lam-bai"
+                element={protectedRoute('student', competitionStudentPortalUxEnabled
+                    ? <StudentCompetitionPage />
+                    : <StudentDashboardUI />)}
+            />
+            <Route
                 path="/student/competition"
                 element={competitionV1Enabled
-                    ? protectedRoute('student', <StudentDashboardUI />)
+                    ? protectedRoute('student', competitionLegacyRedirectUxEnabled
+                        ? <LegacyCompetitionRedirect fallback={<StudentDashboardUI />} />
+                        : <StudentDashboardUI />)
                     : <Navigate to="/student/dashboard" replace />}
             />
             <Route path="/student/live-exam/:sessionId" element={protectedRoute('student', <StudentDashboardUI />)} />

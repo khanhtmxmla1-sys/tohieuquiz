@@ -96,17 +96,20 @@ export const getStudentSectionRoute = (section: StudentDashboardSection): string
 export const resolveStudentSectionFromLocation = (pathname: string): StudentDashboardSection => {
   if (pathname === STUDENT_STATIC_ROUTES.achievements) return 'achievements';
   if (pathname === STUDENT_STATIC_ROUTES.results) return 'resultReports';
-  if (pathname === STUDENT_STATIC_ROUTES.competition) return 'competition';
+  if (pathname === STUDENT_STATIC_ROUTES.competition || pathname.startsWith('/thi/')) return 'competition';
   return 'dashboard';
 };
 
 export const getStudentRoute = (
   route: StudentRouteName,
-  params: { sessionId?: string } = {},
+  params: { sessionId?: string; campaignSlug?: string } = {},
 ): string => {
   if (route === 'liveExam') {
     if (!params.sessionId) return '/student/dashboard';
     return `/student/live-exam/${encodeURIComponent(params.sessionId)}`;
+  }
+  if (route === 'competition' && params.campaignSlug) {
+    return `/thi/${encodeURIComponent(params.campaignSlug)}`;
   }
   return STUDENT_STATIC_ROUTES[route];
 };
@@ -121,8 +124,10 @@ export const resolveSafeReturnTo = (
   try {
     const parsed = new URL(rawValue, 'https://tohieuquiz.local');
     if (parsed.origin !== 'https://tohieuquiz.local') return null;
-    const expectedPrefix = role === 'teacher' ? '/teacher/' : '/student/';
-    if (!parsed.pathname.startsWith(expectedPrefix)) return null;
+    const decodedPathname = decodeURIComponent(parsed.pathname);
+    if (decodedPathname.includes('\\') || decodedPathname.includes('://')) return null;
+    const expectedPrefixes = role === 'teacher' ? ['/teacher/'] : ['/student/', '/thi/'];
+    if (!expectedPrefixes.some(prefix => parsed.pathname.startsWith(prefix))) return null;
     return `${parsed.pathname}${parsed.search}`;
   } catch {
     return null;

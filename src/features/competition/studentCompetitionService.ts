@@ -1,13 +1,17 @@
 import type { Question } from '../../types';
 import { callApi } from '../../services/apiAdapter';
 
-export interface StudentCompetitionSummary {
+interface StudentCompetitionBase {
   id: string;
   title: string;
   schoolYear?: string;
   status: string;
   startsAt?: string;
   endsAt?: string;
+}
+
+export interface StudentCompetitionSummary extends StudentCompetitionBase {
+  slug: string | null;
 }
 
 export interface StudentCompetitionRound {
@@ -24,7 +28,7 @@ export interface StudentCompetitionRound {
   progressStatus?: string | null;
 }
 
-export interface StudentCompetitionDetail extends StudentCompetitionSummary {
+export interface StudentCompetitionDetail extends StudentCompetitionBase {
   eligibility: { version: number; qualified: boolean; reasonCodes: string[]; qualifiedAt?: string | null } | null;
   rounds: StudentCompetitionRound[];
 }

@@ -15,20 +15,23 @@ function roundStatus(row: { status: string; opens_at: string; closes_at: string 
 export async function listStudentCompetitions(db: D1Database, studentIdInput: string) {
   const studentId = normalizedId(studentIdInput, 'COMPETITION_STUDENT_ID_REQUIRED');
   const result = await db.prepare(`
-    SELECT campaign.id, campaign.title, campaign.school_year, campaign.timezone,
+    SELECT campaign.id, campaign.title, page.slug, campaign.school_year, campaign.timezone,
            campaign.status, campaign.starts_at, campaign.ends_at
     FROM competition_campaigns AS campaign
     INNER JOIN competition_audience_members AS member
       ON member.audience_snapshot_id = campaign.audience_snapshot_id
      AND member.student_id = ?
+    LEFT JOIN competition_public_pages AS page
+      ON page.campaign_id = campaign.id
     ORDER BY campaign.starts_at DESC, campaign.id ASC
   `).bind(studentId).all<{
-    id: string; title: string; school_year: string; timezone: string;
+    id: string; title: string; slug: string | null; school_year: string; timezone: string;
     status: string; starts_at: string; ends_at: string;
   }>();
   return (result.results || []).map(row => ({
     id: row.id,
     title: row.title,
+    slug: row.slug,
     schoolYear: row.school_year,
     timezone: row.timezone,
     status: row.status,

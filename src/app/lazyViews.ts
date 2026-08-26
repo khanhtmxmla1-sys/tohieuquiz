@@ -5,6 +5,7 @@ export const TeacherDashboard = React.lazy(() => import('../components/TeacherDa
 export const TeacherResultDetailPage = React.lazy(() => import('../components/TeacherDashboard/TeacherResultDetailPage'));
 export const GiftShop = React.lazy(() => import('../components/gamification/GiftShop'));
 export const HomePage = React.lazy(() => import('../components/HomePage/HomePage'));
+export const LoginLandingPage = React.lazy(() => import('../components/HomePage/LoginLandingPage'));
 export const StudentDashboardUI = React.lazy(() => import('../components/HomePage/StudentDashboardUI'));
 export const PrivacyPolicy = React.lazy(() => import('../components/legal/PrivacyPolicy'));
 export const TermsOfService = React.lazy(() => import('../components/legal/TermsOfService'));
@@ -13,5 +14,6 @@ export const AboutPage = React.lazy(() => import('../components/schoolPage/About
 export const ContactPage = React.lazy(() => import('../components/schoolPage/ContactPage'));
 export const PhieuPublicPage = React.lazy(() => import('../pages/PhieuPublicPage'));
 export const ManualQuizWorkspacePage = React.lazy(() => import('../features/manual-quiz-workspace/ManualQuizWorkspacePage'));
+export const StudentCompetitionPage = React.lazy(() => import('../features/competition/StudentCompetitionPage'));
 export const ParentPortalApp = React.lazy(() => import('../features/parent-portal/ParentPortalApp'));
 export const DesignSystemPage = React.lazy(() => import('../components/design-system/DesignSystemPage'));
