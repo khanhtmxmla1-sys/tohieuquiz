@@ -11,6 +11,10 @@ import type {
 import { getPublishedCompetitionArticle, listPublishedCompetitionArticles } from '../../competition/competitionArticleService';
 import { getPublicGoldenBoard } from '../../competition/goldenBoardService';
 import {
+  isCompetitionGoldenBoardEnabled,
+  isCompetitionPublicPortalReadEnabled,
+} from '../../competition/portalFeatureFlags';
+import {
   getPublishedPublicPageProjectionBySlug,
   listPublishedPublicPageProjections,
   type PublishedCompetitionPublicPageProjection,
@@ -178,6 +182,7 @@ export async function handlePublicCompetitionRoutes(
 ): Promise<Response | null> {
   if (path !== PUBLIC_PREFIX && !path.startsWith(`${PUBLIC_PREFIX}/`)) return null;
   if (!recognizedPublicPath(path)) return notFound();
+  if (!await isCompetitionPublicPortalReadEnabled(env.DB)) return notFound();
   if (method !== 'GET') return methodNotAllowed();
 
   const now = options.now?.() || new Date();
@@ -215,6 +220,7 @@ export async function handlePublicCompetitionRoutes(
 
     const goldenBoardMatch = path.match(/^\/api\/public\/competitions\/([^/]+)\/golden-board$/);
     if (goldenBoardMatch) {
+      if (!await isCompetitionGoldenBoardEnabled(env.DB)) return notFound();
       const slug = decodePathSegment(goldenBoardMatch[1]);
       if (!slug) return notFound();
       const page = await getPublishedPublicPageProjectionBySlug(env.DB, slug);

@@ -287,6 +287,7 @@ async function handleCompetitionRoutesCore(
         path,
         method,
         studentId,
+        user.username,
       );
       if (studentPortalResponse) return studentPortalResponse;
 

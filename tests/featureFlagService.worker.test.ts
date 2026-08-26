@@ -63,6 +63,38 @@ const setup = () => {
 };
 
 describe('feature flag persistence and rollback', () => {
+  it('can resolve, enable, and reverse every Competition portal rollout gate', async () => {
+    const db = setup();
+    const keys = [
+      'competition_public_portal_read_v1',
+      'competition_student_portal_v1',
+      'competition_legacy_redirect_v1',
+      'competition_golden_board_v1',
+      'competition_public_content_admin_v1',
+    ];
+    const insertFlag = sqlite!.prepare(`
+      INSERT INTO feature_flags (flag_key, description, enabled, owner, version, created_at, updated_at)
+      VALUES (?, ?, 0, 'competition', 1, '2026-08-25', '2026-08-25')
+    `);
+    const insertRule = sqlite!.prepare(`
+      INSERT INTO feature_flag_rules (
+        flag_key, audience, percentage, allow_users_json, allow_classes_json,
+        starts_at, ends_at, stop_conditions_json, reason, updated_by, updated_at
+      ) VALUES (?, 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Portal rollout seed',
+        'migration-0079', '2026-08-25')
+    `);
+    for (const key of keys) {
+      insertFlag.run(key, key);
+      insertRule.run(key);
+      expect(await getFeatureFlag(db, key)).toMatchObject({ key, enabled: false, audience: 'all', percentage: 100 });
+      await patchFeatureFlag(db, key, { field: 'enabled', value: true, reason: 'Enable portal gate' },
+        'admin-a', `enable-${key}`);
+      expect(await getFeatureFlag(db, key)).toMatchObject({ enabled: true, version: 2 });
+      expect(await rollbackFeatureFlag(db, key, 'admin-b', `rollback-${key}`, 'Disable portal gate'))
+        .toMatchObject({ enabled: false, version: 3 });
+    }
+  });
+
   it('patches one rule field, increments version and records actor/request audit', async () => {
     const db = setup();
     const before = await getFeatureFlag(db, 'unified_notifications_v1');

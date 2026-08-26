@@ -5,6 +5,10 @@ import {
   STUDENT_COMPETITION_PORTAL_NOT_FOUND,
   STUDENT_COMPETITION_PORTAL_UNAVAILABLE,
 } from '../../competition/studentPortalService';
+import {
+  COMPETITION_PORTAL_FEATURE_DISABLED,
+  isCompetitionStudentPortalEnabled,
+} from '../../competition/portalFeatureFlags';
 import { errorResponse, jsonResponse } from '../../utils/response';
 
 function decodedSegment(value: string): string | null {
@@ -21,10 +25,20 @@ export async function handleStudentCompetitionPortalRoutes(
   path: string,
   method: string,
   studentId: string,
+  studentUsername = studentId,
 ): Promise<Response | null> {
   const schoolExamPreflightMatch = path.match(
     /^\/api\/student\/competitions\/([^/]+)\/school-exam\/preflight$/,
   );
+  const preflightMatch = path.match(
+    /^\/api\/student\/competitions\/([^/]+)\/rounds\/([^/]+)\/preflight$/,
+  );
+  const match = path.match(/^\/api\/student\/competitions\/by-slug\/([^/]+)$/);
+  if (!schoolExamPreflightMatch && !preflightMatch && !match) return null;
+  if (!await isCompetitionStudentPortalEnabled(db, studentUsername)) {
+    return errorResponse(COMPETITION_PORTAL_FEATURE_DISABLED, 503);
+  }
+
   if (schoolExamPreflightMatch) {
     if (method !== 'POST') return errorResponse('Method not allowed', 405);
     const campaignId = decodedSegment(schoolExamPreflightMatch[1]);
@@ -33,9 +47,6 @@ export async function handleStudentCompetitionPortalRoutes(
     return jsonResponse({ preflight });
   }
 
-  const preflightMatch = path.match(
-    /^\/api\/student\/competitions\/([^/]+)\/rounds\/([^/]+)\/preflight$/,
-  );
   if (preflightMatch) {
     if (method !== 'POST') return errorResponse('Method not allowed', 405);
     const campaignId = decodedSegment(preflightMatch[1]);
@@ -45,11 +56,9 @@ export async function handleStudentCompetitionPortalRoutes(
     return jsonResponse({ preflight });
   }
 
-  const match = path.match(/^\/api\/student\/competitions\/by-slug\/([^/]+)$/);
-  if (!match) return null;
   if (method !== 'GET') return errorResponse('Method not allowed', 405);
 
-  const campaignSlug = decodedSegment(match[1]);
+  const campaignSlug = decodedSegment(match![1]);
   if (!campaignSlug) return errorResponse(STUDENT_COMPETITION_PORTAL_NOT_FOUND, 404);
 
   try {

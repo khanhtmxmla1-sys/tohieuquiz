@@ -33,6 +33,10 @@ import {
 } from '../../competition/campaignService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
+import {
+  COMPETITION_PORTAL_FEATURE_DISABLED,
+  isCompetitionPublicContentAdminEnabled,
+} from '../../competition/portalFeatureFlags';
 
 type PortalResource =
   | { kind: 'public-page'; campaignId: string; action?: 'preview' | 'publish' | 'archive' }
@@ -148,6 +152,14 @@ export async function handleCompetitionPortalRoutes(
   if (!resource) return null;
   if (!await canAccessCampaign(db, resource.campaignId, user, teacherClassIds)) {
     return errorResponse('COMPETITION_CAMPAIGN_NOT_FOUND', 404);
+  }
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+    && !await isCompetitionPublicContentAdminEnabled(db, {
+      role: user.role,
+      username: user.username,
+      classIds: teacherClassIds,
+    })) {
+    return errorResponse(COMPETITION_PORTAL_FEATURE_DISABLED, 503);
   }
 
   try {

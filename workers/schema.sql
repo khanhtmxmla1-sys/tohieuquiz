@@ -3402,5 +3402,15 @@ INSERT OR IGNORE INTO feature_flags (
   ('competition_golden_board_v1', 'Competition Golden Board publication', 0, 'competition', 1, datetime('now'), datetime('now')),
   ('competition_public_content_admin_v1', 'Competition public content administration', 0, 'competition', 1, datetime('now'), datetime('now'));
 
+INSERT OR IGNORE INTO feature_flag_rules (
+  flag_key, audience, percentage, allow_users_json, allow_classes_json,
+  starts_at, ends_at, stop_conditions_json, reason, updated_by, updated_at
+) VALUES
+  ('competition_public_portal_read_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now')),
+  ('competition_student_portal_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now')),
+  ('competition_legacy_redirect_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now')),
+  ('competition_golden_board_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now')),
+  ('competition_public_content_admin_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now'));
+
 INSERT OR IGNORE INTO system_settings (setting_key, setting_value, updated_at)
 VALUES ('school_name', 'Trường Tiểu học Tô Hiệu', datetime('now'));

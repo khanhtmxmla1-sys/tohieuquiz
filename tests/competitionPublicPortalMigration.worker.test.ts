@@ -67,6 +67,20 @@ function createFixture(schoolName?: string): DatabaseSync {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE feature_flag_rules (
+      flag_key TEXT PRIMARY KEY,
+      audience TEXT NOT NULL,
+      percentage INTEGER NOT NULL,
+      allow_users_json TEXT NOT NULL,
+      allow_classes_json TEXT NOT NULL,
+      starts_at TEXT,
+      ends_at TEXT,
+      stop_conditions_json TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      updated_by TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (flag_key) REFERENCES feature_flags(flag_key) ON DELETE CASCADE
+    );
     CREATE TABLE system_settings (
       setting_key TEXT PRIMARY KEY,
       setting_value TEXT NOT NULL,
@@ -342,6 +356,17 @@ describe('Competition public portal migration', () => {
     `).all() as Array<{ flag_key: string; enabled: number }>;
     expect(flags.map((flag) => flag.flag_key)).toEqual([...portalFlags].sort());
     expect(flags.every((flag) => flag.enabled === 0)).toBe(true);
+    const rules = db.prepare(`
+      SELECT flag_key, audience, percentage, allow_users_json, allow_classes_json,
+             starts_at, ends_at
+      FROM feature_flag_rules
+      WHERE flag_key LIKE 'competition_%_v1' ORDER BY flag_key
+    `).all() as Array<Record<string, unknown>>;
+    expect(rules).toHaveLength(5);
+    expect(rules.map((rule) => rule.flag_key)).toEqual([...portalFlags].sort());
+    expect(rules.every((rule) => rule.audience === 'all' && rule.percentage === 100
+      && rule.allow_users_json === '[]' && rule.allow_classes_json === '[]'
+      && rule.starts_at === null && rule.ends_at === null)).toBe(true);
     expect(db.prepare(`
       SELECT setting_value FROM system_settings WHERE setting_key = 'school_name'
     `).get()).toEqual({ setting_value: 'Trường Tiểu học Tô Hiệu' });

@@ -54,6 +54,13 @@ function createSchema(db: DatabaseSync): void {
       owner TEXT NOT NULL DEFAULT '', version INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL, updated_at TEXT NOT NULL
     );
+    CREATE TABLE feature_flag_rules (
+      flag_key TEXT PRIMARY KEY, audience TEXT NOT NULL, percentage INTEGER NOT NULL,
+      allow_users_json TEXT NOT NULL, allow_classes_json TEXT NOT NULL,
+      starts_at TEXT, ends_at TEXT, stop_conditions_json TEXT NOT NULL,
+      reason TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at TEXT NOT NULL,
+      FOREIGN KEY (flag_key) REFERENCES feature_flags(flag_key) ON DELETE CASCADE
+    );
     CREATE TABLE system_settings (
       setting_key TEXT PRIMARY KEY, setting_value TEXT NOT NULL, updated_at TEXT NOT NULL
     );
@@ -116,6 +123,7 @@ beforeEach(async () => {
   insertCampaign('campaign-grade-only', { gradeLevels: [4] });
   insertCampaign('campaign-inconsistent', { gradeLevels: [5], classIds: ['class-4a'] });
   sqlite.exec(portalMigration);
+  sqlite.prepare(`UPDATE feature_flags SET enabled = 1 WHERE flag_key = 'competition_public_content_admin_v1'`).run();
   env = { DB: createSqliteD1(sqlite), JWT_SECRET: secret };
   adminCookie = `auth_token=${await signJWT({ username: 'admin', role: 'admin', tokenVersion: 1, purpose: 'session' }, secret, '1d')}`;
   teacherCookie = `auth_token=${await signJWT({ username: 'teacher-4', role: 'teacher', tokenVersion: 1, purpose: 'session' }, secret, '1d')}`;

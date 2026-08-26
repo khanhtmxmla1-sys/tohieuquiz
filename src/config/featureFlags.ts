@@ -56,6 +56,32 @@ export const isCompetitionV1Enabled = (): boolean => resolveFeatureFlag(
     false,
 );
 
+/** UX/navigation hints only. Worker-side rollout gates remain authoritative. */
+export const isCompetitionPublicPortalUxEnabled = (): boolean => resolveFeatureFlag(
+    import.meta.env.VITE_FEATURE_COMPETITION_PUBLIC_PORTAL_V1,
+    false,
+);
+
+export const isCompetitionStudentPortalUxEnabled = (): boolean => resolveFeatureFlag(
+    import.meta.env.VITE_FEATURE_COMPETITION_STUDENT_PORTAL_V1,
+    false,
+);
+
+export const isCompetitionLegacyRedirectUxEnabled = (): boolean => resolveFeatureFlag(
+    import.meta.env.VITE_FEATURE_COMPETITION_LEGACY_REDIRECT_V1,
+    false,
+);
+
+export const isCompetitionGoldenBoardUxEnabled = (): boolean => resolveFeatureFlag(
+    import.meta.env.VITE_FEATURE_COMPETITION_GOLDEN_BOARD_V1,
+    false,
+);
+
+export const isCompetitionPublicContentAdminUxEnabled = (): boolean => resolveFeatureFlag(
+    import.meta.env.VITE_FEATURE_COMPETITION_PUBLIC_CONTENT_ADMIN_V1,
+    false,
+);
+
 export const isParentPortalEnabled = (): boolean => resolveFeatureFlag(
     import.meta.env.VITE_FEATURE_PARENT_PORTAL_V1,
     false,

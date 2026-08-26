@@ -79,6 +79,22 @@ function createSchema(db: DatabaseSync): void {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE feature_flags (
+      flag_key TEXT PRIMARY KEY, description TEXT NOT NULL, enabled INTEGER NOT NULL,
+      owner TEXT NOT NULL, version INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE feature_flag_rules (
+      flag_key TEXT PRIMARY KEY, audience TEXT NOT NULL, percentage INTEGER NOT NULL,
+      allow_users_json TEXT NOT NULL, allow_classes_json TEXT NOT NULL,
+      starts_at TEXT, ends_at TEXT, stop_conditions_json TEXT NOT NULL,
+      reason TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    INSERT INTO feature_flags VALUES
+      ('competition_student_portal_v1', 'student portal', 1, 'competition', 1,
+       '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z');
+    INSERT INTO feature_flag_rules VALUES
+      ('competition_student_portal_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}',
+       'test fixture', 'test', '2026-08-25T00:00:00.000Z');
     INSERT INTO teachers (username) VALUES ('teacher-4');
     INSERT INTO classes (id, name, teacher_username, created_at) VALUES
       ('class-4a', '4A', 'teacher-4', '2026-08-01T00:00:00.000Z'),

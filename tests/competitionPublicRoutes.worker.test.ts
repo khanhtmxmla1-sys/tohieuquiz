@@ -65,6 +65,22 @@ function seedSchema() {
     CREATE TABLE students (id TEXT PRIMARY KEY, full_name TEXT NOT NULL);
     CREATE TABLE classes (id TEXT PRIMARY KEY, name TEXT NOT NULL);
     CREATE TABLE system_settings (setting_key TEXT PRIMARY KEY, setting_value TEXT NOT NULL);
+    CREATE TABLE feature_flags (
+      flag_key TEXT PRIMARY KEY, description TEXT NOT NULL, enabled INTEGER NOT NULL,
+      owner TEXT NOT NULL, version INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE feature_flag_rules (
+      flag_key TEXT PRIMARY KEY, audience TEXT NOT NULL, percentage INTEGER NOT NULL,
+      allow_users_json TEXT NOT NULL, allow_classes_json TEXT NOT NULL,
+      starts_at TEXT, ends_at TEXT, stop_conditions_json TEXT NOT NULL,
+      reason TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    INSERT INTO feature_flags VALUES
+      ('competition_public_portal_read_v1', 'public', 1, 'competition', 1, '${NOW}', '${NOW}'),
+      ('competition_golden_board_v1', 'board', 1, 'competition', 1, '${NOW}', '${NOW}');
+    INSERT INTO feature_flag_rules VALUES
+      ('competition_public_portal_read_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'test', 'test', '${NOW}'),
+      ('competition_golden_board_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'test', 'test', '${NOW}');
   `);
 }
 
@@ -260,9 +276,27 @@ describe('anonymous Competition public routes', () => {
   it('returns logged safe 5xx for infrastructure failures while genuine absence stays generic 404', async () => {
     const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() };
     const failingRequest = request('/api/public/competitions');
+    const failingDb = {
+      prepare(sql: string) {
+        if (sql.includes('FROM feature_flags f')) {
+          return {
+            bind() { return this; },
+            async first() {
+              return {
+                flag_key: 'competition_public_portal_read_v1', description: 'public', enabled: 1,
+                owner: 'competition', version: 1, audience: 'all', percentage: 100,
+                allow_users_json: '[]', allow_classes_json: '[]', starts_at: null, ends_at: null,
+                stop_conditions_json: '{}', reason: 'test', updated_by: 'test', updated_at: NOW,
+              };
+            },
+          };
+        }
+        throw new Error('D1 transient outage');
+      },
+    };
     const response = await handlePublicCompetitionRoutes(
       failingRequest,
-      { DB: { prepare: () => { throw new Error('D1 transient outage'); } } } as any,
+      { DB: failingDb } as any,
       '/api/public/competitions',
       'GET',
       { now: () => new Date(NOW), logger },
