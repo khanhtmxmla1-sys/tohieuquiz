@@ -13,6 +13,7 @@ import {
     PhieuPublicPage,
     PrivacyPolicy,
     CompetitionStudentRoute,
+    StudentCompetitionHomePage,
     StudentCompetitionPage,
     StudentDashboardUI,
     TeacherDashboard,
@@ -33,6 +34,8 @@ import {
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
 import LegacyCompetitionRedirect from '../features/competition/portal/student/LegacyCompetitionRedirect';
+
+const CompetitionStudentHomeRoute = () => <StudentCompetitionHomePage />;
 
 const LegacyManualQuizNewRedirect = () => {
     const location = useLocation();
@@ -154,7 +157,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     ? <CompetitionStudentRoute />
                     : <StudentDashboardUI />)}
             >
-                <Route index element={<StudentCompetitionPage />} />
+                <Route index element={<CompetitionStudentHomeRoute />} />
                 <Route path="vong/:roundNumber" element={<StudentCompetitionPage />} />
                 <Route path="vong/:roundNumber/quy-che" element={<StudentCompetitionPage />} />
                 <Route path="vong/:roundNumber/kiem-tra" element={<StudentCompetitionPage />} />

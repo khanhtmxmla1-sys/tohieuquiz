@@ -9,6 +9,15 @@ const mocks = vi.hoisted(() => ({
   legacyRedirectEnabled: false,
   studentPortalEnabled: true,
   campaigns: [] as Array<Record<string, unknown>>,
+  portal: {
+    campaignId: 'campaign-a',
+    slug: 'campaign-a',
+    title: 'Campaign A',
+    schoolYear: '2026-2027',
+    publicState: 'ONGOING',
+    rounds: [],
+    schoolExam: null,
+  },
 }));
 
 vi.mock('../src/config/featureFlags', async (importOriginal) => ({
@@ -20,13 +29,15 @@ vi.mock('../src/config/featureFlags', async (importOriginal) => ({
 
 vi.mock('../src/features/competition/studentCompetitionService', () => ({
   studentCompetitionService: {
+    get: vi.fn(() => new Promise(() => undefined)),
     list: vi.fn(async () => mocks.campaigns),
+    officialResult: vi.fn(() => new Promise(() => undefined)),
   },
 }));
 
 vi.mock('../src/app/lazyViews', () => ({
   AboutPage: () => <div>about-page</div>,
-  CompetitionStudentRoute: () => <Outlet />,
+  CompetitionStudentRoute: () => <Outlet context={mocks.portal} />,
   ContactPage: () => <div>contact-page</div>,
   DesignSystemPage: () => <div>design-system-page</div>,
   GiftShop: () => <div>student-shop</div>,
@@ -35,6 +46,7 @@ vi.mock('../src/app/lazyViews', () => ({
   PhieuPublicPage: () => <div>phieu-public-page</div>,
   PrivacyPolicy: () => <div>privacy-page</div>,
   StudentCompetitionPage: () => <div>student-competition-portal</div>,
+  StudentCompetitionHomePage: () => <div>student-competition-home</div>,
   StudentDashboardUI: () => <div>student-dashboard</div>,
   TeacherDashboard: () => <div>teacher-dashboard</div>,
   TeacherResultDetailPage: () => <div>teacher-result-detail</div>,
@@ -70,7 +82,6 @@ describe('Student Competition portal routing', () => {
   });
 
   it.each([
-    '/thi/campaign-a',
     '/thi/campaign-a/vong/2',
     '/thi/campaign-a/vong/2/quy-che',
     '/thi/campaign-a/vong/2/kiem-tra',
@@ -81,6 +92,14 @@ describe('Student Competition portal routing', () => {
     expect(await screen.findByText('student-competition-portal')).toBeInTheDocument();
     expect(screen.queryByText('student-dashboard')).not.toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent(path);
+  });
+
+  it('renders the Student campaign home at the campaign index only', async () => {
+    renderRoutes('/thi/campaign-a');
+
+    expect(await screen.findByText('student-competition-home')).toBeInTheDocument();
+    expect(screen.queryByText('student-competition-portal')).not.toBeInTheDocument();
+    expect(screen.queryByText('student-dashboard')).not.toBeInTheDocument();
   });
 
   it('keeps the canonical campaign URL but renders the compatibility dashboard when portal UX is disabled', async () => {

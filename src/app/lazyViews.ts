@@ -16,5 +16,6 @@ export const PhieuPublicPage = React.lazy(() => import('../pages/PhieuPublicPage
 export const ManualQuizWorkspacePage = React.lazy(() => import('../features/manual-quiz-workspace/ManualQuizWorkspacePage'));
 export const StudentCompetitionPage = React.lazy(() => import('../features/competition/StudentCompetitionPage'));
 export const CompetitionStudentRoute = React.lazy(() => import('../features/competition/portal/student/CompetitionStudentRoute'));
+export const StudentCompetitionHomePage = React.lazy(() => import('../features/competition/portal/student/StudentCompetitionHomePage'));
 export const ParentPortalApp = React.lazy(() => import('../features/parent-portal/ParentPortalApp'));
 export const DesignSystemPage = React.lazy(() => import('../components/design-system/DesignSystemPage'));
