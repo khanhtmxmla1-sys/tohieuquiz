@@ -35,6 +35,18 @@ vi.mock('../src/features/competition/studentCompetitionService', () => ({
   },
 }));
 
+vi.mock('../src/features/competition/portal/student/StudentRoundPage', () => ({
+  default: () => <div>student-round-page</div>,
+}));
+
+vi.mock('../src/features/competition/portal/student/StudentRoundRulesPage', () => ({
+  default: () => <div>student-round-rules-page</div>,
+}));
+
+vi.mock('../src/features/competition/portal/student/StudentRoundPreflightPage', () => ({
+  default: () => <div>student-round-preflight-page</div>,
+}));
+
 vi.mock('../src/app/lazyViews', () => ({
   AboutPage: () => <div>about-page</div>,
   CompetitionStudentRoute: () => <Outlet context={mocks.portal} />,
@@ -82,14 +94,14 @@ describe('Student Competition portal routing', () => {
   });
 
   it.each([
-    '/thi/campaign-a/vong/2',
-    '/thi/campaign-a/vong/2/quy-che',
-    '/thi/campaign-a/vong/2/kiem-tra',
-    '/thi/campaign-a/vong/2/lam-bai',
-  ])('renders %s outside StudentDashboardUI', async (path) => {
+    ['/thi/campaign-a/vong/2', 'student-round-page'],
+    ['/thi/campaign-a/vong/2/quy-che', 'student-round-rules-page'],
+    ['/thi/campaign-a/vong/2/kiem-tra', 'student-round-preflight-page'],
+    ['/thi/campaign-a/vong/2/lam-bai', 'student-competition-portal'],
+  ])('renders %s outside StudentDashboardUI', async (path, expectedPage) => {
     renderRoutes(path);
 
-    expect(await screen.findByText('student-competition-portal')).toBeInTheDocument();
+    expect(await screen.findByText(expectedPage)).toBeInTheDocument();
     expect(screen.queryByText('student-dashboard')).not.toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent(path);
   });

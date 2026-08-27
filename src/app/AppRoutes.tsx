@@ -35,6 +35,10 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
 import LegacyCompetitionRedirect from '../features/competition/portal/student/LegacyCompetitionRedirect';
 
+const StudentRoundPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundPage'));
+const StudentRoundRulesPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundRulesPage'));
+const StudentRoundPreflightPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundPreflightPage'));
+
 const CompetitionStudentHomeRoute = () => <StudentCompetitionHomePage />;
 
 const LegacyManualQuizNewRedirect = () => {
@@ -158,9 +162,9 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                     : <StudentDashboardUI />)}
             >
                 <Route index element={<CompetitionStudentHomeRoute />} />
-                <Route path="vong/:roundNumber" element={<StudentCompetitionPage />} />
-                <Route path="vong/:roundNumber/quy-che" element={<StudentCompetitionPage />} />
-                <Route path="vong/:roundNumber/kiem-tra" element={<StudentCompetitionPage />} />
+                <Route path="vong/:roundNumber" element={suspended(<StudentRoundPage />)} />
+                <Route path="vong/:roundNumber/quy-che" element={suspended(<StudentRoundRulesPage />)} />
+                <Route path="vong/:roundNumber/kiem-tra" element={suspended(<StudentRoundPreflightPage />)} />
                 <Route path="vong/:roundNumber/lam-bai" element={<StudentCompetitionPage />} />
             </Route>
             <Route
