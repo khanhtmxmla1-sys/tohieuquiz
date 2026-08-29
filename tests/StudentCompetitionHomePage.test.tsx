@@ -163,6 +163,10 @@ describe('StudentCompetitionHomePage', () => {
     const ready = await screen.findByText(/school exam sẵn sàng/i);
     expect(ready).toHaveTextContent(/sẵn sàng/i);
     expect(ready).toHaveTextContent('ROOM-123');
+    expect(screen.getByRole('link', { name: 'VÀO SCHOOL EXAM' })).toHaveAttribute(
+      'href',
+      '/thi/olympic-toan/school-exam/lam-bai',
+    );
     expect(mocks.preflightSchoolExam).toHaveBeenCalledWith(portal.campaignId);
     expect(mocks.start).not.toHaveBeenCalled();
     expect(mocks.joinLiveExam).not.toHaveBeenCalled();

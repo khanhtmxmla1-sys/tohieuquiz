@@ -154,11 +154,21 @@ const StudentCompetitionHomePage = () => {
             <p role="alert" className="mt-3">Không thể kiểm tra School Exam. Vui lòng thử lại.</p>
           )}
           {schoolExamPreflight && typeof schoolExamPreflight === 'object' && (
-            <p role="status" className="mt-3">
-              {schoolExamPreflight.status === 'READY'
-                ? `School Exam sẵn sàng. Mã truy cập: ${schoolExamPreflight.accessCode}`
-                : `Chưa thể tham gia School Exam: ${schoolExamPreflight.reason}`}
-            </p>
+            <div className="mt-3">
+              <p role="status">
+                {schoolExamPreflight.status === 'READY'
+                  ? `School Exam sẵn sàng. Mã truy cập: ${schoolExamPreflight.accessCode}`
+                  : `Chưa thể tham gia School Exam: ${schoolExamPreflight.reason}`}
+              </p>
+              {schoolExamPreflight.status === 'READY' && (
+                <Link
+                  to={`/thi/${portal.slug}/school-exam/lam-bai`}
+                  className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white"
+                >
+                  VÀO SCHOOL EXAM
+                </Link>
+              )}
+            </div>
           )}
         </section>
       )}

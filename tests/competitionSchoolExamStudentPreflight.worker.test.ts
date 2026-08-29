@@ -3,10 +3,15 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleStudentCompetitionPortalRoutes } from '../workers/src/routes/competitions/studentPortalRoutes';
+import * as LiveExamService from '../workers/src/services/liveExamService';
 import { createSqliteD1 } from './helpers/sqliteD1';
 
 const liveExamMigration = readFileSync(
   new URL('../workers/migrations/0016_add_live_exam_tables.sql', import.meta.url),
+  'utf8',
+);
+const liveExamHardeningMigration = readFileSync(
+  new URL('../workers/migrations/0026_live_exam_hardening.sql', import.meta.url),
   'utf8',
 );
 const competitionCoreMigration = readFileSync(
@@ -19,6 +24,10 @@ const schoolExamMigration = readFileSync(
 );
 const orchestrationMigration = readFileSync(
   new URL('../workers/migrations/0072_competition_school_exam_orchestration.sql', import.meta.url),
+  'utf8',
+);
+const schoolExamRetestMigration = readFileSync(
+  new URL('../workers/migrations/0074_competition_school_exam_incident_retest.sql', import.meta.url),
   'utf8',
 );
 
@@ -91,9 +100,11 @@ function createBaseSchema(db: DatabaseSync): void {
 
 function seedReadySchoolExam(): void {
   sqlite.exec(liveExamMigration);
+  sqlite.exec(liveExamHardeningMigration);
   sqlite.exec(competitionCoreMigration);
   sqlite.exec(schoolExamMigration);
   sqlite.exec(orchestrationMigration);
+  sqlite.exec(schoolExamRetestMigration);
 
   sqlite.exec(`
     INSERT INTO competition_campaigns (
@@ -386,6 +397,53 @@ describe('School Exam student participant preflight', () => {
     expect(result).not.toHaveProperty('roomId');
     expect(result).not.toHaveProperty('memberId');
     expect(result).not.toHaveProperty('liveExamSessionId');
+    expect(mutationCounts()).toEqual({ attempts: 0, participants: 0 });
+  });
+
+  it('rejects canonical join when the School Exam window closes after a READY preflight', async () => {
+    const ready = await preflight();
+    expect(ready).toMatchObject({ status: 'READY', accessCode: 'SCH001' });
+
+    vi.setSystemTime(new Date('2027-05-20T08:50:00.001Z'));
+
+    await expect(LiveExamService.joinSession(d1, {
+      accessCode: ready.accessCode,
+      studentId: 'student-1',
+      username: 'student1',
+    })).rejects.toMatchObject({
+      status: 409,
+    });
+    expect(mutationCounts()).toEqual({ attempts: 0, participants: 0 });
+  });
+
+  it.each([
+    [
+      'room membership is no longer active',
+      "UPDATE competition_school_exam_members SET status = 'ABSENT' WHERE id = 'member-1'",
+    ],
+    [
+      'certified capacity is no longer valid',
+      `UPDATE competition_school_exam_events
+       SET preflight_json = '{"status":"PREFLIGHT_BLOCKED","reason":"CAPACITY_EXCEEDED","plannedConcurrency":120,"certifiedConcurrentStudents":100,"capacityProfileId":"capacity-1"}'
+       WHERE id = 'event-1'`,
+    ],
+    [
+      'the canonical room is no longer provisioned',
+      "UPDATE competition_school_exam_rooms SET provision_status = 'FAILED' WHERE id = 'room-1'",
+    ],
+  ])('rejects canonical join when %s after a READY preflight', async (_label, mutation) => {
+    const ready = await preflight();
+    expect(ready).toMatchObject({ status: 'READY', accessCode: 'SCH001' });
+
+    sqlite.prepare(mutation).run();
+
+    await expect(LiveExamService.joinSession(d1, {
+      accessCode: ready.accessCode,
+      studentId: 'student-1',
+      username: 'student1',
+    })).rejects.toMatchObject({
+      status: 409,
+    });
     expect(mutationCounts()).toEqual({ attempts: 0, participants: 0 });
   });
 

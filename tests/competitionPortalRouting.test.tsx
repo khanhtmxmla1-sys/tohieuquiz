@@ -51,6 +51,10 @@ vi.mock('../src/features/competition/portal/student/CompetitionRoundExamPlayer',
   default: () => <div>competition-round-exam-player</div>,
 }));
 
+vi.mock('../src/features/competition/portal/student/CompetitionSchoolExamPlayer', () => ({
+  default: () => <div>competition-school-exam-player</div>,
+}));
+
 vi.mock('../src/app/lazyViews', () => ({
   AboutPage: () => <div>about-page</div>,
   CompetitionStudentRoute: () => <Outlet context={mocks.portal} />,
@@ -102,6 +106,7 @@ describe('Student Competition portal routing', () => {
     ['/thi/campaign-a/vong/2/quy-che', 'student-round-rules-page'],
     ['/thi/campaign-a/vong/2/kiem-tra', 'student-round-preflight-page'],
     ['/thi/campaign-a/vong/2/lam-bai', 'competition-round-exam-player'],
+    ['/thi/campaign-a/school-exam/lam-bai', 'competition-school-exam-player'],
   ])('renders %s outside StudentDashboardUI', async (path, expectedPage) => {
     renderRoutes(path);
 

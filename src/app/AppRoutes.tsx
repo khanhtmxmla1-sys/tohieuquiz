@@ -38,6 +38,7 @@ const StudentRoundPage = React.lazy(() => import('../features/competition/portal
 const StudentRoundRulesPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundRulesPage'));
 const StudentRoundPreflightPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundPreflightPage'));
 const CompetitionRoundExamPlayer = React.lazy(() => import('../features/competition/portal/student/CompetitionRoundExamPlayer'));
+const CompetitionSchoolExamPlayer = React.lazy(() => import('../features/competition/portal/student/CompetitionSchoolExamPlayer'));
 
 const CompetitionStudentHomeRoute = () => <StudentCompetitionHomePage />;
 
@@ -166,6 +167,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 <Route path="vong/:roundNumber/quy-che" element={suspended(<StudentRoundRulesPage />)} />
                 <Route path="vong/:roundNumber/kiem-tra" element={suspended(<StudentRoundPreflightPage />)} />
                 <Route path="vong/:roundNumber/lam-bai" element={suspended(<CompetitionRoundExamPlayer />)} />
+                <Route path="school-exam/lam-bai" element={suspended(<CompetitionSchoolExamPlayer />)} />
             </Route>
             <Route
                 path="/student/competition"
