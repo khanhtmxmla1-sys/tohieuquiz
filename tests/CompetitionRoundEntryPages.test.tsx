@@ -29,6 +29,10 @@ vi.mock('../src/features/competition/studentCompetitionService', async (importOr
 
 vi.mock('../src/services/apiAdapter', () => ({ callApi: mocks.callApi }));
 
+vi.mock('../src/features/competition/portal/student/CompetitionRoundExamPlayer', () => ({
+  default: () => <div>student-competition-portal</div>,
+}));
+
 const portal: StudentCompetitionPortalDto = {
   campaignId: 'campaign-1',
   slug: 'olympic-toan',

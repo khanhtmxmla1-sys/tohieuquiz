@@ -20,6 +20,14 @@ vi.mock('../src/config/featureFlags', async (importOriginal) => ({
   isCompetitionStudentPortalUxEnabled: () => true,
 }));
 
+vi.mock('../src/features/competition/portal/student/StudentRoundPreflightPage', () => ({
+  default: () => <div>student-competition-portal</div>,
+}));
+
+vi.mock('../src/features/competition/portal/student/CompetitionRoundExamPlayer', () => ({
+  default: () => <div>student-competition-portal</div>,
+}));
+
 vi.mock('../src/app/lazyViews', () => ({
   AboutPage: () => <div>about-page</div>,
   CompetitionStudentRoute: () => <Outlet />,

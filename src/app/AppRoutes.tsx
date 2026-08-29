@@ -14,7 +14,6 @@ import {
     PrivacyPolicy,
     CompetitionStudentRoute,
     StudentCompetitionHomePage,
-    StudentCompetitionPage,
     StudentDashboardUI,
     TeacherDashboard,
     TeacherResultDetailPage,
@@ -38,6 +37,7 @@ import LegacyCompetitionRedirect from '../features/competition/portal/student/Le
 const StudentRoundPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundPage'));
 const StudentRoundRulesPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundRulesPage'));
 const StudentRoundPreflightPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundPreflightPage'));
+const CompetitionRoundExamPlayer = React.lazy(() => import('../features/competition/portal/student/CompetitionRoundExamPlayer'));
 
 const CompetitionStudentHomeRoute = () => <StudentCompetitionHomePage />;
 
@@ -165,7 +165,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
                 <Route path="vong/:roundNumber" element={suspended(<StudentRoundPage />)} />
                 <Route path="vong/:roundNumber/quy-che" element={suspended(<StudentRoundRulesPage />)} />
                 <Route path="vong/:roundNumber/kiem-tra" element={suspended(<StudentRoundPreflightPage />)} />
-                <Route path="vong/:roundNumber/lam-bai" element={<StudentCompetitionPage />} />
+                <Route path="vong/:roundNumber/lam-bai" element={suspended(<CompetitionRoundExamPlayer />)} />
             </Route>
             <Route
                 path="/student/competition"

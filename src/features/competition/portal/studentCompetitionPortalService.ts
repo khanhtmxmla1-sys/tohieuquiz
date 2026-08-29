@@ -6,7 +6,10 @@ import type {
 } from '../../../../shared/competition-portal.contract';
 import { callApi } from '../../../services/apiAdapter';
 import { toAppError } from '../../../services/api/errors';
-import type { StudentCompetitionDetail } from '../studentCompetitionService';
+import {
+  studentCompetitionService,
+  type StudentCompetitionDetail,
+} from '../studentCompetitionService';
 
 export interface StudentCompetitionPortalResolution {
   competition: StudentCompetitionDetail;
@@ -64,6 +67,12 @@ export const studentCompetitionPortalService = {
       'preflight_student_competition_round', { campaignId, roundId },
     );
     return response.preflight;
+  },
+  async startRoundAttempt(campaignId: string, roundId: string, requestId: string) {
+    return studentCompetitionService.start(campaignId, roundId, requestId);
+  },
+  async submitRoundAttempt(payload: Parameters<typeof studentCompetitionService.submit>[0]) {
+    return studentCompetitionService.submit(payload);
   },
   async preflightSchoolExam(campaignId: string): Promise<StudentSchoolExamPreflightDto> {
     const response = await callApi<{ preflight: StudentSchoolExamPreflightDto }>(
