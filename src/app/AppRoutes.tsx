@@ -42,6 +42,7 @@ const CompetitionSchoolExamPlayer = React.lazy(() => import('../features/competi
 const CompetitionIndexPage = React.lazy(() => import('../features/competition/portal/public/CompetitionIndexPage'));
 const CompetitionCampaignPage = React.lazy(() => import('../features/competition/portal/public/CompetitionCampaignPage'));
 const CompetitionArticlePage = React.lazy(() => import('../features/competition/portal/public/CompetitionArticlePage'));
+const CompetitionGoldenBoardPage = React.lazy(() => import('../features/competition/portal/public/CompetitionGoldenBoardPage'));
 
 const CompetitionStudentHomeRoute = () => <StudentCompetitionHomePage />;
 
@@ -206,6 +207,7 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route path="/phieu/p/:publicToken" element={suspended(<PhieuPublicPage />)} />
             <Route path="/cuoc-thi" element={suspended(<CompetitionIndexPage />)} />
             <Route path="/cuoc-thi/:campaignSlug/tin-tuc/:articleSlug" element={suspended(<CompetitionArticlePage />)} />
+            <Route path="/cuoc-thi/:campaignSlug/bang-vang" element={suspended(<CompetitionGoldenBoardPage />)} />
             <Route path="/cuoc-thi/:campaignSlug" element={suspended(<CompetitionCampaignPage />)} />
             <Route path="/privacy" element={suspended(<PublicPageLayout onNavigate={onNavigate}><PrivacyPolicy onBack={goBackHome} /></PublicPageLayout>)} />
             <Route path="/tos" element={suspended(<PublicPageLayout onNavigate={onNavigate}><TermsOfService onBack={goBackHome} /></PublicPageLayout>)} />

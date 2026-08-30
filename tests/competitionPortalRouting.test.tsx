@@ -63,6 +63,10 @@ vi.mock('../src/features/competition/portal/public/CompetitionArticlePage', () =
   default: () => <div>public-article-page</div>,
 }));
 
+vi.mock('../src/features/competition/portal/public/CompetitionGoldenBoardPage', () => ({
+  default: () => <div>public-golden-board-page</div>,
+}));
+
 vi.mock('../src/app/lazyViews', () => ({
   AboutPage: () => <div>about-page</div>,
   CompetitionStudentRoute: () => <Outlet context={mocks.portal} />,
@@ -134,6 +138,7 @@ describe('Student Competition portal routing', () => {
   it.each([
     ['/cuoc-thi/campaign-a', 'public-campaign-page'],
     ['/cuoc-thi/campaign-a/tin-tuc/article-a', 'public-article-page'],
+    ['/cuoc-thi/campaign-a/bang-vang', 'public-golden-board-page'],
   ])('wires the canonical public route %s to the public portal page', async (path, expectedPage) => {
     renderRoutes(path);
 

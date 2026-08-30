@@ -1,6 +1,7 @@
 import type {
   PublicCompetitionArticleDto,
   PublicCompetitionDetailDto,
+  PublicGoldenBoardDto,
   PublicCompetitionSummaryDto,
 } from '../../../../../shared/competition-portal.contract';
 import { callApi } from '../../../../services/apiAdapter';
@@ -30,6 +31,14 @@ export const publicCompetitionPortalService = {
     const response = await callApi<PublicApiEnvelope<PublicCompetitionArticleDto>>(
       'get_public_competition_article',
       { slug: campaignSlug, articleSlug },
+    );
+    return response.data;
+  },
+
+  async getGoldenBoard(campaignSlug: string): Promise<PublicGoldenBoardDto> {
+    const response = await callApi<PublicApiEnvelope<PublicGoldenBoardDto>>(
+      'get_public_competition_golden_board',
+      { slug: campaignSlug },
     );
     return response.data;
   },
