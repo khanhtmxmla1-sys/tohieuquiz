@@ -6,6 +6,7 @@ import {
 import type {
   CompetitionPublicState,
   CompetitionRoundPresentationState,
+  PublicGoldenBoardDto,
   PublicCompetitionSummaryDto,
 } from '../../../../shared/competition-portal.contract';
 import { getPublishedCompetitionArticle, listPublishedCompetitionArticles } from '../../competition/competitionArticleService';
@@ -94,6 +95,7 @@ async function toSummary(
   db: D1Database,
   row: PublishedCompetitionPublicPageProjection,
   now: Date,
+  goldenBoardEnabled: boolean,
 ): Promise<PublicCompetitionSummaryDto> {
   const rounds = await publicRounds(db, row.campaignId, now);
   const candidate = {
@@ -113,6 +115,7 @@ async function toSummary(
     cta: { label: row.ctaLabel },
     rounds,
     articleSummaryAvailable: row.articleSummaryAvailable,
+    goldenBoardAvailable: goldenBoardEnabled && row.goldenBoardAvailable,
   };
   const parsed = PublicCompetitionSummaryDtoSchema.safeParse(candidate);
   if (!parsed.success) throw new Error('COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID');
@@ -173,6 +176,14 @@ function recognizedPublicPath(path: string): boolean {
     || /^\/api\/public\/competitions\/[^/]+\/golden-board$/.test(path);
 }
 
+function isExpectedGoldenBoardUnavailable(error: unknown): boolean {
+  return error instanceof Error
+    && (
+      error.message === 'GOLDEN_BOARD_UNAVAILABLE'
+      || error.message === 'GOLDEN_BOARD_PUBLICATION_UNAVAILABLE'
+    );
+}
+
 export async function handlePublicCompetitionRoutes(
   request: Request,
   env: Env,
@@ -189,9 +200,10 @@ export async function handlePublicCompetitionRoutes(
   try {
     if (path === PUBLIC_PREFIX) {
       const rows = await listPublishedPublicPageProjections(env.DB);
+      const goldenBoardEnabled = await isCompetitionGoldenBoardEnabled(env.DB);
       const items: PublicCompetitionSummaryDto[] = [];
       for (const row of rows) {
-        items.push(await toSummary(env.DB, row, now));
+        items.push(await toSummary(env.DB, row, now, goldenBoardEnabled));
       }
       return cacheableJson(request, items, latestTimestamp(rows.map((row) => row.updatedAt)));
     }
@@ -225,7 +237,13 @@ export async function handlePublicCompetitionRoutes(
       if (!slug) return notFound();
       const page = await getPublishedPublicPageProjectionBySlug(env.DB, slug);
       if (!page) return notFound();
-      const board = PublicGoldenBoardDtoSchema.parse(await getPublicGoldenBoard(env.DB, page.campaignId));
+      let board: PublicGoldenBoardDto;
+      try {
+        board = PublicGoldenBoardDtoSchema.parse(await getPublicGoldenBoard(env.DB, page.campaignId));
+      } catch (error) {
+        if (isExpectedGoldenBoardUnavailable(error)) return notFound();
+        throw error;
+      }
       const identity = `golden-board-${encodeURIComponent(slug)}-${board.publicationVersion}-${board.rankingVersion}-${board.awardRuleVersion}`;
       return cacheableJson(request, board, board.publishedAt, identity, 30);
     }
@@ -236,7 +254,8 @@ export async function handlePublicCompetitionRoutes(
       if (!slug) return notFound();
       const page = await getPublishedPublicPageProjectionBySlug(env.DB, slug);
       if (!page) return notFound();
-      const summary = await toSummary(env.DB, page, now);
+      const goldenBoardEnabled = await isCompetitionGoldenBoardEnabled(env.DB);
+      const summary = await toSummary(env.DB, page, now, goldenBoardEnabled);
       const articles = await listPublishedCompetitionArticles(env.DB, slug);
       const parsed = PublicCompetitionDetailDtoSchema.safeParse({ ...summary, articles });
       if (!parsed.success) throw new Error('COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID');

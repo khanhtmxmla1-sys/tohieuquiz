@@ -78,6 +78,7 @@ const publicCompetitionSummaryShape = {
   cta: PublicCompetitionCtaDtoSchema,
   rounds: z.array(PublicCompetitionRoundDtoSchema).length(6),
   articleSummaryAvailable: z.boolean(),
+  goldenBoardAvailable: z.boolean(),
 };
 
 const withValidCompetitionWindow = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => schema.refine(

@@ -132,6 +132,7 @@ const summary = {
     title: `Vòng ${index + 1}`,
   })),
   articleSummaryAvailable: true,
+  goldenBoardAvailable: true,
 };
 
 describe('Competition portal contracts', () => {
@@ -175,6 +176,9 @@ describe('Competition portal contracts', () => {
     }).success).toBe(false);
     expect(PublicCompetitionSummaryDtoSchema.safeParse({
       ...summary, rounds: [{ ...summary.rounds[0], quizId: 'quiz-private' }, ...summary.rounds.slice(1)],
+    }).success).toBe(false);
+    expect(PublicCompetitionSummaryDtoSchema.safeParse({
+      ...summary, goldenBoardAvailable: 'true',
     }).success).toBe(false);
     expect(PublicCompetitionDetailDtoSchema.safeParse({
       ...summary, articles: [{ ...article, createdBy: 'staff-1' }],

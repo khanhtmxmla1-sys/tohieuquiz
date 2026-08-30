@@ -58,6 +58,7 @@ export interface PublishedCompetitionPublicPageProjection {
   startsAt: string;
   endsAt: string;
   articleSummaryAvailable: boolean;
+  goldenBoardAvailable: boolean;
 }
 
 interface PublishedCompetitionPublicPageProjectionRow {
@@ -76,6 +77,7 @@ interface PublishedCompetitionPublicPageProjectionRow {
   starts_at: string;
   ends_at: string;
   article_summary_available: number;
+  golden_board_available: number;
 }
 
 const PUBLISHED_PROJECTION_COLUMNS = `
@@ -88,6 +90,11 @@ const PUBLISHED_PROJECTION_COLUMNS = `
     WHERE article.campaign_id = page.campaign_id
       AND article.status = 'PUBLISHED' AND article.published_at IS NOT NULL
   ) AS article_summary_available
+  , EXISTS (
+    SELECT 1 FROM competition_golden_board_configs AS golden_board
+    WHERE golden_board.campaign_id = page.campaign_id
+      AND golden_board.enabled = 1
+  ) AS golden_board_available
 `;
 
 function mapPublishedProjection(
@@ -109,6 +116,7 @@ function mapPublishedProjection(
     startsAt: row.starts_at,
     endsAt: row.ends_at,
     articleSummaryAvailable: Boolean(row.article_summary_available),
+    goldenBoardAvailable: Boolean(row.golden_board_available),
   };
 }
 

@@ -273,6 +273,28 @@ describe('anonymous Competition public routes', () => {
     expect(response!.headers.get('etag')).toContain('2-4-3');
   });
 
+  it('returns a generic 404 when a configured Golden Board has no published source', async () => {
+    const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() };
+    sqlite.prepare(`
+      UPDATE competition_school_exam_publications
+      SET status = 'PREPARED', published_at = NULL
+      WHERE id = 'publication-2'
+    `).run();
+
+    const req = request('/api/public/competitions/published-competition/golden-board');
+    const response = await handlePublicCompetitionRoutes(
+      req,
+      env as any,
+      new URL(req.url).pathname,
+      req.method,
+      { now: () => new Date(NOW), logger },
+    );
+
+    expect(response!.status).toBe(404);
+    expect(await response!.json()).toEqual({ status: 'error', message: 'Not found' });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
   it('returns logged safe 5xx for infrastructure failures while genuine absence stays generic 404', async () => {
     const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() };
     const failingRequest = request('/api/public/competitions');
@@ -453,7 +475,10 @@ describe('anonymous Competition public routes', () => {
       'get_public_competition_golden_board',
     ];
     expect(actions.map((action) => resolveApiRoute(action).auth)).toEqual(Array(5).fill('public'));
-    expect(resolveApiRoute('get_public_competition').path({ slug: 'hello world' }))
-      .toBe('/api/public/competitions/hello%20world');
+    expect(resolveApiRoute('get_public_competition').path({ slug: 'hello world/2026' }))
+      .toBe('/api/public/competitions/hello%20world%2F2026');
+    expect(resolveApiRoute('get_public_competition_article').path({
+      slug: 'hello world/2026', articleSlug: 'rules & schedule',
+    })).toBe('/api/public/competitions/hello%20world%2F2026/articles/rules%20%26%20schedule');
   });
 });

@@ -85,6 +85,7 @@ export interface PublicCompetitionSummaryDto {
   cta: PublicCompetitionCtaDto;
   rounds: PublicCompetitionRoundDto[];
   articleSummaryAvailable: boolean;
+  goldenBoardAvailable: boolean;
 }
 
 export interface PublicCompetitionRoundDto {

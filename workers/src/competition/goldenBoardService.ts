@@ -42,7 +42,7 @@ function unavailable(error: unknown): never {
   ) {
     throw error;
   }
-  throw new Error('GOLDEN_BOARD_UNAVAILABLE');
+  throw error;
 }
 
 export async function getPublicGoldenBoard(

@@ -21,6 +21,7 @@ vi.mock('../workers/src/competition/publicPageService', () => ({
     schoolYear: '2026-2027', startsAt: '2026-08-01T00:00:00.000Z',
     endsAt: '2026-09-01T00:00:00.000Z', timezone: 'Asia/Ho_Chi_Minh',
     heroTitle: 'Campaign One', heroSubtitle: null, heroImageUrl: null,
+    goldenBoardAvailable: true,
     ctaLabel: 'VÀO THI', articleSummaryAvailable: false,
     updatedAt: '2026-08-25T00:00:00.000Z',
   })),
@@ -148,12 +149,19 @@ describe('Competition portal feature gates', () => {
   });
 
   it('keeps public campaign reads available when only Golden Board is disabled', async () => {
+    const enabledDetail = await handlePublicCompetitionRoutes(
+      new Request('https://example.test/api/public/competitions/campaign-one'), { DB: dbWithFlags(allEnabled) } as any,
+      '/api/public/competitions/campaign-one', 'GET',
+    );
+    expect((await enabledDetail?.json() as any).data.goldenBoardAvailable).toBe(true);
+
     const db = dbWithFlags({ ...allEnabled, [COMPETITION_PORTAL_FLAGS.goldenBoard]: false });
     const detail = await handlePublicCompetitionRoutes(
       new Request('https://example.test/api/public/competitions/campaign-one'), { DB: db } as any,
       '/api/public/competitions/campaign-one', 'GET',
     );
     expect(detail?.status).toBe(200);
+    expect((await detail?.json() as any).data.goldenBoardAvailable).toBe(false);
 
     const board = await handlePublicCompetitionRoutes(
       new Request('https://example.test/api/public/competitions/campaign-one/golden-board'), { DB: db } as any,

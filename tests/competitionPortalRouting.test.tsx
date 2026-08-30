@@ -55,6 +55,14 @@ vi.mock('../src/features/competition/portal/student/CompetitionSchoolExamPlayer'
   default: () => <div>competition-school-exam-player</div>,
 }));
 
+vi.mock('../src/features/competition/portal/public/CompetitionCampaignPage', () => ({
+  default: () => <div>public-campaign-page</div>,
+}));
+
+vi.mock('../src/features/competition/portal/public/CompetitionArticlePage', () => ({
+  default: () => <div>public-article-page</div>,
+}));
+
 vi.mock('../src/app/lazyViews', () => ({
   AboutPage: () => <div>about-page</div>,
   CompetitionStudentRoute: () => <Outlet context={mocks.portal} />,
@@ -121,6 +129,17 @@ describe('Student Competition portal routing', () => {
     expect(await screen.findByText('student-competition-home')).toBeInTheDocument();
     expect(screen.queryByText('student-competition-portal')).not.toBeInTheDocument();
     expect(screen.queryByText('student-dashboard')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['/cuoc-thi/campaign-a', 'public-campaign-page'],
+    ['/cuoc-thi/campaign-a/tin-tuc/article-a', 'public-article-page'],
+  ])('wires the canonical public route %s to the public portal page', async (path, expectedPage) => {
+    renderRoutes(path);
+
+    expect(await screen.findByText(expectedPage)).toBeInTheDocument();
+    expect(screen.queryByText('student-dashboard')).not.toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent(path);
   });
 
   it('keeps the canonical campaign URL but renders the compatibility dashboard when portal UX is disabled', async () => {
