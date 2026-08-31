@@ -28,6 +28,16 @@ const formatWindow = (value: string, timezone: string) => new Intl.DateTimeForma
   timeZone: timezone,
 }).format(new Date(value));
 
+type PublicCompetitionResponse = PublicCompetitionDetailDto | {
+  status: 'success';
+  data: PublicCompetitionDetailDto;
+};
+
+const unwrapPublicCompetition = (response: PublicCompetitionResponse): PublicCompetitionDetailDto => {
+  if ('status' in response && response.status === 'success') return response.data;
+  return response as PublicCompetitionDetailDto;
+};
+
 const StudentRoundPage = () => {
   const portal = useOutletContext<StudentCompetitionPortalDto>();
   const { roundNumber = '' } = useParams<{ roundNumber: string }>();
@@ -44,10 +54,14 @@ const StudentRoundPage = () => {
     setFailed(false);
     void Promise.all([
       studentCompetitionService.get(portal.campaignId),
-      callApi<PublicCompetitionDetailDto>('get_public_competition', { slug: portal.slug }),
+      callApi<PublicCompetitionResponse>(
+        'get_public_competition',
+        { slug: portal.slug },
+      ),
     ]).then(
-      ([detail, publicPage]) => {
+      ([detail, response]) => {
         if (!active) return;
+        const publicPage = unwrapPublicCompetition(response);
         if (detail.id !== portal.campaignId || publicPage.slug !== portal.slug) {
           setFailed(true);
         } else {

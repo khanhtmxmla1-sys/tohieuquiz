@@ -7,6 +7,16 @@ import type {
 import { callApi } from '../../../../services/apiAdapter';
 import { acknowledgeRules } from './rulesAcknowledgement';
 
+type PublicCompetitionResponse = PublicCompetitionDetailDto | {
+  status: 'success';
+  data: PublicCompetitionDetailDto;
+};
+
+const unwrapPublicCompetition = (response: PublicCompetitionResponse): PublicCompetitionDetailDto => {
+  if ('status' in response && response.status === 'success') return response.data;
+  return response as PublicCompetitionDetailDto;
+};
+
 const StudentRoundRulesPage = () => {
   const portal = useOutletContext<StudentCompetitionPortalDto>();
   const { roundNumber = '' } = useParams<{ roundNumber: string }>();
@@ -21,9 +31,13 @@ const StudentRoundRulesPage = () => {
     setDetail(null);
     setAccepted(false);
     setFailed(false);
-    void callApi<PublicCompetitionDetailDto>('get_public_competition', { slug: portal.slug }).then(
-      value => {
+    void callApi<PublicCompetitionResponse>(
+      'get_public_competition',
+      { slug: portal.slug },
+    ).then(
+      response => {
         if (!active) return;
+        const value = unwrapPublicCompetition(response);
         if (value.slug !== portal.slug) setFailed(true);
         else setDetail(value);
       },

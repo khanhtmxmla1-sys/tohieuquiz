@@ -33,6 +33,7 @@
     "cypress:run:blueprint-v3": "cypress run --e2e --spec \"cypress/e2e/ai-question-blueprint-v3.cy.ts\"",
     "cypress:run:svg-diagrams": "cypress run --e2e --spec \"cypress/e2e/ai-svg-diagrams.cy.ts\"",
     "cypress:run:production-smoke": "node scripts/run-production-smoke.mjs",
+    "competition:portal:smoke": "node scripts/run-competition-portal-smoke.mjs",
     "rollout:staged": "node scripts/run-staged-rollout.mjs",
     "cypress:run:component": "cypress run --component",
     "cypress:math-screenshots": "node scripts/math-visual-regression.mjs",
