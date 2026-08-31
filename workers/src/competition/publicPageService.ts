@@ -1,5 +1,7 @@
 import {
+  CreateCompetitionPublicPageRequestSchema,
   UpdateCompetitionPublicPageRequestSchema,
+  type CreateCompetitionPublicPageRequest,
   type UpdateCompetitionPublicPageRequest,
 } from '../../../schemas/competitionPortal.schema';
 import type {
@@ -265,6 +267,12 @@ function rethrowBatchError(error: unknown): never {
   if (String(error).includes('admin_audit_logs.actor_username')) {
     throw new Error('COMPETITION_PUBLIC_PAGE_STALE_WRITE');
   }
+  if (
+    String(error).includes('UNIQUE')
+    && String(error).includes('competition_public_pages')
+  ) {
+    throw new Error('COMPETITION_PUBLIC_PAGE_CONFLICT');
+  }
   throw error;
 }
 
@@ -299,6 +307,86 @@ export async function getPublicPageForStaff(
   const campaignId = normalizedId(campaignIdInput, 'COMPETITION_CAMPAIGN_ID_REQUIRED');
   const row = await getPublicPageRowByCampaign(db, campaignId);
   return row ? mapPublicPage(row) : null;
+}
+
+export async function createPublicPageDraft(
+  db: D1Database,
+  campaignIdInput: string,
+  input: CreateCompetitionPublicPageRequest,
+  actorUsername: string,
+): Promise<StaffCompetitionPublicPageDto> {
+  const campaignId = normalizedId(campaignIdInput, 'COMPETITION_CAMPAIGN_ID_REQUIRED');
+  const actor = normalizedId(actorUsername, 'COMPETITION_ACTOR_REQUIRED');
+  const parsed = CreateCompetitionPublicPageRequestSchema.parse(input);
+
+  const campaign = await db.prepare(`
+    SELECT id FROM competition_campaigns WHERE id = ? LIMIT 1
+  `).bind(campaignId).first<{ id: string }>();
+  if (!campaign) throw new Error('COMPETITION_CAMPAIGN_NOT_FOUND');
+
+  const existing = await getPublicPageRowByCampaign(db, campaignId);
+  if (existing) throw new Error('COMPETITION_PUBLIC_PAGE_CONFLICT');
+
+  const now = new Date().toISOString();
+  const row: CompetitionPublicPageRow = {
+    id: `competition-public-page-${crypto.randomUUID()}`,
+    campaign_id: campaignId,
+    slug: parsed.slug,
+    status: 'DRAFT',
+    hero_title: parsed.heroTitle,
+    hero_subtitle: parsed.heroSubtitle ?? null,
+    hero_image_url: parsed.heroImageUrl ?? null,
+    summary: parsed.summary ?? null,
+    cta_label: parsed.ctaLabel ?? 'VÀO THI',
+    seo_title: parsed.seoTitle ?? null,
+    seo_description: parsed.seoDescription ?? null,
+    og_image_url: parsed.ogImageUrl ?? null,
+    published_at: null,
+    archived_at: null,
+    created_by: actor,
+    created_at: now,
+    updated_by: null,
+    updated_at: now,
+  };
+
+  try {
+    await db.batch([
+      db.prepare(`
+        INSERT INTO competition_public_pages (
+          id, campaign_id, slug, status, hero_title, hero_subtitle, hero_image_url,
+          summary, cta_label, seo_title, seo_description, og_image_url,
+          published_at, archived_at, created_by, created_at, updated_by, updated_at
+        ) VALUES (?, ?, ?, 'DRAFT', ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, ?, ?, NULL, ?)
+      `).bind(
+        row.id,
+        row.campaign_id,
+        row.slug,
+        row.hero_title,
+        row.hero_subtitle,
+        row.hero_image_url,
+        row.summary,
+        row.cta_label,
+        row.seo_title,
+        row.seo_description,
+        row.og_image_url,
+        row.created_by,
+        row.created_at,
+        row.updated_at,
+      ),
+      auditStatement(db, {
+        actorUsername: actor,
+        action: 'COMPETITION_PUBLIC_PAGE_CREATED',
+        targetType: 'competition_public_page',
+        targetId: row.id,
+        requestId: parsed.requestId,
+        after: auditMetadata(row),
+      }),
+    ]);
+  } catch (error) {
+    rethrowBatchError(error);
+  }
+
+  return mapPublicPage(row);
 }
 
 export async function updatePublicPageDraft(

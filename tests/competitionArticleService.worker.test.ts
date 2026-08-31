@@ -88,6 +88,13 @@ function createBaseSchema(db: DatabaseSync): void {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE feature_flag_rules (
+      flag_key TEXT PRIMARY KEY, audience TEXT NOT NULL, percentage INTEGER NOT NULL,
+      allow_users_json TEXT NOT NULL, allow_classes_json TEXT NOT NULL,
+      starts_at TEXT, ends_at TEXT, stop_conditions_json TEXT NOT NULL,
+      reason TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE system_settings (
       setting_key TEXT PRIMARY KEY,
       setting_value TEXT NOT NULL,

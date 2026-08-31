@@ -329,6 +329,19 @@ export const UpdateCompetitionPublicPageRequestSchema = z.object({
   { message: 'at least one public page field is required' },
 );
 
+export const CreateCompetitionPublicPageRequestSchema = z.object({
+  slug: SlugSchema,
+  heroTitle: TitleSchema,
+  heroSubtitle: z.string().trim().min(1).max(500).optional(),
+  heroImageUrl: OptionalImageUrlSchema,
+  summary: z.string().trim().min(1).max(1000).optional(),
+  ctaLabel: z.string().trim().min(1).max(80).optional(),
+  seoTitle: z.string().trim().min(1).max(200).optional(),
+  seoDescription: z.string().trim().min(1).max(500).optional(),
+  ogImageUrl: OptionalImageUrlSchema,
+  requestId: RequestIdSchema,
+}).strict();
+
 export const CreateCompetitionArticleRequestSchema = z.object({
   campaignId: IdentifierSchema,
   title: TitleSchema,
@@ -378,6 +391,7 @@ export const ActivateCompetitionAwardRuleVersionRequestSchema = z.object({
 }).strict();
 
 export type UpdateCompetitionPublicPageRequest = z.infer<typeof UpdateCompetitionPublicPageRequestSchema>;
+export type CreateCompetitionPublicPageRequest = z.infer<typeof CreateCompetitionPublicPageRequestSchema>;
 export type CreateCompetitionArticleRequest = z.infer<typeof CreateCompetitionArticleRequestSchema>;
 export type UpdateCompetitionArticleRequest = z.infer<typeof UpdateCompetitionArticleRequestSchema>;
 export type UpdateCompetitionGoldenBoardConfigRequest = z.infer<typeof UpdateCompetitionGoldenBoardConfigRequestSchema>;

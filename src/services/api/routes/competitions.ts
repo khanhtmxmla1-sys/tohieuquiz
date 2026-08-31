@@ -39,6 +39,9 @@ export const competitionRoutes: RouteRegistry = {
   get_competition_public_page: {
     method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/public-page`,
   },
+  create_competition_public_page: {
+    method: 'POST', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/public-page`, body: omitFields('campaignId'),
+  },
   update_competition_public_page: {
     method: 'PUT', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/public-page`, body: omitFields('campaignId'),
   },
@@ -65,6 +68,12 @@ export const competitionRoutes: RouteRegistry = {
   },
   delete_competition_article: {
     method: 'DELETE', auth: 'session', path: ({ campaignId, articleId }) => `/api/competitions/${encoded(campaignId)}/articles/${encoded(articleId)}`,
+  },
+  publish_competition_article: {
+    method: 'POST', auth: 'session', path: ({ campaignId, articleId }) => `/api/competitions/${encoded(campaignId)}/articles/${encoded(articleId)}/publish`, body: omitFields('campaignId', 'articleId'),
+  },
+  archive_competition_article: {
+    method: 'POST', auth: 'session', path: ({ campaignId, articleId }) => `/api/competitions/${encoded(campaignId)}/articles/${encoded(articleId)}/archive`, body: omitFields('campaignId', 'articleId'),
   },
   get_competition_golden_board_config: {
     method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/golden-board-config`,

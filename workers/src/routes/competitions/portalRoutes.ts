@@ -2,22 +2,26 @@ import {
   ActivateCompetitionAwardRuleVersionRequestSchema,
   CreateCompetitionArticleRequestSchema,
   CreateCompetitionAwardRuleVersionRequestSchema,
+  CreateCompetitionPublicPageRequestSchema,
   UpdateCompetitionArticleRequestSchema,
   UpdateCompetitionGoldenBoardConfigRequestSchema,
   UpdateCompetitionPublicPageRequestSchema,
 } from '../../../../schemas/competitionPortal.schema';
 import {
   archivePublicPage,
+  createPublicPageDraft,
   getPublicPageForStaff,
   previewPublicPage,
   publishPublicPage,
   updatePublicPageDraft,
 } from '../../competition/publicPageService';
 import {
+  archiveCompetitionArticle,
   createCompetitionArticle,
   deleteCompetitionArticle,
   getCompetitionArticleForStaff,
   listCompetitionArticlesForStaff,
+  publishCompetitionArticle,
   updateCompetitionArticle,
 } from '../../competition/competitionArticleService';
 import {
@@ -40,7 +44,7 @@ import {
 
 type PortalResource =
   | { kind: 'public-page'; campaignId: string; action?: 'preview' | 'publish' | 'archive' }
-  | { kind: 'articles'; campaignId: string; articleId?: string }
+  | { kind: 'articles'; campaignId: string; articleId?: string; action?: 'publish' | 'archive' }
   | { kind: 'golden-board-config'; campaignId: string }
   | { kind: 'award-rules'; campaignId: string; version?: number; activate?: true };
 
@@ -58,6 +62,14 @@ function parsePortalResource(path: string): PortalResource | null {
     const campaignId = decoded(match[1]);
     return campaignId
       ? { kind: 'public-page', campaignId, action: match[2] as 'preview' | 'publish' | 'archive' | undefined }
+      : null;
+  }
+  match = path.match(/^\/api\/competitions\/([^/]+)\/articles\/([^/]+)\/(publish|archive)$/);
+  if (match) {
+    const campaignId = decoded(match[1]);
+    const articleId = decoded(match[2]);
+    return campaignId && articleId
+      ? { kind: 'articles', campaignId, articleId, action: match[3] as 'publish' | 'archive' }
       : null;
   }
   match = path.match(/^\/api\/competitions\/([^/]+)\/articles(?:\/([^/]+))?$/);
@@ -119,11 +131,14 @@ function portalError(error: unknown): Response {
   ].includes(code)) return errorResponse(code, 404);
   if ([
     'COMPETITION_PUBLIC_PAGE_NOT_DRAFT',
+    'COMPETITION_PUBLIC_PAGE_CONFLICT',
     'COMPETITION_PUBLIC_PAGE_INVALID_TRANSITION',
     'COMPETITION_PUBLIC_PAGE_SLUG_LOCKED',
     'COMPETITION_PUBLIC_PAGE_STALE_WRITE',
     'COMPETITION_ARTICLE_NOT_DRAFT',
+    'COMPETITION_ARTICLE_NOT_READY',
     'COMPETITION_ARTICLE_INVALID_TRANSITION',
+    'COMPETITION_ARTICLE_SLUG_CONFLICT',
     'COMPETITION_ARTICLE_DELETE_FORBIDDEN',
     'COMPETITION_ARTICLE_STALE_WRITE',
     'COMPETITION_AWARD_RULE_VERSION_NOT_DRAFT',
@@ -174,6 +189,15 @@ export async function handleCompetitionPortalRoutes(
         const publicPage = await updatePublicPageDraft(db, resource.campaignId, parsed.data, user.username);
         return jsonResponse({ publicPage });
       }
+      if (!resource.action && method === 'POST') {
+        const body = await jsonBody(request);
+        const parsed = CreateCompetitionPublicPageRequestSchema.safeParse(body);
+        if (!parsed.success) return invalidPayload('Invalid competition public page payload');
+        const publicPage = await createPublicPageDraft(
+          db, resource.campaignId, parsed.data, user.username,
+        );
+        return jsonResponse({ publicPage }, 201);
+      }
       if (resource.action && method === 'POST') {
         const body = await jsonBody(request);
         const parsed = ActivateCompetitionAwardRuleVersionRequestSchema.safeParse(body);
@@ -190,7 +214,7 @@ export async function handleCompetitionPortalRoutes(
       if (!resource.articleId && method === 'GET') {
         return jsonResponse({ items: await listCompetitionArticlesForStaff(db, resource.campaignId) });
       }
-      if (resource.articleId && method === 'GET') {
+      if (resource.articleId && !resource.action && method === 'GET') {
         return jsonResponse({ article: await getCompetitionArticleForStaff(db, resource.campaignId, resource.articleId) });
       }
       if (!resource.articleId && method === 'POST') {
@@ -203,7 +227,7 @@ export async function handleCompetitionPortalRoutes(
         const article = await createCompetitionArticle(db, parsed.data, user.username);
         return jsonResponse({ article }, 201);
       }
-      if (resource.articleId && method === 'PATCH') {
+      if (resource.articleId && !resource.action && method === 'PATCH') {
         const body = await jsonBody(request);
         const parsed = UpdateCompetitionArticleRequestSchema.safeParse(body);
         if (!parsed.success) return invalidPayload('Invalid competition article payload');
@@ -212,12 +236,24 @@ export async function handleCompetitionPortalRoutes(
         );
         return jsonResponse({ article });
       }
-      if (resource.articleId && method === 'DELETE') {
+      if (resource.articleId && !resource.action && method === 'DELETE') {
         const parsed = ActivateCompetitionAwardRuleVersionRequestSchema.safeParse({
           requestId: request.headers.get('x-request-id'),
         });
         if (!parsed.success) return invalidPayload('Invalid competition article delete request');
         const article = await deleteCompetitionArticle(
+          db, resource.campaignId, resource.articleId, user.username, parsed.data.requestId,
+        );
+        return jsonResponse({ article });
+      }
+      if (resource.articleId && resource.action && method === 'POST') {
+        const body = await jsonBody(request);
+        const parsed = ActivateCompetitionAwardRuleVersionRequestSchema.safeParse(body);
+        if (!parsed.success) return invalidPayload('Invalid competition article action payload');
+        const service = resource.action === 'publish'
+          ? publishCompetitionArticle
+          : archiveCompetitionArticle;
+        const article = await service(
           db, resource.campaignId, resource.articleId, user.username, parsed.data.requestId,
         );
         return jsonResponse({ article });

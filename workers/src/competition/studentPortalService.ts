@@ -317,6 +317,53 @@ export async function resolveStudentCompetitionBySlug(
     throw error;
   }
 
+  let schoolExam: {
+    qualified: true;
+    eventId: string;
+    scheduledAt: string;
+    roomName: string;
+    ready: true;
+  } | undefined;
+  try {
+    const readyEvent = await db.prepare(`
+      SELECT events.id, rooms.scheduled_at, rooms.name
+      FROM competition_school_exam_events AS events
+      JOIN competition_school_exam_members AS members
+        ON members.event_id = events.id
+       AND members.student_id = ?
+       AND members.status IN ('ASSIGNED', 'CHECKED_IN', 'STARTED')
+      JOIN competition_school_exam_rooms AS rooms
+        ON rooms.id = members.room_id
+       AND rooms.event_id = members.event_id
+      WHERE events.campaign_id = ?
+        AND events.status IN ('READY', 'SCHEDULED', 'IN_PROGRESS')
+      ORDER BY
+        CASE events.status WHEN 'IN_PROGRESS' THEN 0 WHEN 'SCHEDULED' THEN 1 ELSE 2 END,
+        events.exam_date DESC,
+        events.created_at DESC,
+        events.id DESC
+      LIMIT 1
+    `).bind(studentId, competition.id).first<{
+      id: string;
+      scheduled_at: string;
+      name: string;
+    }>();
+    if (readyEvent) {
+      const preflight = await preflightStudentCompetitionSchoolExam(db, competition.id, studentId, now);
+      if (preflight.status === 'READY') {
+        schoolExam = {
+          qualified: true,
+          eventId: readyEvent.id,
+          scheduledAt: readyEvent.scheduled_at,
+          roomName: readyEvent.name,
+          ready: true,
+        };
+      }
+    }
+  } catch (error) {
+    if (!String(error instanceof Error ? error.message : error).includes('no such table')) throw error;
+  }
+
   const portalCandidate = {
     campaignId: competition.id,
     slug: page.slug,
@@ -333,6 +380,7 @@ export async function resolveStudentCompetitionBySlug(
       attemptCount: round.attemptsUsed,
       maxAttempts: round.maxAttempts,
     })),
+    ...(schoolExam ? { schoolExam } : {}),
   };
   const parsed = StudentCompetitionPortalDtoSchema.safeParse(portalCandidate);
   if (!parsed.success) throw new Error('COMPETITION_STUDENT_PORTAL_PROJECTION_INVALID');

@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   parseCompetitionPortalSmokeArgs,
   runCompetitionPortalSmoke,
+  validateCompetitionPortalRoundPreflight,
   validateCompetitionPortalSmokeConfig,
 } from '../scripts/run-competition-portal-smoke.mjs';
 
@@ -112,6 +113,20 @@ describe('competition portal smoke runner safeguards', () => {
       'https://staging.example.test',
       '--create-attempt',
     ], stagingEnv)).toThrow(/read-only|attempt/i);
+  });
+
+  it('accepts only the expected non-mutating ROUND_NOT_OPEN response for a finalized smoke fixture', () => {
+    const portal = { campaignId: 'campaign-1' };
+    const round = { roundId: 'round-1' };
+    expect(() => validateCompetitionPortalRoundPreflight({
+      preflight: { campaignId: 'campaign-1', roundId: 'round-1', status: 'BLOCKED', reason: 'ROUND_NOT_OPEN' },
+    }, portal, round, true)).not.toThrow();
+    expect(() => validateCompetitionPortalRoundPreflight({
+      preflight: { campaignId: 'campaign-1', roundId: 'round-1', status: 'READY' },
+    }, portal, round, true)).toThrow(/Finalized/);
+    expect(() => validateCompetitionPortalRoundPreflight({
+      preflight: { campaignId: 'campaign-1', roundId: 'round-1', status: 'BLOCKED', reason: 'ATTEMPTS_EXHAUSTED' },
+    }, portal, round, true)).toThrow(/BLOCKED|ATTEMPTS_EXHAUSTED/);
   });
 
   it('checks public publication and student preflight without calling attempt or Live Exam join routes', async () => {

@@ -19,6 +19,7 @@ const SUPPORTED_OPTIONS = new Set([
   '--output',
   '--timeout-ms',
   '--allow-local',
+  '--expect-finalized-round',
 ]);
 
 const isLocalHost = (hostname) => ['localhost', '127.0.0.1', '::1', '[::1]'].includes(hostname);
@@ -92,6 +93,8 @@ export function parseCompetitionPortalSmokeArgs(
     outputPath: readArg(args, '--output') || env.COMPETITION_PORTAL_SMOKE_OUTPUT || 'reports/competition-portal-smoke.json',
     timeoutMs: readArg(args, '--timeout-ms') || env.COMPETITION_PORTAL_SMOKE_TIMEOUT_MS || DEFAULT_TIMEOUT_MS,
     allowLocal: hasOption(args, '--allow-local'),
+    expectFinalizedRound: hasOption(args, '--expect-finalized-round')
+      || String(env.COMPETITION_PORTAL_EXPECT_FINALIZED_ROUND || '').toLowerCase() === 'true',
   };
   return validateCompetitionPortalSmokeConfig(config);
 }
@@ -152,6 +155,18 @@ const unwrapPublicPayload = (payload) => {
   return payload;
 };
 
+export function validateCompetitionPortalRoundPreflight(payload, portal, round, expectFinalizedRound = false) {
+  if (payload.preflight?.campaignId !== portal.campaignId || payload.preflight?.roundId !== round.roundId) {
+    throw new Error('Student round preflight returned a mismatched campaign or round.');
+  }
+  if (expectFinalizedRound) {
+    if (payload.preflight.status === 'BLOCKED' && payload.preflight.reason === 'ROUND_NOT_OPEN') return payload;
+    throw new Error(`Finalized student round preflight is ${payload.preflight.status || 'invalid'}.`);
+  }
+  if (payload.preflight.status !== 'READY') throw new Error(`Student round preflight is ${payload.preflight.status}.`);
+  return payload;
+}
+
 export async function runCompetitionPortalSmoke(
   args = process.argv.slice(2),
   { fetchImpl = fetch, env = process.env, now = () => new Date() } = {},
@@ -162,6 +177,7 @@ export async function runCompetitionPortalSmoke(
     startedAt: now().toISOString(),
     finishedAt: null,
     mode: 'read-only',
+    roundLifecycle: config.expectFinalizedRound ? 'finalized' : 'open',
     target: config.baseUrl,
     campaignSlug: config.campaignSlug,
     checks: [],
@@ -252,11 +268,9 @@ export async function runCompetitionPortalSmoke(
       ),
       'Student round preflight',
     );
-    if (payload.preflight?.campaignId !== portal.campaignId || payload.preflight?.roundId !== round.roundId) {
-      throw new Error('Student round preflight returned a mismatched campaign or round.');
-    }
-    if (payload.preflight.status !== 'READY') throw new Error(`Student round preflight is ${payload.preflight.status}.`);
-    return payload;
+    return validateCompetitionPortalRoundPreflight(
+      payload, portal, round, config.expectFinalizedRound,
+    );
   });
 
   await recordCheck(report, 'student.school_exam.preflight', async () => {

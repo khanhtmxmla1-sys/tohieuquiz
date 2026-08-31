@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   archivePublicPage,
+  createPublicPageDraft,
   getPublicPageForStaff,
   getPublishedPublicPageBySlug,
   previewPublicPage,
@@ -82,6 +83,13 @@ function createBaseSchema(db: DatabaseSync): void {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE feature_flag_rules (
+      flag_key TEXT PRIMARY KEY, audience TEXT NOT NULL, percentage INTEGER NOT NULL,
+      allow_users_json TEXT NOT NULL, allow_classes_json TEXT NOT NULL,
+      starts_at TEXT, ends_at TEXT, stop_conditions_json TEXT NOT NULL,
+      reason TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+
     CREATE TABLE system_settings (
       setting_key TEXT PRIMARY KEY,
       setting_value TEXT NOT NULL,
@@ -155,6 +163,39 @@ afterEach(() => {
 });
 
 describe('CompetitionPublicPage lifecycle', () => {
+  it('creates a missing DRAFT page for a campaign through the canonical content workflow', async () => {
+    insertCampaign(sqlite, 'campaign-without-page');
+
+    const created = await createPublicPageDraft(d1, 'campaign-without-page', {
+      slug: 'hoi-thi-toan-2026',
+      heroTitle: 'Hội thi Toán 2026',
+      heroSubtitle: 'Cùng học, cùng thi',
+      summary: 'Thông tin chính thức của hội thi.',
+      ctaLabel: 'VÀO THI',
+      requestId: 'req_public_page_create_0001',
+    }, 'admin-editor');
+
+    expect(created).toMatchObject({
+      campaignId: 'campaign-without-page',
+      slug: 'hoi-thi-toan-2026',
+      heroTitle: 'Hội thi Toán 2026',
+      status: 'DRAFT',
+      publishedAt: null,
+      archivedAt: null,
+      createdBy: 'admin-editor',
+    });
+    expect(sqlite.prepare(`
+      SELECT status, campaign_id FROM competition_public_pages WHERE id = ?
+    `).get(created.id)).toEqual({ status: 'DRAFT', campaign_id: 'campaign-without-page' });
+    expect(auditRows()).toMatchObject([{
+      actor_username: 'admin-editor',
+      action: 'COMPETITION_PUBLIC_PAGE_CREATED',
+      target_type: 'competition_public_page',
+      target_id: created.id,
+      request_id: 'req_public_page_create_0001',
+    }]);
+  });
+
   it('edits only a DRAFT page and records safe before/after audit metadata', async () => {
     const before = await getPublicPageForStaff(d1, 'campaign-public-page');
     expect(before).toMatchObject({

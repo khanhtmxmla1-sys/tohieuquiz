@@ -196,6 +196,59 @@ describe('Competition staff public-content routes', () => {
     }, adminCookie)).status).toBe(200);
   });
 
+  it('creates a missing page and exposes canonical article publish/archive transitions', async () => {
+    insertCampaign('campaign-created-after-portal-migration', { gradeLevels: [4], classIds: ['class-4a'] });
+
+    const page = await api('/api/competitions/campaign-created-after-portal-migration/public-page', 'POST', {
+      slug: 'campaign-created-after-portal-migration',
+      heroTitle: 'Campaign created after migration',
+      summary: 'Staging campaign content',
+      requestId: 'req_page_create_route_0001',
+    }, adminCookie);
+    expect(page.status).toBe(201);
+    expect(await page.json()).toMatchObject({
+      publicPage: {
+        campaignId: 'campaign-created-after-portal-migration',
+        status: 'DRAFT',
+      },
+    });
+    expect((await api('/api/competitions/campaign-created-after-portal-migration/public-page', 'POST', {
+      slug: 'campaign-created-after-portal-migration',
+      heroTitle: 'Duplicate page',
+      requestId: 'req_page_create_route_0002',
+    }, adminCookie)).status).toBe(409);
+
+    const created = await api('/api/competitions/campaign-created-after-portal-migration/articles', 'POST', {
+      campaignId: 'campaign-created-after-portal-migration',
+      title: 'Published rules',
+      slug: 'published-rules',
+      summary: 'Published rules summary',
+      content: 'Published rules content',
+      type: 'RULES',
+      requestId: 'req_article_create_route_0001',
+    }, adminCookie);
+    expect(created.status).toBe(201);
+    const articleId = String((await created.json() as any).article.id);
+
+    const published = await api(
+      `/api/competitions/campaign-created-after-portal-migration/articles/${articleId}/publish`,
+      'POST',
+      { requestId: 'req_article_publish_route_0001' },
+      adminCookie,
+    );
+    expect(published.status).toBe(200);
+    expect(await published.json()).toMatchObject({ article: { id: articleId, status: 'PUBLISHED' } });
+
+    const archived = await api(
+      `/api/competitions/campaign-created-after-portal-migration/articles/${articleId}/archive`,
+      'POST',
+      { requestId: 'req_article_archive_route_0001' },
+      adminCookie,
+    );
+    expect(archived.status).toBe(200);
+    expect(await archived.json()).toMatchObject({ article: { id: articleId, status: 'ARCHIVED' } });
+  });
+
   it('keeps article detail scoped to the route campaign for Admin reads', async () => {
     const created = await api('/api/competitions/campaign-scoped/articles', 'POST', {
       campaignId: 'campaign-scoped', title: 'Scoped article title', slug: 'scoped-article',

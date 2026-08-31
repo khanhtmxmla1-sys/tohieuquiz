@@ -19,6 +19,23 @@ This runbook is for the Competition public portal candidate. It keeps the five s
 - Do not put passwords, session cookies, candidate codes, access codes, or production data in source control or smoke reports.
 - Rollback means disabling the affected portal gates only. Never roll back Competition core publication/result data, School Exam publication data, ranking data, or award-rule versions to hide a portal problem.
 
+## Canonical staging fixture workflow
+
+Create portal content through the audited admin API after the campaign exists. A campaign created after migration 0079 has no implicit page row:
+
+```text
+POST /api/competitions/{campaignId}/public-page
+POST /api/competitions/{campaignId}/articles
+POST /api/competitions/{campaignId}/articles/{articleId}/publish
+POST /api/competitions/{campaignId}/articles/{articleId}/archive
+```
+
+For a certified Live Exam capacity profile, seed only the isolated staging D1 with the guarded command below. It requires an exact staging database confirmation, a config with `ENVIRONMENT = "staging"`, no custom routes, and a profile bound to the candidate SHA:
+
+```text
+npm run capacity:seed:staging -- --input <certified-profile.json> --database <staging-database> --config <staging-wrangler.toml> --confirm-staging <staging-database> --candidate-sha <candidate-sha>
+```
+
 ## Ordered rollout
 
 1. Deploy the schema and application code with the five portal gates disabled. Confirm the migration is applied and the current Worker/frontend candidate SHA is recorded.
@@ -30,7 +47,15 @@ This runbook is for the Competition public portal candidate. It keeps the five s
    npm run competition:portal:smoke -- --base-url <staging-url>
    ```
 
-   Require all checks to report `[PASS]`. The runner validates Student resolution, ordinary-round preflight, and School Exam preflight readiness only. It does not start or submit an attempt.
+   Require all checks to report `[PASS]`. The default runner validates Student resolution, an ordinary open-round preflight, and School Exam preflight readiness. It does not start or submit an attempt.
+
+   Finalized eligibility is a separate, read-only lifecycle assertion. Run it only after recording the pre-lock `READY` evidence:
+
+   ```text
+   npm run competition:portal:smoke -- --expect-finalized-round
+   ```
+
+   In this mode the ordinary-round check passes only for the expected non-mutating `BLOCKED` / `ROUND_NOT_OPEN` response. This confirms that finalization remains authoritative and is not evidence that a closed round is ready for entry.
 5. Run the Golden Board publication-version check. Confirm that only the latest valid PUBLISHED source is projected and that a withheld/unpublished source does not appear publicly. After correction and republish, confirm the public response changes to the new `publicationVersion`, `rankingVersion`, and configured `awardRuleVersion`.
 6. Run the admin editing check with an authorized disposable administrator: update/preview/publish public content, verify scope and audit behavior, then confirm anonymous readers see only the published projection.
 7. Run the legacy redirect/navigation check: `/student/competition` follows the server-authoritative portal slug when the redirect gate is enabled and preserves the compatibility dashboard when it is disabled or no canonical slug is available.

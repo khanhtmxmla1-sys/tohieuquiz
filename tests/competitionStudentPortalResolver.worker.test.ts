@@ -253,6 +253,68 @@ describe('Competition authenticated student portal slug resolver', () => {
     });
   }
 
+  it('includes a sanitized ready School Exam projection when the canonical event is ready', async () => {
+    sqlite.exec(`
+      CREATE TABLE competition_school_exam_events (
+        id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL, eligibility_snapshot_version INTEGER NOT NULL,
+        title TEXT NOT NULL, exam_date TEXT NOT NULL, status TEXT NOT NULL,
+        capacity_profile_id TEXT, preflight_json TEXT, created_at TEXT NOT NULL
+      );
+      CREATE TABLE competition_school_exam_rooms (
+        id TEXT PRIMARY KEY, event_id TEXT NOT NULL, name TEXT NOT NULL, scheduled_at TEXT NOT NULL,
+        duration_minutes INTEGER NOT NULL, check_in_lead_minutes INTEGER NOT NULL,
+        close_drain_minutes INTEGER NOT NULL, live_exam_session_id TEXT, provision_status TEXT NOT NULL,
+        status TEXT NOT NULL
+      );
+      CREATE TABLE competition_school_exam_members (
+        event_id TEXT NOT NULL, room_id TEXT NOT NULL, student_id TEXT NOT NULL,
+        eligibility_snapshot_version INTEGER NOT NULL, status TEXT NOT NULL
+      );
+      CREATE TABLE live_exam_sessions (
+        id TEXT PRIMARY KEY, status TEXT NOT NULL, access_code TEXT NOT NULL, settings TEXT NOT NULL,
+        participant_scope_type TEXT NOT NULL, participant_scope_id TEXT, result_visibility TEXT NOT NULL
+      );
+      UPDATE competition_campaigns SET status = 'EXAM_PREP' WHERE id = 'campaign-owned';
+      INSERT INTO competition_eligibility (
+        campaign_id, eligibility_snapshot_version, student_id, qualified,
+        reason_codes_json, progress_digest, qualified_at, created_at
+      ) VALUES ('campaign-owned', 1, 'student-1', 1, '["QUALIFIED"]', '${'a'.repeat(64)}',
+        '2026-09-10T00:00:00.000Z', '2026-09-10T00:00:00.000Z');
+      INSERT INTO competition_school_exam_events (
+        id, campaign_id, eligibility_snapshot_version, title, exam_date, status,
+        capacity_profile_id, preflight_json, created_at
+      ) VALUES ('school-event-owned', 'campaign-owned', 1, 'School Exam', '2026-09-10T12:00:00.000Z',
+        'READY', 'capacity-1', '{"status":"READY","capacityProfileId":"capacity-1","certifiedConcurrentStudents":100}',
+        '2026-09-10T00:00:00.000Z');
+      INSERT INTO competition_school_exam_rooms (
+        id, event_id, name, scheduled_at, duration_minutes, check_in_lead_minutes,
+        close_drain_minutes, live_exam_session_id, provision_status, status
+      ) VALUES ('school-room-owned', 'school-event-owned', 'Room A', '2026-09-10T11:30:00.000Z',
+        45, 0, 0, 'school-session-owned', 'READY', 'READY');
+      INSERT INTO competition_school_exam_members (
+        event_id, room_id, student_id, eligibility_snapshot_version, status
+      ) VALUES ('school-event-owned', 'school-room-owned', 'student-1', 1, 'ASSIGNED');
+      INSERT INTO live_exam_sessions (
+        id, status, access_code, settings, participant_scope_type, participant_scope_id, result_visibility
+      ) VALUES ('school-session-owned', 'waiting', 'STG001', '{"allowLateJoin":true}',
+        'SCHOOL_EXAM_ROOM', 'school-room-owned', 'WITHHELD');
+      UPDATE competition_public_pages SET status = 'PUBLISHED', published_at = '2026-09-10T00:00:00.000Z'
+      WHERE id = 'page-owned';
+    `);
+
+    const response = await api('/api/student/competitions/by-slug/owned-competition', student1Cookie);
+    expect(response.status).toBe(200);
+    const body = await response.json() as any;
+    expect(body.portal.schoolExam).toEqual({
+      qualified: true,
+      eventId: 'school-event-owned',
+      scheduledAt: '2026-09-10T11:30:00.000Z',
+      roomName: 'Room A',
+      ready: true,
+    });
+    expect(JSON.stringify(body.portal)).not.toMatch(/STG001|accessCode/);
+  });
+
   it('uses the same generic safe not-found response for an unrelated Student and unknown slug', async () => {
     const unrelated = await api('/api/student/competitions/by-slug/private-competition', student1Cookie);
     const unknown = await api('/api/student/competitions/by-slug/does-not-exist', student1Cookie);
