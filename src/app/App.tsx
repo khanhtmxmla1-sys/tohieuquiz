@@ -3,6 +3,7 @@ import { useLocation } from 'react-router';
 import { useAuthStore } from '../../stores/authStore';
 import { useQuizStore } from '../../stores/quizStore';
 import { useSeo } from '../hooks/useSeo';
+import { useCompetitionPortalSeo } from '../features/competition/portal/public/useCompetitionPortalSeo';
 import { AppGlobals } from './AppGlobals';
 import { AppRoutes } from './AppRoutes';
 import { useLegacyQuizQuery } from './useLegacyQuizQuery';
@@ -28,6 +29,7 @@ const MainApp: React.FC = () => {
     const giftShopEnabled = String(import.meta.env.VITE_FEATURE_GIFT_SHOP_V2 || 'false').toLowerCase() === 'true';
 
     useSeo(location.pathname, quizStore.view, quizStore.selectedQuiz, giftShopEnabled);
+    useCompetitionPortalSeo();
     useLoadQuizzes();
     useTeacherEntry();
     useLegacyQuizQuery();
