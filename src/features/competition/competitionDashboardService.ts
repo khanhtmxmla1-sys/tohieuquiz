@@ -313,8 +313,8 @@ export const competitionDashboardService = {
     return response.preview;
   },
 
-  async freezeAudience(campaignId: string, requestId: string): Promise<{ snapshot: { id: string; memberCount?: number; status?: string } }> {
-    return callApi('freeze_competition_audience', { campaignId, requestId });
+  async freezeAudience(campaignId: string, requestId: string, expectedMemberCount: number): Promise<{ snapshot: { id: string; memberCount?: number; status?: string } }> {
+    return callApi('freeze_competition_audience', { campaignId, requestId, expectedMemberCount });
   },
 
   async finalizeEligibility(campaignId: string, requestId: string) {

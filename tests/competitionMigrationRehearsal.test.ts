@@ -40,6 +40,8 @@ describe('Competition V1 migration rehearsal contract', () => {
       '0076_competition_certificate_adapter.sql',
       '0077_competition_async_xlsx_export.sql',
       '0078_competition_result_corrections.sql',
+      '0079_competition_runtime_rollout.sql',
+      '0080_competition_public_portal.sql',
     ]);
   });
 

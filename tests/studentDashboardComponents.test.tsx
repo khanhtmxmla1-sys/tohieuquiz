@@ -174,16 +174,16 @@ describe('student dashboard header', () => {
     expect(screen.queryByRole('menu', { name: 'Tài khoản học sinh' })).not.toBeInTheDocument();
   });
 
-  it('routes assignment and practice navigation through explicit callbacks', () => {
+  it('routes assignment navigation and omits the removed library nav item', () => {
     const onOpenAssignments = vi.fn();
     const onOpenPractice = vi.fn();
     renderHeader({ onOpenAssignments, onOpenPractice });
 
     fireEvent.click(screen.getByRole('button', { name: 'Bài tập' }));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Thư viện' })[0]);
 
     expect(onOpenAssignments).toHaveBeenCalledTimes(1);
-    expect(onOpenPractice).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: 'Thư viện' })).not.toBeInTheDocument();
+    expect(onOpenPractice).not.toHaveBeenCalled();
   });
 
   it('exposes all header actions as native buttons with 44px targets', () => {
@@ -204,6 +204,7 @@ describe('student dashboard header', () => {
     const mobileNav = screen.getByRole('navigation', {
       name: 'Điều hướng học sinh trên điện thoại',
     });
+    expect(mobileNav.className).toContain('grid-cols-4');
     const homeButton = within(mobileNav).getByRole('button', { name: 'Trang chủ' });
     const achievementsButton = within(mobileNav).getByRole('button', { name: 'Thành tích' });
 

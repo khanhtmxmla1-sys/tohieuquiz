@@ -3,8 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 
-const migrationPath = 'workers/migrations/0079_competition_public_portal.sql';
-const rollbackPath = 'workers/migrations/rollback/0079_competition_public_portal.rollback.sql';
+const migrationPath = 'workers/migrations/0080_competition_public_portal.sql';
+const rollbackPath = 'workers/migrations/rollback/0080_competition_public_portal.rollback.sql';
 const portalTables = [
   'competition_public_pages',
   'competition_articles',

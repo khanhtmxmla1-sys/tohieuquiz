@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { normalizeSmokeUrl, redactSmokeText } from './run-production-smoke.mjs';
 
 export const ROLLOUT_STAGES = ['admin-only', 'teachers-5', 'pilot-class', 'teachers-25', 'full'];
+const DISABLED_STAGE = 'off';
 const OBSERVATION_HOURS = {
   'admin-only': 24,
   'teachers-5': 24,
@@ -12,7 +13,7 @@ const OBSERVATION_HOURS = {
   full: 48,
 };
 const PREVIOUS_STAGE = {
-  'admin-only': null,
+  'admin-only': DISABLED_STAGE,
   'teachers-5': 'admin-only',
   'pilot-class': 'teachers-5',
   'teachers-25': 'pilot-class',
@@ -33,6 +34,9 @@ const required = (value, name) => {
 };
 
 export function buildStageTarget(stage, pilotClassId = '') {
+  if (stage === DISABLED_STAGE) {
+    return { enabled: false, audience: 'all', percentage: 0, allowUsers: [], allowClasses: [] };
+  }
   if (!ROLLOUT_STAGES.includes(stage)) throw new Error(`Unknown rollout stage: ${stage}`);
   const common = { enabled: true, allowUsers: [], allowClasses: [] };
   if (stage === 'admin-only') return { ...common, audience: 'admin', percentage: 100 };
@@ -42,6 +46,13 @@ export function buildStageTarget(stage, pilotClassId = '') {
   }
   if (stage === 'teachers-25') return { ...common, audience: 'teacher', percentage: 25 };
   return { ...common, audience: 'all', percentage: 100 };
+}
+
+export function buildRollbackTarget(stage, pilotClassId = '') {
+  if (!ROLLOUT_STAGES.includes(stage)) throw new Error(`Unknown rollout stage: ${stage}`);
+  const previous = PREVIOUS_STAGE[stage];
+  if (!previous) throw new Error(`No rollback target for rollout stage: ${stage}`);
+  return buildStageTarget(previous, pilotClassId);
 }
 
 export function evaluateRolloutMetrics({ stage, observationStartedAt, metrics, now = new Date() }) {
@@ -232,7 +243,7 @@ export async function runStagedRollout(args = process.argv.slice(2), env = proce
           siteUrl,
           cookie,
           key,
-          target: buildStageTarget(previous, pilotClassId),
+          target: buildRollbackTarget(stage, pilotClassId),
           reason: `Automatic rollback after stop condition: ${report.breaches.join(', ')}`,
         });
         report.rollback = { stage: previous, changedFields: result.changed };
@@ -246,7 +257,9 @@ export async function runStagedRollout(args = process.argv.slice(2), env = proce
         siteUrl,
         cookie,
         key,
-        target: buildStageTarget(selectedStage, pilotClassId),
+        target: action === 'rollback'
+          ? buildRollbackTarget(stage, pilotClassId)
+          : buildStageTarget(selectedStage, pilotClassId),
         reason,
       });
       report.status = 'applied';

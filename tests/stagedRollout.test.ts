@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildRollbackTarget,
   buildStageTarget,
   evaluateRolloutMetrics,
   summarizeTarget,
@@ -16,6 +17,16 @@ describe('staged rollout orchestration', () => {
     expect(buildStageTarget('full')).toMatchObject({ audience: 'all', percentage: 100 });
     expect(JSON.stringify(summarizeTarget(buildStageTarget('pilot-class', 'class-private'))))
       .not.toContain('class-private');
+  });
+
+  it('can roll the first admin-only stage back to the disabled baseline', () => {
+    expect(buildRollbackTarget('admin-only')).toEqual({
+      enabled: false,
+      audience: 'all',
+      percentage: 0,
+      allowUsers: [],
+      allowClasses: [],
+    });
   });
 
   it('keeps each stage observing until its 24-48 hour window completes', () => {

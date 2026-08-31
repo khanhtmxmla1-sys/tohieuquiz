@@ -27,6 +27,10 @@ describe('Competition V1 student release journey', () => {
   it('loads six rounds, starts a snapshot attempt and submits it', () => {
     let submitted = false;
     cy.intercept('GET', '**/api/system-settings*', { status: 'success', data: { aiAssistantEnabled: false } });
+    cy.intercept('GET', '**/api/system-settings/feature-flags/resolve?flag=competition_v1', {
+      status: 'success',
+      data: { key: 'competition_v1', enabled: true, reason: 'allowlist', bucket: null, version: 1 },
+    }).as('competitionRollout');
     cy.intercept('GET', '**/api/account/me', { statusCode: 401, body: { status: 'error' } });
     cy.intercept('GET', '**/api/student-profile', { status: 'success', data: student }).as('studentProfile');
     cy.intercept('GET', '**/api/student/competitions', { items: [campaign] }).as('competitionList');
@@ -82,6 +86,7 @@ describe('Competition V1 student release journey', () => {
       },
     });
     cy.wait('@studentProfile');
+    cy.wait('@competitionRollout');
     // The first cold Vite transform can delay the lazy Competition route on Windows.
     cy.wait('@competitionList', { timeout: 15_000 });
     cy.contains('h1', 'Cuộc thi của em').should('be.visible');

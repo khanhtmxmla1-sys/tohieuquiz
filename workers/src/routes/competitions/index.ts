@@ -91,6 +91,7 @@ import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
 import { handleCompetitionPortalRoutes } from './portalRoutes';
 import { handleStudentCompetitionPortalRoutes } from './studentPortalRoutes';
+import { getFeatureFlag, resolveFeatureFlag } from '../../services/featureFlagService';
 
 function routeCampaignId(path: string, suffix = ''): string | null {
   const prefix = '/api/competitions/';
@@ -166,6 +167,7 @@ function routeError(error: unknown): Response {
   ].includes(message)) return errorResponse(message, 404);
   if ([
     'COMPETITION_CAMPAIGN_NOT_DRAFT',
+    'COMPETITION_AUDIENCE_CHANGED_REVIEW_REQUIRED',
     'COMPETITION_AUDIENCE_NOT_SNAPSHOTTED',
     'COMPETITION_ELIGIBILITY_NOT_FINALIZED',
     'COMPETITION_ELIGIBILITY_ROUNDS_NOT_READY',
@@ -260,6 +262,26 @@ async function authenticatedStudentId(db: D1Database, user: JWTPayload): Promise
   return row?.id || null;
 }
 
+async function hasCompetitionRolloutAccess(db: D1Database, user: JWTPayload): Promise<boolean> {
+  try {
+    const flag = await getFeatureFlag(db, 'competition_v1');
+    if (!flag) return false;
+    const classIds = user.role === 'student'
+      ? (user.classId ? [user.classId] : [])
+      : user.role === 'teacher'
+        ? await teacherClassIds(db, user)
+        : [];
+    const resolution = await resolveFeatureFlag(flag, {
+      role: user.role,
+      username: user.username,
+      classIds,
+    });
+    return resolution.enabled;
+  } catch {
+    return false;
+  }
+}
+
 async function handleCompetitionRoutesCore(
   request: Request,
   env: Env,
@@ -275,6 +297,9 @@ async function handleCompetitionRoutesCore(
   const authResult = await verifyJWTMiddleware(request, env);
   if (authResult instanceof Response) return authResult;
   const user = authResult.user;
+  if (!await hasCompetitionRolloutAccess(env.DB, user)) {
+    return errorResponse('COMPETITION_NOT_AVAILABLE', 404);
+  }
 
   if (isStudentNamespace) {
     if (user.role !== 'student') return errorResponse('Forbidden', 403);
@@ -691,11 +716,19 @@ async function handleCompetitionRoutesCore(
       const body = await jsonBody(request);
       const requestId = String(body?.requestId || '').trim();
       if (requestId.length < 8) return errorResponse('requestId is required', 400);
+      const expectedMemberCount = body?.expectedMemberCount;
+      if (expectedMemberCount !== undefined
+        && (typeof expectedMemberCount !== 'number'
+          || !Number.isInteger(expectedMemberCount)
+          || expectedMemberCount < 0)) {
+        return errorResponse('expectedMemberCount is required', 400);
+      }
       const snapshot = await freezeCompetitionAudience(
         env.DB,
         snapshotCampaignId,
         user.username,
         requestId,
+        expectedMemberCount === undefined ? undefined : Number(expectedMemberCount),
       );
       return jsonResponse({ snapshot }, 201);
     }

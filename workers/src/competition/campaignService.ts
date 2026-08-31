@@ -410,6 +410,7 @@ export async function freezeCompetitionAudience(
   campaignId: string,
   actorUsername: string,
   requestId: string,
+  expectedMemberCount?: number,
 ) {
   const normalizedCampaignId = String(campaignId || '').trim();
   const actor = String(actorUsername || '').trim();
@@ -419,8 +420,12 @@ export async function freezeCompetitionAudience(
 
   const campaign = await getCampaignRow(db, normalizedCampaignId);
   if (!campaign) throw new Error('COMPETITION_CAMPAIGN_NOT_FOUND');
+  if (campaign.status !== 'DRAFT') throw new Error('COMPETITION_CAMPAIGN_NOT_DRAFT');
 
   const members = await matchedAudienceMembers(db, campaign);
+  if (expectedMemberCount !== undefined && members.length !== expectedMemberCount) {
+    throw new Error('COMPETITION_AUDIENCE_CHANGED_REVIEW_REQUIRED');
+  }
   const versionRow = await db.prepare(`
     SELECT COALESCE(MAX(version), 0) AS max_version
     FROM competition_audience_snapshots

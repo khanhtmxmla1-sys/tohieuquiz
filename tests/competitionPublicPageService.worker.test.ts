@@ -14,7 +14,7 @@ import {
 import { createSqliteD1 } from './helpers/sqliteD1';
 
 const portalMigration = readFileSync(
-  new URL('../workers/migrations/0079_competition_public_portal.sql', import.meta.url),
+  new URL('../workers/migrations/0080_competition_public_portal.sql', import.meta.url),
   'utf8',
 );
 

@@ -10,7 +10,7 @@
 
 - Task 27 đã hoàn tất trên branch `feat/competition-v1` với commit `3c12726` (`test: add competition portal release verification`).
 - Phần staging support còn dang dở đã được commit tại `b812632` (`feat: complete competition portal staging support`); evidence đã được rebind sang SHA này.
-- Đã xác minh trên staging cô lập: Worker `tohieuquiz-competition-stg-3c12726`, D1 `tohieuquiz-competition-stg-3c12726`, migration tới `0079_competition_public_portal.sql`, năm portal gates ban đầu disabled, và fixture disposable có đủ sáu vòng.
+- Staging lịch sử đã xác minh trên Worker/D1 cô lập tới `0079_competition_public_portal.sql`. Sau khi `main` dùng số `0079` cho runtime rollout, candidate tích hợp đổi Portal sang `0080_competition_public_portal.sql`; cần chạy lại delta verification staging trước merge.
 - Smoke read-only đạt `7/7` ở cả round đang mở và round đã finalized; public/student/Golden Board/content-admin/legacy chooser, School Exam `WITHHELD`, correction→republish và non-mutation attempt đều đã kiểm tra. Evidence: `docs/operations/releases/2026-08-31-competition-public-portal-staging.md`.
 - Đã xác minh lại: focused release/content/staging tests `43/43`, Competition regression `90/90`, Cypress E2E pass, lint, frontend/strict/Worker typecheck, production build và `security:check` đều pass.
 - Full repository Vitest không được coi là globally green: `3267/3272` pass, còn 5 failure nền ngoài diff candidate; chi tiết và giới hạn Vercel Preview được ghi trong evidence release.

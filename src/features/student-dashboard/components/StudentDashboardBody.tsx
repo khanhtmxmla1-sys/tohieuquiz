@@ -4,14 +4,12 @@ import {
   SubjectPracticeGrid, WeeklyQuestsPanel,
 } from '@/src/components/HomePage/student-dashboard';
 import type { StudentDashboardContentProps } from './content.types';
-import { isCompetitionV1Enabled } from '../../../config/featureFlags';
 
 export const StudentDashboardBody = ({
   studentSession, assignments, attendance, practice, rewards,
   giftShopEnabled, isOnline, onOpenGiftShop, onOpenBadges, onSelectHomework,
-  onOpenPrimaryLearning, onSelectSection,
-}: StudentDashboardContentProps) => {
-  const competitionEnabled = isCompetitionV1Enabled();
+  onOpenPrimaryLearning, onSelectSection, competitionEnabled,
+}: StudentDashboardContentProps & { competitionEnabled: boolean }) => {
   return (
   <div className="flex flex-col gap-8 md:gap-10">
     <StudentDashboardHero

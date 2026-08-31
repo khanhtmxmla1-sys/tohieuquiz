@@ -3,12 +3,12 @@
 **Ngày:** 31/08/2026
 **Branch:** `feat/competition-v1`
 **Candidate SHA:** `b81263219a7a45db5505cfa7b328ce4814703a7c` (`feat: complete competition portal staging support`)
-**Trạng thái:** `STAGING PASS → IMPLEMENTATION + EVIDENCE COMMITTED → CHỜ DUYỆT PUSH/PR`
+**Trạng thái:** `STAGING BASELINE PASS → PR CONFLICT RESOLUTION → CHỜ DELTA STAGING VERIFICATION`
 
 ## Đã hoàn thành
 
 - Staging Worker/D1/R2/Queue cô lập, không dùng production resource.
-- Migration đã xác nhận tới `0079_competition_public_portal.sql`.
+- Candidate staging ban đầu đã xác nhận tới `0079_competition_public_portal.sql`.
 - Fixture disposable có 6 vòng, public page/article, Student đủ điều kiện, ordinary preflight READY và School Exam preflight READY.
 - Smoke read-only: open `7/7 PASS`; finalized `7/7 PASS`.
 - Golden Board correction/republish: publication/ranking `1/1 → 2/2`.
@@ -28,9 +28,10 @@
 - Chưa push, mở PR, merge hoặc deploy production.
 - Full repository Vitest còn 5 lỗi nền ngoài diff candidate; không được xem là globally green.
 - Vercel Preview legacy UI chưa test trực tiếp vì rewrite `/api/**` hiện trỏ production.
+- Candidate tích hợp đổi Portal sang `0080_competition_public_portal.sql` để nhường `0079` cho runtime rollout từ `main`; phải kiểm tra lại isolated staging migration/health/smoke trước merge.
 
 ## Điểm tiếp tục
 
-1. User duyệt push/PR cho branch `feat/competition-v1`.
-2. Push branch và mở PR tới `main` sau khi được duyệt.
+1. Hoàn tất verification cho conflict-resolution candidate, sau đó commit/push cập nhật PR #139 khi được duyệt.
+2. Chạy delta staging verification qua `0080_competition_public_portal.sql`, giữ toàn bộ rollout gates disabled.
 3. Dừng ở merge + production migration/deploy approval gate.

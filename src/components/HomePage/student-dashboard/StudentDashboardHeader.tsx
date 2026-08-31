@@ -4,7 +4,6 @@ import { NotificationCenter } from '../../../features/notifications/components';
 import NotificationBell from '../../common/NotificationBell';
 import SchoolLogo from '../../common/SchoolLogo';
 import type { StudentDashboardHeaderProps } from './dashboard.types';
-import { isCompetitionV1Enabled } from '../../../config/featureFlags';
 
 const baseActionClass =
   'inline-flex min-h-11 items-center justify-center rounded-[10px] px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2';
@@ -17,12 +16,12 @@ export function StudentDashboardHeader({
   coins,
   activeSection,
   giftShopEnabled,
+  competitionEnabled,
   studentId,
   unifiedNotificationsReady,
   unifiedNotificationsEnabled,
   onSelectSection,
   onOpenAssignments,
-  onOpenPractice,
   onOpenAssignment,
   onOpenResultReport,
   onOpenGiftShop,
@@ -32,7 +31,6 @@ export function StudentDashboardHeader({
   onClearDeviceData,
   onLogout,
 }: StudentDashboardHeaderProps) {
-  const competitionEnabled = isCompetitionV1Enabled();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
 
@@ -126,13 +124,6 @@ export function StudentDashboardHeader({
               Cuộc thi
             </button>
           )}
-          <button
-            type="button"
-            onClick={onOpenPractice}
-            className={`${baseActionClass} text-slate-600 hover:text-slate-900`}
-          >
-            Thư viện
-          </button>
         </nav>
 
         <div className="ml-auto hidden items-center gap-4 text-xs font-medium text-slate-500 sm:flex">
@@ -249,7 +240,7 @@ export function StudentDashboardHeader({
       </div>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-5 border-t border-slate-200 bg-white px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-4 border-t border-slate-200 bg-white px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 md:hidden"
         aria-label="Điều hướng học sinh trên điện thoại"
       >
         <button
@@ -266,13 +257,6 @@ export function StudentDashboardHeader({
           className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-slate-600"
         >
           Bài tập
-        </button>
-        <button
-          type="button"
-          onClick={onOpenPractice}
-          className="min-h-12 rounded-[10px] px-1 text-xs font-semibold text-slate-600"
-        >
-          Thư viện
         </button>
         <button
           type="button"

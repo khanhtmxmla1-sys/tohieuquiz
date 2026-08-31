@@ -8,7 +8,7 @@ import { signJWT } from '../workers/src/utils/jwt';
 import { createSqliteD1 } from './helpers/sqliteD1';
 
 const portalMigration = readFileSync(
-  new URL('../workers/migrations/0079_competition_public_portal.sql', import.meta.url),
+  new URL('../workers/migrations/0080_competition_public_portal.sql', import.meta.url),
   'utf8',
 );
 const secret = 'competition-portal-privacy-regression-secret';
@@ -160,6 +160,10 @@ function createSchema(db: DatabaseSync): void {
       ('student-2', 'student2', 'Student Two', 'hash', 'class-5a', '${NOW}');
   `);
   db.exec(portalMigration);
+  db.exec(`
+    INSERT INTO feature_flags VALUES ('competition_v1', 'competition runtime', 1, 'competition-platform', 1, '${NOW}', '${NOW}');
+    INSERT INTO feature_flag_rules VALUES ('competition_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'test fixture', 'test', '${NOW}');
+  `);
 }
 
 function seedCampaign(

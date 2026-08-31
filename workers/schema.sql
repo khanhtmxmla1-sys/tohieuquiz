@@ -3054,7 +3054,7 @@ BEGIN
   SELECT RAISE(ABORT, 'SCHOOL_EXAM_RESULT_CORRECTION_IMMUTABLE');
 END;
 
--- Canonical migration 0079_competition_public_portal.sql
+-- Canonical migration 0080_competition_public_portal.sql
 -- Competition public portal presentation, content, and award configuration.
 -- This aggregate references Competition core without changing its lifecycle data.
 
@@ -3402,15 +3402,33 @@ INSERT OR IGNORE INTO feature_flags (
   ('competition_golden_board_v1', 'Competition Golden Board publication', 0, 'competition', 1, datetime('now'), datetime('now')),
   ('competition_public_content_admin_v1', 'Competition public content administration', 0, 'competition', 1, datetime('now'), datetime('now'));
 
+-- Canonical migration 0079_competition_runtime_rollout.sql
+-- The build-time flag is only an outer kill switch. Runtime access starts
+-- disabled and is promoted through audited user/class cohorts.
+INSERT OR IGNORE INTO feature_flags (
+  flag_key, description, enabled, owner, version, created_at, updated_at
+) VALUES (
+  'competition_v1', 'Competition V1 cohort rollout', 0, 'competition-platform',
+  1, datetime('now'), datetime('now')
+);
 INSERT OR IGNORE INTO feature_flag_rules (
   flag_key, audience, percentage, allow_users_json, allow_classes_json,
   starts_at, ends_at, stop_conditions_json, reason, updated_by, updated_at
 ) VALUES
-  ('competition_public_portal_read_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now')),
-  ('competition_student_portal_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now')),
-  ('competition_legacy_redirect_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now')),
-  ('competition_golden_board_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now')),
-  ('competition_public_content_admin_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0079', datetime('now'));
+  ('competition_public_portal_read_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0080', datetime('now')),
+  ('competition_student_portal_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0080', datetime('now')),
+  ('competition_legacy_redirect_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0080', datetime('now')),
+  ('competition_golden_board_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0080', datetime('now')),
+  ('competition_public_content_admin_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'Competition portal rollout seed', 'migration-0080', datetime('now'));
 
 INSERT OR IGNORE INTO system_settings (setting_key, setting_value, updated_at)
 VALUES ('school_name', 'Trường Tiểu học Tô Hiệu', datetime('now'));
+INSERT OR IGNORE INTO feature_flag_rules (
+  flag_key, audience, percentage, allow_users_json, allow_classes_json,
+  starts_at, ends_at, stop_conditions_json, reason, updated_by, updated_at
+) VALUES (
+  'competition_v1', 'all', 0, '[]', '[]', NULL, NULL,
+  '{"max5xxRatePercent":1,"maxClientErrorMultiplier":2,"maxP95IncreasePercent":30}',
+  'Competition V1 starts disabled and requires audited cohort promotion',
+  'migration-0079', datetime('now')
+);

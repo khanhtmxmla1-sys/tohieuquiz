@@ -19,7 +19,7 @@
 
 ## Schema and fixture
 
-- D1 migration registry was verified through `0079_competition_public_portal.sql`; the latest three registered migrations ended at `0079`.
+- Historical staging candidate: D1 migration registry was verified through `0079_competition_public_portal.sql`. The integrated PR candidate renumbers this Portal migration to `0080_competition_public_portal.sql` because `main` now owns `0079_competition_runtime_rollout.sql`; this historical evidence must not be treated as `0080` verification.
 - One disposable staging campaign was retained with one published public page, six rounds, six round mappings, two published article records after the admin edit/publish check, one Golden Board config, one immutable award-rule version, and a qualified disposable Student fixture.
 - The staging School Exam fixture had a READY preflight and a provisioned `WITHHELD` Live Exam session. One canonical School Exam result was published for the correction/republish rehearsal; no ordinary competition attempt was created.
 - Final read-only D1 counts after the rehearsal: `ordinary_attempts=0`, `school_exam_results=1`, `golden_configs=1`, `award_rule_versions=1`.

@@ -33,7 +33,7 @@ const EXPECTED_COMPETITION_ARTICLE_TYPES = [
 ] as const satisfies readonly (typeof COMPETITION_ARTICLE_TYPES[number])[];
 
 const portalMigration = readFileSync(
-  new URL('../workers/migrations/0079_competition_public_portal.sql', import.meta.url),
+  new URL('../workers/migrations/0080_competition_public_portal.sql', import.meta.url),
   'utf8',
 );
 

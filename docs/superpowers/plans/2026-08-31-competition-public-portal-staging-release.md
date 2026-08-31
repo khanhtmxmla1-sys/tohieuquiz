@@ -50,8 +50,8 @@
 - `scripts/run-competition-portal-smoke.mjs` — staging-only read-only portal smoke runner.
 - `tests/competitionPortalSmokeRunner.test.ts` — smoke runner argument/safety contract.
 - `cypress/e2e/competition-public-portal.cy.ts` — full stubbed portal journey.
-- `workers/migrations/0079_competition_public_portal.sql` — portal schema/backfill + five disabled rollout seeds.
-- `workers/migrations/rollback/0079_competition_public_portal.rollback.sql` — destructive portal-owned rollback; not normal release rollback.
+- `workers/migrations/0080_competition_public_portal.sql` — portal schema/backfill + five disabled rollout seeds.
+- `workers/migrations/rollback/0080_competition_public_portal.rollback.sql` — destructive portal-owned rollback; not normal release rollback.
 - `workers/scripts/apply-d1-migrations-safe.cjs` — safe D1 migration planner/writer.
 - `src/services/api/config.ts`, `vercel.json` — current frontend/API routing behavior; important staging isolation check.
 
@@ -230,12 +230,12 @@ Expected: HTTP success from the isolated staging Worker. Confirm the response/de
 
 **Files:**
 - Read/execute: `workers/scripts/apply-d1-migrations-safe.cjs`
-- Read: `workers/migrations/0079_competition_public_portal.sql`
+- Read: `workers/migrations/0080_competition_public_portal.sql`
 - No production D1 mutation.
 
 **Interfaces:**
 - Consumes: isolated staging D1/config from R2.
-- Produces: staging schema through `0079_competition_public_portal.sql`, five disabled portal flags, one disposable campaign/student/School Exam/Golden Board fixture.
+- Produces: staging schema through `0080_competition_public_portal.sql`, five disabled portal flags, one disposable campaign/student/School Exam/Golden Board fixture.
 
 - [ ] **Step 1: Dry-plan the staging D1 migration through 0079.**
 
@@ -245,10 +245,10 @@ node workers/scripts/apply-d1-migrations-safe.cjs `
   --database $env:COMPETITION_PORTAL_STAGING_D1 `
   --config $env:COMPETITION_PORTAL_STAGING_WRANGLER_CONFIG `
   --confirm-remote $env:COMPETITION_PORTAL_STAGING_D1 `
-  --through 0079_competition_public_portal.sql
+  --through 0080_competition_public_portal.sql
 ```
 
-Expected: migration planner targets only the staging database and ends at `0079_competition_public_portal.sql`. If the target identity is ambiguous, stop before `--write`.
+Expected: migration planner targets only the staging database and ends at `0080_competition_public_portal.sql`. If the target identity is ambiguous, stop before `--write`.
 
 - [ ] **Step 2: Apply the planned migration only to isolated staging.**
 
@@ -258,11 +258,11 @@ node workers/scripts/apply-d1-migrations-safe.cjs `
   --database $env:COMPETITION_PORTAL_STAGING_D1 `
   --config $env:COMPETITION_PORTAL_STAGING_WRANGLER_CONFIG `
   --confirm-remote $env:COMPETITION_PORTAL_STAGING_D1 `
-  --through 0079_competition_public_portal.sql `
+  --through 0080_competition_public_portal.sql `
   --write
 ```
 
-Expected: migration execution succeeds and registry includes `0079_competition_public_portal.sql`.
+Expected: migration execution succeeds and registry includes `0080_competition_public_portal.sql`.
 
 - [ ] **Step 3: Verify the five portal flags are present and disabled before fixture testing.**
 
@@ -673,13 +673,13 @@ Use the safe migration script against the canonical production D1 only after pro
 Expected after migration:
 
 ```text
-0079_competition_public_portal.sql registered/applied
+0080_competition_public_portal.sql registered/applied
 all portal schema objects present
 existing Competition core data intact
 all five portal flags disabled
 ```
 
-Normal rollback does not run `0079_competition_public_portal.rollback.sql`.
+Normal rollback does not run `0080_competition_public_portal.rollback.sql`.
 
 - [ ] **Step 6: Deploy reviewed Worker/frontend candidate with portal gates still disabled.**
 
@@ -804,7 +804,7 @@ The staging/release plan is complete only when all applicable statements are tru
 
 - [ ] Candidate SHA is explicitly bound to staging evidence.
 - [ ] Isolated staging is proven not to use production D1/Worker/custom-domain/resource bindings.
-- [ ] Migration through `0079_competition_public_portal.sql` succeeds on staging.
+- [ ] Migration through `0080_competition_public_portal.sql` succeeds on staging.
 - [ ] All five portal gates are initially disabled.
 - [ ] Disposable staging fixture contains six rounds, qualified Student, READY ordinary preflight, READY School Exam preflight, published article and latest PUBLISHED Golden Board source.
 - [ ] Automated Competition Portal smoke reports exactly `7/7` PASS and `status=ready`.

@@ -158,11 +158,102 @@ describe('Competition V1 admin and teacher dashboard surface', () => {
     expect(await screen.findByText('2 học sinh phù hợp')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Đóng băng đối tượng' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tạo snapshot mới' }));
     await waitFor(() => expect(api.callApi).toHaveBeenCalledWith(
       'freeze_competition_audience',
-      expect.objectContaining({ campaignId: 'campaign-1', requestId: expect.any(String) }),
+      expect.objectContaining({ campaignId: 'campaign-1', expectedMemberCount: 2, requestId: expect.any(String) }),
     ));
     expect(await screen.findByText('Audience: Đã đóng băng')).toBeInTheDocument();
+  });
+
+  it('requires a fresh preview and explicit member-count confirmation before replacing a DRAFT audience snapshot', async () => {
+    api.callApi.mockImplementation(async (action: string) => {
+      if (action === 'list_competitions') return {
+        items: [{
+          id: 'campaign-1', title: 'Hội thi 2026', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh',
+          status: 'DRAFT', audienceSnapshotId: 'audience-old',
+        }],
+      };
+      if (action === 'get_competition_rounds' || action === 'list_school_exam_events') return { items: [] };
+      if (action === 'get_competition_eligibility') throw new Error('not finalized');
+      if (action === 'preview_competition_audience') return {
+        preview: { matchedCount: 2, countsByGrade: { '4': 2 }, countsByClass: { 'class-4a': 2 } },
+      };
+      if (action === 'freeze_competition_audience') return {
+        snapshot: { id: 'audience-new', memberCount: 2, status: 'LOCKED' },
+      };
+      return { items: [] };
+    });
+
+    render(<CompetitionDashboardPage isAdmin username="admin" />);
+    await screen.findByRole('option', { name: 'Hội thi 2026' });
+
+    const replaceButton = screen.getByRole('button', { name: 'Tạo lại AudienceSnapshot' });
+    expect(replaceButton).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Xem trước đối tượng' }));
+    expect(await screen.findByText('2 học sinh phù hợp')).toBeInTheDocument();
+    expect(replaceButton).toBeEnabled();
+
+    fireEvent.click(replaceButton);
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận tạo lại AudienceSnapshot' });
+    expect(dialog).toHaveTextContent('2 học sinh');
+    expect(dialog).toHaveTextContent(/snapshot hiện tại vẫn được giữ/i);
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tạo snapshot mới' }));
+
+    await waitFor(() => expect(api.callApi).toHaveBeenCalledWith(
+      'freeze_competition_audience',
+      expect.objectContaining({
+        campaignId: 'campaign-1', expectedMemberCount: 2, requestId: expect.any(String),
+      }),
+    ));
+    expect(await screen.findByText('Đã tạo AudienceSnapshot mới với 2 học sinh.')).toBeInTheDocument();
+  });
+
+  it('invalidates a preview after saving DRAFT audience changes and blocks an empty snapshot', async () => {
+    let matchedCount = 2;
+    api.callApi.mockImplementation(async (action: string, payload?: any) => {
+      if (action === 'list_competitions') return {
+        items: [{
+          id: 'campaign-1', title: 'Hội thi 2026', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh',
+          status: 'DRAFT', audienceSnapshotId: 'audience-old',
+          audienceRule: { gradeLevels: [4], classIds: ['class-4a'] },
+          eligibilityPolicy: { requiredRounds: 6, requiredPassedRounds: 6 },
+          startsAt: '2026-09-01T00:00:00.000Z', endsAt: '2027-05-31T23:59:59.000Z',
+        }],
+      };
+      if (action === 'get_competition_rounds' || action === 'list_school_exam_events') return { items: [] };
+      if (action === 'get_competition_eligibility') throw new Error('not finalized');
+      if (action === 'preview_competition_audience') return {
+        preview: { matchedCount, countsByGrade: matchedCount ? { '4': matchedCount } : {}, countsByClass: {} },
+      };
+      if (action === 'update_competition') return {
+        campaign: {
+          id: 'campaign-1', title: payload.title, schoolYear: payload.schoolYear, timezone: payload.timezone,
+          status: 'DRAFT', audienceSnapshotId: 'audience-old', audienceRule: payload.audienceRule,
+          eligibilityPolicy: payload.eligibilityPolicy, startsAt: payload.startsAt, endsAt: payload.endsAt,
+        },
+      };
+      return { items: [] };
+    });
+
+    render(<CompetitionDashboardPage isAdmin username="admin" />);
+    await screen.findByRole('option', { name: 'Hội thi 2026' });
+    fireEvent.click(screen.getByRole('button', { name: 'Xem trước đối tượng' }));
+    const replaceButton = await screen.findByRole('button', { name: 'Tạo lại AudienceSnapshot' });
+    expect(replaceButton).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText('Lớp tham gia'), { target: { value: 'class-4b' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu chiến dịch' }));
+    await waitFor(() => expect(api.callApi).toHaveBeenCalledWith(
+      'update_competition', expect.objectContaining({ audienceRule: { gradeLevels: [4], classIds: ['class-4b'] } }),
+    ));
+    expect(replaceButton).toBeDisabled();
+
+    matchedCount = 0;
+    fireEvent.click(screen.getByRole('button', { name: 'Xem trước đối tượng' }));
+    expect(await screen.findByText('0 học sinh phù hợp')).toBeInTheDocument();
+    expect(replaceButton).toBeDisabled();
   });
 
   it('renders six Admin round editor slots and persists/finalizes a configured round through server actions', async () => {
@@ -255,6 +346,57 @@ describe('Competition V1 admin and teacher dashboard surface', () => {
     render(<CompetitionDashboardPage isAdmin={false} username="teacher-4" />);
     expect(await screen.findByText(/Khối 4 · mặc định · quiz-round/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Gán quiz vòng 1' })).not.toBeInTheDocument();
+  });
+
+  it('guides Admin to reschedule an empty OPEN round before assigning its quiz', async () => {
+    api.callApi.mockImplementation(async (action: string, payload?: any) => {
+      if (action === 'list_competitions') return {
+        items: [{ id: 'campaign-1', title: 'Hội thi 2026', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh', status: 'ACTIVE', audienceSnapshotId: 'audience-1' }],
+      };
+      if (action === 'get_competition_rounds') return {
+        items: [{
+          id: 'round-1', campaignId: 'campaign-1', roundNumber: 1,
+          opensAt: '2026-08-01T01:00:00.000Z', closesAt: '2099-09-01T02:00:00.000Z',
+          maxAttempts: 2, passingScore: 8, status: 'OPEN',
+          quizSnapshot: { status: 'MISSING', mappingCount: 0 }, quizMappings: [],
+        }],
+      };
+      if (action === 'update_competition_round') return {
+        round: { ...payload, id: payload.roundId, status: 'SCHEDULED', quizSnapshot: { status: 'MISSING', mappingCount: 0 }, quizMappings: [] },
+      };
+      if (action === 'upsert_competition_round_quiz') return {
+        mapping: { ...payload, classId: null, quizSnapshotId: 'snapshot-1', quizSnapshotHash: 'a'.repeat(64) },
+      };
+      if (action === 'get_competition_eligibility') throw new Error('not finalized');
+      return { items: [] };
+    });
+
+    render(<CompetitionDashboardPage isAdmin username="admin" />);
+    await screen.findByRole('option', { name: 'Hội thi 2026' });
+    fireEvent.change(await screen.findByLabelText('Khối quiz vòng 1'), { target: { value: '4' } });
+    fireEvent.change(screen.getByLabelText('Quiz ID vòng 1'), { target: { value: 'quiz-round' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Gán quiz vòng 1' }));
+    expect(await screen.findByText('Vòng 1 đang mở nhưng chưa có quiz. Hãy đặt thời gian mở trong tương lai và lưu vòng trước khi gán quiz.')).toBeInTheDocument();
+    expect(api.callApi).not.toHaveBeenCalledWith('upsert_competition_round_quiz', expect.anything());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu vòng 1' }));
+    expect(await screen.findByText('Vòng 1 chưa có quiz. Hãy đặt thời gian mở trong tương lai trước khi lưu.')).toBeInTheDocument();
+    expect(api.callApi).not.toHaveBeenCalledWith('update_competition_round', expect.anything());
+
+    fireEvent.change(screen.getByLabelText('Mở vòng 1'), { target: { value: '2099-08-01T01:00' } });
+    fireEvent.change(screen.getByLabelText('Đóng vòng 1'), { target: { value: '2099-09-01T02:00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu vòng 1' }));
+    await waitFor(() => expect(api.callApi).toHaveBeenCalledWith(
+      'update_competition_round',
+      expect.objectContaining({ campaignId: 'campaign-1', roundId: 'round-1', opensAt: '2099-07-31T18:00:00.000Z' }),
+    ));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Gán quiz vòng 1' }));
+    await waitFor(() => expect(api.callApi).toHaveBeenCalledWith(
+      'upsert_competition_round_quiz',
+      expect.objectContaining({ campaignId: 'campaign-1', roundId: 'round-1', quizId: 'quiz-round' }),
+    ));
   });
 
   it('creates a School Exam event and room plan through Admin server mutations', async () => {

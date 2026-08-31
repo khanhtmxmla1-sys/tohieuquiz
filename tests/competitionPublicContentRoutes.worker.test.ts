@@ -7,7 +7,7 @@ import { signJWT } from '../workers/src/utils/jwt';
 import { createSqliteD1 } from './helpers/sqliteD1';
 
 const portalMigration = readFileSync(
-  new URL('../workers/migrations/0079_competition_public_portal.sql', import.meta.url),
+  new URL('../workers/migrations/0080_competition_public_portal.sql', import.meta.url),
   'utf8',
 );
 const secret = 'competition-public-content-routes-secret';
@@ -123,6 +123,10 @@ beforeEach(async () => {
   insertCampaign('campaign-grade-only', { gradeLevels: [4] });
   insertCampaign('campaign-inconsistent', { gradeLevels: [5], classIds: ['class-4a'] });
   sqlite.exec(portalMigration);
+  sqlite.exec(`
+    INSERT INTO feature_flags VALUES ('competition_v1', 'competition runtime', 1, 'competition-platform', 1, datetime('now'), datetime('now'));
+    INSERT INTO feature_flag_rules VALUES ('competition_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}', 'test fixture', 'test', datetime('now'));
+  `);
   sqlite.prepare(`UPDATE feature_flags SET enabled = 1 WHERE flag_key = 'competition_public_content_admin_v1'`).run();
   env = { DB: createSqliteD1(sqlite), JWT_SECRET: secret };
   adminCookie = `auth_token=${await signJWT({ username: 'admin', role: 'admin', tokenVersion: 1, purpose: 'session' }, secret, '1d')}`;

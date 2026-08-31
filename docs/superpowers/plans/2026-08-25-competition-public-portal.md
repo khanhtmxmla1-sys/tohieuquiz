@@ -32,7 +32,7 @@
 
 | Area | Exact files | Responsibility |
 |---|---|---|
-| Portal persistence | `workers/migrations/0079_competition_public_portal.sql`, `workers/migrations/rollback/0079_competition_public_portal.rollback.sql`, `workers/schema.sql` | Add public page, articles, Golden Board config, award-rule versions/rules, deterministic DRAFT backfill, rollout flag seeds, school display-name setting seed |
+| Portal persistence | `workers/migrations/0080_competition_public_portal.sql`, `workers/migrations/rollback/0080_competition_public_portal.rollback.sql`, `workers/schema.sql` | Add public page, articles, Golden Board config, award-rule versions/rules, deterministic DRAFT backfill, rollout flag seeds, school display-name setting seed |
 | Shared contracts | `shared/competition-portal.contract.ts`, `schemas/competitionPortal.schema.ts`, `schemas/index.ts` | Public/student/staff portal DTOs, stable reason codes, lifecycle enums, request validation |
 | Portal domain services | `workers/src/competition/publicPageService.ts`, `competitionArticleService.ts`, `goldenBoardConfigService.ts`, `goldenBoardService.ts`, `studentPortalService.ts` | Lifecycle/content, award config/rules, winner projection, slug resolution and preflight |
 | Public API | `workers/src/routes/publicCompetitions/index.ts`, `workers/src/router/createWorkerFetch.ts`, `src/services/api/routes/competitionPortal.ts`, `src/services/api/index.ts` | Anonymous read-only routes before authenticated Competition dispatch |
@@ -53,8 +53,8 @@
 ### Task 1: Add portal schema, deterministic backfill, rollback, and disabled rollout seeds
 
 **Files:**
-- Create: `workers/migrations/0079_competition_public_portal.sql`
-- Create: `workers/migrations/rollback/0079_competition_public_portal.rollback.sql`
+- Create: `workers/migrations/0080_competition_public_portal.sql`
+- Create: `workers/migrations/rollback/0080_competition_public_portal.rollback.sql`
 - Modify: `workers/schema.sql`
 - Create: `tests/competitionPublicPortalMigration.worker.test.ts`
 
@@ -81,12 +81,12 @@ expect(migration).toContain('COMPETITION_PUBLIC_SLUG_IMMUTABLE');
 expect(migration).toContain('GOLDEN_BOARD_SOURCE_EVENT_CAMPAIGN_MISMATCH');
 ```
 
-- [ ] Run `npm run test:run -- tests/competitionPublicPortalMigration.worker.test.ts`. **Expected RED:** missing `0079_competition_public_portal.sql` / required tables.
+- [ ] Run `npm run test:run -- tests/competitionPublicPortalMigration.worker.test.ts`. **Expected RED:** missing `0080_competition_public_portal.sql` / required tables.
 - [ ] Implement migration. `competition_public_pages.status` is `DRAFT|PREVIEW|PUBLISHED|ARCHIVED`; articles are `DRAFT|PUBLISHED|ARCHIVED`; Golden Board `display_mode` accepts only `AWARD_WINNERS`; rule scope is `EVENT|GRADE`; rule versions are immutable after activation. Use trigger-based same-campaign checks for `source_event_id` and active award version.
 - [ ] Backfill exactly one DRAFT public page per existing campaign with `INSERT ... SELECT ... WHERE NOT EXISTS`. Build the slug deterministically from normalized campaign title + school year, and append a stable suffix derived from campaign ID only when the normalized base collides. Rerunning must leave any existing page/slug untouched.
 - [ ] Update `workers/schema.sql` to represent the post-0079 schema exactly.
 - [ ] Run `npm run test:run -- tests/competitionPublicPortalMigration.worker.test.ts tests/d1MigrationLayout.test.ts tests/d1RollbackCoverage.test.ts tests/freshD1Bootstrap.test.ts`. **Expected GREEN:** all pass; migration ordering/rollback/bootstrap remain valid.
-- [ ] Run `git diff --check -- workers/migrations/0079_competition_public_portal.sql workers/migrations/rollback/0079_competition_public_portal.rollback.sql workers/schema.sql tests/competitionPublicPortalMigration.worker.test.ts`. **Expected:** no output.
+- [ ] Run `git diff --check -- workers/migrations/0080_competition_public_portal.sql workers/migrations/rollback/0080_competition_public_portal.rollback.sql workers/schema.sql tests/competitionPublicPortalMigration.worker.test.ts`. **Expected:** no output.
 - [ ] Commit: `feat: add competition public portal schema`.
 
 ### Task 2: Define strict portal contracts and Zod schemas

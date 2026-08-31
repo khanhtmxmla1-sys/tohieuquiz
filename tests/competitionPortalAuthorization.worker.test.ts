@@ -90,9 +90,13 @@ function createSchema(db: DatabaseSync): void {
       reason TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at TEXT NOT NULL
     );
     INSERT INTO feature_flags VALUES
+      ('competition_v1', 'competition runtime', 1, 'competition-platform', 1,
+       '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z'),
       ('competition_student_portal_v1', 'student portal', 1, 'competition', 1,
        '2026-08-25T00:00:00.000Z', '2026-08-25T00:00:00.000Z');
     INSERT INTO feature_flag_rules VALUES
+      ('competition_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}',
+       'test fixture', 'test', '2026-08-25T00:00:00.000Z'),
       ('competition_student_portal_v1', 'all', 100, '[]', '[]', NULL, NULL, '{}',
        'test fixture', 'test', '2026-08-25T00:00:00.000Z');
     INSERT INTO teachers (username) VALUES ('teacher-4');

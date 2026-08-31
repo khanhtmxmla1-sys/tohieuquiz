@@ -60,8 +60,9 @@ describe('Competition V1 dashboard API registry', () => {
     expect(preview.body?.('preview_competition_audience', { campaignId: 'c1' })).toEqual({});
 
     const freeze = resolveApiRoute('freeze_competition_audience');
-    expect(freeze.body?.('freeze_competition_audience', { campaignId: 'c1', requestId: 'request-123' }))
-      .toEqual({ requestId: 'request-123' });
+    expect(freeze.body?.('freeze_competition_audience', {
+      campaignId: 'c1', requestId: 'request-123', expectedMemberCount: 2,
+    })).toEqual({ requestId: 'request-123', expectedMemberCount: 2 });
 
     const roundQuiz = resolveApiRoute('upsert_competition_round_quiz');
     expect(roundQuiz.body?.('upsert_competition_round_quiz', {
