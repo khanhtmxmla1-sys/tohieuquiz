@@ -64,7 +64,7 @@ const StudentRoundPage = () => {
 
   if (!portalRound) return <p role="alert">Không tìm thấy vòng thi.</p>;
   if (failed) return <p role="alert">Không thể tải thông tin vòng thi. Vui lòng thử lại sau.</p>;
-  if (!round || !publicDetail) return <p role="status">Đang tải thông tin vòng thi…</p>;
+  if (!round || !publicDetail) return <p role="status" aria-live="polite">Đang tải thông tin vòng thi…</p>;
 
   const eligibilityBlocked = competition?.status === 'ELIGIBILITY_LOCKED'
     && competition.eligibility?.qualified === false;
@@ -83,15 +83,17 @@ const StudentRoundPage = () => {
         <div><dt className="font-semibold">Múi giờ</dt><dd>{timezone}</dd></div>
         <div><dt className="font-semibold">Mở vòng</dt><dd>{formatWindow(portalRound.opensAt, timezone)}</dd></div>
         <div><dt className="font-semibold">Đóng vòng</dt><dd>{formatWindow(portalRound.closesAt, timezone)}</dd></div>
+      </dl>
+      <div className="grid gap-3 text-sm sm:grid-cols-2">
         <div>Điểm đạt: {round.passingScore}</div>
         <div>Đã dùng: {round.attemptsUsed}/{round.maxAttempts} lượt</div>
         <div>Còn lại: {presentation.attemptsRemaining} lượt</div>
         {round.bestScore !== null && <div>Điểm tốt nhất: {round.bestScore}</div>}
-      </dl>
+      </div>
 
       <Link
         to={`/thi/${portal.slug}/vong/${portalRound.roundNumber}/quy-che`}
-        className="inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white"
+        className="inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
       >
         VÀO THI
       </Link>

@@ -108,7 +108,7 @@ const CompetitionCampaignPage = () => {
                   alt={campaign.hero.title}
                 />
               )}
-              <h2 className="text-2xl font-black tracking-tight text-slate-900">{campaign.hero.title}</h2>
+              <p className="text-2xl font-black tracking-tight text-slate-900">{campaign.hero.title}</p>
               {campaign.hero.subtitle && (
                 <p className="mt-2 text-lg text-slate-600">{campaign.hero.subtitle}</p>
               )}
@@ -118,7 +118,7 @@ const CompetitionCampaignPage = () => {
               <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-700">{campaign.summary}</p>
               <Link
                 to={`/thi/${encodeURIComponent(campaign.slug)}`}
-                className="mt-7 inline-flex min-h-11 items-center rounded-xl bg-sky-700 px-6 py-3 font-extrabold text-white"
+                className="mt-7 inline-flex min-h-11 items-center rounded-xl bg-sky-700 px-6 py-3 font-extrabold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
               >
                 {campaign.cta.label}
               </Link>
@@ -149,7 +149,7 @@ const CompetitionCampaignPage = () => {
                       <li key={article.slug}>
                         <Link
                           to={`/cuoc-thi/${encodeURIComponent(campaign.slug)}/tin-tuc/${encodeURIComponent(article.slug)}`}
-                          className="font-bold text-sky-800 underline-offset-4 hover:underline"
+                          className="inline-flex min-h-11 items-center rounded font-bold text-sky-800 underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
                         >
                           {article.title}
                         </Link>
@@ -165,7 +165,7 @@ const CompetitionCampaignPage = () => {
               <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
                 <Link
                   to={`/cuoc-thi/${encodeURIComponent(campaign.slug)}/bang-vang`}
-                  className="font-extrabold text-amber-900 underline-offset-4 hover:underline"
+                  className="inline-flex min-h-11 items-center rounded font-extrabold text-amber-900 underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2"
                 >
                   Bảng vàng
                 </Link>

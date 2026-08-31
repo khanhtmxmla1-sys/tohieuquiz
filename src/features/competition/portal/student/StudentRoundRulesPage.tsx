@@ -33,7 +33,7 @@ const StudentRoundRulesPage = () => {
   }, [portal.slug, round?.roundId]);
 
   if (!round) return <p role="alert">Không tìm thấy vòng thi.</p>;
-  if (!detail && !failed) return <p role="status">Đang tải quy chế…</p>;
+  if (!detail && !failed) return <p role="status" aria-live="polite">Đang tải quy chế…</p>;
 
   const rules = detail?.articles.find(article => article.type === 'RULES');
 
@@ -64,6 +64,7 @@ const StudentRoundRulesPage = () => {
           type="checkbox"
           checked={accepted}
           onChange={event => setAccepted(event.target.checked)}
+          className="h-5 w-5 rounded border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
         />
         Tôi đã đọc và đồng ý với quy chế
       </label>
@@ -71,7 +72,7 @@ const StudentRoundRulesPage = () => {
         type="button"
         disabled={!accepted}
         onClick={continueToPreflight}
-        className="min-h-11 rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-11 rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
       >
         TIẾP TỤC KIỂM TRA
       </button>

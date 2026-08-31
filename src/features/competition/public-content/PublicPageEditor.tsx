@@ -38,7 +38,7 @@ const toDraft = (page: StaffCompetitionPublicPageDto): PageDraft => ({
   ogImageUrl: page.ogImageUrl || '',
 });
 
-const inputClassName = 'mt-1 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm';
+const inputClassName = 'mt-1 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2';
 
 const PublicPageEditor: React.FC<PublicPageEditorProps> = ({ campaignId, isAdmin }) => {
   const [page, setPage] = useState<StaffCompetitionPublicPageDto | null>(null);
@@ -172,8 +172,8 @@ const PublicPageEditor: React.FC<PublicPageEditorProps> = ({ campaignId, isAdmin
             <label className="text-xs font-semibold text-slate-700 sm:col-span-2">OG image URL<input aria-label="OG image URL" value={draft.ogImageUrl} onChange={event => setDraft(current => current && ({ ...current, ogImageUrl: event.target.value }))} className={inputClassName} /></label>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="submit" disabled={Boolean(pending)} className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu trang công khai</button>
-            <button type="button" disabled={Boolean(pending)} onClick={() => void previewPage()} className="min-h-11 rounded-lg border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 disabled:opacity-50">Xem trước trang công khai</button>
+            <button type="submit" disabled={Boolean(pending)} className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:opacity-50">Lưu trang công khai</button>
+            <button type="button" disabled={Boolean(pending)} onClick={() => void previewPage()} className="min-h-11 rounded-lg border border-indigo-300 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 disabled:opacity-50">Xem trước trang công khai</button>
           </div>
         </form>
       )}
@@ -187,10 +187,10 @@ const PublicPageEditor: React.FC<PublicPageEditorProps> = ({ campaignId, isAdmin
       )}
 
       {page && isAdmin && page.status === 'PREVIEW' && (
-        <button type="button" disabled={Boolean(pending)} onClick={() => setConfirmAction('publish')} className="mt-4 min-h-11 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Công bố trang công khai</button>
+        <button type="button" disabled={Boolean(pending)} onClick={() => setConfirmAction('publish')} className="mt-4 min-h-11 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 disabled:opacity-50">Công bố trang công khai</button>
       )}
       {page && isAdmin && page.status === 'PUBLISHED' && (
-        <button type="button" disabled={Boolean(pending)} onClick={() => setConfirmAction('archive')} className="mt-4 min-h-11 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Lưu trữ trang công khai</button>
+        <button type="button" disabled={Boolean(pending)} onClick={() => setConfirmAction('archive')} className="mt-4 min-h-11 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-2 disabled:opacity-50">Lưu trữ trang công khai</button>
       )}
 
       <Modal isOpen={Boolean(preview)} onClose={() => setPreview(null)} title="Bản xem trước staff-only" description="Bản xem trước chỉ dành cho nhân sự quản trị; không thay đổi khả năng hiển thị ẩn danh." size="lg">
@@ -200,7 +200,7 @@ const PublicPageEditor: React.FC<PublicPageEditorProps> = ({ campaignId, isAdmin
             <h3 className="text-2xl font-bold text-slate-950">{preview.heroTitle}</h3>
             {preview.heroSubtitle && <p className="text-slate-700">{preview.heroSubtitle}</p>}
             {preview.summary && <p className="text-sm leading-6 text-slate-700">{preview.summary}</p>}
-            <button type="button" onClick={() => setPreview(null)} className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Đóng xem trước</button>
+            <button type="button" onClick={() => setPreview(null)} className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 focus-visible:ring-offset-2">Đóng xem trước</button>
           </div>
         )}
       </Modal>
@@ -215,8 +215,8 @@ const PublicPageEditor: React.FC<PublicPageEditorProps> = ({ campaignId, isAdmin
         size="sm"
       >
         <div className="flex flex-wrap justify-end gap-2">
-          <button type="button" onClick={() => setConfirmAction(null)} className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Hủy</button>
-          <button type="button" disabled={Boolean(pending)} onClick={() => void confirmPageAction()} className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+          <button type="button" onClick={() => setConfirmAction(null)} className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 focus-visible:ring-offset-2">Hủy</button>
+          <button type="button" disabled={Boolean(pending)} onClick={() => void confirmPageAction()} className="min-h-11 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:opacity-50">
             {confirmAction === 'publish' ? 'Xác nhận công bố' : 'Xác nhận lưu trữ'}
           </button>
         </div>

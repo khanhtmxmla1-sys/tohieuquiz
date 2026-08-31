@@ -15,7 +15,7 @@ const CompetitionStudentShell = ({ children, portal }: CompetitionStudentShellPr
     <div className="min-h-screen bg-slate-50 text-slate-950">
       <a
         href="#competition-main"
-        className="sr-only z-50 rounded bg-white px-4 py-2 font-semibold focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-50 rounded bg-white px-4 py-2 font-semibold focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
       >
         Bỏ qua đến nội dung cuộc thi
       </a>
@@ -29,7 +29,7 @@ const CompetitionStudentShell = ({ children, portal }: CompetitionStudentShellPr
             <Link
               to="/student/dashboard"
               aria-label="Quay lại bảng điều khiển học sinh"
-              className="min-h-11 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700"
+              className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
             >
               Bảng điều khiển
             </Link>

@@ -82,7 +82,7 @@ const CompetitionStudentRoute = () => {
                 requests.current.delete(campaignSlug);
                 setAttempt(current => current + 1);
               }}
-              className="mt-4 min-h-11 rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white"
+              className="mt-4 min-h-11 rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
             >
               Thử lại
             </button>

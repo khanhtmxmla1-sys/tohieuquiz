@@ -79,6 +79,7 @@ const CompetitionActiveRoundPlayer = ({
       <div
         className="border-b border-slate-200 bg-white px-4 py-2 text-center text-sm font-semibold text-sky-700"
         role="status"
+        aria-live="polite"
       >
         {roundTitle}
       </div>
@@ -178,7 +179,7 @@ const CompetitionRoundExamPlayer = () => {
           type="button"
           disabled={attempt.pending}
           onClick={() => void attempt.start()}
-          className="min-h-11 rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white disabled:opacity-60"
+          className="min-h-11 rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-60"
         >
           {attempt.pending ? 'ĐANG KIỂM TRA…' : 'BẮT ĐẦU BÀI THI'}
         </button>

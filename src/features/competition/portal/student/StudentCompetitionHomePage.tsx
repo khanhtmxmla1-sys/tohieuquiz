@@ -95,7 +95,7 @@ const StudentCompetitionHomePage = () => {
         )}
       </header>
 
-      {!competition && !loadFailed && <p role="status">Đang tải hành trình cuộc thi…</p>}
+      {!competition && !loadFailed && <p role="status" aria-live="polite">Đang tải hành trình cuộc thi…</p>}
       {loadFailed && <p role="alert">Không thể tải tiến độ cuộc thi. Vui lòng thử lại sau.</p>}
 
       {competition && (
@@ -116,7 +116,7 @@ const StudentCompetitionHomePage = () => {
                 {presentation.actionLabel && canonical.id === nextRoundId && (
                   <Link
                     to={`/thi/${portal.slug}/vong/${canonical.roundNumber}`}
-                    className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white"
+                    className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
                   >
                     {presentation.actionLabel}
                   </Link>
@@ -142,20 +142,20 @@ const StudentCompetitionHomePage = () => {
               type="button"
               onClick={() => void checkSchoolExam()}
               disabled={schoolExamPreflight === 'LOADING'}
-              className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white disabled:opacity-60"
+              className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-60"
             >
               Kiểm tra School Exam
             </button>
           )}
           {schoolExamPreflight === 'LOADING' && (
-            <p role="status" className="mt-3">Đang kiểm tra School Exam…</p>
+            <p role="status" aria-live="polite" className="mt-3">Đang kiểm tra School Exam…</p>
           )}
           {schoolExamPreflight === 'ERROR' && (
             <p role="alert" className="mt-3">Không thể kiểm tra School Exam. Vui lòng thử lại.</p>
           )}
           {schoolExamPreflight && typeof schoolExamPreflight === 'object' && (
             <div className="mt-3">
-              <p role="status">
+              <p role="status" aria-live="polite">
                 {schoolExamPreflight.status === 'READY'
                   ? `School Exam sẵn sàng. Mã truy cập: ${schoolExamPreflight.accessCode}`
                   : `Chưa thể tham gia School Exam: ${schoolExamPreflight.reason}`}
@@ -163,7 +163,7 @@ const StudentCompetitionHomePage = () => {
               {schoolExamPreflight.status === 'READY' && (
                 <Link
                   to={`/thi/${portal.slug}/school-exam/lam-bai`}
-                  className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white"
+                  className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
                 >
                   VÀO SCHOOL EXAM
                 </Link>

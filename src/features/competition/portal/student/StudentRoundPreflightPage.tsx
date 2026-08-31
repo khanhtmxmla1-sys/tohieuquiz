@@ -37,9 +37,9 @@ const formatServerTime = (value: string, timezone: string) => new Intl.DateTimeF
 
 const PreflightWindow = ({ window }: { window: NonNullable<CompetitionEntryPreflightDto['window']> }) => (
   <dl className="grid gap-2 text-sm sm:grid-cols-2">
-    <div>Giờ mở: {formatServerTime(window.opensAt, window.timezone)}</div>
-    <div>Giờ đóng: {formatServerTime(window.closesAt, window.timezone)}</div>
-    <div>Múi giờ: {window.timezone}</div>
+    <div><dt>Giờ mở</dt><dd>{formatServerTime(window.opensAt, window.timezone)}</dd></div>
+    <div><dt>Giờ đóng</dt><dd>{formatServerTime(window.closesAt, window.timezone)}</dd></div>
+    <div><dt>Múi giờ</dt><dd>{window.timezone}</dd></div>
   </dl>
 );
 
@@ -78,19 +78,19 @@ const StudentRoundPreflightPage = () => {
     return (
       <section role="alert" className="space-y-4 rounded-2xl border border-amber-300 bg-amber-50 p-5">
         <h1 className="text-xl font-bold">Cần xác nhận quy chế trước khi kiểm tra</h1>
-        <Link className="font-semibold text-sky-800 underline" to={`/thi/${portal.slug}/vong/${round.roundNumber}/quy-che`}>
+        <Link className="inline-flex min-h-11 items-center rounded font-semibold text-sky-800 underline focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2" to={`/thi/${portal.slug}/vong/${round.roundNumber}/quy-che`}>
           Quay lại quy chế
         </Link>
       </section>
     );
   }
-  if (loading) return <p role="status">Đang kiểm tra điều kiện vào thi…</p>;
+  if (loading) return <p role="status" aria-live="polite">Đang kiểm tra điều kiện vào thi…</p>;
   if (transientError) {
     return (
       <section role="alert" className="space-y-3 rounded-2xl border border-amber-300 bg-amber-50 p-5">
         <h1 className="text-xl font-bold">Không thể kết nối để kiểm tra</h1>
         <p>Đây có thể là lỗi tạm thời. Vui lòng thử lại.</p>
-        <button type="button" onClick={() => void runPreflight()} className="min-h-11 rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white">
+        <button type="button" onClick={() => void runPreflight()} className="min-h-11 rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2">
           Thử lại
         </button>
       </section>
@@ -118,7 +118,7 @@ const StudentRoundPreflightPage = () => {
       <PreflightWindow window={result.window} />
       <Link
         to={`/thi/${portal.slug}/vong/${round.roundNumber}/lam-bai`}
-        className="inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white"
+        className="inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
       >
         BẮT ĐẦU
       </Link>
