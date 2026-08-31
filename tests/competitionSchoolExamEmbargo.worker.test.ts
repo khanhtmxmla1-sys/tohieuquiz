@@ -155,6 +155,48 @@ describe('competition school exam server-side result embargo', () => {
     expectNoEmbargoedResultFields(payload);
   });
 
+  it('keeps raw results withheld after submission until canonical publication', async () => {
+    let currentSession = sessionRow();
+    const db = new FakeDB();
+    db.first = (sql) => sql.includes('FROM live_exam_sessions s') ? currentSession : null;
+    vi.spyOn(LiveExamService, 'submitAnswers').mockResolvedValue({
+      score: 10,
+      correctCount: 20,
+      wrongCount: 0,
+      submittedAt: '2026-08-20T08:40:00.000Z',
+    });
+
+    const submitResponse = await handleLiveExamRoutes(
+      new Request('https://test/api/live-exam/live-school-1/submit', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ answers: { 'q-1': 'B' }, idempotencyKey: 'live-exam-submit:school-1' }),
+      }),
+      { DB: db, JWT_SECRET: 'test' } as any,
+      '/api/live-exam/live-school-1/submit',
+      'POST',
+    );
+    expect(submitResponse.status).toBe(200);
+    expect(await submitResponse.json()).toEqual({
+      success: true,
+      message: 'Answers submitted successfully',
+    });
+
+    currentSession = sessionRow({ status: 'closed', closed_at: '2026-08-20T08:45:00.000Z' });
+    const resultsResponse = await handleLiveExamRoutes(
+      new Request('https://test/api/live-exam/live-school-1/results'),
+      { DB: db, JWT_SECRET: 'test' } as any,
+      '/api/live-exam/live-school-1/results',
+      'GET',
+    );
+    const resultsPayload = await resultsResponse.json() as any;
+
+    expect(resultsResponse.status).toBe(409);
+    expect(resultsPayload).toMatchObject({ status: 'error', code: 'RESULTS_WITHHELD' });
+    expectNoEmbargoedResultFields(resultsPayload);
+    expect(db.executed.some((statement) => statement.sql.includes('FROM live_exam_participants'))).toBe(false);
+  });
+
   it('preserves the CLASS Live Exam submit response', async () => {
     const db = makeSessionDb(classSessionRow());
     vi.spyOn(LiveExamService, 'submitAnswers').mockResolvedValue({

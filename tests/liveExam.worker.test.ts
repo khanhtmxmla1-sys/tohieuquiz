@@ -576,6 +576,27 @@ describe('live exam result rewards are read-only', () => {
   });
 });
 
+describe('live exam student result boundary', () => {
+  beforeEach(() => {
+    currentUser = { id: 'teacher-a', username: 'teacher-a', role: 'teacher' };
+  });
+
+  it('denies Teacher access to the Student result route before reading result data', async () => {
+    const db = new FakeDB();
+    const response = await handleLiveExamRoutes(
+      new Request('https://test/api/live-exam/live-1/results'),
+      { DB: db, JWT_SECRET: 'test' } as any,
+      '/api/live-exam/live-1/results',
+      'GET',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(403);
+    expect(payload).toMatchObject({ status: 'error' });
+    expect(db.executed).toHaveLength(0);
+  });
+});
+
 describe('live exam analytics route', () => {
   beforeEach(() => {
     currentUser = { id: 'teacher-a', username: 'teacher-a', role: 'teacher' };

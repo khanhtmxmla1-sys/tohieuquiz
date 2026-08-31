@@ -48,6 +48,7 @@ const routeSamples = [
   ['/api/gift-shop/catalog/gift-1', 'DELETE', 'admin-only'],
   ['/api/gift-shop/events', 'GET', 'admin-only'],
   ['/api/media/uploads', 'POST', 'authenticated'],
+  ['/api/public/competitions/example', 'GET', 'public'],
   ['/api/public/competitions/example/articles', 'GET', 'public'],
   ['/api/competitions', 'POST', 'admin-only'],
   ['/api/competitions/campaign-1', 'GET', 'teacher-owned'],
