@@ -26,7 +26,7 @@
     "question-bank:math5:report": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/question-bank/build-math5-review-report.ts",
     "question-bank:math5:import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/question-bank/import-math5-drafts.ts",
     "question-bank:math5:publish": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types scripts/question-bank/publish-math5-topic.ts",
-    "test:coverage": "vitest run tests/schemas.test.ts tests/questionSchemaCoverage.test.ts tests/InputValidator.test.ts tests/authAndLiveExamSchemas.test.ts tests/svgQuestionSchema.test.ts tests/competitionContracts.test.ts --coverage --maxWorkers=1",
+    "test:coverage": "vitest run tests/schemas.test.ts tests/questionSchemaCoverage.test.ts tests/InputValidator.test.ts tests/authAndLiveExamSchemas.test.ts tests/svgQuestionSchema.test.ts tests/competitionContracts.test.ts tests/competitionPortalContracts.test.ts --coverage --maxWorkers=1",
     "cypress": "cypress open",
     "cypress:run": "cypress run",
     "cypress:run:stubbed": "cypress run --e2e --spec \"cypress/e2e/ai-quiz-generation-v2.cy.ts,cypress/e2e/competition-v1.cy.ts,cypress/e2e/gift-shop.cy.ts,cypress/e2e/login-home.cy.ts,cypress/e2e/manual-quiz-workspace.cy.ts,cypress/e2e/mobile-responsive.cy.ts,cypress/e2e/parent-portal.cy.ts,cypress/e2e/question-scoring-matrix.cy.ts,cypress/e2e/route-scroll.cy.ts,cypress/e2e/unified-notifications.cy.ts\"",
