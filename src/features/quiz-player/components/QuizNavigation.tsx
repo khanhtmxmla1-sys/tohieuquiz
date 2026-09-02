@@ -51,7 +51,7 @@ const QuizNavigation: React.FC<QuizNavigationProps> = ({
       <h2 className="shrink-0 text-sm font-semibold text-[#172033]">Danh sách câu hỏi</h2>
       <p className="mt-1 shrink-0 text-xs leading-5 text-[#526174]">Chọn số câu để chuyển nhanh.</p>
 
-      <div aria-label="Danh sách số câu" className={questionListClassName}>
+      <div role="region" aria-label="Danh sách số câu" className={questionListClassName}>
         <div className="grid grid-cols-5 gap-2">
           {questions.map((question, index) => {
             const progress = progressByQuestionId[question.id] ?? EMPTY_PROGRESS;

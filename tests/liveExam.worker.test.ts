@@ -312,6 +312,7 @@ describe('live exam P0 authorization and integrity', () => {
 
   it('allows an assigned school-exam RoomMember to join without a synthetic class', async () => {
     const db = new FakeDB();
+    const scheduledAt = new Date().toISOString();
     db.first = (sql) => {
       if (sql.includes('WHERE s.access_code')) {
         return activeSessionRow({
@@ -324,8 +325,39 @@ describe('live exam P0 authorization and integrity', () => {
         });
       }
       if (sql.includes('FROM students')) return { id: 'student-b', class_id: 'class-4b' };
+      if (sql.includes('FROM competition_school_exam_rooms AS rooms')) {
+        return { campaign_id: 'campaign-1' };
+      }
+      if (sql.includes('FROM competition_campaigns')) {
+        return { id: 'campaign-1', timezone: 'Asia/Ho_Chi_Minh', status: 'EXAM_RUNNING' };
+      }
+      if (sql.includes('FROM competition_school_exam_events')) {
+        return {
+          id: 'event-1', eligibility_snapshot_version: 3, title: 'School Exam',
+          capacity_profile_id: 'capacity-1',
+          preflight_json: JSON.stringify({
+            status: 'READY', capacityProfileId: 'capacity-1', certifiedConcurrentStudents: 100,
+          }),
+        };
+      }
+      if (sql.includes('FROM competition_eligibility')) return { qualified: 1 };
+      if (sql.includes('FROM competition_school_exam_members AS members')) {
+        return {
+          id: 'room-1', eligibility_snapshot_version: 3, name: 'Room A',
+          scheduled_at: scheduledAt, duration_minutes: 60, check_in_lead_minutes: 60,
+          close_drain_minutes: 5, live_exam_session_id: 'live-1',
+          provision_status: 'READY', status: 'READY',
+        };
+      }
       if (sql.includes('FROM competition_school_exam_members')) {
         return { id: 'member-b', room_id: 'room-1', student_id: 'student-b', original_class_id: 'class-4b' };
+      }
+      if (sql.includes('FROM live_exam_sessions')) {
+        return {
+          status: 'waiting', access_code: 'ABC123', settings: '{}',
+          participant_scope_type: 'SCHOOL_EXAM_ROOM', participant_scope_id: 'room-1',
+          result_visibility: 'WITHHELD',
+        };
       }
       if (sql.includes('FROM live_exam_participants')) return null;
       return null;
@@ -541,6 +573,27 @@ describe('live exam result rewards are read-only', () => {
       rewards: { coins: 509, xp: 98, bonusCoins: 500 },
     });
     expect(db.executed.some((statement) => /^\s*(UPDATE|INSERT|DELETE)/i.test(statement.sql))).toBe(false);
+  });
+});
+
+describe('live exam student result boundary', () => {
+  beforeEach(() => {
+    currentUser = { id: 'teacher-a', username: 'teacher-a', role: 'teacher' };
+  });
+
+  it('denies Teacher access to the Student result route before reading result data', async () => {
+    const db = new FakeDB();
+    const response = await handleLiveExamRoutes(
+      new Request('https://test/api/live-exam/live-1/results'),
+      { DB: db, JWT_SECRET: 'test' } as any,
+      '/api/live-exam/live-1/results',
+      'GET',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(403);
+    expect(payload).toMatchObject({ status: 'error' });
+    expect(db.executed).toHaveLength(0);
   });
 });
 

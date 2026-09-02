@@ -1,5 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { LiveExamParticipant } from '../../../../src/types/liveExam.types';
+import { preflightStudentCompetitionSchoolExam } from '../../competition/studentPortalService';
 import { LiveExamServiceError } from './errors';
 import { getLiveExamByAccessCode } from './sessionRepository';
 import type { JoinSessionParams } from './types';
@@ -69,6 +70,26 @@ export async function joinSession(
     }>();
     if (!roomMember) {
       throw new LiveExamServiceError('Forbidden: Student is not assigned to this school exam room', 403);
+    }
+    if (!retest) {
+      const schoolExam = await db.prepare(`
+        SELECT events.campaign_id
+        FROM competition_school_exam_rooms AS rooms
+        JOIN competition_school_exam_events AS events ON events.id = rooms.event_id
+        WHERE rooms.id = ? AND rooms.live_exam_session_id = ?
+        LIMIT 1
+      `).bind(session.participantScopeId, session.id).first<{ campaign_id: string }>();
+      if (!schoolExam) {
+        throw new LiveExamServiceError('School exam is no longer ready for joining', 409);
+      }
+      const preflight = await preflightStudentCompetitionSchoolExam(
+        db,
+        schoolExam.campaign_id,
+        params.studentId,
+      );
+      if (preflight.status !== 'READY' || preflight.accessCode !== params.accessCode) {
+        throw new LiveExamServiceError('School exam is no longer ready for joining', 409);
+      }
     }
   }
 

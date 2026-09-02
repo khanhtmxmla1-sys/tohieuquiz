@@ -98,10 +98,8 @@ function renderSitemap(entries) {
   return `${lines.join('\n')}\n`;
 }
 
-async function fetchPublicQuizzes(apiUrl) {
-  if (!apiUrl) return [];
-  const url = new URL('/api/quizzes', apiUrl).toString();
-  const response = await fetch(url, {
+async function fetchJsonRows(url, fetchImpl = fetch) {
+  const response = await fetchImpl(url, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
   });
@@ -110,21 +108,41 @@ async function fetchPublicQuizzes(apiUrl) {
     throw new Error(`Sitemap fetch failed (${response.status}): ${text || response.statusText}`);
   }
   const payload = await response.json();
-  const rows = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
+  return Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : [];
+}
+
+function isPublishedPublicRecord(record) {
+  const status = record?.status ?? record?.publication_status ?? record?.publicationStatus;
+  return status === undefined || status === null || String(status).toUpperCase() === 'PUBLISHED';
+}
+
+async function fetchPublicQuizzes(apiUrl, fetchImpl = fetch) {
+  if (!apiUrl) return [];
+  const url = new URL('/api/quizzes', apiUrl).toString();
+  const rows = await fetchJsonRows(url, fetchImpl);
   return rows.filter(isQuizPublic);
 }
 
-async function main() {
-  loadEnvFile(path.join(ROOT_DIR, '.env'));
-  loadEnvFile(path.join(ROOT_DIR, '.env.local'));
+async function fetchPublicCompetitions(apiUrl, fetchImpl = fetch) {
+  if (!apiUrl) return [];
+  const url = new URL('/api/public/competitions', apiUrl).toString();
+  const rows = await fetchJsonRows(url, fetchImpl);
+  return rows.filter(isPublishedPublicRecord);
+}
 
-  const siteUrl = (process.env.SITEMAP_SITE_URL || DEFAULT_SITE_URL).trim();
-  const apiUrl = resolveApiUrl();
-  const outputFile = resolveOutputFile();
+async function fetchPublicCompetitionArticles(apiUrl, campaignSlug, fetchImpl = fetch) {
+  if (!apiUrl) return [];
+  const url = new URL(
+    `/api/public/competitions/${encodeURIComponent(campaignSlug)}/articles`,
+    apiUrl,
+  ).toString();
+  const rows = await fetchJsonRows(url, fetchImpl);
+  return rows.filter(isPublishedPublicRecord);
+}
 
-  const today = new Date().toISOString().slice(0, 10);
-  const quizzes = await fetchPublicQuizzes(apiUrl);
-
+async function buildSitemapData({ siteUrl, apiUrl, today, fetchImpl = fetch }) {
+  const quizzes = await fetchPublicQuizzes(apiUrl, fetchImpl);
+  const competitions = await fetchPublicCompetitions(apiUrl, fetchImpl);
   const categories = new Set(DEFAULT_CATEGORIES);
   quizzes.forEach((q) => {
     const raw = q.category ?? q.category_name ?? '';
@@ -177,10 +195,57 @@ async function main() {
       });
     });
 
+  for (const competition of competitions) {
+    const slug = String(competition.slug || '').trim();
+    if (!slug) continue;
+    entries.push({
+      loc: toUrl(siteUrl, `/cuoc-thi/${encodeURIComponent(slug)}`, []),
+      lastmod: safeDate(
+        competition.updatedAt || competition.updated_at || competition.publishedAt || competition.published_at,
+        today,
+      ),
+      changefreq: 'weekly',
+      priority: '0.8',
+    });
+
+    const articles = await fetchPublicCompetitionArticles(apiUrl, slug, fetchImpl);
+    articles.forEach((article) => {
+      const articleSlug = String(article.slug || '').trim();
+      if (!articleSlug) return;
+      entries.push({
+        loc: toUrl(siteUrl, `/cuoc-thi/${encodeURIComponent(slug)}/tin-tuc/${encodeURIComponent(articleSlug)}`, []),
+        lastmod: safeDate(
+          article.updatedAt || article.updated_at || article.publishedAt || article.published_at,
+          today,
+        ),
+        changefreq: 'weekly',
+        priority: '0.6',
+      });
+    });
+  }
+
+  return { entries, quizzes, competitions };
+}
+
+async function buildSitemapEntries(options) {
+  const data = await buildSitemapData(options);
+  return data.entries;
+}
+
+async function main() {
+  loadEnvFile(path.join(ROOT_DIR, '.env'));
+  loadEnvFile(path.join(ROOT_DIR, '.env.local'));
+
+  const siteUrl = (process.env.SITEMAP_SITE_URL || DEFAULT_SITE_URL).trim();
+  const apiUrl = resolveApiUrl();
+  const outputFile = resolveOutputFile();
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { entries, quizzes, competitions } = await buildSitemapData({ siteUrl, apiUrl, today });
   const xml = renderSitemap(entries);
   fs.mkdirSync(path.dirname(outputFile), { recursive: true });
   fs.writeFileSync(outputFile, xml, 'utf8');
-  console.log(`[sitemap] generated ${entries.length} URLs (${quizzes.length} public quizzes) -> ${outputFile}`);
+  console.log(`[sitemap] generated ${entries.length} URLs (${quizzes.length} public quizzes, ${competitions.length} public competitions) -> ${outputFile}`);
 }
 
 if (require.main === module) {
@@ -190,4 +255,11 @@ if (require.main === module) {
   });
 }
 
-module.exports = { isQuizPublic, resolveApiUrl, resolveOutputFile };
+module.exports = {
+  buildSitemapEntries,
+  fetchPublicCompetitionArticles,
+  fetchPublicCompetitions,
+  isQuizPublic,
+  resolveApiUrl,
+  resolveOutputFile,
+};

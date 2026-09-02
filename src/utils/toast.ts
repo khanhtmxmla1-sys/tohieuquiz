@@ -151,6 +151,7 @@ export interface ConfirmOptions {
     confirmLabel?: string;
     cancelLabel?: string;
     destructive?: boolean;
+    signal?: AbortSignal;
 }
 
 export interface PromptOptions {
@@ -203,6 +204,22 @@ export const subscribeSystemDialog = (listener: () => void): (() => void) => {
     return () => systemDialogListeners.delete(listener);
 };
 
+const cancelSystemDialog = (id: string): void => {
+    if (activeSystemDialog?.id === id) {
+        const request = activeSystemDialog;
+        activeSystemDialog = pendingSystemDialogs.shift() ?? null;
+        if (request.kind === 'confirm') request.resolve(false);
+        else request.resolve(null);
+        notifySystemDialogListeners();
+        return;
+    }
+
+    const pendingIndex = pendingSystemDialogs.findIndex((request) => request.id === id);
+    if (pendingIndex < 0) return;
+    const [request] = pendingSystemDialogs.splice(pendingIndex, 1);
+    if (request.kind === 'confirm') request.resolve(false);
+    else request.resolve(null);
+};
 export const settleSystemDialog = (id: string, value: boolean | string | null): void => {
     if (!activeSystemDialog || activeSystemDialog.id !== id) return;
 
@@ -225,15 +242,21 @@ export const settleSystemDialog = (id: string, value: boolean | string | null): 
  * Show an accessible confirmation dialog through SystemDialogHost.
  * Existing callback-style callers remain supported while new callers can await the result.
  */
-export const showConfirm = (options: ConfirmOptions): Promise<boolean> =>
-    new Promise((resolve) => {
-        enqueueSystemDialog({
-            id: `system-confirm-${++nextSystemDialogId}`,
-            kind: 'confirm',
-            options,
-            resolve,
-        });
+export const showConfirm = (options: ConfirmOptions): Promise<boolean> => {
+    const signal = options.signal;
+    if (signal?.aborted) return Promise.resolve(false);
+
+    const id = `system-confirm-${++nextSystemDialogId}`;
+    const promise = new Promise<boolean>((resolve) => {
+        enqueueSystemDialog({ id, kind: 'confirm', options, resolve });
     });
+    if (!signal) return promise;
+
+    const abort = () => cancelSystemDialog(id);
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) abort();
+    return promise.finally(() => signal.removeEventListener('abort', abort));
+};
 
 /** Show an accessible prompt dialog through SystemDialogHost. */
 export const showPrompt = (options: PromptOptions): Promise<string | null> =>

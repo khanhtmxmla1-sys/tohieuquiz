@@ -2,9 +2,14 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudentCompetitionPage from '../src/features/competition/StudentCompetitionPage';
+import type { StudentCompetitionDetail } from '../src/features/competition/studentCompetitionService';
 import * as apiAdapter from '../src/services/apiAdapter';
 
+type DetailHasRequiredSlug = StudentCompetitionDetail extends { slug: string } ? true : false;
+const detailMustNotRequireSlug: DetailHasRequiredSlug = false;
+
 describe('Student Competition experience', () => {
+  void detailMustNotRequireSlug;
   beforeEach(() => vi.restoreAllMocks());
 
   it('loads the student-scoped campaign, starts a snapshot attempt and submits answers', async () => {

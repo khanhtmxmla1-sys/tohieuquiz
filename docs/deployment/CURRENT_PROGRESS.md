@@ -3,6 +3,21 @@
 **Cập nhật:** 11/08/2026
 **Nguồn hiện hành:** `docs/operations/releases/2026-08-11-announcement-feature-rollout-production.md`, `docs/operations/releases/2026-08-09-question-presentation-integrity-production.md`, `docs/operations/releases/2026-08-08-manual-quiz-rich-text-production.md` và hồ sơ trong `docs/operations/releases/`.
 
+## Checkpoint — Competition Public Portal
+
+**Ngày:** 31/08/2026
+**Trạng thái:** `TASK 27 COMMITTED → STAGING SUPPORT COMMITTED → STAGING VERIFICATION PASS → PUSH/PR APPROVAL READY`
+
+- Task 27 đã hoàn tất trên branch `feat/competition-v1` với commit `3c12726` (`test: add competition portal release verification`).
+- Phần staging support còn dang dở đã được commit tại `b812632` (`feat: complete competition portal staging support`); evidence đã được rebind sang SHA này.
+- Staging lịch sử đã xác minh trên Worker/D1 cô lập tới `0079_competition_public_portal.sql`. Sau khi `main` dùng số `0079` cho runtime rollout, candidate tích hợp đổi Portal sang `0080_competition_public_portal.sql`; cần chạy lại delta verification staging trước merge.
+- Smoke read-only đạt `7/7` ở cả round đang mở và round đã finalized; public/student/Golden Board/content-admin/legacy chooser, School Exam `WITHHELD`, correction→republish và non-mutation attempt đều đã kiểm tra. Evidence: `docs/operations/releases/2026-08-31-competition-public-portal-staging.md`.
+- Đã xác minh lại: focused release/content/staging tests `43/43`, Competition regression `90/90`, Cypress E2E pass, lint, frontend/strict/Worker typecheck, production build và `security:check` đều pass.
+- Full repository Vitest không được coi là globally green: `3267/3272` pass, còn 5 failure nền ngoài diff candidate; chi tiết và giới hạn Vercel Preview được ghi trong evidence release.
+- Chưa push, chưa mở PR, chưa merge và chưa deploy; không có feature flag production nào được bật bởi bước này.
+- Sau evidence, cả năm staging portal gates đã được rollback về disabled. Bước kế tiếp là duyệt riêng push/PR; chưa có thao tác remote nào được thực hiện.
+- Kế hoạch Competition Public Portal hiện kết thúc ở Task 27; chưa có Task 28 được định nghĩa.
+
 ## Tóm tắt
 
 - Modernization release `v1.0.0` và Tasks 1–38 là baseline lịch sử đã hoàn tất.

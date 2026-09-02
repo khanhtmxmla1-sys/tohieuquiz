@@ -1,7 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as apiAdapter from '../src/services/apiAdapter';
 import { resolveApiRoute } from '../src/services/api/routeResolver';
 import { competitionDashboardService } from '../src/features/competition/competitionDashboardService';
+import { competitionPublicContentService } from '../src/features/competition/public-content/competitionPublicContentService';
+
+afterEach(() => vi.restoreAllMocks());
 
 describe('Competition V1 dashboard API registry', () => {
   it('maps dashboard reads to the Competition V1 REST namespace', () => {
@@ -157,5 +160,70 @@ describe('Competition V1 dashboard API registry', () => {
       eventId: 'event-1',
       winnerStudentIds: ['student-1'],
     }));
+  });
+
+  it('registers every staff public-content action with encoded resource paths', () => {
+    const expected = {
+      get_competition_public_page: ['GET', '/api/competitions/campaign%201/public-page'],
+      update_competition_public_page: ['PUT', '/api/competitions/campaign%201/public-page'],
+      preview_competition_public_page: ['POST', '/api/competitions/campaign%201/public-page/preview'],
+      publish_competition_public_page: ['POST', '/api/competitions/campaign%201/public-page/publish'],
+      archive_competition_public_page: ['POST', '/api/competitions/campaign%201/public-page/archive'],
+      list_competition_articles: ['GET', '/api/competitions/campaign%201/articles'],
+      create_competition_article: ['POST', '/api/competitions/campaign%201/articles'],
+      get_competition_article: ['GET', '/api/competitions/campaign%201/articles/article%201'],
+      update_competition_article: ['PATCH', '/api/competitions/campaign%201/articles/article%201'],
+      delete_competition_article: ['DELETE', '/api/competitions/campaign%201/articles/article%201'],
+      get_competition_golden_board_config: ['GET', '/api/competitions/campaign%201/golden-board-config'],
+      update_competition_golden_board_config: ['PUT', '/api/competitions/campaign%201/golden-board-config'],
+      list_competition_award_rules: ['GET', '/api/competitions/campaign%201/award-rules'],
+      create_competition_award_rules: ['POST', '/api/competitions/campaign%201/award-rules'],
+      activate_competition_award_rules: ['POST', '/api/competitions/campaign%201/award-rules/2/activate'],
+    } as const;
+    for (const [action, [method, path]] of Object.entries(expected)) {
+      const route = resolveApiRoute(action);
+      expect(route).toMatchObject({ method, auth: 'session' });
+      expect(route.path({ campaignId: 'campaign 1', articleId: 'article 1', version: 2 })).toBe(path);
+    }
+  });
+
+  it('exposes typed public-content service methods without raw fetch calls', async () => {
+    const callApi = vi.spyOn(apiAdapter, 'callApi').mockResolvedValue({
+      publicPage: { id: 'page-1' }, items: [], preview: { slug: 'preview' },
+    });
+
+    await competitionPublicContentService.getPublicPage('campaign-1');
+    await competitionPublicContentService.previewPublicPage('campaign-1', 'request-preview-1');
+    await competitionPublicContentService.listArticles('campaign-1');
+    await competitionPublicContentService.getGoldenBoardConfig('campaign-1');
+    await competitionPublicContentService.listAwardRuleVersions('campaign-1');
+
+    expect(callApi.mock.calls.map(([action]) => action)).toEqual([
+      'get_competition_public_page',
+      'preview_competition_public_page',
+      'list_competition_articles',
+      'get_competition_golden_board_config',
+      'list_competition_award_rules',
+    ]);
+  });
+
+  it('sends the article delete requestId through the real callApi transport header', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ article: null }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await competitionPublicContentService.deleteArticle(
+      'campaign-1', 'article-1', 'request-delete-1',
+    );
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/api/competitions/campaign-1/articles/article-1');
+    expect(init?.method).toBe('DELETE');
+    expect(new Headers(init?.headers).get('x-request-id')).toBe('request-delete-1');
+    expect(init?.body).toBeUndefined();
   });
 });

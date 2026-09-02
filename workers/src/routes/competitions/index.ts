@@ -89,6 +89,8 @@ import {
 } from '../../competition/schoolExamExportService';
 import { errorResponse, jsonResponse } from '../../utils/response';
 import type { JWTPayload } from '../../utils/jwt';
+import { handleCompetitionPortalRoutes } from './portalRoutes';
+import { handleStudentCompetitionPortalRoutes } from './studentPortalRoutes';
 import { getFeatureFlag, resolveFeatureFlag } from '../../services/featureFlagService';
 
 function routeCampaignId(path: string, suffix = ''): string | null {
@@ -305,6 +307,15 @@ async function handleCompetitionRoutesCore(
       const studentId = await authenticatedStudentId(env.DB, user);
       if (!studentId) return errorResponse('Unauthorized: Student identity not found', 401);
 
+      const studentPortalResponse = await handleStudentCompetitionPortalRoutes(
+        env.DB,
+        path,
+        method,
+        studentId,
+        user.username,
+      );
+      if (studentPortalResponse) return studentPortalResponse;
+
       const studentEligibilityParts = routeParts(
         path,
         /^\/api\/student\/competitions\/([^/]+)\/eligibility$/,
@@ -400,6 +411,16 @@ async function handleCompetitionRoutesCore(
   }
 
   try {
+    const portalResponse = await handleCompetitionPortalRoutes(
+      request,
+      env.DB,
+      path,
+      method,
+      user,
+      await teacherClassIds(env.DB, user),
+    );
+    if (portalResponse) return portalResponse;
+
     const schoolExamEventCreateParts = routeParts(
       path,
       /^\/api\/competitions\/([^/]+)\/school-exams$/,

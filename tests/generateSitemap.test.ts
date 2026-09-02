@@ -3,7 +3,24 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { isQuizPublic, resolveApiUrl, resolveOutputFile } = require('../scripts/generate_sitemap.cjs') as {
+const {
+  buildSitemapEntries,
+  isQuizPublic,
+  resolveApiUrl,
+  resolveOutputFile,
+} = require('../scripts/generate_sitemap.cjs') as {
+  buildSitemapEntries: (options: {
+    apiUrl: string;
+    fetchImpl: (url: string) => Promise<{
+      ok: boolean;
+      status: number;
+      statusText?: string;
+      json: () => Promise<unknown>;
+      text: () => Promise<string>;
+    }>;
+    siteUrl: string;
+    today: string;
+  }) => Promise<Array<{ loc: string; lastmod: string }>>;
   isQuizPublic: (quiz: Record<string, unknown>) => boolean;
   resolveApiUrl: (env?: Record<string, string | undefined>) => string;
   resolveOutputFile: (argv?: string[]) => string;
@@ -57,5 +74,67 @@ describe('generate sitemap public quiz policy', () => {
   it('keeps active public quizzes and excludes protected ones', () => {
     expect(isQuizPublic({ category: 'tieng-anh', showOnHome: true, requireCode: false })).toBe(true);
     expect(isQuizPublic({ category: 'toan', showOnHome: true, requireCode: true })).toBe(false);
+  });
+});
+
+describe('generate sitemap public competition policy', () => {
+  it('adds only published public campaign and article URLs, never student routes', async () => {
+    const calls: string[] = [];
+    const fetchImpl = async (url: string) => {
+      calls.push(url);
+      if (url.endsWith('/api/quizzes')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ data: [] }),
+          text: async () => '',
+        };
+      }
+      if (url.endsWith('/api/public/competitions')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: 'success',
+            data: [
+              { slug: 'san-choi-2026', updatedAt: '2026-08-20T00:00:00.000Z' },
+              { slug: 'draft-campaign', status: 'DRAFT' },
+            ],
+          }),
+          text: async () => '',
+        };
+      }
+      if (url.endsWith('/api/public/competitions/san-choi-2026/articles')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: 'success',
+            data: [
+              { slug: 'the-le', publishedAt: '2026-08-21T00:00:00.000Z' },
+              { slug: 'draft-article', status: 'DRAFT' },
+            ],
+          }),
+          text: async () => '',
+        };
+      }
+      throw new Error(`Unexpected URL ${url}`);
+    };
+
+    const entries = await buildSitemapEntries({
+      siteUrl: 'https://www.example.test',
+      apiUrl: 'https://api.example.test',
+      today: '2026-08-31',
+      fetchImpl,
+    });
+    const locations = entries.map((entry) => entry.loc);
+
+    expect(locations).toContain('https://www.example.test/cuoc-thi/san-choi-2026');
+    expect(locations).toContain('https://www.example.test/cuoc-thi/san-choi-2026/tin-tuc/the-le');
+    expect(locations).not.toContain('https://www.example.test/cuoc-thi/draft-campaign');
+    expect(locations).not.toContain('https://www.example.test/cuoc-thi/san-choi-2026/tin-tuc/draft-article');
+    expect(locations.some((location) => location.includes('/thi/'))).toBe(false);
+    expect(calls).toContain('https://api.example.test/api/public/competitions');
+    expect(calls).toContain('https://api.example.test/api/public/competitions/san-choi-2026/articles');
   });
 });

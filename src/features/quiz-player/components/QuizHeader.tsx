@@ -11,6 +11,7 @@ interface QuizHeaderProps {
   studentName?: string;
   avatar?: string | null;
   showAvatar?: boolean;
+  showTimer?: boolean;
 }
 
 const QuizHeader: React.FC<QuizHeaderProps> = ({
@@ -23,6 +24,7 @@ const QuizHeader: React.FC<QuizHeaderProps> = ({
   studentName,
   avatar,
   showAvatar = false,
+  showTimer = true,
 }) => {
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -71,7 +73,7 @@ const QuizHeader: React.FC<QuizHeaderProps> = ({
             </div>
           </div>
 
-          {!isPractice ? (
+          {!isPractice && showTimer ? (
             <div
               className={`flex shrink-0 items-center gap-2 text-sm font-semibold ${
                 timeLeft < 60 ? 'text-[#E76F51]' : 'text-slate-700'
@@ -81,9 +83,9 @@ const QuizHeader: React.FC<QuizHeaderProps> = ({
               <Timer className="h-5 w-5" aria-hidden="true" />
               <span className="font-mono text-lg tracking-wide sm:text-xl">{formatTime(timeLeft)}</span>
             </div>
-          ) : (
+          ) : isPractice ? (
             <span className="shrink-0 text-sm font-medium text-slate-500">Luyện tập</span>
-          )}
+          ) : null}
         </div>
 
         <div

@@ -21,6 +21,7 @@ import {
   type SchoolExamRetestView,
   type SchoolExamResultCorrectionView,
 } from './competitionDashboardService';
+import CompetitionPublicContentPanel from './public-content/CompetitionPublicContentPanel';
 
 interface CompetitionDashboardPageProps {
   isAdmin: boolean;
@@ -880,6 +881,12 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
       {loadError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{loadError}</div>}
       {actionError && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{actionError}</div>}
       {actionMessage && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{actionMessage}</div>}
+
+      <CompetitionPublicContentPanel
+        campaignId={selectedCampaign?.id ?? ''}
+        isAdmin={isAdmin}
+        schoolExamEvents={schoolExamEvents}
+      />
 
       <div className="grid gap-5 xl:grid-cols-2">
         <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

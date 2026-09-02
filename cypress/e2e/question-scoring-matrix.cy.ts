@@ -131,7 +131,7 @@ const installSkippedQuiz = (win: Window) => {
   }));
 };
 const withinQuestion = (id: string, callback: () => void) => {
-  cy.get(`#question-${id}`, { timeout: 15_000 }).should('be.visible').within(callback);
+  cy.get(`#question-${id}`, { timeout: 15_000 }).scrollIntoView().should('be.visible').within(callback);
 };
 
 describe('Canonical scoring browser matrix', () => {
@@ -207,7 +207,7 @@ describe('Canonical scoring browser matrix', () => {
     });
 
     cy.contains('button', 'Trang tiếp theo').click();
-    cy.contains('Trang 2 / 2').should('be.visible');
+    cy.contains('Trang 2 / 2').scrollIntoView().should('be.visible');
 
     withinQuestion('underline', () => {
       cy.get('button').eq(1).click();

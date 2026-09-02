@@ -1,14 +1,19 @@
 import React, { Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
+import { useAuthStore } from '../../stores/authStore';
 import { useQuizStore } from '../../stores/quizStore';
+import { useClassroomStore } from '../stores/useClassroomStore';
 import {
     AboutPage,
     ContactPage,
     DesignSystemPage,
     GiftShop,
+    LoginLandingPage,
     ManualQuizWorkspacePage,
     PhieuPublicPage,
     PrivacyPolicy,
+    CompetitionStudentRoute,
+    StudentCompetitionHomePage,
     StudentDashboardUI,
     TeacherDashboard,
     TeacherResultDetailPage,
@@ -17,10 +22,29 @@ import {
 import { PageLoading } from './PageLoading';
 import { PublicPageLayout } from './PublicPageLayout';
 import { RootView } from './RootView';
+import { resolveSafeReturnTo } from './navigationRoutes';
 import type { RoutePath } from './routeTypes';
-import { isCompetitionV1Enabled, isManualQuizWorkspaceEnabled } from '../config/featureFlags';
+import {
+    isCompetitionLegacyRedirectUxEnabled,
+    isCompetitionStudentPortalUxEnabled,
+    isCompetitionV1Enabled,
+    isManualQuizWorkspaceEnabled,
+} from '../config/featureFlags';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
+
+const LegacyCompetitionRedirect = React.lazy(() => import('../features/competition/portal/student/LegacyCompetitionRedirect'));
+const StudentRoundPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundPage'));
+const StudentRoundRulesPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundRulesPage'));
+const StudentRoundPreflightPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundPreflightPage'));
+const CompetitionRoundExamPlayer = React.lazy(() => import('../features/competition/portal/student/CompetitionRoundExamPlayer'));
+const CompetitionSchoolExamPlayer = React.lazy(() => import('../features/competition/portal/student/CompetitionSchoolExamPlayer'));
+const CompetitionIndexPage = React.lazy(() => import('../features/competition/portal/public/CompetitionIndexPage'));
+const CompetitionCampaignPage = React.lazy(() => import('../features/competition/portal/public/CompetitionCampaignPage'));
+const CompetitionArticlePage = React.lazy(() => import('../features/competition/portal/public/CompetitionArticlePage'));
+const CompetitionGoldenBoardPage = React.lazy(() => import('../features/competition/portal/public/CompetitionGoldenBoardPage'));
+
+const CompetitionStudentHomeRoute = () => <StudentCompetitionHomePage />;
 
 const LegacyManualQuizNewRedirect = () => {
     const location = useLocation();
@@ -59,10 +83,23 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
     manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled(),
     sessionsReady = true,
 }) => {
+    const authStore = useAuthStore();
     const quizStore = useQuizStore();
+    const classroomStore = useClassroomStore();
     const navigate = useNavigate();
     const location = useLocation();
     const competitionV1Enabled = isCompetitionV1Enabled();
+    const competitionLegacyRedirectUxEnabled = isCompetitionLegacyRedirectUxEnabled();
+    const competitionStudentPortalUxEnabled = isCompetitionStudentPortalUxEnabled();
+    const loginParams = new URLSearchParams(location.search);
+    const requestedLogin = loginParams.get('login');
+    const hasExplicitLoginRequest = requestedLogin === 'student' || requestedLogin === 'teacher';
+    const requestedReturnTo = loginParams.get('returnTo');
+    const explicitLoginDestination = requestedLogin === 'student' && classroomStore.studentSession
+        ? resolveSafeReturnTo(requestedReturnTo, 'student') || '/student/dashboard'
+        : requestedLogin === 'teacher' && authStore.isLoggedIn
+            ? resolveSafeReturnTo(requestedReturnTo, 'teacher') || '/teacher/overview'
+            : null;
     const onNavigate = (path: RoutePath) => navigate(path);
     const goBackHome = () => {
         quizStore.goHome();
@@ -83,7 +120,14 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
 
     return (
         <Routes>
-            <Route path="/" element={<RootView giftShopEnabled={giftShopEnabled} />} />
+            <Route
+                path="/"
+                element={explicitLoginDestination
+                    ? <Navigate to={explicitLoginDestination} replace />
+                    : hasExplicitLoginRequest
+                    ? suspended(<LoginLandingPage />)
+                    : <RootView giftShopEnabled={giftShopEnabled} />}
+            />
 
             <Route path="/teacher/overview" element={protectedRoute('teacher', <TeacherDashboard />)} />
             <Route path="/teacher/quizzes" element={protectedRoute('teacher', <TeacherDashboard />)} />
@@ -117,9 +161,24 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route path="/student/achievements" element={protectedRoute('student', <StudentDashboardUI />)} />
             <Route path="/student/results" element={protectedRoute('student', <StudentDashboardUI />)} />
             <Route
+                path="/thi/:campaignSlug"
+                element={protectedRoute('student', competitionStudentPortalUxEnabled
+                    ? <CompetitionStudentRoute />
+                    : <StudentDashboardUI />)}
+            >
+                <Route index element={<CompetitionStudentHomeRoute />} />
+                <Route path="vong/:roundNumber" element={suspended(<StudentRoundPage />)} />
+                <Route path="vong/:roundNumber/quy-che" element={suspended(<StudentRoundRulesPage />)} />
+                <Route path="vong/:roundNumber/kiem-tra" element={suspended(<StudentRoundPreflightPage />)} />
+                <Route path="vong/:roundNumber/lam-bai" element={suspended(<CompetitionRoundExamPlayer />)} />
+                <Route path="school-exam/lam-bai" element={suspended(<CompetitionSchoolExamPlayer />)} />
+            </Route>
+            <Route
                 path="/student/competition"
                 element={competitionV1Enabled
-                    ? protectedRoute('student', <StudentDashboardUI />)
+                    ? protectedRoute('student', competitionLegacyRedirectUxEnabled
+                        ? <LegacyCompetitionRedirect fallback={<StudentDashboardUI />} />
+                        : <StudentDashboardUI />)
                     : <Navigate to="/student/dashboard" replace />}
             />
             <Route path="/student/live-exam/:sessionId" element={protectedRoute('student', <StudentDashboardUI />)} />
@@ -146,6 +205,10 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route path="/about" element={suspended(<PublicPageLayout onNavigate={onNavigate}><AboutPage /></PublicPageLayout>)} />
             <Route path="/contact" element={suspended(<PublicPageLayout onNavigate={onNavigate}><ContactPage /></PublicPageLayout>)} />
             <Route path="/phieu/p/:publicToken" element={suspended(<PhieuPublicPage />)} />
+            <Route path="/cuoc-thi" element={suspended(<CompetitionIndexPage />)} />
+            <Route path="/cuoc-thi/:campaignSlug/tin-tuc/:articleSlug" element={suspended(<CompetitionArticlePage />)} />
+            <Route path="/cuoc-thi/:campaignSlug/bang-vang" element={suspended(<CompetitionGoldenBoardPage />)} />
+            <Route path="/cuoc-thi/:campaignSlug" element={suspended(<CompetitionCampaignPage />)} />
             <Route path="/privacy" element={suspended(<PublicPageLayout onNavigate={onNavigate}><PrivacyPolicy onBack={goBackHome} /></PublicPageLayout>)} />
             <Route path="/tos" element={suspended(<PublicPageLayout onNavigate={onNavigate}><TermsOfService onBack={goBackHome} /></PublicPageLayout>)} />
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -114,6 +114,12 @@ function createBaseSchema(db: DatabaseSync): void {
       grading_version TEXT
     );
 
+    CREATE TABLE competition_public_pages (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT NOT NULL UNIQUE,
+      slug TEXT NOT NULL UNIQUE
+    );
+
     CREATE TABLE admin_audit_logs (
       id TEXT PRIMARY KEY,
       actor_username TEXT NOT NULL,

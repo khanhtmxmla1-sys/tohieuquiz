@@ -152,6 +152,24 @@ describe('release readiness checks', () => {
     expect(workflow).not.toMatch(/\b(?:wrangler\s+deploy|npm\s+run\s+deploy|vercel\s+deploy)\b/i);
   });
 
+  it('tracks the Competition Portal release verification command and five-gate rollout contract', () => {
+    const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as {
+      scripts?: Record<string, string>;
+    };
+    expect(packageJson.scripts?.['competition:portal:smoke'])
+      .toBe('node scripts/run-competition-portal-smoke.mjs');
+
+    const runbook = readFileSync('docs/operations/competition-public-portal-rollout.md', 'utf8');
+    expect(runbook).toContain('competition_public_portal_read_v1=false');
+    expect(runbook).toContain('competition_student_portal_v1=false');
+    expect(runbook).toContain('competition_legacy_redirect_v1=false');
+    expect(runbook).toContain('competition_golden_board_v1=false');
+    expect(runbook).toContain('competition_public_content_admin_v1=false');
+    expect(runbook).toContain('npm run competition:portal:smoke -- --base-url <staging-url>');
+    expect(runbook).toMatch(/không tạo (?:attempt|lượt thi)/i);
+    expect(runbook).toMatch(/never roll back Competition core publication\/result data/i);
+  });
+
   it('tracks the required branch-protection and CODEOWNERS desired state', () => {
     const protection = readFileSync('.github/branch-protection.yml', 'utf8');
     const owners = readFileSync('.github/CODEOWNERS', 'utf8');

@@ -72,6 +72,11 @@ describe('fresh D1 bootstrap contract', () => {
       'competition_school_exam_publication_results',
       'competition_school_exam_certificate_batch_items',
       'live_exam_capacity_profiles',
+      'competition_public_pages',
+      'competition_articles',
+      'competition_award_rule_versions',
+      'competition_award_rules',
+      'competition_golden_board_configs',
     ]) {
       expect(schema).toContain(`create table if not exists ${table}`);
     }
@@ -125,8 +130,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(78);
-    expect(migrationNames.at(-1)).toBe('0079_competition_runtime_rollout.sql');
+    expect(migrationNames).toHaveLength(79);
+    expect(migrationNames.at(-1)).toBe('0080_competition_public_portal.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);
