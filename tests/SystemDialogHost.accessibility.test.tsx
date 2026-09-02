@@ -45,6 +45,25 @@ describe('SystemDialogHost accessibility', () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
+  it('dismisses an active confirm request when its abort signal is cancelled', async () => {
+    render(<SystemDialogHost />);
+    const controller = new AbortController();
+
+    let confirmResult: boolean | undefined;
+    await act(async () => {
+      const promise = showConfirm({
+        message: 'Nộp bài ngay?',
+        confirmLabel: 'Nộp bài',
+        signal: controller.signal,
+      });
+      expect(await screen.findByRole('dialog', { name: 'Xác nhận thao tác' })).toBeInTheDocument();
+      controller.abort();
+      confirmResult = await promise;
+    });
+
+    expect(confirmResult).toBe(false);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
   it('resolves confirm and prompt requests without native browser dialogs', async () => {
     render(<SystemDialogHost />);
 

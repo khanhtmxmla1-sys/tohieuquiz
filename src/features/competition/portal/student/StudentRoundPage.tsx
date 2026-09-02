@@ -5,6 +5,7 @@ import type {
   StudentCompetitionPortalDto,
 } from '../../../../../shared/competition-portal.contract';
 import { callApi } from '../../../../services/apiAdapter';
+import { formatSystemDateTime } from '../../../../utils/dateTime';
 import {
   studentCompetitionService,
   type StudentCompetitionDetail,
@@ -18,15 +19,6 @@ const stateLabels = {
   FAILED_RETRY_AVAILABLE: 'Có thể thi lại',
   CLOSED: 'Đã đóng',
 } as const;
-
-const formatWindow = (value: string, timezone: string) => new Intl.DateTimeFormat('vi-VN', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: timezone,
-}).format(new Date(value));
 
 type PublicCompetitionResponse = PublicCompetitionDetailDto | {
   status: 'success';
@@ -95,8 +87,8 @@ const StudentRoundPage = () => {
 
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div><dt className="font-semibold">Múi giờ</dt><dd>{timezone}</dd></div>
-        <div><dt className="font-semibold">Mở vòng</dt><dd>{formatWindow(portalRound.opensAt, timezone)}</dd></div>
-        <div><dt className="font-semibold">Đóng vòng</dt><dd>{formatWindow(portalRound.closesAt, timezone)}</dd></div>
+        <div><dt className="font-semibold">Mở vòng</dt><dd>{formatSystemDateTime(portalRound.opensAt)}</dd></div>
+        <div><dt className="font-semibold">Đóng vòng</dt><dd>{formatSystemDateTime(portalRound.closesAt)}</dd></div>
       </dl>
       <div className="grid gap-3 text-sm sm:grid-cols-2">
         <div>Điểm đạt: {round.passingScore}</div>

@@ -98,9 +98,9 @@ describe('Competition public content pages', () => {
   it('renders the public campaign detail from the strict DTO and canonical links', async () => {
     renderCampaign();
 
-    expect(await screen.findByRole('heading', { name: 'Sân chơi Tô Hiệu 2026' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: campaign.title })).toBeInTheDocument();
     expect(screen.getByText('Năm học 2026-2027')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: campaign.hero.title })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: campaign.hero.title })).toBeInTheDocument();
     expect(screen.getByText(campaign.hero.subtitle)).toBeInTheDocument();
     expect(screen.getByText(campaign.summary)).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Chinh phục tri thức' })).toHaveAttribute('src', campaign.hero.imageUrl);

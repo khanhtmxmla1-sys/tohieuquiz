@@ -108,12 +108,12 @@ const CompetitionCampaignPage = () => {
                   alt={campaign.hero.title}
                 />
               )}
-              <p className="text-2xl font-black tracking-tight text-slate-900">{campaign.hero.title}</p>
+              <p className="text-sm font-bold uppercase tracking-wider text-sky-700">Sân chơi công khai</p>
+              <h1 className="mt-2 text-4xl font-black tracking-tight">{campaign.title}</h1>
+              <h2 className="text-2xl font-black tracking-tight text-slate-900">{campaign.hero.title}</h2>
               {campaign.hero.subtitle && (
                 <p className="mt-2 text-lg text-slate-600">{campaign.hero.subtitle}</p>
               )}
-              <p className="text-sm font-bold uppercase tracking-wider text-sky-700">Sân chơi công khai</p>
-              <h1 className="mt-2 text-4xl font-black tracking-tight">{campaign.title}</h1>
               <p className="mt-3 font-semibold text-slate-600">Năm học {campaign.schoolYear}</p>
               <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-700">{campaign.summary}</p>
               <Link

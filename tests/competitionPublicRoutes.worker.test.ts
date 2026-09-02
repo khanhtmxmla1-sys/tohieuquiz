@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSqliteD1 } from './helpers/sqliteD1';

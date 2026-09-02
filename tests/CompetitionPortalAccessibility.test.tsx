@@ -235,7 +235,12 @@ describe('Competition portal accessibility contract', () => {
     mocks.updatePublicPage.mockReset().mockResolvedValue(staffPage);
     mocks.useCompetitionRoundAttempt.mockReset().mockReturnValue({
       active: {
-        attempt: { id: 'attempt-1', campaignId: 'campaign-1', roundId: 'round-1', startedAt: '2026-09-01T01:00:00.000Z' },
+        attempt: {
+          id: 'attempt-1',
+          campaignId: 'campaign-1',
+          roundId: 'round-1',
+          startedAt: new Date(Date.now() - 60_000).toISOString(),
+        },
         quiz: { id: 'quiz-1', title: 'Đề vòng 1', timeLimit: 30, questions: [] },
         draftIdentity: 'competition:attempt-1:quiz-1',
       },
@@ -263,6 +268,7 @@ describe('Competition portal accessibility contract', () => {
     const { container } = renderCampaign();
 
     await screen.findByRole('heading', { level: 1, name: publicCompetition.title });
+    expect(screen.getByRole('heading', { level: 2, name: publicCompetition.hero.title })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Bỏ qua đến nội dung cuộc thi' })).toHaveAttribute(
       'href',
       '#competition-public-main',

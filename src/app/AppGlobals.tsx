@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from 'react-hot-toast';
-import { ChatBot } from '../components/ChatBot';
 import { SystemDialogHost } from '../components/common/SystemDialogHost';
+
+const ChatBot = React.lazy(() => import('../components/ChatBot/ChatBot'));
 
 export const AppGlobals: React.FC<{ showChatbot: boolean }> = ({ showChatbot }) => (
     <>
-        {showChatbot && <ChatBot />}
+        {showChatbot && (
+            <Suspense fallback={null}>
+                <ChatBot />
+            </Suspense>
+        )}
         <Analytics />
         <SystemDialogHost />
         <Toaster

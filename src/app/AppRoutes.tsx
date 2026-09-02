@@ -32,8 +32,8 @@ import {
 } from '../config/featureFlags';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoute } from './AdminRoute';
-import LegacyCompetitionRedirect from '../features/competition/portal/student/LegacyCompetitionRedirect';
 
+const LegacyCompetitionRedirect = React.lazy(() => import('../features/competition/portal/student/LegacyCompetitionRedirect'));
 const StudentRoundPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundPage'));
 const StudentRoundRulesPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundRulesPage'));
 const StudentRoundPreflightPage = React.lazy(() => import('../features/competition/portal/student/StudentRoundPreflightPage'));

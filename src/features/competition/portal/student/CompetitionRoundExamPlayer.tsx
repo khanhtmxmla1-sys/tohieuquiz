@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useOutletContext, useParams } from 'react-router';
 import type { StudentCompetitionPortalDto } from '../../../../../shared/competition-portal.contract';
 import QuestionRenderer from '../../../../components/student/QuestionRenderer';
@@ -8,6 +8,7 @@ import QuizPagination from '../../../quiz-player/components/QuizPagination';
 import { useQuizPageNavigation } from '../../../quiz-player/hooks/useQuizPageNavigation';
 import { useLiveExamTimer } from '../../../live-exam/hooks/useLiveExamTimer';
 import { useQuizProgressRollout } from '../../../quiz-player/hooks/useQuizProgressRollout';
+import { showConfirm } from '../../../../utils/toast';
 import { useCompetitionRoundAttempt } from './useCompetitionRoundAttempt';
 
 const QUESTIONS_PER_PAGE = 10;
@@ -38,12 +39,25 @@ const CompetitionActiveRoundPlayer = ({
   const { quiz } = active;
   const submitOnExpiryRef = useRef<() => void>(() => undefined);
   submitOnExpiryRef.current = () => { void attempt.submit(); };
-  const handleExpiry = useCallback(() => submitOnExpiryRef.current(), []);
+  const manualSubmitInFlightRef = useRef(false);
+  const manualSubmitGenerationRef = useRef(0);
+  const manualSubmitAbortControllerRef = useRef<AbortController | null>(null);
+  const invalidateManualSubmit = useCallback(() => {
+    manualSubmitGenerationRef.current += 1;
+    const controller = manualSubmitAbortControllerRef.current;
+    manualSubmitAbortControllerRef.current = null;
+    controller?.abort();
+  }, []);
+  const handleExpiry = useCallback(() => {
+    invalidateManualSubmit();
+    submitOnExpiryRef.current();
+  }, [invalidateManualSubmit]);
   const expiresAt = getExpiresAt(active);
   const { isExpired, timeRemaining } = useLiveExamTimer({
     endsAt: expiresAt,
     onExpire: handleExpiry,
   });
+  useEffect(() => invalidateManualSubmit, [invalidateManualSubmit]);
   const isEditingLocked = isExpired || attempt.submitting;
   const questionCount = quiz.questions.length;
   const totalPages = Math.max(1, Math.ceil(questionCount / QUESTIONS_PER_PAGE));
@@ -63,6 +77,28 @@ const CompetitionActiveRoundPlayer = ({
     (attempt.currentPage - 1) * QUESTIONS_PER_PAGE,
     attempt.currentPage * QUESTIONS_PER_PAGE,
   );
+  const handleManualSubmit = useCallback(async () => {
+    if (isExpired || attempt.submitting || manualSubmitInFlightRef.current) return;
+    manualSubmitInFlightRef.current = true;
+    const confirmationGeneration = manualSubmitGenerationRef.current;
+    const confirmationController = new AbortController();
+    manualSubmitAbortControllerRef.current = confirmationController;
+    try {
+      const confirmed = await showConfirm({
+        message: 'Em chắc chắn muốn nộp bài?',
+        confirmLabel: 'Nộp bài',
+        cancelLabel: 'Tiếp tục làm bài',
+        signal: confirmationController.signal,
+      });
+      if (!confirmed || confirmationGeneration !== manualSubmitGenerationRef.current) return;
+      await attempt.submit();
+    } finally {
+      if (manualSubmitAbortControllerRef.current === confirmationController) {
+        manualSubmitAbortControllerRef.current = null;
+      }
+      manualSubmitInFlightRef.current = false;
+    }
+  }, [attempt.submit, attempt.submitting, isExpired]);
 
   return (
     <section aria-label={quiz.title} className="min-h-screen bg-gray-50">
@@ -125,9 +161,7 @@ const CompetitionActiveRoundPlayer = ({
             currentPage={attempt.currentPage}
             totalPages={totalPages}
             onPageChange={changePage}
-            onSubmit={() => {
-              if (window.confirm('Em chắc chắn muốn nộp bài?')) void attempt.submit();
-            }}
+            onSubmit={() => { void handleManualSubmit(); }}
             isSubmitting={attempt.submitting}
           />
 

@@ -15,7 +15,7 @@ vi.mock('../src/hooks/useReducedExperience', () => ({
     useReducedExperience: () => ({ reduceData: false, reduceMotion: true, reduceVisuals: true }),
 }));
 vi.mock('../src/services/systemSettingsService', () => ({ getSystemSettings: vi.fn() }));
-vi.mock('../src/components/ChatBot', () => ({ ChatBot: () => <div>chatbot</div> }));
+vi.mock('../src/components/ChatBot/ChatBot', () => ({ default: () => <div>chatbot</div> }));
 vi.mock('../src/components/StudentView', () => ({ default: () => <div>student-view</div> }));
 vi.mock('../src/components/TeacherDashboard', () => ({ default: () => <div>teacher-dashboard</div> }));
 vi.mock('../src/components/TeacherDashboard/TeacherResultDetailPage', () => ({ default: () => <div>teacher-result-detail</div> }));

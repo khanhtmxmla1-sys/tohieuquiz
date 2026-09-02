@@ -3,7 +3,6 @@ import { useLocation } from 'react-router';
 import { useAuthStore } from '../../stores/authStore';
 import { useQuizStore } from '../../stores/quizStore';
 import { useSeo } from '../hooks/useSeo';
-import { useCompetitionPortalSeo } from '../features/competition/portal/public/useCompetitionPortalSeo';
 import { AppGlobals } from './AppGlobals';
 import { AppRoutes } from './AppRoutes';
 import { useLegacyQuizQuery } from './useLegacyQuizQuery';
@@ -20,6 +19,10 @@ import { ParentPortalFallback } from '../features/parent-portal/layout/ParentPor
 import { useClassroomStore } from '../stores/useClassroomStore';
 import { OfflineBanner, ReducedExperienceBanner } from '../components/common';
 
+const CompetitionPortalSeoBoundary = React.lazy(
+    () => import('../features/competition/portal/public/CompetitionPortalSeoBoundary'),
+);
+
 const MainApp: React.FC = () => {
     const quizStore = useQuizStore();
     const location = useLocation();
@@ -29,7 +32,6 @@ const MainApp: React.FC = () => {
     const giftShopEnabled = String(import.meta.env.VITE_FEATURE_GIFT_SHOP_V2 || 'false').toLowerCase() === 'true';
 
     useSeo(location.pathname, quizStore.view, quizStore.selectedQuiz, giftShopEnabled);
-    useCompetitionPortalSeo();
     useLoadQuizzes();
     useTeacherEntry();
     useLegacyQuizQuery();
@@ -40,10 +42,19 @@ const MainApp: React.FC = () => {
     const isUnauthenticatedRootLogin = location.pathname === '/'
         && !isTeacherLoggedIn
         && !studentSession;
+    const isCompetitionPortalPath = location.pathname === '/cuoc-thi'
+        || location.pathname.startsWith('/cuoc-thi/')
+        || location.pathname === '/thi'
+        || location.pathname.startsWith('/thi/');
 
     return (
         <>
             {!isUnauthenticatedRootLogin && <ReducedExperienceBanner />}
+            {isCompetitionPortalPath && (
+                <Suspense fallback={null}>
+                    <CompetitionPortalSeoBoundary />
+                </Suspense>
+            )}
             <AppRoutes giftShopEnabled={giftShopEnabled} sessionsReady={sessionsReady} />
             <AppGlobals showChatbot={aiAssistantEnabled && quizStore.view !== 'student'} />
         </>

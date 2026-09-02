@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   preflightRound: vi.fn(),
   start: vi.fn(),
   submit: vi.fn(),
+  showConfirm: vi.fn(),
   renderer: vi.fn(),
 }));
 
@@ -56,6 +57,11 @@ vi.mock('../src/components/student/QuestionRenderer', () => ({
       </div>
     );
   },
+}));
+
+vi.mock('../src/utils/toast', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../src/utils/toast')>(),
+  showConfirm: mocks.showConfirm,
 }));
 
 const portal: StudentCompetitionPortalDto = {
@@ -151,6 +157,7 @@ describe('CompetitionRoundExamPlayer', () => {
     mocks.preflightRound.mockReset().mockResolvedValue(readyPreflight);
     mocks.start.mockReset().mockResolvedValue(session);
     mocks.submit.mockReset();
+    mocks.showConfirm.mockReset().mockResolvedValue(true);
     mocks.renderer.mockReset();
     vi.restoreAllMocks();
     Object.defineProperty(Element.prototype, 'scrollIntoView', {
@@ -290,7 +297,6 @@ describe('CompetitionRoundExamPlayer', () => {
   it('auto-submits the expired timed attempt exactly once and locks answer editing while it is pending', async () => {
     const deferred = createDeferred<Awaited<ReturnType<typeof mocks.submit>>>();
     mocks.submit.mockReturnValue(deferred.promise);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     mocks.start.mockResolvedValue({
       attempt: {
         ...session.attempt,
@@ -319,6 +325,111 @@ describe('CompetitionRoundExamPlayer', () => {
     await screen.findByText('Điểm: 8');
   });
 
+  it('requires accessible manual confirmation, ignores duplicate requests, and submits once after confirmation', async () => {
+    const confirmation = createDeferred<boolean>();
+    mocks.showConfirm.mockReturnValueOnce(confirmation.promise).mockResolvedValueOnce(true);
+    renderPlayerRoute();
+
+    fireEvent.click(screen.getByRole('button', { name: 'BẮT ĐẦU BÀI THI' }));
+    await screen.findAllByTestId('canonical-question-renderer');
+
+    const submitButton = screen.getByRole('button', { name: 'Nộp bài' });
+    fireEvent.click(submitButton);
+    fireEvent.click(submitButton);
+
+    expect(mocks.showConfirm).toHaveBeenCalledTimes(1);
+    expect(mocks.showConfirm).toHaveBeenCalledWith({
+      message: 'Em chắc chắn muốn nộp bài?',
+      confirmLabel: 'Nộp bài',
+      cancelLabel: 'Tiếp tục làm bài',
+      signal: expect.any(AbortSignal),
+    });
+    expect(mocks.submit).not.toHaveBeenCalled();
+
+    await act(async () => {
+      confirmation.resolve(false);
+      await confirmation.promise;
+    });
+    expect(mocks.submit).not.toHaveBeenCalled();
+
+    fireEvent.click(submitButton);
+    await waitFor(() => expect(mocks.showConfirm).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.submit).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not submit again when a stale manual confirmation resolves after timer expiry completed submission', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime('2026-09-10T01:01:00.000Z');
+    const confirmation = createDeferred<boolean>();
+    const submittedResult = {
+      result: {
+        score: 8,
+        correctCount: 1,
+        totalQuestions: 2,
+        progress: { attemptsUsed: 2, bestScore: 80, isPassed: true },
+      },
+    };
+    mocks.showConfirm.mockReturnValue(confirmation.promise);
+    mocks.submit.mockResolvedValue(submittedResult);
+    mocks.start.mockResolvedValue({
+      attempt: {
+        ...session.attempt,
+        startedAt: new Date(Date.now() - 59_000).toISOString(),
+      },
+      quiz: { ...session.quiz, timeLimit: 1 },
+    });
+    renderPlayerRoute();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'BẮT ĐẦU BÀI THI' }));
+    });
+    expect(screen.getByLabelText('Thời gian còn lại 0:01')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nộp bài' }));
+    expect(mocks.showConfirm).toHaveBeenCalledTimes(1);
+    const confirmationOptions = mocks.showConfirm.mock.calls[0]?.[0] as { signal?: AbortSignal };
+    expect(confirmationOptions.signal).toBeInstanceOf(AbortSignal);
+    expect(confirmationOptions.signal?.aborted).toBe(false);
+    expect(mocks.submit).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1000);
+      await Promise.resolve();
+    });
+    expect(mocks.submit).toHaveBeenCalledTimes(1);
+    expect(confirmationOptions.signal?.aborted).toBe(true);
+    expect(screen.getByText('Điểm: 8')).toBeInTheDocument();
+
+    await act(async () => {
+      confirmation.resolve(true);
+      await confirmation.promise;
+      await Promise.resolve();
+    });
+
+    expect(mocks.submit).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it('aborts a pending manual confirmation when the active player unmounts', async () => {
+    const confirmation = createDeferred<boolean>();
+    mocks.showConfirm.mockReturnValue(confirmation.promise);
+    const view = renderPlayerRoute();
+
+    fireEvent.click(screen.getByRole('button', { name: /^B.*THI$/i }));
+    await screen.findAllByTestId('canonical-question-renderer');
+    fireEvent.click(screen.getByRole('button', { name: /^N.*b.*i$/i }));
+
+    const confirmationOptions = mocks.showConfirm.mock.calls[0]?.[0] as { signal?: AbortSignal };
+    expect(confirmationOptions.signal).toBeInstanceOf(AbortSignal);
+    expect(confirmationOptions.signal?.aborted).toBe(false);
+
+    view.unmount();
+
+    expect(confirmationOptions.signal?.aborted).toBe(true);
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
+
   it('reuses the unchanged submission intent across remount and clears the draft only after server success', async () => {
     mocks.submit
       .mockRejectedValueOnce(new Error('temporary network failure'))
@@ -330,7 +441,6 @@ describe('CompetitionRoundExamPlayer', () => {
           progress: { attemptsUsed: 2, bestScore: 62, isPassed: false },
         },
       });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const firstRender = renderPlayerRoute();
     fireEvent.click(screen.getByRole('button', { name: 'BẮT ĐẦU BÀI THI' }));
     await screen.findAllByTestId('canonical-question-renderer');
@@ -363,13 +473,13 @@ describe('CompetitionRoundExamPlayer', () => {
   it('prevents unload and same-document navigation only while a submission promise is unresolved', async () => {
     const deferred = createDeferred<Awaited<ReturnType<typeof mocks.submit>>>();
     mocks.submit.mockReturnValue(deferred.promise);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderPlayerRoute();
     fireEvent.click(screen.getByRole('button', { name: 'BẮT ĐẦU BÀI THI' }));
     await screen.findAllByTestId('canonical-question-renderer');
 
     fireEvent.click(screen.getByRole('button', { name: 'Nộp bài' }));
     await waitFor(() => expect(mocks.submit).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Đang nộp bài...' })).toBeDisabled());
     const pendingUnload = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(pendingUnload);
     expect(pendingUnload.defaultPrevented).toBe(true);
@@ -397,7 +507,6 @@ describe('CompetitionRoundExamPlayer', () => {
     window.history.pushState(null, '', '/thi/olympic-toan/vong/2/lam-bai');
     const deferred = createDeferred<Awaited<ReturnType<typeof mocks.submit>>>();
     mocks.submit.mockReturnValue(deferred.promise);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderBrowserPlayerRoute();
 
     fireEvent.click(screen.getByRole('button', { name: 'BẮT ĐẦU BÀI THI' }));

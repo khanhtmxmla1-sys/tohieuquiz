@@ -5,6 +5,7 @@ import type {
   PublicCompetitionRoundDto,
   PublicCompetitionSummaryDto,
 } from '../../../../../shared/competition-portal.contract';
+import { formatSystemDateTimeWithOptions } from '../../../../utils/dateTime';
 import CompetitionPublicShell from './CompetitionPublicShell';
 import { publicCompetitionPortalService } from './publicCompetitionPortalService';
 
@@ -16,20 +17,10 @@ const stateLabels: Record<CompetitionPublicState, string> = {
 
 const groupOrder: CompetitionPublicState[] = ['ONGOING', 'UPCOMING', 'ENDED'];
 
-const formatPublicDateTime = (value: string, timeZone: string): string => {
-  const format = (resolvedTimeZone: string) => new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: resolvedTimeZone,
-  }).format(new Date(value));
-
-  try {
-    return format(timeZone);
-  } catch (error) {
-    if (!(error instanceof RangeError)) throw error;
-    return format('UTC');
-  }
-};
+const formatPublicDateTime = (value: string): string => formatSystemDateTimeWithOptions(value, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
 
 const buildRepresentativeRounds = (campaign?: PublicCompetitionSummaryDto): PublicCompetitionRoundDto[] => {
   const rounds = campaign?.rounds.slice(0, 6) ?? [];
@@ -176,13 +167,13 @@ const CompetitionIndexPage = () => {
               <div className="rounded-2xl bg-sky-50 p-4">
                 <dt className="text-sm font-bold text-sky-800">Bắt đầu</dt>
                 <dd className="mt-1 font-semibold text-slate-900">
-                  <time dateTime={featured.startsAt}>{formatPublicDateTime(featured.startsAt, featured.timezone)}</time>
+                  <time dateTime={featured.startsAt}>{formatPublicDateTime(featured.startsAt)}</time>
                 </dd>
               </div>
               <div className="rounded-2xl bg-slate-100 p-4">
                 <dt className="text-sm font-bold text-slate-700">Kết thúc</dt>
                 <dd className="mt-1 font-semibold text-slate-900">
-                  <time dateTime={featured.endsAt}>{formatPublicDateTime(featured.endsAt, featured.timezone)}</time>
+                  <time dateTime={featured.endsAt}>{formatPublicDateTime(featured.endsAt)}</time>
                 </dd>
               </div>
             </dl>
@@ -193,10 +184,10 @@ const CompetitionIndexPage = () => {
                   <li key={round.roundNumber} className="rounded-2xl border border-slate-200 p-4">
                     <p className="font-bold">{round.title}</p>
                     <p className="mt-2 text-sm text-slate-600">
-                      Mở: <time dateTime={round.opensAt}>{formatPublicDateTime(round.opensAt, featured.timezone)}</time>
+                      Mở: <time dateTime={round.opensAt}>{formatPublicDateTime(round.opensAt)}</time>
                     </p>
                     <p className="mt-1 text-sm text-slate-600">
-                      Đóng: <time dateTime={round.closesAt}>{formatPublicDateTime(round.closesAt, featured.timezone)}</time>
+                      Đóng: <time dateTime={round.closesAt}>{formatPublicDateTime(round.closesAt)}</time>
                     </p>
                   </li>
                 ))}

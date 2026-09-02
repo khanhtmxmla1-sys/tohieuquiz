@@ -110,7 +110,7 @@ describe('Competition public index', () => {
     expect(screen.getByRole('link', { name: /bảng vàng/i })).toHaveAttribute('href', '/cuoc-thi/dang-dien-ra/bang-vang');
   });
 
-  it('falls back safely when the public DTO contains an invalid timezone', async () => {
+  it('keeps system Hanoi formatting stable when the public DTO timezone is invalid', async () => {
     mocks.callApi.mockResolvedValue({
       status: 'success',
       data: [{ ...campaign('invalid-timezone', 'Cuộc thi timezone lỗi', 'ONGOING'), timezone: 'Invalid/Timezone' }],
@@ -119,7 +119,7 @@ describe('Competition public index', () => {
     renderIndex();
 
     const schedule = await screen.findByRole('region', { name: /lịch thi nổi bật/i });
-    expect(schedule.querySelector('time[datetime="2026-08-01T00:00:00.000Z"]')).toHaveTextContent('00:00 1 thg 8, 2026');
+    expect(schedule.querySelector('time[datetime="2026-08-01T00:00:00.000Z"]')).toHaveTextContent('07:00 1 thg 8, 2026');
     expect(within(schedule).getByText('Cuộc thi timezone lỗi')).toBeInTheDocument();
   });
 

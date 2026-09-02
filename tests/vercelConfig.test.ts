@@ -32,6 +32,12 @@ describe('Vercel Parent Portal security configuration', () => {
     expect(headerValue('/login', 'Cache-Control')).toBe('private, no-store');
   });
 
+  it('protects every student competition route from indexing before client SEO loads', () => {
+    for (const source of ['/thi', '/thi/:path*']) {
+      expect(headerValue(source, 'X-Robots-Tag')).toBe('noindex, nofollow, noarchive');
+    }
+  });
+
   it('preserves immutable asset caching and does not globally noindex the main site', () => {
     expect(headerValue('/assets/(.*)', 'Cache-Control')).toBe('public, max-age=31536000, immutable');
     expect(headerValue('/(.*)', 'X-Robots-Tag')).toBeUndefined();

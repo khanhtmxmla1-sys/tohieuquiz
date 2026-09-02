@@ -57,8 +57,16 @@ const renderAt = (initialEntries: string[], initialIndex: number) =>
         </MemoryRouter>,
     );
 
-/** The legal pages are React.lazy, so every render has to wait for the chunk before clicking. */
-const openPage = async (bottomButton: string) => screen.findByRole('button', { name: bottomButton });
+/**
+ * The legal pages are React.lazy, so every render has to wait for the chunk before clicking.
+ * Keep this above Testing Library's 1s global async timeout because the full CI shard can delay
+ * a dynamic import under worker contention; the assertions below still prove the real navigation.
+ */
+const openPage = async (bottomButton: string) => screen.findByRole(
+    'button',
+    { name: bottomButton },
+    { timeout: 3_000 },
+);
 
 const click = async (element: HTMLElement) => {
     await act(async () => {

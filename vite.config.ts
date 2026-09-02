@@ -40,12 +40,27 @@ export default defineConfig(({ mode }) => {
       },
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-icons': ['lucide-react'],
-            'vendor-state': ['zustand'],
-            'vendor-motion': ['framer-motion'],
-            'vendor-jszip': ['jszip'],
+          manualChunks: (id) => {
+            const normalizedId = id.replace(/\\/g, '/');
+            if (!normalizedId.includes('/node_modules/')) {
+              return undefined;
+            }
+            if (/\/node_modules\/(?:react|react-dom)\//.test(normalizedId)) {
+              return 'vendor-react';
+            }
+            if (normalizedId.includes('/node_modules/lucide-react/')) {
+              return 'vendor-icons';
+            }
+            if (normalizedId.includes('/node_modules/zustand/')) {
+              return 'vendor-state';
+            }
+            if (/\/node_modules\/(?:framer-motion|motion-[^/]+)\//.test(normalizedId)) {
+              return 'vendor-motion';
+            }
+            if (normalizedId.includes('/node_modules/jszip/')) {
+              return 'vendor-jszip';
+            }
+            return undefined;
           },
         },
       },

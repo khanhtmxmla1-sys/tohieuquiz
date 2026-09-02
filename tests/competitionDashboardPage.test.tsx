@@ -267,6 +267,7 @@ describe('Competition V1 admin and teacher dashboard surface', () => {
             id: 'round-1', campaignId: 'campaign-1', roundNumber: 1,
             opensAt: '2026-09-01T01:00:00.000Z', closesAt: '2026-09-01T02:00:00.000Z',
             maxAttempts: 2, passingScore: 8, status: 'SCHEDULED',
+            quizSnapshot: { status: 'LOCKED', mappingCount: 1 },
           },
           {
             id: 'round-2', campaignId: 'campaign-1', roundNumber: 2,

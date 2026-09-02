@@ -5,7 +5,9 @@ import type {
   CompetitionEntryPreflightReason,
   StudentCompetitionPortalDto,
 } from '../../../../../shared/competition-portal.contract';
+import { SYSTEM_TIME_ZONE } from '../../../../../shared/time-zone.contract';
 import { studentCompetitionPortalService } from '../studentCompetitionPortalService';
+import { formatSystemDateTime } from '../../../../utils/dateTime';
 import { hasAcknowledgedRules } from './rulesAcknowledgement';
 
 const reasonLabels: Record<CompetitionEntryPreflightReason, string> = {
@@ -29,17 +31,17 @@ const reasonLabels: Record<CompetitionEntryPreflightReason, string> = {
   SCHOOL_EXAM_CANDIDATE_CODE_INVALID: 'Mã thí sinh School Exam không hợp lệ.',
 };
 
-const formatServerTime = (value: string, timezone: string) => new Intl.DateTimeFormat('vi-VN', {
-  dateStyle: 'short',
-  timeStyle: 'short',
-  timeZone: timezone,
-}).format(new Date(value));
-
-const PreflightWindow = ({ window }: { window: NonNullable<CompetitionEntryPreflightDto['window']> }) => (
+const PreflightWindow = ({
+  window,
+  timezoneLabel = window.timezone,
+}: {
+  window: NonNullable<CompetitionEntryPreflightDto['window']>;
+  timezoneLabel?: string;
+}) => (
   <dl className="grid gap-2 text-sm sm:grid-cols-2">
-    <div><dt>Giờ mở</dt><dd>{formatServerTime(window.opensAt, window.timezone)}</dd></div>
-    <div><dt>Giờ đóng</dt><dd>{formatServerTime(window.closesAt, window.timezone)}</dd></div>
-    <div><dt>Múi giờ</dt><dd>{window.timezone}</dd></div>
+    <div><dt>Giờ mở</dt><dd>{formatSystemDateTime(window.opensAt)}</dd></div>
+    <div><dt>Giờ đóng</dt><dd>{formatSystemDateTime(window.closesAt)}</dd></div>
+    <div><dt>Múi giờ</dt><dd>{timezoneLabel}</dd></div>
   </dl>
 );
 
@@ -98,14 +100,14 @@ const StudentRoundPreflightPage = () => {
   }
   if (!result) return null;
 
-  const timezone = result.window?.timezone ?? 'Asia/Ho_Chi_Minh';
+  const timezone = result.window?.timezone ?? SYSTEM_TIME_ZONE;
   if (result.status === 'BLOCKED') {
     return (
       <section role="alert" className="space-y-3 rounded-2xl border border-red-300 bg-red-50 p-5">
         <h1 className="text-xl font-bold"><span aria-hidden="true">⚠ </span>Không thể vào thi</h1>
         <p>{reasonLabels[result.reason]}</p>
-        <p className="text-sm">Giờ máy chủ: {formatServerTime(result.serverTime, timezone)}</p>
-        {result.window && <PreflightWindow window={result.window} />}
+        <p className="text-sm">Giờ máy chủ: {formatSystemDateTime(result.serverTime)}</p>
+        {result.window && <PreflightWindow window={result.window} timezoneLabel={timezone} />}
       </section>
     );
   }
@@ -114,8 +116,8 @@ const StudentRoundPreflightPage = () => {
     <section className="space-y-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-5">
       <h1 className="text-xl font-bold"><span aria-hidden="true">✓ </span>Sẵn sàng vào thi</h1>
       <p>Còn {result.attemptsRemaining} lượt thi.</p>
-      <p className="text-sm">Giờ máy chủ: {formatServerTime(result.serverTime, timezone)}</p>
-      <PreflightWindow window={result.window} />
+      <p className="text-sm">Giờ máy chủ: {formatSystemDateTime(result.serverTime)}</p>
+      <PreflightWindow window={result.window} timezoneLabel={timezone} />
       <Link
         to={`/thi/${portal.slug}/vong/${round.roundNumber}/lam-bai`}
         className="inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
