@@ -118,6 +118,7 @@ jobs:
           VITE_FEATURE_AI_SVG_DIAGRAMS: 'false'
           VITE_FEATURE_PARENT_PORTAL_V1: 'true'
           VITE_FEATURE_COMPETITION_V1: 'true'
+          VITE_FEATURE_COMPETITION_STUDENT_PORTAL_V1: 'true'
           VITE_GIFT_SHOP_MODE: api
 
       - name: Upload stubbed failure screenshots
