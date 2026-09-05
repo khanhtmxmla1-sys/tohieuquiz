@@ -77,14 +77,14 @@
     "@headlessui/react": "^2.2.9",
     "@resvg/resvg-wasm": "^2.6.2",
     "@simplewebauthn/browser": "13.3.0",
-    "@tiptap/extension-color": "^3.29.2",
-    "@tiptap/extension-highlight": "^3.29.2",
-    "@tiptap/extension-text-align": "^3.29.2",
-    "@tiptap/extension-text-style": "^3.29.2",
-    "@tiptap/extension-underline": "^3.29.2",
-    "@tiptap/pm": "^3.29.2",
-    "@tiptap/react": "^3.29.2",
-    "@tiptap/starter-kit": "^3.29.2",
+    "@tiptap/extension-color": "^3.31.3",
+    "@tiptap/extension-highlight": "^3.31.3",
+    "@tiptap/extension-text-align": "^3.31.3",
+    "@tiptap/extension-text-style": "^3.31.3",
+    "@tiptap/extension-underline": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
     "@types/papaparse": "^5.5.2",
     "@vercel/analytics": "^1.6.1",
     "better-react-mathjax": "^2.3.0",
@@ -148,7 +148,13 @@
     "uuid": ">=14.0.0",
     "brace-expansion@<1.1.16": "1.1.16",
     "brace-expansion@>=2.0.0 <2.1.2": "2.1.2",
-    "sharp": "0.35.3"
+    "sharp": "0.35.3",
+    "mammoth": {
+      "@xmldom/xmldom": "0.8.15"
+    },
+    "speech-rule-engine": {
+      "@xmldom/xmldom": "0.9.12"
+    }
   },
   "engines": {
     "node": ">=22.22.0"
