@@ -126,6 +126,7 @@ describe('Competition public frontend refresh', () => {
 
     expect(await screen.findByRole('heading', { name: /sân chơi tô hiệu quiz/i })).toBeInTheDocument();
     expect(screen.getByText('Mỗi thử thách, một bước trưởng thành')).toBeInTheDocument();
+    expect(screen.getByRole('banner').closest('.overflow-x-clip')).toBeInTheDocument();
     const discovery = screen.getByRole('region', { name: 'Khám phá cuộc thi' });
     expect(within(discovery).getByRole('link', { name: 'Xem thông tin' })).toHaveAttribute(
       'href',
@@ -158,7 +159,9 @@ describe('Competition public frontend refresh', () => {
     );
 
     expect(await screen.findByRole('heading', { level: 1, name: articles[1].title })).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Điều hướng bài viết' })).toBeInTheDocument();
+    const breadcrumbs = screen.getByRole('navigation', { name: 'Điều hướng bài viết' });
+    expect(within(breadcrumbs).getByRole('link', { name: 'Cuộc thi' })).toHaveClass('min-h-11');
+    expect(within(breadcrumbs).getByRole('link', { name: 'Thông tin cuộc thi' })).toHaveClass('min-h-11');
     expect(screen.getAllByText('Thể lệ')).not.toHaveLength(0);
     expect(screen.getByText(articles[1].summary!)).toBeInTheDocument();
     expect(screen.getByText('Nội dung bài viết')).toBeInTheDocument();

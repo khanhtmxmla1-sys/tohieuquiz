@@ -17,7 +17,7 @@ const CompetitionPublicShell = ({ children, ctaHref, campaignSlug }: Competition
     : '/cuoc-thi';
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f6f9ff] text-slate-950">
+    <div className="min-h-screen overflow-x-clip bg-[#f6f9ff] text-slate-950">
       <a
         href="#competition-public-main"
         className={`sr-only z-50 rounded-xl bg-white px-4 py-3 font-bold shadow-xl focus:not-sr-only focus:fixed focus:left-4 focus:top-4 ${focusClassName}`}

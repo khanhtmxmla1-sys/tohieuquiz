@@ -23,9 +23,9 @@ const CompetitionArticleView = ({ article, campaignSlug }: CompetitionArticleVie
     <CompetitionPublicShell campaignSlug={campaignSlug}>
       <div className="border-b border-blue-100 bg-white">
         <nav aria-label="Điều hướng bài viết" className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 py-4 text-sm font-bold text-slate-500 sm:px-6 lg:px-8">
-          <Link to="/cuoc-thi" className="shrink-0 rounded-lg transition hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">Cuộc thi</Link>
+          <Link to="/cuoc-thi" className="inline-flex min-h-11 shrink-0 items-center rounded-lg transition hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">Cuộc thi</Link>
           <ChevronRight className="size-4 shrink-0 text-slate-300" aria-hidden="true" />
-          <Link to={campaignHref} className="shrink-0 rounded-lg transition hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">Thông tin cuộc thi</Link>
+          <Link to={campaignHref} className="inline-flex min-h-11 shrink-0 items-center rounded-lg transition hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">Thông tin cuộc thi</Link>
           <ChevronRight className="size-4 shrink-0 text-slate-300" aria-hidden="true" />
           <span className="truncate text-slate-700" aria-current="page">{presentation.label}</span>
         </nav>
