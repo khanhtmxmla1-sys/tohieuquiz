@@ -67,6 +67,7 @@ describe('Competition public index', () => {
     expect(screen.getByRole('main')).toHaveAttribute('tabindex', '-1');
     expect(screen.getByRole('contentinfo')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: /điều hướng cuộc thi/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Trang cuộc thi' })).toHaveAttribute('aria-current', 'page');
 
     const running = screen.getByRole('region', { name: /đang diễn ra/i });
     const upcoming = screen.getByRole('region', { name: /sắp diễn ra/i });
@@ -84,6 +85,34 @@ describe('Competition public index', () => {
     expect(mocks.callApi).toHaveBeenCalledTimes(1);
     expect(mocks.callApi).toHaveBeenCalledWith('list_public_competitions');
     expect(resolveApiRoute('list_public_competitions').auth).toBe('public');
+  });
+
+  it('highlights one featured campaign before the secondary state collections', async () => {
+    renderIndex();
+
+    const spotlight = await screen.findByRole('region', { name: 'Cuộc thi nổi bật' });
+    expect(within(spotlight).getByRole('heading', { level: 3, name: 'Cuộc thi đang diễn ra' })).toBeInTheDocument();
+    expect(within(spotlight).getByText('Cuộc thi đang diễn ra hero')).toBeInTheDocument();
+    expect(within(spotlight).getByRole('link', { name: 'Xem chi tiết cuộc thi' })).toHaveAttribute(
+      'href',
+      '/cuoc-thi/dang-dien-ra',
+    );
+    expect(spotlight.compareDocumentPosition(screen.getByRole('region', { name: /đang diễn ra/i })))
+      .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('preserves the public layout while loading and gives an explicit empty state', async () => {
+    let resolveCompetitions!: (value: { status: string; data: PublicCompetitionSummaryDto[] }) => void;
+    mocks.callApi.mockReturnValue(new Promise(resolve => { resolveCompetitions = resolve; }));
+
+    renderIndex();
+
+    expect(screen.getByRole('status', { name: 'Đang tải danh sách cuộc thi' })).toBeInTheDocument();
+    expect(screen.getAllByTestId('competition-index-skeleton')).toHaveLength(3);
+
+    resolveCompetitions({ status: 'success', data: [] });
+    expect(await screen.findByRole('heading', { name: 'Chưa có cuộc thi công khai' })).toBeInTheDocument();
+    expect(screen.getByText('Em hãy quay lại sau để xem các sân chơi mới.')).toBeInTheDocument();
   });
 
   it('renders the six-round journey and public entry points with canonical student CTAs', async () => {

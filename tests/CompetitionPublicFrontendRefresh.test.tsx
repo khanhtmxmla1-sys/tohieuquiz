@@ -144,6 +144,7 @@ describe('Competition public frontend refresh', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: campaign.title })).toBeInTheDocument();
     const navigation = screen.getByRole('navigation', { name: 'Khám phá cuộc thi' });
+    expect(screen.getByRole('link', { name: 'Chi tiết cuộc thi' })).toHaveAttribute('aria-current', 'page');
     expect(within(navigation).getByRole('link', { name: 'Lịch thi' })).toHaveAttribute('href', '#lich-thi');
     expect(within(navigation).getByRole('link', { name: 'Tin mới' })).toHaveAttribute('href', '#tin-tuc');
     expect(screen.getByRole('heading', { name: 'Lịch thi' })).toBeInTheDocument();

@@ -60,6 +60,27 @@ const buildRepresentativeRounds = (campaign?: PublicCompetitionSummaryDto): Publ
   }));
 };
 
+const CompetitionIndexSkeleton = () => (
+  <section aria-label="Đang tải danh sách cuộc thi" className="space-y-6">
+    <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+      <div data-testid="competition-index-skeleton" className="h-56 animate-pulse rounded-[2rem] border border-blue-100 bg-white p-7 shadow-sm" aria-hidden="true">
+        <div className="h-4 w-32 rounded-full bg-blue-100" />
+        <div className="mt-6 h-8 w-4/5 rounded-lg bg-slate-100" />
+        <div className="mt-4 h-4 w-3/5 rounded-lg bg-slate-100" />
+        <div className="mt-10 h-11 w-36 rounded-xl bg-blue-100" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+        {[1, 2].map(index => (
+          <div key={index} data-testid="competition-index-skeleton" className="h-24 animate-pulse rounded-2xl border border-blue-100 bg-white p-5 shadow-sm" aria-hidden="true">
+            <div className="h-4 w-2/5 rounded-full bg-blue-100" />
+            <div className="mt-4 h-5 w-4/5 rounded-lg bg-slate-100" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+);
+
 const CompetitionIndexView = ({ items, loading, failed, onRetry }: CompetitionIndexViewProps) => {
   const grouped = {
     ONGOING: items.filter((item) => item.publicState === 'ONGOING'),
@@ -135,9 +156,12 @@ const CompetitionIndexView = ({ items, loading, failed, onRetry }: CompetitionIn
 
       <div className="mx-auto max-w-7xl space-y-16 px-4 py-14 sm:px-6 lg:px-8">
         {loading && (
-          <p role="status" aria-live="polite" className="rounded-3xl border border-blue-100 bg-white p-8 text-center font-semibold text-slate-600 shadow-sm">
-            Đang tải danh sách cuộc thi…
-          </p>
+          <div className="space-y-4">
+            <p role="status" aria-live="polite" aria-label="Đang tải danh sách cuộc thi" className="sr-only">
+              Đang tải danh sách cuộc thi
+            </p>
+            <CompetitionIndexSkeleton />
+          </div>
         )}
         {failed && (
           <section role="alert" className="rounded-3xl border border-rose-200 bg-white p-8 text-center shadow-sm">
@@ -160,6 +184,62 @@ const CompetitionIndexView = ({ items, loading, failed, onRetry }: CompetitionIn
               <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Khám phá cuộc thi</h2>
               <p className="mt-3 text-lg leading-8 text-slate-600">Chọn một sân chơi phù hợp, xem đầy đủ thông tin và bắt đầu khi em đã sẵn sàng.</p>
             </div>
+
+            {featured && (
+              <section aria-label="Cuộc thi nổi bật" className="relative isolate overflow-hidden rounded-[2rem] border border-blue-200 bg-[var(--competition-surface-raised)] shadow-[var(--competition-shadow-card)]">
+                <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-blue-600 via-cyan-500 to-amber-400" aria-hidden="true" />
+                <div className="grid gap-8 p-7 sm:p-9 lg:grid-cols-[1.2fr_0.8fr] lg:p-10">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <SectionEyebrow>Đang được quan tâm</SectionEyebrow>
+                      <PublicStateBadge state={featured.publicState} />
+                    </div>
+                    <h3 id="featured-competition-title" className="mt-4 max-w-2xl text-3xl font-black leading-tight text-slate-950 sm:text-4xl">
+                      {featured.title}
+                    </h3>
+                    <p className="mt-3 text-lg font-bold text-blue-700">{featured.hero.title}</p>
+                    <p className="mt-3 max-w-2xl leading-7 text-slate-600">{featured.summary}</p>
+                    <div className="mt-7 flex flex-wrap gap-3">
+                      <Link
+                        to={`/thi/${encodeURIComponent(featured.slug)}`}
+                        className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-blue-700 px-6 py-3 font-black text-white shadow-lg shadow-blue-900/15 transition hover:-translate-y-0.5 hover:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 motion-reduce:transform-none"
+                      >
+                        VÀO THI
+                        <ArrowRight className="size-5" aria-hidden="true" />
+                      </Link>
+                      <Link
+                        to={`/cuoc-thi/${encodeURIComponent(featured.slug)}`}
+                        className="inline-flex min-h-12 items-center gap-2 rounded-2xl border border-blue-200 px-6 py-3 font-black text-blue-700 transition hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                      >
+                        Xem chi tiết cuộc thi
+                        <ChevronRight className="size-5" aria-hidden="true" />
+                      </Link>
+                    </div>
+                  </div>
+                  <dl className="grid gap-3 self-end sm:grid-cols-2 lg:grid-cols-1">
+                    <div className="rounded-2xl bg-blue-50 p-5">
+                      <dt className="text-xs font-black uppercase tracking-[0.16em] text-blue-700">Năm học</dt>
+                      <dd className="mt-2 text-xl font-black text-slate-950">{featured.schoolYear}</dd>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-5">
+                      <dt className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">Thời gian</dt>
+                      <dd className="mt-2 text-sm font-bold leading-6 text-slate-800">
+                        <time dateTime={featured.startsAt}>{formatPublicDateTime(featured.startsAt)}</time>
+                        <span className="mx-1 text-slate-400">→</span>
+                        <time dateTime={featured.endsAt}>{formatPublicDateTime(featured.endsAt)}</time>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
+            )}
+
+            {!featured && (
+              <section aria-labelledby="empty-public-competitions-title" className="rounded-[2rem] border border-dashed border-blue-200 bg-white p-8 text-center shadow-sm sm:p-10">
+                <h3 id="empty-public-competitions-title" className="text-2xl font-black text-slate-950">Chưa có cuộc thi công khai</h3>
+                <p className="mt-3 text-slate-600">Em hãy quay lại sau để xem các sân chơi mới.</p>
+              </section>
+            )}
 
             {groupOrder.map((state) => {
               const campaigns = grouped[state];
@@ -184,14 +264,8 @@ const CompetitionIndexView = ({ items, loading, failed, onRetry }: CompetitionIn
                           <p className="mt-3 flex-1 text-sm leading-7 text-slate-600">{competition.summary}</p>
                           <div className="mt-6 flex flex-wrap gap-2">
                             <Link
-                              to={`/thi/${encodeURIComponent(competition.slug)}`}
-                              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-blue-700 px-4 py-2 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
-                            >
-                              VÀO THI
-                            </Link>
-                            <Link
                               to={`/cuoc-thi/${encodeURIComponent(competition.slug)}`}
-                              className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-blue-200 px-4 py-2 font-bold text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                              className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-xl border border-blue-200 px-4 py-2 font-bold text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
                             >
                               Xem thông tin
                               <ChevronRight className="size-4" aria-hidden="true" />

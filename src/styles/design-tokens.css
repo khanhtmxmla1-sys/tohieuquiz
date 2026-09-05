@@ -12,6 +12,15 @@
   --color-danger: #b91c1c;
   --color-focus: #2563eb;
 
+  --competition-surface-tint: #f6f9ff;
+  --competition-surface-raised: #ffffff;
+  --competition-border-subtle: #dbeafe;
+  --competition-text-soft: #475569;
+  --competition-shadow-card: 0 12px 32px rgb(15 23 42 / 0.08);
+  --competition-shadow-focus: 0 0 0 3px rgb(37 99 235 / 0.35);
+  --competition-motion-fast: 160ms;
+  --competition-motion-standard: 240ms;
+
   --font-sans: "Baloo 2", ui-sans-serif, system-ui, sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
