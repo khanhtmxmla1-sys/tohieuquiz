@@ -8,7 +8,7 @@ Passkeys supplement the existing password login for teacher and administrator ac
 
 - RP ID is fixed to `thtohieu.com`.
 - Production origins are an exact allowlist: `https://thtohieu.com` and `https://www.thtohieu.com`.
-- The Worker uses pinned `@simplewebauthn/server` version 13.3.0. The browser uses pinned `@simplewebauthn/browser` version 13.3.0. No custom CBOR, COSE, signature, authenticator-data, or attestation parser is implemented.
+- The Worker uses pinned `@simplewebauthn/server` version 13.3.3. The browser uses pinned `@simplewebauthn/browser` version 13.3.0. No custom CBOR, COSE, signature, authenticator-data, or attestation parser is implemented.
 - Successful passkey authentication issues the same server-side session record, JWT claims, and HttpOnly cookie as password authentication.
 
 ## Challenge controls
