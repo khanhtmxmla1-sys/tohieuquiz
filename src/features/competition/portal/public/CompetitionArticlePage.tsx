@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router';
 import type { PublicCompetitionArticleDto } from '../../../../../shared/competition-portal.contract';
-import CompetitionMarkdown from './CompetitionMarkdown';
+import CompetitionArticleView from './CompetitionArticleView';
 import CompetitionPublicShell from './CompetitionPublicShell';
 import { publicCompetitionPortalService } from './publicCompetitionPortalService';
 
@@ -58,32 +58,23 @@ const CompetitionArticlePage = () => {
     };
   }, [articleSlug, campaignSlug]);
 
+  if (!loading && !failed && article && campaignSlug) {
+    return <CompetitionArticleView article={article} campaignSlug={campaignSlug} />;
+  }
+
   return (
     <CompetitionPublicShell campaignSlug={campaignSlug}>
-      <div className="mx-auto max-w-4xl space-y-8 px-4 py-10 sm:px-6">
-        {loading && <p role="status" aria-live="polite">Đang tải tin tức…</p>}
-
-        {failed && (
-          <section role="alert" className="rounded-2xl border border-rose-200 bg-white p-6">
-            Không tìm thấy tin tức hoặc tin tức tạm thời chưa khả dụng.
-          </section>
+      <div className="mx-auto max-w-4xl space-y-8 px-4 py-16 sm:px-6">
+        {loading && (
+          <p role="status" aria-live="polite" className="rounded-3xl border border-blue-100 bg-white p-8 text-center font-semibold text-slate-600 shadow-sm">
+            Đang tải tin tức…
+          </p>
         )}
 
-        {!loading && !failed && article && (
-          <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <p className="text-sm font-bold uppercase tracking-wider text-sky-700">{article.type}</p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight">{article.title}</h1>
-            {article.coverImageUrl && (
-              <img
-                className="mt-6 max-h-96 w-full rounded-2xl object-cover"
-                src={article.coverImageUrl}
-                alt={article.title}
-              />
-            )}
-            <div className="mt-8">
-              <CompetitionMarkdown source={article.content} />
-            </div>
-          </article>
+        {failed && (
+          <section role="alert" className="rounded-3xl border border-rose-200 bg-white p-8 text-center text-slate-700 shadow-sm">
+            Không tìm thấy tin tức hoặc tin tức tạm thời chưa khả dụng.
+          </section>
         )}
       </div>
     </CompetitionPublicShell>
