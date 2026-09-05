@@ -17,7 +17,9 @@ const CompetitionPublicShell = ({ children, ctaHref, campaignSlug }: Competition
     ? `/cuoc-thi/${encodeURIComponent(campaignSlug)}`
     : '/cuoc-thi';
   const isIndexRoute = location.pathname === '/cuoc-thi' || location.pathname === '/cuoc-thi/';
-  const isCampaignRoute = Boolean(campaignSlug && location.pathname.startsWith(campaignHref));
+  const isCampaignRoute = Boolean(
+    campaignSlug && (location.pathname === campaignHref || location.pathname === `${campaignHref}/`),
+  );
   const activeLinkClassName = 'bg-blue-50 text-blue-700 shadow-sm shadow-blue-900/5';
   const inactiveLinkClassName = 'text-slate-600 hover:bg-blue-50 hover:text-blue-700';
 

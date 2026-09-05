@@ -166,6 +166,7 @@ describe('Competition public frontend refresh', () => {
     expect(screen.getAllByText('Thể lệ')).not.toHaveLength(0);
     expect(screen.getByText(articles[1].summary!)).toBeInTheDocument();
     expect(screen.getByText('Nội dung bài viết')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Chi tiết cuộc thi' })).not.toHaveAttribute('aria-current');
   });
 
   it('celebrates published winners in a dedicated recognition experience', async () => {

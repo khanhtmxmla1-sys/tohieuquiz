@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const tokenFile = resolve(process.cwd(), 'src/styles/design-tokens.css');
+const servedStylesheet = resolve(process.cwd(), 'styles.css');
 
 const relativeLuminance = (hex: string): number => {
     const channels = hex.replace('#', '').match(/.{2}/g)?.map(value => Number.parseInt(value, 16) / 255) ?? [];
@@ -19,6 +20,10 @@ const contrastRatio = (foreground: string, background: string): number => {
 };
 
 describe('design tokens', () => {
+    it('loads competition tokens from the production-served stylesheet', () => {
+        expect(readFileSync(servedStylesheet, 'utf8')).toContain('@import "./src/styles/design-tokens.css";');
+    });
+
     it('defines semantic color, spacing, radius, elevation and focus tokens', () => {
         const css = readFileSync(tokenFile, 'utf8');
         for (const token of ['--color-brand-primary', '--color-surface', '--color-text', '--space-4', '--radius-lg', '--elevation-2', '--focus-ring']) {
