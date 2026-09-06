@@ -80,6 +80,10 @@ describe('Competition Golden Board page', () => {
       firstAward.textContent?.indexOf(second.fullName) ?? 0,
     );
 
+    const firstWinnerCard = screen.getByText(first.fullName).closest('article');
+    expect(firstWinnerCard).not.toBeNull();
+    expect(within(firstWinnerCard as HTMLElement).queryByText('1')).not.toBeInTheDocument();
+
     expect(screen.queryByText('98765')).not.toBeInTheDocument();
     expect(screen.queryByText('student-internal-1')).not.toBeInTheDocument();
     expect(screen.queryByText('username-internal-1')).not.toBeInTheDocument();

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ArrowRight,
   CalendarDays,
@@ -64,6 +65,7 @@ const getArticleGroupLabel = (type: PublicCompetitionArticleDto['type']): string
 );
 
 const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => {
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
   const articleGroups = publicArticleTypes
     .map((type) => ({
       type,
@@ -71,10 +73,11 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
     }))
     .filter((group) => group.articles.length > 0);
   const rounds = getSixRounds(campaign.rounds);
+  const showHeroImage = Boolean(campaign.hero.imageUrl && !heroImageFailed);
 
   return (
     <CompetitionPublicShell campaignSlug={campaign.slug}>
-      <section className="relative isolate overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-cyan-800 text-white">
+      <section aria-labelledby="campaign-hero-title" className="relative isolate overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-cyan-800 text-white">
         <CompetitionConstellation />
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-20">
           <div>
@@ -82,7 +85,7 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
               <PublicStateBadge state={campaign.publicState} />
               <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-cyan-100">Năm học {campaign.schoolYear}</span>
             </div>
-            <h1 className="mt-6 max-w-4xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">{campaign.title}</h1>
+            <h1 id="campaign-hero-title" className="mt-6 max-w-4xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">{campaign.title}</h1>
             <h2 className="mt-4 text-2xl font-black text-amber-300 sm:text-3xl">{campaign.hero.title}</h2>
             {campaign.hero.subtitle && <p className="mt-3 max-w-2xl text-lg leading-8 text-cyan-100">{campaign.hero.subtitle}</p>}
             <p className="mt-5 max-w-2xl leading-8 text-blue-100/85">{campaign.summary}</p>
@@ -104,16 +107,28 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
           </div>
 
           <div className="relative mx-auto w-full max-w-xl">
-            {campaign.hero.imageUrl ? (
-              <div className="relative overflow-hidden rounded-[2rem] border border-white/20 bg-white/10 p-2 shadow-2xl">
-                <img className="aspect-[4/3] w-full rounded-[1.6rem] object-cover" src={campaign.hero.imageUrl} alt={campaign.hero.title} />
+            {showHeroImage ? (
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] border border-white/20 bg-white/10 p-2 shadow-2xl">
+                <img
+                  className="h-full w-full rounded-[1.6rem] object-cover"
+                  src={campaign.hero.imageUrl}
+                  alt={campaign.hero.title}
+                  width="1200"
+                  height="900"
+                  onError={() => setHeroImageFailed(true)}
+                />
                 <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-blue-950/75 p-4 backdrop-blur-md">
                   <p className="flex items-center gap-2 font-extrabold text-white"><Sparkles className="size-5 text-amber-300" aria-hidden="true" /> Học hỏi · Tự tin · Tỏa sáng</p>
                 </div>
               </div>
             ) : (
-              <div className="flex min-h-80 items-center justify-center rounded-[2rem] border border-white/20 bg-white/10 shadow-2xl backdrop-blur-sm">
+              <div
+                role="img"
+                aria-label={`Hình minh họa ${campaign.hero.title}`}
+                className="flex aspect-[4/3] flex-col items-center justify-center gap-5 rounded-[2rem] border border-white/20 bg-white/10 p-8 text-center shadow-2xl backdrop-blur-sm"
+              >
                 <LearningSeal />
+                <span className="text-sm font-bold text-cyan-100">Học hỏi · Tự tin · Tỏa sáng</span>
               </div>
             )}
           </div>
@@ -140,7 +155,10 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
                     <span className="text-xs font-black uppercase tracking-wider text-blue-600">Vòng {round.roundNumber}</span>
                     <h3 className="mt-1 text-xl font-black text-slate-900">{round.title}</h3>
                   </div>
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-700"><CalendarDays className="size-5" aria-hidden="true" /></span>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-700"><CalendarDays className="size-5" aria-hidden="true" /></span>
+                    <RoundStateBadge state={round.state} />
+                  </div>
                 </div>
                 {round.opensAt && round.closesAt && (
                   <dl className="mt-5 grid gap-3 pl-2 text-sm">

@@ -133,7 +133,10 @@ const CompetitionGoldenBoardView = ({
                     <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-400 text-[#072c66] shadow-sm">
                       <Trophy className="h-6 w-6" aria-hidden="true" />
                     </span>
-                    <h2 id={headingId} className="text-2xl font-black text-[#072c66]">{group.awardLabel}</h2>
+                    <div>
+                      <h2 id={headingId} className="text-2xl font-black text-[#072c66]">{group.awardLabel}</h2>
+                      <p className="mt-1 text-sm font-bold text-amber-900">{group.winners.length} học sinh được vinh danh</p>
+                    </div>
                   </div>
                   <ul className="grid gap-5 p-6 md:grid-cols-2 xl:grid-cols-3 sm:p-8">
                     {group.winners.map((winner, winnerIndex) => (
@@ -141,8 +144,8 @@ const CompetitionGoldenBoardView = ({
                         <article className="group relative h-full overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-white to-blue-50/70 p-6 transition hover:-translate-y-1 hover:shadow-lg">
                           <Star className="absolute -right-3 -top-3 h-20 w-20 rotate-12 text-amber-200/70" fill="currentColor" aria-hidden="true" />
                           <div className="relative">
-                            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#0b62ce] font-black text-white">
-                              {winnerIndex + 1}
+                            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#0b62ce] text-white">
+                              <Award className="h-5 w-5" aria-hidden="true" />
                             </span>
                             <h3 className="mt-5 text-xl font-black text-[#072c66]">{winner.fullName}</h3>
                             <dl className="mt-5 grid gap-3 text-sm text-slate-700">
