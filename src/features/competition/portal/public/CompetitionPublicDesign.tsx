@@ -106,13 +106,14 @@ export const articleTypePresentation: Record<PublicCompetitionArticleDto['type']
 const roundStatePresentation: Record<CompetitionRoundPresentationState, {
   label: string;
   className: string;
+  lightClassName: string;
   icon: LucideIcon;
 }> = {
-  LOCKED: { label: 'Chưa mở', className: 'bg-white/10 text-white/75', icon: LockKeyhole },
-  OPEN: { label: 'Đang mở', className: 'bg-emerald-300/15 text-emerald-100', icon: Sparkles },
-  PASSED: { label: 'Đã vượt qua', className: 'bg-emerald-300/15 text-emerald-100', icon: Trophy },
-  FAILED_RETRY_AVAILABLE: { label: 'Có thể thử lại', className: 'bg-orange-300/15 text-orange-100', icon: Clock3 },
-  CLOSED: { label: 'Đã đóng', className: 'bg-white/10 text-white/70', icon: LockKeyhole },
+  LOCKED: { label: 'Chưa mở', className: 'bg-white/10 text-white/75', lightClassName: 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200', icon: LockKeyhole },
+  OPEN: { label: 'Đang mở', className: 'bg-emerald-300/15 text-emerald-100', lightClassName: 'bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200', icon: Sparkles },
+  PASSED: { label: 'Đã vượt qua', className: 'bg-emerald-300/15 text-emerald-100', lightClassName: 'bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200', icon: Trophy },
+  FAILED_RETRY_AVAILABLE: { label: 'Có thể thử lại', className: 'bg-orange-300/15 text-orange-100', lightClassName: 'bg-orange-100 text-orange-800 ring-1 ring-inset ring-orange-200', icon: Clock3 },
+  CLOSED: { label: 'Đã đóng', className: 'bg-white/10 text-white/70', lightClassName: 'bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200', icon: LockKeyhole },
 };
 
 export const CompetitionBrandMark = ({ inverted = false }: { inverted?: boolean }) => (
@@ -162,11 +163,14 @@ export const PublicStateBadge = ({ state }: { state: CompetitionPublicState }) =
   );
 };
 
-export const RoundStateBadge = ({ state }: { state: CompetitionRoundPresentationState }) => {
+export const RoundStateBadge = ({ state, tone = 'dark' }: {
+  state: CompetitionRoundPresentationState;
+  tone?: 'dark' | 'light';
+}) => {
   const presentation = roundStatePresentation[state];
   const Icon = presentation.icon;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${presentation.className}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${tone === 'light' ? presentation.lightClassName : presentation.className}`}>
       <Icon className="size-3.5" aria-hidden="true" />
       {presentation.label}
     </span>

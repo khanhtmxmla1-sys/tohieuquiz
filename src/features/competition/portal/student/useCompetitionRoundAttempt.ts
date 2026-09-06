@@ -120,6 +120,8 @@ export const useCompetitionRoundAttempt = (campaignId: string, roundId: string) 
   const [error, setError] = useState<string | null>(null);
   const startInFlightRef = useRef(false);
   const submissionInFlightRef = useRef(false);
+  const submittingRef = useRef(false);
+  const protectedUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!active) return;
@@ -143,17 +145,19 @@ export const useCompetitionRoundAttempt = (campaignId: string, roundId: string) 
   }, [active, answers, campaignId, currentPage, roundId]);
 
   useEffect(() => {
-    if (!submitting) return;
-    const protectedUrl = window.location.href;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!submittingRef.current) return;
       event.preventDefault();
       event.returnValue = '';
     };
     const handleDocumentClick = (event: MouseEvent) => {
+      if (!submittingRef.current) return;
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const target = event.target;
       const anchor = target instanceof Element ? target.closest('a[href]') : null;
       if (!(anchor instanceof HTMLAnchorElement)) return;
+      const protectedUrl = protectedUrlRef.current;
+      if (!protectedUrl) return;
       const destination = new URL(anchor.href, window.location.href);
       if (destination.origin !== new URL(protectedUrl).origin) return;
       event.preventDefault();
@@ -161,6 +165,9 @@ export const useCompetitionRoundAttempt = (campaignId: string, roundId: string) 
       event.stopImmediatePropagation();
     };
     const handlePopState = (event: PopStateEvent) => {
+      if (!submittingRef.current) return;
+      const protectedUrl = protectedUrlRef.current;
+      if (!protectedUrl) return;
       event.preventDefault();
       window.history.pushState(null, '', protectedUrl);
     };
@@ -172,7 +179,7 @@ export const useCompetitionRoundAttempt = (campaignId: string, roundId: string) 
       document.removeEventListener('click', handleDocumentClick, true);
       window.removeEventListener('popstate', handlePopState, true);
     };
-  }, [submitting]);
+  }, []);
 
   const start = useCallback(async () => {
     if (pending || active || startInFlightRef.current) return;
@@ -245,6 +252,8 @@ export const useCompetitionRoundAttempt = (campaignId: string, roundId: string) 
   const submit = useCallback(async () => {
     if (!active || pending || submissionInFlightRef.current) return;
     submissionInFlightRef.current = true;
+    submittingRef.current = true;
+    protectedUrlRef.current = window.location.href;
     setPending(true);
     setSubmitting(true);
     setError(null);
@@ -271,6 +280,8 @@ export const useCompetitionRoundAttempt = (campaignId: string, roundId: string) 
       setError('Không thể nộp bài. Đáp án vẫn được giữ để em thử lại.');
     } finally {
       submissionInFlightRef.current = false;
+      submittingRef.current = false;
+      protectedUrlRef.current = null;
       setSubmitting(false);
       setPending(false);
     }

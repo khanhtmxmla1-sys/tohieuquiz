@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ArrowLeft, CalendarDays, ChevronRight, Clock3, Share2 } from 'lucide-react';
 import { Link } from 'react-router';
 import type { PublicCompetitionArticleDto } from '../../../../../shared/competition-portal.contract';
@@ -18,6 +19,8 @@ const formatPublishedAt = (value: string): string => formatSystemDateTimeWithOpt
 const CompetitionArticleView = ({ article, campaignSlug }: CompetitionArticleViewProps) => {
   const presentation = articleTypePresentation[article.type];
   const campaignHref = `/cuoc-thi/${encodeURIComponent(campaignSlug)}`;
+  const [coverImageFailed, setCoverImageFailed] = useState(false);
+  const showCoverImage = Boolean(article.coverImageUrl && !coverImageFailed);
 
   return (
     <CompetitionPublicShell campaignSlug={campaignSlug}>
@@ -49,16 +52,33 @@ const CompetitionArticleView = ({ article, campaignSlug }: CompetitionArticleVie
             </div>
           </header>
 
-          {article.coverImageUrl && (
-            <div className="px-6 pt-6 sm:px-10">
-              <img className="max-h-[32rem] w-full rounded-3xl object-cover" src={article.coverImageUrl} alt={article.title} />
-            </div>
-          )}
+          <div className="px-6 pt-6 sm:px-10">
+            {showCoverImage ? (
+              <img
+                className="aspect-[16/9] w-full rounded-3xl object-cover"
+                src={article.coverImageUrl}
+                alt={article.title}
+                width="1200"
+                height="675"
+                onError={() => setCoverImageFailed(true)}
+              />
+            ) : (
+              <div
+                role="img"
+                aria-label={`Hình minh họa bài viết ${article.title}`}
+                className="flex aspect-[16/9] items-center justify-center rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-100 via-white to-cyan-100"
+              >
+                <span className="rounded-2xl border border-white/80 bg-white/75 px-5 py-3 text-center text-sm font-extrabold text-blue-900 shadow-sm">
+                  Hình minh họa bài viết
+                </span>
+              </div>
+            )}
+          </div>
 
           <div className="px-6 py-8 sm:px-10 sm:py-10">
             <h2 className="mb-6 text-2xl font-black text-slate-950">Nội dung bài viết</h2>
-            <div className="max-w-none text-base leading-8 text-slate-700 sm:text-lg">
-              <CompetitionMarkdown source={article.content} />
+            <div className="max-w-[70ch] text-base leading-8 text-slate-700 sm:text-lg">
+              <CompetitionMarkdown source={article.content} headingLevelOffset={1} />
             </div>
           </div>
         </article>

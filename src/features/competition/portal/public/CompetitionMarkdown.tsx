@@ -7,6 +7,7 @@ import {
 
 interface CompetitionMarkdownProps {
   source: string;
+  headingLevelOffset?: number;
 }
 
 type MarkdownBlock =
@@ -184,15 +185,16 @@ const renderInline = (source: string, wrapPlainText = true): ReactNode[] => {
   return nodes;
 };
 
-const renderBlock = (block: MarkdownBlock, index: number): ReactNode => {
+const renderBlock = (block: MarkdownBlock, index: number, headingLevelOffset: number): ReactNode => {
   switch (block.kind) {
     case 'heading': {
       const content = renderInline(block.text);
-      if (block.level === 1) return <h1 key={index}>{content}</h1>;
-      if (block.level === 2) return <h2 key={index}>{content}</h2>;
-      if (block.level === 3) return <h3 key={index}>{content}</h3>;
-      if (block.level === 4) return <h4 key={index}>{content}</h4>;
-      if (block.level === 5) return <h5 key={index}>{content}</h5>;
+      const level = Math.min(6, Math.max(1, block.level + headingLevelOffset));
+      if (level === 1) return <h1 key={index}>{content}</h1>;
+      if (level === 2) return <h2 key={index}>{content}</h2>;
+      if (level === 3) return <h3 key={index}>{content}</h3>;
+      if (level === 4) return <h4 key={index}>{content}</h4>;
+      if (level === 5) return <h5 key={index}>{content}</h5>;
       return <h6 key={index}>{content}</h6>;
     }
     case 'unordered':
@@ -214,9 +216,9 @@ const renderBlock = (block: MarkdownBlock, index: number): ReactNode => {
   }
 };
 
-const CompetitionMarkdown = ({ source }: CompetitionMarkdownProps) => (
+const CompetitionMarkdown = ({ source, headingLevelOffset = 0 }: CompetitionMarkdownProps) => (
   <div className="competition-markdown space-y-4">
-    {parseBlocks(source).map(renderBlock)}
+    {parseBlocks(source).map((block, index) => renderBlock(block, index, headingLevelOffset))}
   </div>
 );
 

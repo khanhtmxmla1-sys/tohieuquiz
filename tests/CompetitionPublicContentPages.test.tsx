@@ -103,10 +103,18 @@ describe('Competition public content pages', () => {
     expect(screen.getByRole('heading', { level: 2, name: campaign.hero.title })).toBeInTheDocument();
     expect(screen.getByText(campaign.hero.subtitle)).toBeInTheDocument();
     expect(screen.getByText(campaign.summary)).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Chinh phục tri thức' })).toHaveAttribute('src', campaign.hero.imageUrl);
+    expect(screen.getByRole('img', { name: 'Chinh phục tri thức' }))
+      .toHaveAttribute('src', campaign.hero.imageUrl);
+    expect(screen.getByRole('img', { name: 'Chinh phục tri thức' }))
+      .toHaveAttribute('width', '1200');
+    expect(screen.getByRole('img', { name: 'Chinh phục tri thức' }))
+      .toHaveAttribute('height', '900');
 
     const journey = screen.getByRole('region', { name: /hành trình 6 vòng/i });
     expect(within(journey).getAllByRole('listitem')).toHaveLength(6);
+
+    const schedule = screen.getByRole('region', { name: 'Lịch thi', exact: true });
+    expect(within(schedule).getAllByText('Chưa mở')[0]).toHaveClass('bg-slate-100', 'text-slate-700');
 
     expect(screen.getByRole('link', { name: 'VÀO THI' })).toHaveAttribute('href', '/thi/san-choi-2026');
     expect(screen.getByRole('link', { name: /bảng vàng/i })).toHaveAttribute(
@@ -123,6 +131,29 @@ describe('Competition public content pages', () => {
     );
     expect(screen.queryByText(/studentId|attempt|reconcile|incident/i)).not.toBeInTheDocument();
     expect(mocks.getCompetition).toHaveBeenCalledWith('san-choi-2026');
+  });
+
+  it('uses a meaningful stable hero fallback when campaign media is unavailable', async () => {
+    const campaignWithoutImage = {
+      ...campaign,
+      hero: { ...campaign.hero, imageUrl: undefined },
+    };
+    mocks.getCompetition.mockResolvedValue(campaignWithoutImage);
+
+    renderCampaign(campaignWithoutImage);
+
+    expect(await screen.findByRole('heading', { level: 1, name: campaign.title })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Hình minh họa Chinh phục tri thức' })).toBeInTheDocument();
+  });
+
+  it('switches to the hero fallback when campaign media fails to load', async () => {
+    renderCampaign();
+
+    const heroImage = await screen.findByRole('img', { name: campaign.hero.title });
+    fireEvent.error(heroImage);
+
+    expect(screen.getByRole('img', { name: `Hình minh họa ${campaign.hero.title}` })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: campaign.hero.title })).not.toBeInTheDocument();
   });
 
   it('shows the Golden Board CTA only when the public availability flag is true', async () => {
@@ -180,12 +211,40 @@ describe('Competition public content pages', () => {
 
     renderArticle(article);
 
-    expect(await screen.findByRole('heading', { name: 'Thể lệ cuộc thi' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Thể lệ cuộc thi' })).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+    expect(screen.getByRole('heading', { level: 2, name: 'Thể lệ' })).toBeInTheDocument();
     expect(screen.getByText('RULES')).toBeInTheDocument();
     expect(screen.getByText('Nội dung')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: article.title }))
+      .toHaveAttribute('width', '1200');
+    expect(screen.getByRole('img', { name: article.title }))
+      .toHaveAttribute('height', '675');
     expect(screen.getByRole('link', { name: 'quy định' })).toHaveAttribute('href', 'https://example.edu/rules');
     expect(screen.getByRole('link', { name: 'quy định' })).toHaveAttribute('rel', 'noopener noreferrer');
     expect(mocks.getArticle).toHaveBeenCalledWith('san-choi-2026', 'the-le');
+  });
+
+  it('renders a stable, meaningful cover fallback when an article has no image', async () => {
+    const articleWithoutCover = { ...campaign.articles[1], coverImageUrl: undefined };
+    mocks.getArticle.mockResolvedValue(articleWithoutCover);
+
+    renderArticle(articleWithoutCover);
+
+    expect(await screen.findByRole('heading', { level: 1, name: articleWithoutCover.title })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: `Hình minh họa bài viết ${articleWithoutCover.title}` }))
+      .toBeInTheDocument();
+  });
+
+  it('switches to the article cover fallback when media fails to load', async () => {
+    renderArticle();
+
+    const coverImage = await screen.findByRole('img', { name: campaign.articles[1].title });
+    fireEvent.error(coverImage);
+
+    expect(screen.getByRole('img', { name: `Hình minh họa bài viết ${campaign.articles[1].title}` }))
+      .toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: campaign.articles[1].title })).not.toBeInTheDocument();
   });
 
   it('uses a friendly non-diagnostic state for missing or unavailable articles', async () => {
