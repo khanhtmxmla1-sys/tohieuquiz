@@ -157,7 +157,7 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
                     <span className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-700"><CalendarDays className="size-5" aria-hidden="true" /></span>
-                    <RoundStateBadge state={round.state} />
+                    <RoundStateBadge state={round.state} tone="light" />
                   </div>
                 </div>
                 {round.opensAt && round.closesAt && (

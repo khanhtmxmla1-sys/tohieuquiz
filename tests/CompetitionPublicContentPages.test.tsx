@@ -113,6 +113,9 @@ describe('Competition public content pages', () => {
     const journey = screen.getByRole('region', { name: /hành trình 6 vòng/i });
     expect(within(journey).getAllByRole('listitem')).toHaveLength(6);
 
+    const schedule = screen.getByRole('region', { name: 'Lịch thi', exact: true });
+    expect(within(schedule).getAllByText('Chưa mở')[0]).toHaveClass('bg-slate-100', 'text-slate-700');
+
     expect(screen.getByRole('link', { name: 'VÀO THI' })).toHaveAttribute('href', '/thi/san-choi-2026');
     expect(screen.getByRole('link', { name: /bảng vàng/i })).toHaveAttribute(
       'href',
