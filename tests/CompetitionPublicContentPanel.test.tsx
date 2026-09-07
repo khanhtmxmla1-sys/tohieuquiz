@@ -176,6 +176,7 @@ describe('CompetitionPublicContentPanel', () => {
     rejectPublish(new Error('raw server detail'));
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Không thể công bố bài viết.'));
     expect(screen.getByRole('alert')).not.toHaveTextContent('raw server detail');
+    expect(screen.queryByRole('dialog', { name: 'Xác nhận công bố bài viết' })).not.toBeInTheDocument();
     expect(content).toHaveValue('Nội dung thể lệ');
   });
 

@@ -179,6 +179,7 @@ const CompetitionArticleManager: React.FC<CompetitionArticleManagerProps> = ({ c
       setMessage(action === 'publish' ? 'Đã công bố bài viết.' : 'Đã lưu trữ bài viết.');
       setConfirmAction(null);
     } catch (actionError) {
+      setConfirmAction(null);
       setError(articleActionErrorMessage(actionError, action));
     } finally {
       setPending(null);
