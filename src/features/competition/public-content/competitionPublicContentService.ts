@@ -80,6 +80,28 @@ export const competitionPublicContentService = {
     return response.article;
   },
 
+  async publishArticle(
+    campaignId: string,
+    articleId: string,
+    requestId: string,
+  ): Promise<StaffCompetitionArticleDto> {
+    const response = await callApi<{ article: StaffCompetitionArticleDto }>(
+      'publish_competition_article', { campaignId, articleId, requestId },
+    );
+    return response.article;
+  },
+
+  async archiveArticle(
+    campaignId: string,
+    articleId: string,
+    requestId: string,
+  ): Promise<StaffCompetitionArticleDto> {
+    const response = await callApi<{ article: StaffCompetitionArticleDto }>(
+      'archive_competition_article', { campaignId, articleId, requestId },
+    );
+    return response.article;
+  },
+
   async deleteArticle(campaignId: string, articleId: string, requestId: string): Promise<StaffCompetitionArticleDto | null> {
     const response = await callApi<{ article: StaffCompetitionArticleDto | null }>(
       'delete_competition_article', { campaignId, articleId, requestId },

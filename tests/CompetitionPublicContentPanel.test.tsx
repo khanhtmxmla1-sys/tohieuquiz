@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../src/services/api/errors';
 import CompetitionPublicContentPanel from '../src/features/competition/public-content/CompetitionPublicContentPanel';
 
 const service = vi.hoisted(() => ({
@@ -13,6 +14,8 @@ const service = vi.hoisted(() => ({
   getArticle: vi.fn(),
   createArticle: vi.fn(),
   updateArticle: vi.fn(),
+  publishArticle: vi.fn(),
+  archiveArticle: vi.fn(),
   deleteArticle: vi.fn(),
   getGoldenBoardConfig: vi.fn(),
   updateGoldenBoardConfig: vi.fn(),
@@ -77,6 +80,8 @@ describe('CompetitionPublicContentPanel', () => {
     service.archivePublicPage.mockResolvedValue(page('ARCHIVED'));
     service.createArticle.mockResolvedValue(article);
     service.updateArticle.mockResolvedValue(article);
+    service.publishArticle.mockResolvedValue({ ...article, status: 'PUBLISHED', publishedAt: '2026-08-02T00:00:00.000Z' });
+    service.archiveArticle.mockResolvedValue({ ...article, status: 'ARCHIVED', publishedAt: '2026-08-02T00:00:00.000Z' });
     service.updateGoldenBoardConfig.mockResolvedValue(config);
     service.createAwardRuleVersion.mockResolvedValue(awardRuleVersion);
     service.activateAwardRuleVersion.mockResolvedValue({ ...awardRuleVersion, status: 'ACTIVE' });
@@ -91,6 +96,7 @@ describe('CompetitionPublicContentPanel', () => {
     expect(screen.queryByRole('button', { name: 'Lưu trang công khai' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Xem trước trang công khai' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Công bố trang công khai' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Công bố bài viết' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/winner|mã học sinh|student/i)).not.toBeInTheDocument();
   });
 
@@ -112,6 +118,80 @@ describe('CompetitionPublicContentPanel', () => {
       campaignId: 'campaign-1', title: 'Hướng dẫn tham gia', slug: 'huong-dan',
       content: 'Các bước tham gia', status: 'DRAFT', requestId: expect.any(String),
     })));
+  });
+
+  it('publishes a draft article only after confirmation and archives the published article', async () => {
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Công bố bài viết' }));
+    expect(await screen.findByRole('dialog', { name: 'Xác nhận công bố bài viết' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Hủy' }));
+    expect(service.publishArticle).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Công bố bài viết' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận công bố bài viết' }));
+    await waitFor(() => expect(service.publishArticle).toHaveBeenCalledWith(
+      'campaign-1', 'article-1', expect.any(String),
+    ));
+    expect(await screen.findByRole('button', { name: 'Lưu trữ bài viết' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu trữ bài viết' }));
+    expect(await screen.findByRole('dialog', { name: 'Xác nhận lưu trữ bài viết' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận lưu trữ bài viết' }));
+    await waitFor(() => expect(service.archiveArticle).toHaveBeenCalledWith(
+      'campaign-1', 'article-1', expect.any(String),
+    ));
+    expect(await screen.findByText(/ARCHIVED/)).toBeInTheDocument();
+  });
+
+  it('blocks publishing a draft with unsaved changes and tells Admin to save first', async () => {
+    renderPanel();
+
+    const content = await screen.findByLabelText(/Nội dung bài viết .*article-1/);
+    fireEvent.change(content, { target: { value: 'Nội dung chưa lưu' } });
+
+    expect(await screen.findByText('Lưu bài viết trước khi công bố.')).toBeInTheDocument();
+    const publishButton = screen.getByRole('button', { name: 'Công bố bài viết' });
+    expect(publishButton).toBeDisabled();
+    fireEvent.click(publishButton);
+    expect(service.publishArticle).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: 'Xác nhận công bố bài viết' })).not.toBeInTheDocument();
+  });
+
+  it('keeps saved content after a failed publish and prevents duplicate pending requests', async () => {
+    let rejectPublish!: (error: unknown) => void;
+    service.publishArticle.mockReturnValue(new Promise((_, reject) => { rejectPublish = reject; }));
+    renderPanel();
+
+    const content = await screen.findByLabelText(/Nội dung bài viết .*article-1/);
+    fireEvent.click(screen.getByRole('button', { name: 'Công bố bài viết' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận công bố bài viết' }));
+    await waitFor(() => expect(service.publishArticle).toHaveBeenCalledTimes(1));
+
+    const confirmButton = screen.getByRole('button', { name: 'Xác nhận công bố bài viết' });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.click(confirmButton);
+    expect(service.publishArticle).toHaveBeenCalledTimes(1);
+
+    rejectPublish(new Error('raw server detail'));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Không thể công bố bài viết.'));
+    expect(screen.getByRole('alert')).not.toHaveTextContent('raw server detail');
+    expect(content).toHaveValue('Nội dung thể lệ');
+  });
+
+  it.each([
+    ['gate', new ApiError('raw gate detail', 503, 'COMPETITION_PORTAL_FEATURE_DISABLED'), 'Tính năng công bố bài viết đang tạm thời chưa khả dụng.'],
+    ['permission', new ApiError('raw permission detail', 403, 'FORBIDDEN'), 'Bạn không có quyền công bố bài viết.'],
+    ['payload', new ApiError('raw payload detail', 400, 'COMPETITION_ARTICLE_NOT_READY'), 'Bài viết chưa đủ điều kiện công bố.'],
+    ['conflict', new ApiError('raw conflict detail', 409, 'COMPETITION_ARTICLE_STALE_WRITE'), 'Bài viết đã thay đổi. Hãy tải lại danh sách rồi thử lại.'],
+  ])('shows a safe %s error for article publishing', async (_kind, error, expectedMessage) => {
+    service.publishArticle.mockRejectedValue(error);
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Công bố bài viết' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận công bố bài viết' }));
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(expectedMessage));
+    expect(screen.getByRole('alert')).not.toHaveTextContent(/raw (gate|permission|payload|conflict) detail/);
   });
 
   it('previews staff-only and requires confirmation before publishing or archiving', async () => {
