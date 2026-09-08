@@ -545,6 +545,32 @@ describe('anonymous Competition public routes', () => {
     expect(prepareCount).toBeLessThanOrEqual(6);
   });
 
+  it('continues bounded projection pages after runtime-invalid rows to retain later valid rows', async () => {
+    for (let index = 0; index < 101; index += 1) {
+      seedCampaign(
+        `campaign-runtime-invalid-${index}`,
+        `aaa_invalid_${String(index).padStart(3, '0')}`,
+        'PUBLISHED',
+        'DRAFT',
+      );
+    }
+
+    const req = request('/api/public/competitions');
+    const response = await handlePublicCompetitionRoutes(
+      req,
+      env as any,
+      new URL(req.url).pathname,
+      req.method,
+      { now: () => new Date(NOW) },
+    );
+
+    expect(response!.status).toBe(200);
+    const body = await response!.json() as any;
+    expect(body.data.some((item: any) => item.slug === 'published-competition')).toBe(true);
+    expect(body.data.every((item: any) => !item.slug.includes('_'))).toBe(true);
+    expect(body.data).toHaveLength(1);
+  });
+
   it('keeps a round query outage as a sanitized 500 instead of treating it as invalid projection data', async () => {
     const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() };
     const failingRoundsDb = {

@@ -28,6 +28,7 @@ import { getRequestId, logStructured, type StructuredLogSink } from '../../utils
 const PUBLIC_PREFIX = '/api/public/competitions';
 const CACHE_SECONDS = 60;
 const MAX_PUBLIC_COMPETITIONS = 100;
+const MAX_PUBLIC_PROJECTION_SCAN = MAX_PUBLIC_COMPETITIONS * 10;
 
 class PublicCompetitionProjectionValidationError extends Error {
   constructor() {
@@ -265,36 +266,45 @@ export async function handlePublicCompetitionRoutes(
   try {
     if (path === PUBLIC_PREFIX) {
       const goldenBoardEnabled = await isCompetitionGoldenBoardEnabled(env.DB);
-      const rows = await listPublishedPublicPageProjections(env.DB, {
-        limit: MAX_PUBLIC_COMPETITIONS,
-        requireCompleteRounds: true,
-        requireStructurallyValid: true,
-      });
-      const roundsByCampaign = await publicRoundsByCampaign(
-        env.DB,
-        rows.map((row) => row.campaignId),
-        now,
-      );
       const projected: Array<{
         row: PublishedCompetitionPublicPageProjection;
         summary: PublicCompetitionSummaryDto;
       }> = [];
-      for (const row of rows) {
-        try {
-          projected.push({
-            row,
-            summary: await toSummary(
-              env.DB,
+      let offset = 0;
+      while (projected.length < MAX_PUBLIC_COMPETITIONS && offset < MAX_PUBLIC_PROJECTION_SCAN) {
+        const pageLimit = Math.min(MAX_PUBLIC_COMPETITIONS, MAX_PUBLIC_PROJECTION_SCAN - offset);
+        const rows = await listPublishedPublicPageProjections(env.DB, {
+          limit: pageLimit,
+          offset,
+          requireCompleteRounds: true,
+          requireStructurallyValid: true,
+        });
+        if (rows.length === 0) break;
+        offset += rows.length;
+
+        const roundsByCampaign = await publicRoundsByCampaign(
+          env.DB,
+          rows.map((row) => row.campaignId),
+          now,
+        );
+        for (const row of rows) {
+          try {
+            projected.push({
               row,
-              now,
-              goldenBoardEnabled,
-              roundsByCampaign.get(row.campaignId),
-            ),
-          });
-        } catch (error) {
-          if (!isPublicCompetitionProjectionValidationError(error)) throw error;
-          logSkippedPublicProjection(request, row.slug, options);
+              summary: await toSummary(
+                env.DB,
+                row,
+                now,
+                goldenBoardEnabled,
+                roundsByCampaign.get(row.campaignId),
+              ),
+            });
+          } catch (error) {
+            if (!isPublicCompetitionProjectionValidationError(error)) throw error;
+            logSkippedPublicProjection(request, row.slug, options);
+          }
         }
+        if (rows.length < pageLimit) break;
       }
       const visible = projected.slice(0, MAX_PUBLIC_COMPETITIONS);
       return cacheableJson(
