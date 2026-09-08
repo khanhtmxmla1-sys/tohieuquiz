@@ -124,15 +124,22 @@ function mapPublishedProjection(
 
 export async function listPublishedPublicPageProjections(
   db: D1Database,
+  options: { limit?: number; offset?: number } = {},
 ): Promise<PublishedCompetitionPublicPageProjection[]> {
+  const limit = Number.isInteger(options.limit) && options.limit! > 0
+    ? Math.min(options.limit!, 100)
+    : 100;
+  const offset = Number.isInteger(options.offset) && options.offset! >= 0
+    ? options.offset!
+    : 0;
   const result = await db.prepare(`
     SELECT ${PUBLISHED_PROJECTION_COLUMNS}
     FROM competition_public_pages AS page
     INNER JOIN competition_campaigns AS campaign ON campaign.id = page.campaign_id
     WHERE page.status = 'PUBLISHED' AND page.published_at IS NOT NULL
     ORDER BY page.published_at DESC, page.slug ASC
-    LIMIT 100
-  `).all<PublishedCompetitionPublicPageProjectionRow>();
+    LIMIT ? OFFSET ?
+  `).bind(limit, offset).all<PublishedCompetitionPublicPageProjectionRow>();
   return (result.results || []).map(mapPublishedProjection);
 }
 

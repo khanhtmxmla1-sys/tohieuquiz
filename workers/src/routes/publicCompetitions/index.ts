@@ -22,10 +22,18 @@ import {
 } from '../../competition/publicPageService';
 import type { Env } from '../../types';
 import { internalErrorResponse } from '../../utils/internalError';
-import type { StructuredLogSink } from '../../utils/logger';
+import { getRequestId, logStructured, type StructuredLogSink } from '../../utils/logger';
 
 const PUBLIC_PREFIX = '/api/public/competitions';
 const CACHE_SECONDS = 60;
+const MAX_PUBLIC_COMPETITIONS = 100;
+
+class PublicCompetitionProjectionValidationError extends Error {
+  constructor() {
+    super('COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID');
+    this.name = 'PublicCompetitionProjectionValidationError';
+  }
+}
 
 interface PublicRoundRow {
   round_number: number;
@@ -118,7 +126,7 @@ async function toSummary(
     goldenBoardAvailable: goldenBoardEnabled && row.goldenBoardAvailable,
   };
   const parsed = PublicCompetitionSummaryDtoSchema.safeParse(candidate);
-  if (!parsed.success) throw new Error('COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID');
+  if (!parsed.success) throw new PublicCompetitionProjectionValidationError();
   return parsed.data;
 }
 
@@ -184,6 +192,28 @@ function isExpectedGoldenBoardUnavailable(error: unknown): boolean {
     );
 }
 
+function isPublicCompetitionProjectionValidationError(
+  error: unknown,
+): error is PublicCompetitionProjectionValidationError {
+  return error instanceof PublicCompetitionProjectionValidationError;
+}
+
+function logSkippedPublicProjection(
+  request: Request,
+  slug: string,
+  options: PublicCompetitionRouteOptions,
+): void {
+  if (!options.logger) return;
+  logStructured('warn', {
+    event: 'competition_public_projection_skipped',
+    requestId: getRequestId(request),
+    route: `${PUBLIC_PREFIX}/${slug}`,
+    method: request.method,
+    errorCode: 'COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID',
+    context: 'Competition public API',
+  }, options.logger);
+}
+
 export async function handlePublicCompetitionRoutes(
   request: Request,
   env: Env,
@@ -199,13 +229,38 @@ export async function handlePublicCompetitionRoutes(
   const now = options.now?.() || new Date();
   try {
     if (path === PUBLIC_PREFIX) {
-      const rows = await listPublishedPublicPageProjections(env.DB);
       const goldenBoardEnabled = await isCompetitionGoldenBoardEnabled(env.DB);
-      const items: PublicCompetitionSummaryDto[] = [];
-      for (const row of rows) {
-        items.push(await toSummary(env.DB, row, now, goldenBoardEnabled));
+      const projected: Array<{
+        row: PublishedCompetitionPublicPageProjection;
+        summary: PublicCompetitionSummaryDto;
+      }> = [];
+      let offset = 0;
+      while (projected.length < MAX_PUBLIC_COMPETITIONS) {
+        const rows = await listPublishedPublicPageProjections(env.DB, {
+          limit: MAX_PUBLIC_COMPETITIONS,
+          offset,
+        });
+        if (rows.length === 0) break;
+        for (const row of rows) {
+          try {
+            projected.push({
+              row,
+              summary: await toSummary(env.DB, row, now, goldenBoardEnabled),
+            });
+          } catch (error) {
+            if (!isPublicCompetitionProjectionValidationError(error)) throw error;
+            logSkippedPublicProjection(request, row.slug, options);
+          }
+        }
+        offset += rows.length;
+        if (rows.length < MAX_PUBLIC_COMPETITIONS) break;
       }
-      return cacheableJson(request, items, latestTimestamp(rows.map((row) => row.updatedAt)));
+      const visible = projected.slice(0, MAX_PUBLIC_COMPETITIONS);
+      return cacheableJson(
+        request,
+        visible.map(({ summary }) => summary),
+        latestTimestamp(visible.map(({ row }) => row.updatedAt)),
+      );
     }
 
     const articleMatch = path.match(/^\/api\/public\/competitions\/([^/]+)\/articles\/([^/]+)$/);
@@ -255,10 +310,17 @@ export async function handlePublicCompetitionRoutes(
       const page = await getPublishedPublicPageProjectionBySlug(env.DB, slug);
       if (!page) return notFound();
       const goldenBoardEnabled = await isCompetitionGoldenBoardEnabled(env.DB);
-      const summary = await toSummary(env.DB, page, now, goldenBoardEnabled);
+      let summary: PublicCompetitionSummaryDto;
+      try {
+        summary = await toSummary(env.DB, page, now, goldenBoardEnabled);
+      } catch (error) {
+        if (!isPublicCompetitionProjectionValidationError(error)) throw error;
+        logSkippedPublicProjection(request, page.slug, options);
+        return notFound();
+      }
       const articles = await listPublishedCompetitionArticles(env.DB, slug);
       const parsed = PublicCompetitionDetailDtoSchema.safeParse({ ...summary, articles });
-      if (!parsed.success) throw new Error('COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID');
+      if (!parsed.success) throw new PublicCompetitionProjectionValidationError();
       return cacheableJson(
         request,
         parsed.data,
