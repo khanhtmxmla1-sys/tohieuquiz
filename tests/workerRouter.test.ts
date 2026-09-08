@@ -38,6 +38,7 @@ describe('Competition public router order', () => {
       expect.anything(),
       '/api/public/competitions/published-competition',
       'GET',
+      { logger: console },
     );
     expect(verifyToken).not.toHaveBeenCalled();
     expect(handleCompetitionRoutes).not.toHaveBeenCalled();

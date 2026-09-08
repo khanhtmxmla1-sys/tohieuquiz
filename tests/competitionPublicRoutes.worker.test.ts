@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSqliteD1 } from './helpers/sqliteD1';
 import { handlePublicCompetitionRoutes } from '../workers/src/routes/publicCompetitions';
+import { createWorkerFetch } from '../workers/src/router/createWorkerFetch';
 import {
   getPublishedPublicPageProjectionBySlug,
   listPublishedPublicPageProjections,
@@ -458,6 +459,43 @@ describe('anonymous Competition public routes', () => {
     expect((await article!.json() as any).data).toEqual(
       expect.objectContaining({ slug: 'incomplete-article' }),
     );
+  });
+
+  it('emits a safe structured warning when the production worker invokes the default public handler', async () => {
+    seedIncompletePublishedCampaign();
+    const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() };
+    const workerFetch = createWorkerFetch({
+      handleCors: () => null,
+      corsHeaders: () => ({}),
+      enforceOriginGuard: () => null,
+      verifyToken: () => null,
+      jsonResponse: (data: unknown, status = 200) => Response.json(data, { status }),
+      errorResponse: (message: string, status = 400) => Response.json({ status: 'error', message }, { status }),
+      internalErrorResponse: () => Response.json({ status: 'error' }, { status: 500 }),
+      rateLimit: async () => null,
+      logger,
+      handlePhieuSubdomain: async () => null,
+      handlePublicPhieuApi: async () => null,
+      handleCompetitionRoutes: async () => null,
+      handleParentPortalRoutes: async () => new Response('not found', { status: 404 }),
+    } as any);
+
+    const response = await workerFetch(
+      request('/api/public/competitions/incomplete-competition'),
+      env as any,
+    );
+
+    expect(response.status).toBe(404);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    const event = JSON.parse(String(logger.warn.mock.calls[0][0]));
+    expect(event).toMatchObject({
+      event: 'competition_public_projection_skipped',
+      route: '/api/public/competitions/incomplete-competition',
+      method: 'GET',
+      errorCode: 'COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID',
+      context: 'Competition public API',
+    });
+    expect(JSON.stringify(event)).not.toMatch(/content|student|secret|Nội dung/i);
   });
 
   it('returns an empty collection when every published projection is incomplete', async () => {
