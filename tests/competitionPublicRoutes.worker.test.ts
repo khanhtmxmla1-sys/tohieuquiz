@@ -385,7 +385,7 @@ describe('anonymous Competition public routes', () => {
     );
     expect(detailResponse!.status).toBe(404);
     expect(await detailResponse!.json()).toEqual({ status: 'error', message: 'Not found' });
-    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
     expect(logger.error).not.toHaveBeenCalled();
   });
 
@@ -437,7 +437,7 @@ describe('anonymous Competition public routes', () => {
 
     expect(listResponse!.status).toBe(200);
     expect(listBody.data.map((item: any) => item.slug)).toEqual(['published-competition']);
-    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledTimes(0);
     expect(logger.error).not.toHaveBeenCalled();
 
     const invalidDetail = await route('/api/public/competitions/incomplete-competition');
@@ -472,7 +472,7 @@ describe('anonymous Competition public routes', () => {
     expect(await detailResponse!.json()).toEqual({ status: 'error', message: 'Not found' });
   });
 
-  it('continues past a full invalid projection batch so valid rows beyond the public cap remain visible', async () => {
+  it('bounds projection queries while keeping valid rows visible after invalid candidates', async () => {
     for (let index = 0; index < 100; index += 1) {
       const campaignId = `campaign-invalid-${index}`;
       seedCampaign(
@@ -483,12 +483,28 @@ describe('anonymous Competition public routes', () => {
       );
       sqlite.prepare('DELETE FROM competition_rounds WHERE campaign_id = ?').run(campaignId);
     }
+    for (let index = 0; index < 100; index += 1) {
+      seedCampaign(`campaign-valid-${index}`, `valid-competition-${String(index).padStart(3, '0')}`);
+    }
 
-    const response = await route('/api/public/competitions');
+    let prepareCount = 0;
+    const countingDb = {
+      prepare(sql: string) {
+        prepareCount += 1;
+        return env.DB.prepare(sql);
+      },
+    };
+    const req = request('/api/public/competitions');
+    const response = await handlePublicCompetitionRoutes(
+      req,
+      { DB: countingDb } as any,
+      new URL(req.url).pathname,
+      req.method,
+      { now: () => new Date(NOW) },
+    );
     expect(response!.status).toBe(200);
-    expect((await response!.json() as any).data.map((item: any) => item.slug)).toEqual([
-      'published-competition',
-    ]);
+    expect((await response!.json() as any).data).toHaveLength(100);
+    expect(prepareCount).toBeLessThanOrEqual(6);
   });
 
   it('keeps a round query outage as a sanitized 500 instead of treating it as invalid projection data', async () => {

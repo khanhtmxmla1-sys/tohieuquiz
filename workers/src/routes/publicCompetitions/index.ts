@@ -7,6 +7,7 @@ import type {
   CompetitionPublicState,
   CompetitionRoundPresentationState,
   PublicGoldenBoardDto,
+  PublicCompetitionRoundDto,
   PublicCompetitionSummaryDto,
 } from '../../../../shared/competition-portal.contract';
 import { getPublishedCompetitionArticle, listPublishedCompetitionArticles } from '../../competition/competitionArticleService';
@@ -82,7 +83,7 @@ async function publicRounds(
   db: D1Database,
   campaignId: string,
   now: Date,
-) {
+): Promise<PublicCompetitionRoundDto[]> {
   const result = await db.prepare(`
     SELECT round_number, opens_at, closes_at, status
     FROM competition_rounds
@@ -99,13 +100,47 @@ async function publicRounds(
   }));
 }
 
+async function publicRoundsByCampaign(
+  db: D1Database,
+  campaignIds: string[],
+  now: Date,
+): Promise<Map<string, PublicCompetitionRoundDto[]>> {
+  const uniqueCampaignIds = [...new Set(campaignIds)];
+  const roundsByCampaign = new Map<string, PublicCompetitionRoundDto[]>();
+  if (uniqueCampaignIds.length === 0) return roundsByCampaign;
+
+  const placeholders = uniqueCampaignIds.map(() => '?').join(', ');
+  const result = await db.prepare(`
+    SELECT campaign_id, round_number, opens_at, closes_at, status
+    FROM competition_rounds
+    WHERE campaign_id IN (${placeholders})
+    ORDER BY campaign_id ASC, round_number ASC, id ASC
+  `).bind(...uniqueCampaignIds).all<PublicRoundRow & { campaign_id: string }>();
+
+  for (const row of result.results || []) {
+    const rounds = roundsByCampaign.get(row.campaign_id) || [];
+    if (rounds.length < 6) {
+      rounds.push({
+        roundNumber: Number(row.round_number),
+        title: `Vòng ${Number(row.round_number)}`,
+        opensAt: row.opens_at,
+        closesAt: row.closes_at,
+        state: roundState(row, now),
+      });
+      roundsByCampaign.set(row.campaign_id, rounds);
+    }
+  }
+  return roundsByCampaign;
+}
+
 async function toSummary(
   db: D1Database,
   row: PublishedCompetitionPublicPageProjection,
   now: Date,
   goldenBoardEnabled: boolean,
+  roundsOverride?: PublicCompetitionRoundDto[],
 ): Promise<PublicCompetitionSummaryDto> {
-  const rounds = await publicRounds(db, row.campaignId, now);
+  const rounds = roundsOverride || await publicRounds(db, row.campaignId, now);
   const candidate = {
     slug: row.slug,
     title: row.title,
@@ -230,30 +265,36 @@ export async function handlePublicCompetitionRoutes(
   try {
     if (path === PUBLIC_PREFIX) {
       const goldenBoardEnabled = await isCompetitionGoldenBoardEnabled(env.DB);
+      const rows = await listPublishedPublicPageProjections(env.DB, {
+        limit: MAX_PUBLIC_COMPETITIONS,
+        requireCompleteRounds: true,
+        requireStructurallyValid: true,
+      });
+      const roundsByCampaign = await publicRoundsByCampaign(
+        env.DB,
+        rows.map((row) => row.campaignId),
+        now,
+      );
       const projected: Array<{
         row: PublishedCompetitionPublicPageProjection;
         summary: PublicCompetitionSummaryDto;
       }> = [];
-      let offset = 0;
-      while (projected.length < MAX_PUBLIC_COMPETITIONS) {
-        const rows = await listPublishedPublicPageProjections(env.DB, {
-          limit: MAX_PUBLIC_COMPETITIONS,
-          offset,
-        });
-        if (rows.length === 0) break;
-        for (const row of rows) {
-          try {
-            projected.push({
+      for (const row of rows) {
+        try {
+          projected.push({
+            row,
+            summary: await toSummary(
+              env.DB,
               row,
-              summary: await toSummary(env.DB, row, now, goldenBoardEnabled),
-            });
-          } catch (error) {
-            if (!isPublicCompetitionProjectionValidationError(error)) throw error;
-            logSkippedPublicProjection(request, row.slug, options);
-          }
+              now,
+              goldenBoardEnabled,
+              roundsByCampaign.get(row.campaignId),
+            ),
+          });
+        } catch (error) {
+          if (!isPublicCompetitionProjectionValidationError(error)) throw error;
+          logSkippedPublicProjection(request, row.slug, options);
         }
-        offset += rows.length;
-        if (rows.length < MAX_PUBLIC_COMPETITIONS) break;
       }
       const visible = projected.slice(0, MAX_PUBLIC_COMPETITIONS);
       return cacheableJson(
