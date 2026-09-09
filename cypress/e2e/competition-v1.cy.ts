@@ -65,7 +65,8 @@ describe('Competition V1 student release journey', () => {
       });
     }).as('startAttempt');
     cy.intercept('POST', '**/api/student/competitions/campaign-1/rounds/round-1/attempts/attempt-1/submit', (request) => {
-      expect(request.body).to.include({ campaignId: 'campaign-1', roundId: 'round-1', attemptId: 'attempt-1' });
+      expect(request.body).to.not.have.any.keys('campaignId', 'roundId');
+      expect(request.body).to.have.property('attemptId', 'attempt-1');
       expect(request.body.idempotencyKey).to.match(/^competition-submit-/);
       expect(request.body.answers).to.deep.equal({});
       submitted = true;
