@@ -139,14 +139,15 @@ export async function listPublishedPublicPageProjections(
     : 0;
   // The public collection uses these predicates before LIMIT so incomplete or
   // obviously malformed rows cannot consume the entire bounded page.
-  const completeRoundsJoin = options.requireCompleteRounds
+  // The round count stays correlated to each public candidate so the
+  // campaign-leading round index can answer it without a global aggregation.
+  const completeRoundsPredicate = options.requireCompleteRounds
     ? `
-    INNER JOIN (
-      SELECT campaign_id
-      FROM competition_rounds
-      GROUP BY campaign_id
-      HAVING COUNT(*) = 6
-    ) AS complete_rounds ON complete_rounds.campaign_id = page.campaign_id
+    AND (
+      SELECT COUNT(*)
+      FROM competition_rounds AS complete_round
+      WHERE complete_round.campaign_id = page.campaign_id
+    ) = 6
   `
     : '';
   const structuralWhere = options.requireStructurallyValid
@@ -185,8 +186,8 @@ export async function listPublishedPublicPageProjections(
     SELECT ${PUBLISHED_PROJECTION_COLUMNS}
     FROM competition_public_pages AS page
     INNER JOIN competition_campaigns AS campaign ON campaign.id = page.campaign_id
-    ${completeRoundsJoin}
     WHERE page.status = 'PUBLISHED' AND page.published_at IS NOT NULL
+      ${completeRoundsPredicate}
       ${structuralWhere}
     ORDER BY page.published_at DESC, page.slug ASC
     LIMIT ? OFFSET ?

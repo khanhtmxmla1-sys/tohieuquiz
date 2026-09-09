@@ -653,6 +653,26 @@ describe('anonymous Competition public routes', () => {
     expect(await getPublishedPublicPageProjectionBySlug(env.DB, 'draft-competition')).toBeNull();
   });
 
+  it('checks complete rounds with an indexed per-candidate count instead of a global aggregation', async () => {
+    let roundsQuery = '';
+    const observingDb = {
+      prepare(sql: string) {
+        if (sql.includes('FROM competition_rounds')) roundsQuery = sql;
+        return env.DB.prepare(sql);
+      },
+    };
+
+    const projections = await listPublishedPublicPageProjections(observingDb as any, {
+      limit: 100,
+      requireCompleteRounds: true,
+    });
+
+    expect(projections).toHaveLength(1);
+    expect(roundsQuery).toContain('WHERE complete_round.campaign_id = page.campaign_id');
+    expect(roundsQuery).toContain('SELECT COUNT(*)');
+    expect(roundsQuery).not.toMatch(/GROUP BY\s+campaign_id/i);
+  });
+
   it('rejects mutation verbs safely and registers exactly five public client actions', async () => {
     const mutation = await route('/api/public/competitions/published-competition', { method: 'POST' });
     expect(mutation!.status).toBe(405);
