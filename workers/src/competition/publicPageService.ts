@@ -124,15 +124,74 @@ function mapPublishedProjection(
 
 export async function listPublishedPublicPageProjections(
   db: D1Database,
+  options: {
+    limit?: number;
+    offset?: number;
+    requireCompleteRounds?: boolean;
+    requireStructurallyValid?: boolean;
+  } = {},
 ): Promise<PublishedCompetitionPublicPageProjection[]> {
+  const limit = Number.isInteger(options.limit) && options.limit! > 0
+    ? Math.min(options.limit!, 100)
+    : 100;
+  const offset = Number.isInteger(options.offset) && options.offset! >= 0
+    ? options.offset!
+    : 0;
+  // The public collection uses these predicates before LIMIT so incomplete or
+  // obviously malformed rows cannot consume the entire bounded page.
+  // The round count stays correlated to each public candidate so the
+  // campaign-leading round index can answer it without a global aggregation.
+  const completeRoundsPredicate = options.requireCompleteRounds
+    ? `
+    AND (
+      SELECT COUNT(*)
+      FROM competition_rounds AS complete_round
+      WHERE complete_round.campaign_id = page.campaign_id
+    ) = 6
+  `
+    : '';
+  const structuralWhere = options.requireStructurallyValid
+    ? `
+      AND length(trim(page.slug)) BETWEEN 1 AND 160
+      AND length(trim(page.hero_title)) BETWEEN 1 AND 200
+      AND (
+        page.hero_subtitle IS NULL
+        OR page.hero_subtitle = ''
+        OR (length(trim(page.hero_subtitle)) BETWEEN 1 AND 500 AND trim(page.hero_subtitle) <> '')
+      )
+      AND (
+        page.hero_image_url IS NULL
+        OR page.hero_image_url = ''
+        OR (
+          length(trim(page.hero_image_url)) BETWEEN 1 AND 2048
+          AND instr(trim(page.hero_image_url), ':') > 0
+        )
+      )
+      AND (
+        page.summary IS NULL
+        OR page.summary = ''
+        OR (length(trim(page.summary)) BETWEEN 1 AND 1000 AND trim(page.summary) <> '')
+      )
+      AND length(trim(page.cta_label)) BETWEEN 1 AND 80
+      AND length(trim(campaign.title)) BETWEEN 1 AND 200
+      AND length(trim(campaign.school_year)) = 9
+      AND substr(trim(campaign.school_year), 5, 1) = '-'
+      AND trim(campaign.school_year) NOT GLOB '*[^0-9-]*'
+      AND length(trim(campaign.timezone)) BETWEEN 1 AND 100
+      AND length(trim(campaign.starts_at)) > 0
+      AND length(trim(campaign.ends_at)) > 0
+    `
+    : '';
   const result = await db.prepare(`
     SELECT ${PUBLISHED_PROJECTION_COLUMNS}
     FROM competition_public_pages AS page
     INNER JOIN competition_campaigns AS campaign ON campaign.id = page.campaign_id
     WHERE page.status = 'PUBLISHED' AND page.published_at IS NOT NULL
+      ${completeRoundsPredicate}
+      ${structuralWhere}
     ORDER BY page.published_at DESC, page.slug ASC
-    LIMIT 100
-  `).all<PublishedCompetitionPublicPageProjectionRow>();
+    LIMIT ? OFFSET ?
+  `).bind(limit, offset).all<PublishedCompetitionPublicPageProjectionRow>();
   return (result.results || []).map(mapPublishedProjection);
 }
 

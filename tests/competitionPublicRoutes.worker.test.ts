@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSqliteD1 } from './helpers/sqliteD1';
 import { handlePublicCompetitionRoutes } from '../workers/src/routes/publicCompetitions';
+import { createWorkerFetch } from '../workers/src/router/createWorkerFetch';
 import {
   getPublishedPublicPageProjectionBySlug,
   listPublishedPublicPageProjections,
@@ -18,7 +19,8 @@ function seedSchema() {
   sqlite.exec(`
     CREATE TABLE competition_campaigns (
       id TEXT PRIMARY KEY, title TEXT NOT NULL, school_year TEXT NOT NULL,
-      timezone TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT NOT NULL
+      timezone TEXT NOT NULL, starts_at TEXT NOT NULL, ends_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'DRAFT'
     );
     CREATE TABLE competition_public_pages (
       id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL UNIQUE, slug TEXT NOT NULL UNIQUE,
@@ -32,6 +34,8 @@ function seedSchema() {
       id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL, round_number INTEGER NOT NULL,
       opens_at TEXT NOT NULL, closes_at TEXT NOT NULL, status TEXT NOT NULL
     );
+    CREATE INDEX idx_competition_rounds_campaign_window
+      ON competition_rounds(campaign_id, status, opens_at, closes_at, round_number);
     CREATE TABLE competition_articles (
       id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL, title TEXT NOT NULL, slug TEXT NOT NULL,
       summary TEXT, cover_image_url TEXT, content TEXT NOT NULL, type TEXT NOT NULL,
@@ -89,12 +93,15 @@ function seedCampaign(
   id: string,
   slug: string,
   status: 'DRAFT' | 'PREVIEW' | 'PUBLISHED' | 'ARCHIVED' = 'PUBLISHED',
+  campaignStatus: 'DRAFT' | 'PUBLISHED' = 'DRAFT',
 ) {
   const publishedAt = status === 'PUBLISHED' || status === 'ARCHIVED' ? '2026-08-20T00:00:00.000Z' : null;
   sqlite.prepare(`
-    INSERT INTO competition_campaigns VALUES (?, ?, '2026-2027', 'Asia/Ho_Chi_Minh',
-      '2026-08-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')
-  `).run(id, `Competition ${id}`);
+    INSERT INTO competition_campaigns (
+      id, title, school_year, timezone, starts_at, ends_at, status
+    ) VALUES (?, ?, '2026-2027', 'Asia/Ho_Chi_Minh',
+      '2026-08-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z', ?)
+  `).run(id, `Competition ${id}`, campaignStatus);
   sqlite.prepare(`
     INSERT INTO competition_public_pages VALUES (
       ?, ?, ?, ?, ?, 'Cùng học, cùng vui', 'https://example.edu/hero.jpg',
@@ -122,6 +129,20 @@ function seedArticle(campaignId: string, id: string, slug: string, status = 'PUB
       ?, ?, ?, ?, 'Tóm tắt bài viết.', NULL, 'Nội dung công khai.', 'RULES', ?,
       ?, 'admin', '2026-08-01T00:00:00.000Z', NULL, '2026-08-21T00:00:00.000Z')
   `).run(id, campaignId, `Article ${id}`, slug, status, status === 'PUBLISHED' ? '2026-08-21T00:00:00.000Z' : null);
+}
+
+function seedIncompletePublishedCampaign() {
+  seedCampaign('campaign-incomplete', 'incomplete-competition', 'PUBLISHED', 'DRAFT');
+  sqlite.prepare(`
+    UPDATE competition_rounds
+    SET status = 'SCHEDULED'
+    WHERE campaign_id = ? AND round_number = 1
+  `).run('campaign-incomplete');
+  sqlite.prepare(`
+    DELETE FROM competition_rounds
+    WHERE campaign_id = ? AND round_number > 1
+  `).run('campaign-incomplete');
+  seedArticle('campaign-incomplete', 'article-incomplete', 'incomplete-article');
 }
 
 function seedGoldenBoard() {
@@ -338,7 +359,7 @@ describe('anonymous Competition public routes', () => {
     expect(await missing!.json()).toEqual({ status: 'error', message: 'Not found' });
   });
 
-  it('returns logged sanitized 5xx when a PUBLISHED competition projection is malformed', async () => {
+  it('hides a malformed PUBLISHED competition projection without turning validation data into a 5xx', async () => {
     const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() };
     sqlite.prepare(`
       UPDATE competition_public_pages
@@ -346,28 +367,29 @@ describe('anonymous Competition public routes', () => {
       WHERE campaign_id = 'campaign-published'
     `).run();
 
-    for (const path of [
-      '/api/public/competitions',
-      '/api/public/competitions/published-competition',
-    ]) {
-      const req = request(path);
-      const response = await handlePublicCompetitionRoutes(
-        req,
-        env as any,
-        new URL(req.url).pathname,
-        req.method,
-        { now: () => new Date(NOW), logger },
-      );
-      const body = await response!.json() as any;
-      expect(response!.status).toBe(500);
-      expect(body).toMatchObject({
-        status: 'error',
-        message: 'Internal server error',
-        requestId: expect.any(String),
-      });
-      expect(JSON.stringify(body)).not.toMatch(/staff-only|campaign-published|hero_image_url/i);
-    }
-    expect(logger.error).toHaveBeenCalledTimes(2);
+    const listRequest = request('/api/public/competitions');
+    const listResponse = await handlePublicCompetitionRoutes(
+      listRequest,
+      env as any,
+      new URL(listRequest.url).pathname,
+      listRequest.method,
+      { now: () => new Date(NOW), logger },
+    );
+    expect(listResponse!.status).toBe(200);
+    expect(await listResponse!.json()).toEqual({ status: 'success', data: [] });
+
+    const detailRequest = request('/api/public/competitions/published-competition');
+    const detailResponse = await handlePublicCompetitionRoutes(
+      detailRequest,
+      env as any,
+      new URL(detailRequest.url).pathname,
+      detailRequest.method,
+      { now: () => new Date(NOW), logger },
+    );
+    expect(detailResponse!.status).toBe(404);
+    expect(await detailResponse!.json()).toEqual({ status: 'error', message: 'Not found' });
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it('returns logged sanitized 5xx when PUBLISHED article list/detail data is malformed', async () => {
@@ -401,6 +423,181 @@ describe('anonymous Competition public routes', () => {
       expect(JSON.stringify(body)).not.toMatch(/staff-only|article-public|cover_image_url/i);
     }
     expect(logger.error).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips incomplete published projections while keeping valid detail and published articles available', async () => {
+    seedIncompletePublishedCampaign();
+    const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() };
+    const listRequest = request('/api/public/competitions');
+    const listResponse = await handlePublicCompetitionRoutes(
+      listRequest,
+      env as any,
+      new URL(listRequest.url).pathname,
+      listRequest.method,
+      { now: () => new Date(NOW), logger },
+    );
+    const listBody = await listResponse!.json() as any;
+
+    expect(listResponse!.status).toBe(200);
+    expect(listBody.data.map((item: any) => item.slug)).toEqual(['published-competition']);
+    expect(logger.warn).toHaveBeenCalledTimes(0);
+    expect(logger.error).not.toHaveBeenCalled();
+
+    const invalidDetail = await route('/api/public/competitions/incomplete-competition');
+    expect(invalidDetail!.status).toBe(404);
+    expect(await invalidDetail!.json()).toEqual({ status: 'error', message: 'Not found' });
+
+    const validDetail = await route('/api/public/competitions/published-competition');
+    expect(validDetail!.status).toBe(200);
+
+    const articles = await route('/api/public/competitions/incomplete-competition/articles');
+    expect(articles!.status).toBe(200);
+    expect((await articles!.json() as any).data).toEqual([
+      expect.objectContaining({ slug: 'incomplete-article' }),
+    ]);
+
+    const article = await route('/api/public/competitions/incomplete-competition/articles/incomplete-article');
+    expect(article!.status).toBe(200);
+    expect((await article!.json() as any).data).toEqual(
+      expect.objectContaining({ slug: 'incomplete-article' }),
+    );
+  });
+
+  it('emits a safe structured warning when the production worker invokes the default public handler', async () => {
+    seedIncompletePublishedCampaign();
+    const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() };
+    const workerFetch = createWorkerFetch({
+      handleCors: () => null,
+      corsHeaders: () => ({}),
+      enforceOriginGuard: () => null,
+      verifyToken: () => null,
+      jsonResponse: (data: unknown, status = 200) => Response.json(data, { status }),
+      errorResponse: (message: string, status = 400) => Response.json({ status: 'error', message }, { status }),
+      internalErrorResponse: () => Response.json({ status: 'error' }, { status: 500 }),
+      rateLimit: async () => null,
+      logger,
+      handlePhieuSubdomain: async () => null,
+      handlePublicPhieuApi: async () => null,
+      handleCompetitionRoutes: async () => null,
+      handleParentPortalRoutes: async () => new Response('not found', { status: 404 }),
+    } as any);
+
+    const response = await workerFetch(
+      request('/api/public/competitions/incomplete-competition'),
+      env as any,
+    );
+
+    expect(response.status).toBe(404);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    const event = JSON.parse(String(logger.warn.mock.calls[0][0]));
+    expect(event).toMatchObject({
+      event: 'competition_public_projection_skipped',
+      route: '/api/public/competitions/incomplete-competition',
+      method: 'GET',
+      errorCode: 'COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID',
+      context: 'Competition public API',
+    });
+    expect(JSON.stringify(event)).not.toMatch(/content|student|secret|Nội dung/i);
+  });
+
+  it('returns an empty collection when every published projection is incomplete', async () => {
+    sqlite.prepare('DELETE FROM competition_rounds WHERE campaign_id = ?').run('campaign-published');
+
+    const listResponse = await route('/api/public/competitions');
+    expect(listResponse!.status).toBe(200);
+    expect((await listResponse!.json() as any).data).toEqual([]);
+
+    const detailResponse = await route('/api/public/competitions/published-competition');
+    expect(detailResponse!.status).toBe(404);
+    expect(await detailResponse!.json()).toEqual({ status: 'error', message: 'Not found' });
+  });
+
+  it('bounds projection queries while keeping valid rows visible after invalid candidates', async () => {
+    for (let index = 0; index < 100; index += 1) {
+      const campaignId = `campaign-invalid-${index}`;
+      seedCampaign(
+        campaignId,
+        `aaa-invalid-${String(index).padStart(3, '0')}`,
+        'PUBLISHED',
+        'DRAFT',
+      );
+      sqlite.prepare('DELETE FROM competition_rounds WHERE campaign_id = ?').run(campaignId);
+    }
+    for (let index = 0; index < 100; index += 1) {
+      seedCampaign(`campaign-valid-${index}`, `valid-competition-${String(index).padStart(3, '0')}`);
+    }
+
+    let prepareCount = 0;
+    const countingDb = {
+      prepare(sql: string) {
+        prepareCount += 1;
+        return env.DB.prepare(sql);
+      },
+    };
+    const req = request('/api/public/competitions');
+    const response = await handlePublicCompetitionRoutes(
+      req,
+      { DB: countingDb } as any,
+      new URL(req.url).pathname,
+      req.method,
+      { now: () => new Date(NOW) },
+    );
+    expect(response!.status).toBe(200);
+    expect((await response!.json() as any).data).toHaveLength(100);
+    expect(prepareCount).toBeLessThanOrEqual(6);
+  });
+
+  it('continues bounded projection pages after runtime-invalid rows to retain later valid rows', async () => {
+    for (let index = 0; index < 101; index += 1) {
+      seedCampaign(
+        `campaign-runtime-invalid-${index}`,
+        `aaa_invalid_${String(index).padStart(3, '0')}`,
+        'PUBLISHED',
+        'DRAFT',
+      );
+    }
+
+    const req = request('/api/public/competitions');
+    const response = await handlePublicCompetitionRoutes(
+      req,
+      env as any,
+      new URL(req.url).pathname,
+      req.method,
+      { now: () => new Date(NOW) },
+    );
+
+    expect(response!.status).toBe(200);
+    const body = await response!.json() as any;
+    expect(body.data.some((item: any) => item.slug === 'published-competition')).toBe(true);
+    expect(body.data.every((item: any) => !item.slug.includes('_'))).toBe(true);
+    expect(body.data).toHaveLength(1);
+  });
+
+  it('keeps a round query outage as a sanitized 500 instead of treating it as invalid projection data', async () => {
+    const logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() };
+    const failingRoundsDb = {
+      prepare(sql: string) {
+        if (sql.includes('FROM competition_rounds')) throw new Error('D1 round outage');
+        return env.DB.prepare(sql);
+      },
+    };
+    const req = request('/api/public/competitions');
+    const response = await handlePublicCompetitionRoutes(
+      req,
+      { DB: failingRoundsDb } as any,
+      new URL(req.url).pathname,
+      req.method,
+      { now: () => new Date(NOW), logger },
+    );
+
+    expect(response!.status).toBe(500);
+    expect(await response!.json()).toMatchObject({
+      status: 'error',
+      message: 'Internal server error',
+      requestId: expect.any(String),
+    });
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 
   it('keeps validators representation-safe across time state and empty collection transitions', async () => {
@@ -456,6 +653,35 @@ describe('anonymous Competition public routes', () => {
       articleSummaryAvailable: true,
     });
     expect(await getPublishedPublicPageProjectionBySlug(env.DB, 'draft-competition')).toBeNull();
+  });
+
+  it('checks complete rounds with an indexed per-candidate count instead of a global aggregation', async () => {
+    let roundsQuery = '';
+    const observingDb = {
+      prepare(sql: string) {
+        if (sql.includes('FROM competition_rounds')) roundsQuery = sql;
+        return env.DB.prepare(sql);
+      },
+    };
+
+    const projections = await listPublishedPublicPageProjections(observingDb as any, {
+      limit: 100,
+      requireCompleteRounds: true,
+    });
+
+    expect(projections).toHaveLength(1);
+    expect(roundsQuery).toContain('WHERE complete_round.campaign_id = page.campaign_id');
+    expect(roundsQuery).toContain('SELECT COUNT(*)');
+    expect(roundsQuery).not.toMatch(/GROUP BY\s+campaign_id/i);
+
+    const queryPlan = sqlite
+      .prepare(`EXPLAIN QUERY PLAN ${roundsQuery}`)
+      .all(100, 0) as Array<{ detail: string }>;
+    const planDetails = queryPlan.map((row) => row.detail).join('\n');
+    expect(planDetails).toMatch(
+      /SEARCH complete_round USING COVERING INDEX idx_competition_rounds_campaign_window \(campaign_id=\?\)/,
+    );
+    expect(planDetails).not.toMatch(/SCAN complete_round/i);
   });
 
   it('rejects mutation verbs safely and registers exactly five public client actions', async () => {

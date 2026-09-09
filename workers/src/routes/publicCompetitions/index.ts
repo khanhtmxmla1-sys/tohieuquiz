@@ -7,6 +7,7 @@ import type {
   CompetitionPublicState,
   CompetitionRoundPresentationState,
   PublicGoldenBoardDto,
+  PublicCompetitionRoundDto,
   PublicCompetitionSummaryDto,
 } from '../../../../shared/competition-portal.contract';
 import { getPublishedCompetitionArticle, listPublishedCompetitionArticles } from '../../competition/competitionArticleService';
@@ -22,10 +23,19 @@ import {
 } from '../../competition/publicPageService';
 import type { Env } from '../../types';
 import { internalErrorResponse } from '../../utils/internalError';
-import type { StructuredLogSink } from '../../utils/logger';
+import { getRequestId, logStructured, type StructuredLogSink } from '../../utils/logger';
 
 const PUBLIC_PREFIX = '/api/public/competitions';
 const CACHE_SECONDS = 60;
+const MAX_PUBLIC_COMPETITIONS = 100;
+const MAX_PUBLIC_PROJECTION_SCAN = MAX_PUBLIC_COMPETITIONS * 10;
+
+class PublicCompetitionProjectionValidationError extends Error {
+  constructor() {
+    super('COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID');
+    this.name = 'PublicCompetitionProjectionValidationError';
+  }
+}
 
 interface PublicRoundRow {
   round_number: number;
@@ -74,7 +84,7 @@ async function publicRounds(
   db: D1Database,
   campaignId: string,
   now: Date,
-) {
+): Promise<PublicCompetitionRoundDto[]> {
   const result = await db.prepare(`
     SELECT round_number, opens_at, closes_at, status
     FROM competition_rounds
@@ -91,13 +101,47 @@ async function publicRounds(
   }));
 }
 
+async function publicRoundsByCampaign(
+  db: D1Database,
+  campaignIds: string[],
+  now: Date,
+): Promise<Map<string, PublicCompetitionRoundDto[]>> {
+  const uniqueCampaignIds = [...new Set(campaignIds)];
+  const roundsByCampaign = new Map<string, PublicCompetitionRoundDto[]>();
+  if (uniqueCampaignIds.length === 0) return roundsByCampaign;
+
+  const placeholders = uniqueCampaignIds.map(() => '?').join(', ');
+  const result = await db.prepare(`
+    SELECT campaign_id, round_number, opens_at, closes_at, status
+    FROM competition_rounds
+    WHERE campaign_id IN (${placeholders})
+    ORDER BY campaign_id ASC, round_number ASC, id ASC
+  `).bind(...uniqueCampaignIds).all<PublicRoundRow & { campaign_id: string }>();
+
+  for (const row of result.results || []) {
+    const rounds = roundsByCampaign.get(row.campaign_id) || [];
+    if (rounds.length < 6) {
+      rounds.push({
+        roundNumber: Number(row.round_number),
+        title: `Vòng ${Number(row.round_number)}`,
+        opensAt: row.opens_at,
+        closesAt: row.closes_at,
+        state: roundState(row, now),
+      });
+      roundsByCampaign.set(row.campaign_id, rounds);
+    }
+  }
+  return roundsByCampaign;
+}
+
 async function toSummary(
   db: D1Database,
   row: PublishedCompetitionPublicPageProjection,
   now: Date,
   goldenBoardEnabled: boolean,
+  roundsOverride?: PublicCompetitionRoundDto[],
 ): Promise<PublicCompetitionSummaryDto> {
-  const rounds = await publicRounds(db, row.campaignId, now);
+  const rounds = roundsOverride || await publicRounds(db, row.campaignId, now);
   const candidate = {
     slug: row.slug,
     title: row.title,
@@ -118,7 +162,7 @@ async function toSummary(
     goldenBoardAvailable: goldenBoardEnabled && row.goldenBoardAvailable,
   };
   const parsed = PublicCompetitionSummaryDtoSchema.safeParse(candidate);
-  if (!parsed.success) throw new Error('COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID');
+  if (!parsed.success) throw new PublicCompetitionProjectionValidationError();
   return parsed.data;
 }
 
@@ -184,6 +228,28 @@ function isExpectedGoldenBoardUnavailable(error: unknown): boolean {
     );
 }
 
+function isPublicCompetitionProjectionValidationError(
+  error: unknown,
+): error is PublicCompetitionProjectionValidationError {
+  return error instanceof PublicCompetitionProjectionValidationError;
+}
+
+function logSkippedPublicProjection(
+  request: Request,
+  slug: string,
+  options: PublicCompetitionRouteOptions,
+): void {
+  if (!options.logger) return;
+  logStructured('warn', {
+    event: 'competition_public_projection_skipped',
+    requestId: getRequestId(request),
+    route: `${PUBLIC_PREFIX}/${slug}`,
+    method: request.method,
+    errorCode: 'COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID',
+    context: 'Competition public API',
+  }, options.logger);
+}
+
 export async function handlePublicCompetitionRoutes(
   request: Request,
   env: Env,
@@ -199,13 +265,53 @@ export async function handlePublicCompetitionRoutes(
   const now = options.now?.() || new Date();
   try {
     if (path === PUBLIC_PREFIX) {
-      const rows = await listPublishedPublicPageProjections(env.DB);
       const goldenBoardEnabled = await isCompetitionGoldenBoardEnabled(env.DB);
-      const items: PublicCompetitionSummaryDto[] = [];
-      for (const row of rows) {
-        items.push(await toSummary(env.DB, row, now, goldenBoardEnabled));
+      const projected: Array<{
+        row: PublishedCompetitionPublicPageProjection;
+        summary: PublicCompetitionSummaryDto;
+      }> = [];
+      let offset = 0;
+      while (projected.length < MAX_PUBLIC_COMPETITIONS && offset < MAX_PUBLIC_PROJECTION_SCAN) {
+        const pageLimit = Math.min(MAX_PUBLIC_COMPETITIONS, MAX_PUBLIC_PROJECTION_SCAN - offset);
+        const rows = await listPublishedPublicPageProjections(env.DB, {
+          limit: pageLimit,
+          offset,
+          requireCompleteRounds: true,
+          requireStructurallyValid: true,
+        });
+        if (rows.length === 0) break;
+        offset += rows.length;
+
+        const roundsByCampaign = await publicRoundsByCampaign(
+          env.DB,
+          rows.map((row) => row.campaignId),
+          now,
+        );
+        for (const row of rows) {
+          try {
+            projected.push({
+              row,
+              summary: await toSummary(
+                env.DB,
+                row,
+                now,
+                goldenBoardEnabled,
+                roundsByCampaign.get(row.campaignId),
+              ),
+            });
+          } catch (error) {
+            if (!isPublicCompetitionProjectionValidationError(error)) throw error;
+            logSkippedPublicProjection(request, row.slug, options);
+          }
+        }
+        if (rows.length < pageLimit) break;
       }
-      return cacheableJson(request, items, latestTimestamp(rows.map((row) => row.updatedAt)));
+      const visible = projected.slice(0, MAX_PUBLIC_COMPETITIONS);
+      return cacheableJson(
+        request,
+        visible.map(({ summary }) => summary),
+        latestTimestamp(visible.map(({ row }) => row.updatedAt)),
+      );
     }
 
     const articleMatch = path.match(/^\/api\/public\/competitions\/([^/]+)\/articles\/([^/]+)$/);
@@ -255,10 +361,17 @@ export async function handlePublicCompetitionRoutes(
       const page = await getPublishedPublicPageProjectionBySlug(env.DB, slug);
       if (!page) return notFound();
       const goldenBoardEnabled = await isCompetitionGoldenBoardEnabled(env.DB);
-      const summary = await toSummary(env.DB, page, now, goldenBoardEnabled);
+      let summary: PublicCompetitionSummaryDto;
+      try {
+        summary = await toSummary(env.DB, page, now, goldenBoardEnabled);
+      } catch (error) {
+        if (!isPublicCompetitionProjectionValidationError(error)) throw error;
+        logSkippedPublicProjection(request, page.slug, options);
+        return notFound();
+      }
       const articles = await listPublishedCompetitionArticles(env.DB, slug);
       const parsed = PublicCompetitionDetailDtoSchema.safeParse({ ...summary, articles });
-      if (!parsed.success) throw new Error('COMPETITION_PUBLIC_PAGE_PROJECTION_INVALID');
+      if (!parsed.success) throw new PublicCompetitionProjectionValidationError();
       return cacheableJson(
         request,
         parsed.data,
