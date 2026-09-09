@@ -116,6 +116,7 @@ export const competitionRoutes: RouteRegistry = {
   },
   submit_student_competition_round_attempt: {
     method: 'POST', auth: 'session', path: ({ campaignId, roundId, attemptId }) => `/api/student/competitions/${encoded(campaignId)}/rounds/${encoded(roundId)}/attempts/${encoded(attemptId)}/submit`,
+    body: omitFields('campaignId', 'roundId'),
   },
   get_student_competition_official_result: {
     method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/student/competitions/${encoded(campaignId)}/official-result`,

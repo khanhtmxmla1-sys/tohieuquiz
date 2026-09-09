@@ -7,6 +7,28 @@ import { competitionPublicContentService } from '../src/features/competition/pub
 afterEach(() => vi.restoreAllMocks());
 
 describe('Competition V1 dashboard API registry', () => {
+  it('sends only the accepted submission fields through the real transport', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200, headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    const submission = {
+      attemptId: 'attempt-1',
+      answers: { q1: 'am', q2: ['a', 'b'] },
+      timeTaken: 120,
+      idempotencyKey: 'competition-submit-test-123',
+    };
+    await apiAdapter.callApi('submit_student_competition_round_attempt', {
+      campaignId: 'campaign 1', roundId: 'round 1', ...submission,
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/api/student/competitions/campaign%201/rounds/round%201/attempts/attempt-1/submit');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual(submission);
+  });
+
   it('maps dashboard reads to the Competition V1 REST namespace', () => {
     expect(resolveApiRoute('list_competitions')).toMatchObject({ method: 'GET', auth: 'session' });
     expect(resolveApiRoute('list_competitions').path({})).toBe('/api/competitions');
