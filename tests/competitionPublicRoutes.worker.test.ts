@@ -34,6 +34,8 @@ function seedSchema() {
       id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL, round_number INTEGER NOT NULL,
       opens_at TEXT NOT NULL, closes_at TEXT NOT NULL, status TEXT NOT NULL
     );
+    CREATE INDEX idx_competition_rounds_campaign_window
+      ON competition_rounds(campaign_id, status, opens_at, closes_at, round_number);
     CREATE TABLE competition_articles (
       id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL, title TEXT NOT NULL, slug TEXT NOT NULL,
       summary TEXT, cover_image_url TEXT, content TEXT NOT NULL, type TEXT NOT NULL,
@@ -671,6 +673,15 @@ describe('anonymous Competition public routes', () => {
     expect(roundsQuery).toContain('WHERE complete_round.campaign_id = page.campaign_id');
     expect(roundsQuery).toContain('SELECT COUNT(*)');
     expect(roundsQuery).not.toMatch(/GROUP BY\s+campaign_id/i);
+
+    const queryPlan = sqlite
+      .prepare(`EXPLAIN QUERY PLAN ${roundsQuery}`)
+      .all(100, 0) as Array<{ detail: string }>;
+    const planDetails = queryPlan.map((row) => row.detail).join('\n');
+    expect(planDetails).toMatch(
+      /SEARCH complete_round USING COVERING INDEX idx_competition_rounds_campaign_window \(campaign_id=\?\)/,
+    );
+    expect(planDetails).not.toMatch(/SCAN complete_round/i);
   });
 
   it('rejects mutation verbs safely and registers exactly five public client actions', async () => {
