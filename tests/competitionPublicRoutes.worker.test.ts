@@ -240,6 +240,26 @@ describe('anonymous Competition public routes', () => {
     expect(notModified!.status).toBe(304);
   });
 
+  it('presents a scheduled round as open while its configured window is active', async () => {
+    sqlite.prepare(`
+      UPDATE competition_rounds
+      SET status = 'SCHEDULED'
+      WHERE campaign_id = ? AND round_number = 1
+    `).run('campaign-published');
+
+    const response = await routeAt(
+      '/api/public/competitions/published-competition',
+      '2026-08-01T12:00:00.000Z',
+    );
+    const body = await response!.json() as any;
+
+    expect(response!.status).toBe(200);
+    expect(body.data.rounds[0]).toMatchObject({
+      roundNumber: 1,
+      state: 'OPEN',
+    });
+  });
+
   it('returns bounded PUBLISHED articles and hides draft/unknown resources behind one 404 shape', async () => {
     for (let index = 0; index < 105; index += 1) {
       seedArticle('campaign-published', `bulk-${index}`, `bulk-${index}`);

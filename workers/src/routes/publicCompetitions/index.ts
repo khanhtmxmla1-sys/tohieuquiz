@@ -77,7 +77,7 @@ function roundState(row: PublicRoundRow, now: Date): CompetitionRoundPresentatio
   const timestamp = now.getTime();
   if (timestamp < Date.parse(row.opens_at)) return 'LOCKED';
   if (timestamp >= Date.parse(row.closes_at) || row.status === 'CLOSED') return 'CLOSED';
-  return row.status === 'OPEN' ? 'OPEN' : 'LOCKED';
+  return row.status === 'OPEN' || row.status === 'SCHEDULED' ? 'OPEN' : 'LOCKED';
 }
 
 async function publicRounds(
