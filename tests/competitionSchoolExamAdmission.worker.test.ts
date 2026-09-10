@@ -16,6 +16,38 @@ const admissionMigration = readFileSync(new URL('../workers/migrations/0081_comp
 let sqlite: DatabaseSync;
 let d1: D1Database;
 
+function withCloudflareD1Limits(database: D1Database): D1Database {
+  return new Proxy(database, {
+    get(target, property, receiver) {
+      if (property === 'prepare') {
+        return (sql: string) => {
+          const statement = target.prepare(sql);
+          return new Proxy(statement, {
+            get(statementTarget, statementProperty, statementReceiver) {
+              if (statementProperty === 'bind') {
+                return (...values: unknown[]) => {
+                  if (values.length > 100) throw new Error('D1_BIND_LIMIT_EXCEEDED');
+                  return statementTarget.bind(...values);
+                };
+              }
+              const value = Reflect.get(statementTarget, statementProperty, statementReceiver);
+              return typeof value === 'function' ? value.bind(statementTarget) : value;
+            },
+          });
+        };
+      }
+      if (property === 'batch') {
+        return (statements: D1PreparedStatement[]) => {
+          if (statements.length > 100) throw new Error('D1_BATCH_LIMIT_EXCEEDED');
+          return target.batch(statements);
+        };
+      }
+      const value = Reflect.get(target, property, receiver);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
+
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date('2027-03-02T08:00:00.000Z'));
@@ -81,6 +113,11 @@ describe('Competition school-exam admissions', () => {
   it('approves only qualified students and records actor, time, and audit evidence', async () => {
     await expect(approveCompetitionSchoolExamAdmissions(d1, {
       campaignId: 'campaign-1', eligibilitySnapshotVersion: 1,
+      studentIds: ['student-1'], approveAllQualified: true, requestId: 'approve-ambiguous-0001',
+    }, 'admin')).rejects.toThrow('COMPETITION_SCHOOL_EXAM_ADMISSION_PAYLOAD_AMBIGUOUS');
+
+    await expect(approveCompetitionSchoolExamAdmissions(d1, {
+      campaignId: 'campaign-1', eligibilitySnapshotVersion: 1,
       studentIds: ['student-2'], requestId: 'approve-invalid-0001',
     }, 'admin')).rejects.toThrow('COMPETITION_SCHOOL_EXAM_ADMISSION_NOT_QUALIFIED');
 
@@ -119,5 +156,66 @@ describe('Competition school-exam admissions', () => {
     const rows = await readSheet(Buffer.from(await blob.arrayBuffer()), { sheet: 'Du_dieu_kien' });
     expect(rows[0]).toEqual(expect.arrayContaining(['Mã học sinh', 'Họ và tên', 'Trạng thái duyệt']));
     expect(rows[1]).toEqual(expect.arrayContaining(['student-1', 'Nguyễn An', 'ĐÃ DUYỆT']));
+  });
+
+  it('chunks explicit and bulk approvals within Cloudflare D1 bind and batch limits', async () => {
+    const studentIds: string[] = [];
+    const insertStudent = sqlite.prepare(`
+      INSERT INTO students (id, full_name, username, class_id, created_at)
+      VALUES (?, ?, ?, 'class-4a', '2026-08-01')
+    `);
+    const insertEligibility = sqlite.prepare(`
+      INSERT INTO competition_eligibility (
+        id, campaign_id, eligibility_snapshot_version, student_id, qualified,
+        reason_codes_json, qualified_at, computed_at, progress_digest
+      ) VALUES (?, 'campaign-1', 1, ?, 1, '["QUALIFIED"]', '2027-03-01', '2027-03-01', ?)
+    `);
+    for (let index = 1; index <= 125; index += 1) {
+      const suffix = String(index).padStart(3, '0');
+      const studentId = `bulk-student-${suffix}`;
+      studentIds.push(studentId);
+      insertStudent.run(studentId, `Học sinh ${suffix}`, `bulk${suffix}`);
+      insertEligibility.run(`bulk-elig-${suffix}`, studentId, suffix.repeat(64).slice(0, 64));
+    }
+
+    const limitedD1 = withCloudflareD1Limits(d1);
+    const explicit = await approveCompetitionSchoolExamAdmissions(limitedD1, {
+      campaignId: 'campaign-1', eligibilitySnapshotVersion: 1,
+      studentIds, requestId: 'approve-explicit-large-0001',
+    }, 'admin');
+    expect(explicit).toMatchObject({ approvedCount: 125, alreadyApprovedCount: 0 });
+
+    const bulk = await approveCompetitionSchoolExamAdmissions(limitedD1, {
+      campaignId: 'campaign-1', eligibilitySnapshotVersion: 1,
+      approveAllQualified: true, requestId: 'approve-all-large-0001',
+    }, 'admin');
+    expect(bulk).toMatchObject({ approvedCount: 1, alreadyApprovedCount: 125 });
+    expect(sqlite.prepare('SELECT COUNT(*) AS count FROM competition_school_exam_admissions').get())
+      .toEqual({ count: 126 });
+  });
+
+  it('returns stable bounded cursor pages for qualified students', async () => {
+    sqlite.exec(`
+      INSERT INTO competition_eligibility (
+        id, campaign_id, eligibility_snapshot_version, student_id, qualified,
+        reason_codes_json, qualified_at, computed_at, progress_digest
+      ) VALUES
+        ('elig-v2-1', 'campaign-1', 2, 'student-1', 1, '["QUALIFIED"]', '2027-03-01', '2027-03-01', '${'d'.repeat(64)}'),
+        ('elig-v2-2', 'campaign-1', 2, 'student-2', 1, '["QUALIFIED"]', '2027-03-01', '2027-03-01', '${'e'.repeat(64)}');
+    `);
+
+    const first = await listCompetitionSchoolExamAdmissions(d1, 'campaign-1', { version: 2, limit: 1 });
+    expect(first).toMatchObject({ limit: 1, hasMore: true });
+    expect(first.items).toHaveLength(1);
+    expect(first.nextCursor).toEqual(expect.any(String));
+
+    const second = await listCompetitionSchoolExamAdmissions(d1, 'campaign-1', {
+      version: 2,
+      limit: 1,
+      cursor: first.nextCursor || undefined,
+    });
+    expect(second).toMatchObject({ limit: 1, hasMore: false, nextCursor: null });
+    expect(second.items).toHaveLength(1);
+    expect(second.items[0].studentId).not.toBe(first.items[0].studentId);
   });
 });

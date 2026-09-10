@@ -544,6 +544,35 @@ afterEach(() => {
 });
 
 describe('Competition V1 school-exam orchestration', () => {
+  it('rejects ambiguous admission payloads and paginates the qualified roster', async () => {
+    const ambiguous = await request('/api/competitions/campaign-1/school-exam-admissions', 'POST', {
+      campaignId: 'campaign-1',
+      eligibilitySnapshotVersion: 1,
+      studentIds: ['student-1'],
+      approveAllQualified: true,
+      requestId: 'approve-ambiguous-0001',
+    });
+    expect(ambiguous?.status).toBe(400);
+    expect(await ambiguous!.json()).toMatchObject({
+      message: 'COMPETITION_SCHOOL_EXAM_ADMISSION_PAYLOAD_AMBIGUOUS',
+    });
+
+    const first = await request('/api/competitions/campaign-1/school-exam-admissions?version=1&limit=1');
+    expect(first?.status).toBe(200);
+    const firstPayload = await first!.json() as any;
+    expect(firstPayload).toMatchObject({ limit: 1, hasMore: true });
+    expect(firstPayload.items).toHaveLength(1);
+    expect(firstPayload.nextCursor).toEqual(expect.any(String));
+
+    const second = await request(
+      `/api/competitions/campaign-1/school-exam-admissions?version=1&limit=1&cursor=${encodeURIComponent(firstPayload.nextCursor)}`,
+    );
+    expect(second?.status).toBe(200);
+    const secondPayload = await second!.json() as any;
+    expect(secondPayload.items).toHaveLength(1);
+    expect(secondPayload.items[0].studentId).not.toBe(firstPayload.items[0].studentId);
+  });
+
   it('creates an event pinned to eligibility and only assigns qualified RoomMembers with frozen originalClassId', async () => {
     expect(existsSync(orchestrationMigrationUrl)).toBe(true);
     const eventId = await createEvent();

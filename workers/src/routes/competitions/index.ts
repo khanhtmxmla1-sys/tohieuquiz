@@ -832,7 +832,12 @@ async function handleCompetitionRoutesCore(
         return errorResponse('COMPETITION_ELIGIBILITY_VERSION_INVALID', 400);
       }
       const classIds = await teacherClassIds(env.DB, user);
-      return jsonResponse(await listCompetitionSchoolExamAdmissions(env.DB, campaignId, { version, classIds }));
+      return jsonResponse(await listCompetitionSchoolExamAdmissions(env.DB, campaignId, {
+        version,
+        classIds,
+        limit: url.searchParams.get('limit') || undefined,
+        cursor: url.searchParams.get('cursor') || undefined,
+      }));
     }
     if (admissionParts && method === 'POST') {
       const [campaignId] = admissionParts;
@@ -841,6 +846,9 @@ async function handleCompetitionRoutesCore(
       const parsed = ApproveCompetitionSchoolExamAdmissionsRequestSchema.safeParse(body);
       if (!parsed.success) return errorResponse('Invalid school exam admission payload', 400);
       if (parsed.data.campaignId !== campaignId) return errorResponse('COMPETITION_SCHOOL_EXAM_ADMISSION_ROUTE_MISMATCH', 400);
+      if (parsed.data.approveAllQualified && parsed.data.studentIds?.length) {
+        return errorResponse('COMPETITION_SCHOOL_EXAM_ADMISSION_PAYLOAD_AMBIGUOUS', 400);
+      }
       const result = await approveCompetitionSchoolExamAdmissions(env.DB, parsed.data, user.username);
       return jsonResponse(result);
     }
