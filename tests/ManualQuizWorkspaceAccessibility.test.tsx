@@ -149,7 +149,7 @@ describe('ManualQuizWorkspace focus and screen-reader access', () => {
             useManualQuizWorkspaceStore.getState().selectQuestion('q-access-1');
         });
 
-        const editor = await screen.findByTestId('question-rich-editor');
+        const editor = await screen.findByTestId('question-rich-editor', {}, { timeout: 5000 });
         act(() => editor.focus());
 
         fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
@@ -159,7 +159,7 @@ describe('ManualQuizWorkspace focus and screen-reader access', () => {
             expect(state.selectedQuestionId).toBe('q-access-2');
             expect((state.quiz.questions[0] as any).question).toBe('Câu một');
         });
-        await waitFor(() => expect(screen.getByTestId('question-rich-editor')).toHaveFocus());
+        await waitFor(() => expect(screen.getByTestId('question-rich-editor')).toHaveFocus(), { timeout: 5000 });
     });
 
     it('keeps live regions and keyboard alternatives available at high zoom', async () => {

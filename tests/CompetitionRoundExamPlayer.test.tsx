@@ -116,6 +116,14 @@ const session = {
 
 const draftIdentity = 'competition:attempt-1:quiz-2';
 
+const createFreshSession = () => ({
+  ...session,
+  attempt: {
+    ...session.attempt,
+    startedAt: new Date(Date.now() - 60_000).toISOString(),
+  },
+});
+
 const createDeferred = <T,>() => {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -155,7 +163,7 @@ describe('CompetitionRoundExamPlayer', () => {
     vi.useRealTimers();
     sessionStorage.clear();
     mocks.preflightRound.mockReset().mockResolvedValue(readyPreflight);
-    mocks.start.mockReset().mockResolvedValue(session);
+    mocks.start.mockReset().mockResolvedValue(createFreshSession());
     mocks.submit.mockReset();
     mocks.showConfirm.mockReset().mockResolvedValue(true);
     mocks.renderer.mockReset();

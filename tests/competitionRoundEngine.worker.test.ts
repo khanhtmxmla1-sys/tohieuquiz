@@ -464,6 +464,7 @@ describe('Competition V1 round engine', () => {
 
   it('configures/list rounds and finalizes only CLOSED rounds with intact quiz snapshots', async () => {
     await seedCompetition();
+    setNow('2026-09-09T12:00:00.000Z');
 
     const configured = await updateCompetitionRound(d1, 'campaign-1', 'round-1', {
       campaignId: 'campaign-1',
