@@ -50,6 +50,26 @@ export interface CompetitionEligibilityView {
   items: CompetitionEligibilityItemView[];
 }
 
+export interface CompetitionSchoolExamAdmissionItemView {
+  studentId: string;
+  fullName: string;
+  username: string;
+  classId: string;
+  className: string | null;
+  gradeLevel: number;
+  qualifiedAt: string | null;
+  approved: boolean;
+  approvedBy: string | null;
+  approvedAt: string | null;
+}
+
+export interface CompetitionSchoolExamAdmissionsView {
+  campaignId: string;
+  version: number;
+  items: CompetitionSchoolExamAdmissionItemView[];
+  approvedCount: number;
+}
+
 export interface CompetitionProgressItemView {
   campaignId: string;
   roundId: string;
@@ -319,6 +339,34 @@ export const competitionDashboardService = {
 
   async finalizeEligibility(campaignId: string, requestId: string) {
     return callApi('finalize_competition_eligibility', { campaignId, requestId });
+  },
+
+  async listSchoolExamAdmissions(campaignId: string, version?: number): Promise<CompetitionSchoolExamAdmissionsView> {
+    const response = await callApi<Partial<CompetitionSchoolExamAdmissionsView>>(
+      'list_competition_school_exam_admissions',
+      { campaignId, version },
+    );
+    const items = response.items || [];
+    return {
+      campaignId: response.campaignId || campaignId,
+      version: response.version || version || 0,
+      items,
+      approvedCount: response.approvedCount ?? items.filter((item) => item.approved).length,
+    };
+  },
+
+  async approveSchoolExamAdmissions(payload: {
+    campaignId: string;
+    eligibilitySnapshotVersion: number;
+    studentIds?: string[];
+    approveAllQualified?: boolean;
+    requestId: string;
+  }): Promise<{ approvedCount: number; alreadyApprovedCount: number }> {
+    return callApi('approve_competition_school_exam_admissions', payload);
+  },
+
+  schoolExamAdmissionsExportUrl(campaignId: string, version: number): string {
+    return `/api/competitions/${encodeURIComponent(campaignId)}/school-exam-admissions/export?version=${encodeURIComponent(String(version))}`;
   },
 
   async createSchoolExamEvent(payload: {

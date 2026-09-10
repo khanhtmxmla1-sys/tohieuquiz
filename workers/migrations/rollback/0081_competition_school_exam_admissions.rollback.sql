@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_competition_school_exam_admissions_snapshot;
+DROP TABLE IF EXISTS competition_school_exam_admissions;

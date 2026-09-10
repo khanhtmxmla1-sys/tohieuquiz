@@ -55,6 +55,52 @@ describe('Competition V1 admin and teacher dashboard surface', () => {
     expect(screen.getByRole('button', { name: 'Xuất XLSX theo lớp' })).toBeInTheDocument();
   });
 
+  it('lets Admin approve qualified students individually or in bulk and exposes the eligibility XLSX', async () => {
+    let approved = false;
+    api.callApi.mockImplementation(async (action: string, payload?: any) => {
+      if (action === 'list_competitions') return {
+        items: [{ id: 'campaign-1', title: 'Trạng Nguyên Nhí', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh', status: 'ELIGIBILITY_LOCKED' }],
+      };
+      if (action === 'get_competition_rounds' || action === 'list_school_exam_events') return { items: [] };
+      if (action === 'get_competition_eligibility') return {
+        campaignId: 'campaign-1', version: 3,
+        items: [{ studentId: 'student-1', qualified: true }],
+      };
+      if (action === 'list_competition_school_exam_admissions') return {
+        campaignId: 'campaign-1', version: 3, approvedCount: approved ? 1 : 0,
+        items: [{
+          studentId: 'student-1', fullName: 'Nguyễn An', username: 'nguyenan',
+          classId: 'class-4a', className: '4A', gradeLevel: 4,
+          qualifiedAt: '2027-03-01T00:00:00.000Z', approved,
+          approvedBy: approved ? 'admin' : null, approvedAt: approved ? '2027-03-02T00:00:00.000Z' : null,
+        }],
+      };
+      if (action === 'approve_competition_school_exam_admissions') {
+        approved = true;
+        return { approvedCount: payload.studentIds ? 1 : 0, alreadyApprovedCount: 0 };
+      }
+      return { items: [] };
+    });
+
+    render(<CompetitionDashboardPage isAdmin username="admin" />);
+    expect(await screen.findByText('Nguyễn An')).toBeInTheDocument();
+    expect(screen.getByText('0 / 1 học sinh đã duyệt')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Xuất Excel đủ điều kiện' })).toHaveAttribute(
+      'href',
+      '/api/competitions/campaign-1/school-exam-admissions/export?version=3',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Duyệt' }));
+    await waitFor(() => expect(api.callApi).toHaveBeenCalledWith(
+      'approve_competition_school_exam_admissions',
+      expect.objectContaining({
+        campaignId: 'campaign-1', eligibilitySnapshotVersion: 3,
+        studentIds: ['student-1'], requestId: expect.any(String),
+      }),
+    ));
+    expect(await screen.findByText(/Đã duyệt bởi admin/)).toBeInTheDocument();
+  });
+
   it('shows class-scoped Teacher attempts, best score and eligibility progress from the server', async () => {
     useAuthStore.setState({ teacherClasses: [{ id: 'class-4a', name: '4A' }] });
     api.callApi.mockImplementation(async (action: string) => {

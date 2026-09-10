@@ -86,4 +86,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0077_competition_async_xlsx_export.sql'),
   ('0078_competition_result_corrections.sql'),
   ('0079_competition_runtime_rollout.sql'),
-  ('0080_competition_public_portal.sql');
+  ('0080_competition_public_portal.sql'),
+  ('0081_competition_school_exam_admissions.sql');

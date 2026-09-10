@@ -160,6 +160,12 @@ export const competitionRoutes: RouteRegistry = {
   finalize_competition_eligibility: {
     method: 'POST', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/eligibility/finalize`,
   },
+  list_competition_school_exam_admissions: {
+    method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/school-exam-admissions`, query: eligibilityQuery,
+  },
+  approve_competition_school_exam_admissions: {
+    method: 'POST', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/school-exam-admissions`, body: identityBody,
+  },
   list_school_exam_events: {
     method: 'GET', auth: 'session', path: ({ campaignId }) => `/api/competitions/${encoded(campaignId)}/school-exams`,
   },

@@ -21,6 +21,7 @@ const certificateAdapterMigrationUrl = new URL('../workers/migrations/0076_compe
 const exportAdapterMigrationUrl = new URL('../workers/migrations/0077_competition_async_xlsx_export.sql', import.meta.url);
 const resultCorrectionMigrationUrl = new URL('../workers/migrations/0078_competition_result_corrections.sql', import.meta.url);
 const competitionRolloutMigrationUrl = new URL('../workers/migrations/0079_competition_runtime_rollout.sql', import.meta.url);
+const schoolExamAdmissionMigrationUrl = new URL('../workers/migrations/0081_competition_school_exam_admissions.sql', import.meta.url);
 
 const secret = 'school-exam-orchestration-test-secret';
 let sqlite: DatabaseSync;
@@ -256,6 +257,7 @@ function seedCompetition(): void {
   if (existsSync(exportAdapterMigrationUrl)) sqlite.exec(readFileSync(exportAdapterMigrationUrl, 'utf8'));
   if (existsSync(resultCorrectionMigrationUrl)) sqlite.exec(readFileSync(resultCorrectionMigrationUrl, 'utf8'));
   if (existsSync(competitionRolloutMigrationUrl)) sqlite.exec(readFileSync(competitionRolloutMigrationUrl, 'utf8'));
+  if (existsSync(schoolExamAdmissionMigrationUrl)) sqlite.exec(readFileSync(schoolExamAdmissionMigrationUrl, 'utf8'));
   sqlite.exec(`
     UPDATE feature_flags SET enabled = 1 WHERE flag_key = 'competition_v1';
     UPDATE feature_flag_rules SET audience = 'all', percentage = 100
@@ -296,6 +298,13 @@ function seedCompetition(): void {
       ('elig-2', 'campaign-1', 1, 'student-2', 1, '["QUALIFIED"]', '2027-03-01T00:00:00.000Z', '2027-03-01T00:00:00.000Z', '${'c'.repeat(64)}'),
       ('elig-3', 'campaign-1', 1, 'student-3', 0, '["ROUND_6_NOT_PASSED"]', NULL, '2027-03-01T00:00:00.000Z', '${'d'.repeat(64)}'),
       ('elig-4', 'campaign-1', 1, 'student-4', 1, '["QUALIFIED"]', '2027-03-01T00:00:00.000Z', '2027-03-01T00:00:00.000Z', '${'e'.repeat(64)}');
+    INSERT INTO competition_school_exam_admissions (
+      campaign_id, eligibility_snapshot_version, student_id, approved_by,
+      approved_at, request_id, created_at
+    ) VALUES
+      ('campaign-1', 1, 'student-1', 'admin', '2027-03-02T00:00:00.000Z', 'seed-admission-1', '2027-03-02T00:00:00.000Z'),
+      ('campaign-1', 1, 'student-2', 'admin', '2027-03-02T00:00:00.000Z', 'seed-admission-2', '2027-03-02T00:00:00.000Z'),
+      ('campaign-1', 1, 'student-4', 'admin', '2027-03-02T00:00:00.000Z', 'seed-admission-4', '2027-03-02T00:00:00.000Z');
     INSERT INTO live_exam_capacity_profiles (
       id, benchmark_run_id, build_sha, runtime_config_version, polling_profile_version,
       certified_concurrent_students, status_p95_ms, submit_p95_ms, lost_answers,
@@ -538,6 +547,7 @@ describe('Competition V1 school-exam orchestration', () => {
   it('creates an event pinned to eligibility and only assigns qualified RoomMembers with frozen originalClassId', async () => {
     expect(existsSync(orchestrationMigrationUrl)).toBe(true);
     const eventId = await createEvent();
+    sqlite.prepare("DELETE FROM competition_school_exam_admissions WHERE student_id = 'student-4'").run();
 
     const rejected = await request(`/api/school-exams/${eventId}/rooms`, 'POST', {
       eventId,
@@ -555,6 +565,33 @@ describe('Competition V1 school-exam orchestration', () => {
       requestId: 'create-room-invalid-0001',
     });
     expect(rejected?.status).toBe(409);
+
+    const pendingApproval = await request(`/api/school-exams/${eventId}/rooms`, 'POST', {
+      eventId,
+      name: 'Room pending approval',
+      roomCode: 'R04',
+      scheduledAt: '2027-05-10T01:00:00.000Z',
+      durationMinutes: 45,
+      checkInLeadMinutes: 15,
+      closeDrainMinutes: 10,
+      formCode: 'A',
+      quizId: 'quiz-a',
+      invigilatorIds: ['teacher-4'],
+      studentIds: ['student-4'],
+      formDefinition,
+      requestId: 'create-room-pending-admission-0001',
+    });
+    expect(pendingApproval?.status).toBe(409);
+    expect(await pendingApproval?.json()).toMatchObject({ message: 'SCHOOL_EXAM_ROOM_MEMBER_NOT_APPROVED' });
+
+    const approved = await request('/api/competitions/campaign-1/school-exam-admissions', 'POST', {
+      campaignId: 'campaign-1',
+      eligibilitySnapshotVersion: 1,
+      studentIds: ['student-4'],
+      requestId: 'approve-student-4-0001',
+    });
+    expect(approved?.status).toBe(200);
+    expect(await approved?.json()).toMatchObject({ approvedCount: 1, alreadyApprovedCount: 0 });
 
     const created = await request(`/api/school-exams/${eventId}/rooms`, 'POST', {
       eventId,

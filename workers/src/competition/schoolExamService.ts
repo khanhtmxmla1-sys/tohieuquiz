@@ -3,6 +3,7 @@ import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
 import { evaluateCapacityPreflight } from './capacityService';
 import { createOrReuseQuizSnapshot } from './quizSnapshotService';
+import { assertCompetitionSchoolExamAdmissions } from './schoolExamAdmissionService';
 
 export interface SchoolExamFormDefinition {
   blueprintId: string;
@@ -376,6 +377,12 @@ export async function createSchoolExamRoom(
   if ((qualified.results || []).length !== studentIds.length) {
     throw new Error('SCHOOL_EXAM_ROOM_MEMBER_NOT_QUALIFIED');
   }
+  await assertCompetitionSchoolExamAdmissions(
+    db,
+    event.campaign_id,
+    event.eligibility_snapshot_version,
+    studentIds,
+  );
 
   const alreadyAssigned = await db.prepare(`
     SELECT student_id FROM competition_school_exam_members

@@ -36,6 +36,7 @@ const COMPETITION_MIGRATIONS = Object.freeze([
   '0078_competition_result_corrections.sql',
   '0079_competition_runtime_rollout.sql',
   '0080_competition_public_portal.sql',
+  '0081_competition_school_exam_admissions.sql',
 ]);
 
 const expectedCompetitionTables = Object.freeze([
@@ -48,6 +49,7 @@ const expectedCompetitionTables = Object.freeze([
   'competition_round_attempts',
   'competition_round_progress',
   'competition_eligibility',
+  'competition_school_exam_admissions',
   'competition_school_exam_events',
   'competition_school_exam_rooms',
   'competition_school_exam_members',

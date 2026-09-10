@@ -1,4 +1,5 @@
 import {
+  ApproveCompetitionSchoolExamAdmissionsRequestSchema,
   CreateCompetitionCampaignRequestSchema,
   CreateCompetitionCertificateBatchRequestSchema,
   CreateCompetitionExportRequestSchema,
@@ -35,6 +36,11 @@ import {
   getStudentCompetitionEligibility,
   listCompetitionEligibility,
 } from '../../competition/eligibilityService';
+import {
+  approveCompetitionSchoolExamAdmissions,
+  buildCompetitionSchoolExamAdmissionsWorkbook,
+  listCompetitionSchoolExamAdmissions,
+} from '../../competition/schoolExamAdmissionService';
 import {
   finalizeCompetitionRound,
   listCompetitionProgress,
@@ -183,7 +189,11 @@ function routeError(error: unknown): Response {
     'COMPETITION_QUIZ_SNAPSHOT_HASH_MISMATCH',
     'SCHOOL_EXAM_EVENT_CONFIG_LOCKED',
     'SCHOOL_EXAM_ROOM_MEMBER_NOT_QUALIFIED',
+    'SCHOOL_EXAM_ROOM_MEMBER_NOT_APPROVED',
     'SCHOOL_EXAM_ROOM_MEMBERS_INVALID',
+    'COMPETITION_SCHOOL_EXAM_ADMISSION_NOT_QUALIFIED',
+    'COMPETITION_SCHOOL_EXAM_ADMISSION_EMPTY',
+    'COMPETITION_SCHOOL_EXAM_ADMISSION_EXPORT_EMPTY',
     'SCHOOL_EXAM_MEMBER_ALREADY_ASSIGNED',
     'SCHOOL_EXAM_SAME_FORM_REQUIRED',
     'SCHOOL_EXAM_EQUIVALENT_FORM_APPROVAL_REQUIRED',
@@ -786,6 +796,53 @@ async function handleCompetitionRoutesCore(
         cursor: url.searchParams.get('cursor') || undefined,
       });
       return jsonResponse(eligibility);
+    }
+
+    const admissionExportParts = routeParts(
+      path,
+      /^\/api\/competitions\/([^/]+)\/school-exam-admissions\/export$/,
+    );
+    if (admissionExportParts && method === 'GET') {
+      const [campaignId] = admissionExportParts;
+      const url = new URL(request.url);
+      const rawVersion = url.searchParams.get('version');
+      const version = rawVersion === null ? undefined : Number(rawVersion);
+      if (version !== undefined && (!Number.isInteger(version) || version <= 0)) {
+        return errorResponse('COMPETITION_ELIGIBILITY_VERSION_INVALID', 400);
+      }
+      const classIds = await teacherClassIds(env.DB, user);
+      const workbook = await buildCompetitionSchoolExamAdmissionsWorkbook(env.DB, campaignId, { version, classIds });
+      return new Response(workbook, {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="competition-${campaignId.replace(/[^A-Za-z0-9_-]+/g, '-')}-qualified-students.xlsx"`,
+          'Cache-Control': 'private, no-store',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    }
+
+    const admissionParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/school-exam-admissions$/);
+    if (admissionParts && method === 'GET') {
+      const [campaignId] = admissionParts;
+      const url = new URL(request.url);
+      const rawVersion = url.searchParams.get('version');
+      const version = rawVersion === null ? undefined : Number(rawVersion);
+      if (version !== undefined && (!Number.isInteger(version) || version <= 0)) {
+        return errorResponse('COMPETITION_ELIGIBILITY_VERSION_INVALID', 400);
+      }
+      const classIds = await teacherClassIds(env.DB, user);
+      return jsonResponse(await listCompetitionSchoolExamAdmissions(env.DB, campaignId, { version, classIds }));
+    }
+    if (admissionParts && method === 'POST') {
+      const [campaignId] = admissionParts;
+      const body = await jsonBody(request);
+      if (!body) return errorResponse('Invalid JSON body', 400);
+      const parsed = ApproveCompetitionSchoolExamAdmissionsRequestSchema.safeParse(body);
+      if (!parsed.success) return errorResponse('Invalid school exam admission payload', 400);
+      if (parsed.data.campaignId !== campaignId) return errorResponse('COMPETITION_SCHOOL_EXAM_ADMISSION_ROUTE_MISMATCH', 400);
+      const result = await approveCompetitionSchoolExamAdmissions(env.DB, parsed.data, user.username);
+      return jsonResponse(result);
     }
 
     const progressParts = routeParts(path, /^\/api\/competitions\/([^/]+)\/progress$/);

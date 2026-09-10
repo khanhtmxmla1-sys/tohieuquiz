@@ -113,6 +113,18 @@ export const FinalizeCompetitionEligibilityRequestSchema = z.object({
   requestId: RequestIdSchema,
 }).strict();
 
+export const ApproveCompetitionSchoolExamAdmissionsRequestSchema = z.object({
+  campaignId: IdentifierSchema,
+  eligibilitySnapshotVersion: z.number().int().positive(),
+  studentIds: z.array(IdentifierSchema).min(1).max(1000).optional(),
+  approveAllQualified: z.boolean().optional(),
+  requestId: RequestIdSchema,
+}).strict().superRefine((value, ctx) => {
+  if (value.approveAllQualified !== true && !value.studentIds?.length) {
+    ctx.addIssue({ code: 'custom', message: 'studentIds or approveAllQualified is required', path: ['studentIds'] });
+  }
+});
+
 export const CreateSchoolExamEventRequestSchema = z.object({
   campaignId: IdentifierSchema,
   eligibilitySnapshotVersion: z.number().int().positive(),
@@ -249,6 +261,7 @@ export type UpsertCompetitionRoundQuizRequest = z.infer<typeof UpsertCompetition
 export type StartCompetitionRoundAttemptRequest = z.infer<typeof StartCompetitionRoundAttemptRequestSchema>;
 export type SubmitCompetitionRoundAttemptRequest = z.infer<typeof SubmitCompetitionRoundAttemptRequestSchema>;
 export type FinalizeCompetitionEligibilityRequest = z.infer<typeof FinalizeCompetitionEligibilityRequestSchema>;
+export type ApproveCompetitionSchoolExamAdmissionsRequest = z.infer<typeof ApproveCompetitionSchoolExamAdmissionsRequestSchema>;
 export type CreateSchoolExamEventRequest = z.infer<typeof CreateSchoolExamEventRequestSchema>;
 export type CreateSchoolExamRoomRequest = z.infer<typeof CreateSchoolExamRoomRequestSchema>;
 export type CreateSchoolExamIncidentRequest = z.infer<typeof CreateSchoolExamIncidentRequestSchema>;
