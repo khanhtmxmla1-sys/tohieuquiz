@@ -192,6 +192,14 @@ const createBody = {
   requestId: 'req_competition_route_create_0001',
 };
 
+function futureRoundWindow(): { opensAt: string; closesAt: string } {
+  const now = Date.now();
+  return {
+    opensAt: new Date(now + 60_000).toISOString(),
+    closesAt: new Date(now + 120_000).toISOString(),
+  };
+}
+
 async function seedEligibilityProgress(
   campaignId: string,
   options: { failedRoundForStudent1?: number; nonFinalizedRound?: number } = {},
@@ -406,12 +414,13 @@ describe('Competition V1 campaign routes', () => {
   it('exposes round list/config/finalize endpoints with Admin mutation guards', async () => {
     const createResponse = await request('/api/competitions', 'POST', createBody);
     const campaignId = (await createResponse.json() as any).campaign.id as string;
+    const roundWindow = futureRoundWindow();
     const roundBody = {
       campaignId,
       roundId: 'round-route-1',
       roundNumber: 1,
-      opensAt: '2026-09-10T00:00:00.000Z',
-      closesAt: '2026-09-11T00:00:00.000Z',
+      opensAt: roundWindow.opensAt,
+      closesAt: roundWindow.closesAt,
       maxAttempts: 2,
       passingRuleType: 'MIN_SCORE',
       passingScore: 7,
@@ -447,12 +456,13 @@ describe('Competition V1 campaign routes', () => {
   it('lets Admin map an immutable quiz snapshot by grade or class while Teacher remains read-only', async () => {
     const createResponse = await request('/api/competitions', 'POST', createBody);
     const campaignId = (await createResponse.json() as any).campaign.id as string;
+    const roundWindow = futureRoundWindow();
     const roundBody = {
       campaignId,
       roundId: 'round-mapping-1',
       roundNumber: 1,
-      opensAt: '2026-09-10T00:00:00.000Z',
-      closesAt: '2026-09-11T00:00:00.000Z',
+      opensAt: roundWindow.opensAt,
+      closesAt: roundWindow.closesAt,
       maxAttempts: 2,
       passingRuleType: 'MIN_SCORE',
       passingScore: 7,

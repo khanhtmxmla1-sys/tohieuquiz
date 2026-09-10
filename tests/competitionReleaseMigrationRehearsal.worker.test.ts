@@ -4,6 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const rollbackFiles = [
+  '0081_competition_school_exam_admissions.rollback.sql',
   '0080_competition_public_portal.rollback.sql',
   '0078_competition_result_corrections.rollback.sql',
   '0079_competition_runtime_rollout.rollback.sql',

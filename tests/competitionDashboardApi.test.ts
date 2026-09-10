@@ -54,6 +54,9 @@ describe('Competition V1 dashboard API registry', () => {
       .toBe('/api/competitions/campaign%201/progress');
     expect(resolveApiRoute('get_competition_eligibility').path({ campaignId: 'campaign 1' }))
       .toBe('/api/competitions/campaign%201/eligibility');
+    expect(resolveApiRoute('list_competition_school_exam_admissions').path({ campaignId: 'campaign 1' }))
+      .toBe('/api/competitions/campaign%201/school-exam-admissions');
+    expect(resolveApiRoute('approve_competition_school_exam_admissions')).toMatchObject({ method: 'POST', auth: 'session' });
     expect(resolveApiRoute('list_school_exam_events').path({ campaignId: 'campaign 1' }))
       .toBe('/api/competitions/campaign%201/school-exams');
     expect(resolveApiRoute('get_school_exam_event').path({ eventId: 'event 1' }))
