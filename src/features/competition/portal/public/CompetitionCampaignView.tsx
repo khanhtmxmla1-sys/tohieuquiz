@@ -115,7 +115,7 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
         </div>
       </section>
 
-      <nav aria-label="Khám phá cuộc thi" className="sticky top-24 z-30 mx-auto -mt-6 flex max-w-5xl flex-nowrap justify-start gap-1 overflow-x-auto rounded-3xl border border-amber-100 bg-white/95 p-3 shadow-xl shadow-blue-950/5 backdrop-blur-md sm:justify-center sm:gap-2 sm:p-4">
+      <nav aria-label="Khám phá cuộc thi" className="relative z-30 mx-auto -mt-6 flex max-w-5xl flex-nowrap justify-start gap-1 overflow-x-auto rounded-3xl border border-amber-100 bg-white/95 p-3 shadow-xl shadow-blue-950/5 backdrop-blur-md sm:justify-center sm:gap-2 sm:p-4 lg:sticky lg:top-20">
         <a href="#bat-dau" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-blue-950 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><Target className="size-4" aria-hidden="true" />Bắt đầu</a>
         <a href="#viec-can-lam" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><Sparkles className="size-4" aria-hidden="true" />Cần làm ngay</a>
         <a href="#hanh-trinh" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><CalendarDays className="size-4" aria-hidden="true" />Hành trình</a>
