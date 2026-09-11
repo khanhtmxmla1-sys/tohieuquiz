@@ -103,20 +103,20 @@ describe('Competition public content pages', () => {
     expect(screen.getByRole('heading', { level: 2, name: campaign.hero.title })).toBeInTheDocument();
     expect(screen.getByText(campaign.hero.subtitle)).toBeInTheDocument();
     expect(screen.getByText(campaign.summary)).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Chinh phục tri thức' }))
+    expect(screen.getByRole('img', { name: `Học sinh tham gia ${campaign.title}` }))
       .toHaveAttribute('src', campaign.hero.imageUrl);
-    expect(screen.getByRole('img', { name: 'Chinh phục tri thức' }))
+    expect(screen.getByRole('img', { name: `Học sinh tham gia ${campaign.title}` }))
       .toHaveAttribute('width', '1200');
-    expect(screen.getByRole('img', { name: 'Chinh phục tri thức' }))
+    expect(screen.getByRole('img', { name: `Học sinh tham gia ${campaign.title}` }))
       .toHaveAttribute('height', '900');
 
     const journey = screen.getByRole('region', { name: /hành trình 6 vòng/i });
     expect(within(journey).getAllByRole('listitem')).toHaveLength(6);
+    expect(within(journey).getAllByText('Chưa mở')[0]).toHaveClass('bg-slate-100', 'text-slate-700');
 
-    const schedule = screen.getByRole('region', { name: 'Lịch thi', exact: true });
-    expect(within(schedule).getAllByText('Chưa mở')[0]).toHaveClass('bg-slate-100', 'text-slate-700');
-
-    expect(screen.getByRole('link', { name: 'VÀO THI' })).toHaveAttribute('href', '/thi/san-choi-2026');
+    const campaignHero = screen.getByRole('region', { name: campaign.title });
+    expect(within(campaignHero).getByRole('link', { name: 'VÀO THI' }))
+      .toHaveAttribute('href', '/thi/san-choi-2026');
     expect(screen.getByRole('link', { name: /bảng vàng/i })).toHaveAttribute(
       'href',
       '/cuoc-thi/san-choi-2026/bang-vang',
@@ -143,17 +143,21 @@ describe('Competition public content pages', () => {
     renderCampaign(campaignWithoutImage);
 
     expect(await screen.findByRole('heading', { level: 1, name: campaign.title })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Hình minh họa Chinh phục tri thức' })).toBeInTheDocument();
+    expect(screen.getByRole('img', {
+      name: `Hình minh họa học sinh tham gia ${campaign.title}`,
+    })).toBeInTheDocument();
   });
 
   it('switches to the hero fallback when campaign media fails to load', async () => {
     renderCampaign();
 
-    const heroImage = await screen.findByRole('img', { name: campaign.hero.title });
+    const heroImage = await screen.findByRole('img', { name: `Học sinh tham gia ${campaign.title}` });
     fireEvent.error(heroImage);
 
-    expect(screen.getByRole('img', { name: `Hình minh họa ${campaign.hero.title}` })).toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: campaign.hero.title })).not.toBeInTheDocument();
+    expect(screen.getByRole('img', {
+      name: `Hình minh họa học sinh tham gia ${campaign.title}`,
+    })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: `Học sinh tham gia ${campaign.title}` })).not.toBeInTheDocument();
   });
 
   it('shows the Golden Board CTA only when the public availability flag is true', async () => {

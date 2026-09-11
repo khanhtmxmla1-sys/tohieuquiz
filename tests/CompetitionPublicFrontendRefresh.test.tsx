@@ -133,6 +133,15 @@ describe('Competition public frontend refresh', () => {
       `/cuoc-thi/${campaign.slug}`,
     );
     expect(screen.getByRole('navigation', { name: 'Lối tắt nội dung cuộc thi' })).toBeInTheDocument();
+    const headerNavigation = screen.getByRole('navigation', { name: 'Điều hướng cuộc thi' });
+    expect(within(headerNavigation).getByRole('link', { name: 'Các cuộc thi' })).toHaveAttribute(
+      'href',
+      '#competition-groups',
+    );
+    expect(within(headerNavigation).getByRole('link', { name: 'Hành trình 6 vòng' })).toHaveAttribute(
+      'href',
+      '#six-round-journey',
+    );
   });
 
   it('guides families from the active round to one clear six-round journey', async () => {
@@ -157,8 +166,10 @@ describe('Competition public frontend refresh', () => {
     );
 
     expect(screen.getAllByRole('heading', { name: 'Hành trình 6 vòng' })).toHaveLength(1);
+    expect(document.getElementById('lich-thi')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Lịch thi' })).not.toBeInTheDocument();
-    expect(screen.getByText('Khối 4–5')).toBeInTheDocument();
+    expect(screen.getAllByText('Đối tượng theo thể lệ')).toHaveLength(2);
+    expect(screen.queryByText('Khối 4–5')).not.toBeInTheDocument();
     expect(screen.getByText('6 vòng thi')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '3 bước tham gia' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Thể lệ' })).toBeInTheDocument();

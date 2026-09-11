@@ -79,7 +79,7 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
             <div className="flex flex-wrap items-center gap-3">
               <PublicStateBadge state={campaign.publicState} />
               <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-cyan-100">Năm học {campaign.schoolYear}</span>
-              <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-200">Dành cho khối 4–5</span>
+              <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-200">Đối tượng theo thể lệ</span>
             </div>
             <p className="mt-7 font-bold uppercase tracking-[0.18em] text-cyan-300">Sân chơi kiến thức tiểu học</p>
             <h1 id="campaign-hero-title" className="mt-3 max-w-4xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">{campaign.title}</h1>
@@ -145,13 +145,14 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
 
             <aside aria-label="Thông tin nhanh" className="grid grid-cols-2 gap-3 rounded-[2rem] bg-blue-950 p-5 text-white lg:grid-cols-1">
               <div className="rounded-2xl bg-white/10 p-4"><span className="text-2xl font-black text-amber-300">6</span><p className="mt-1 text-sm font-bold text-blue-100">6 vòng thi</p></div>
-              <div className="rounded-2xl bg-white/10 p-4"><UsersRound className="size-6 text-cyan-300" aria-hidden="true" /><p className="mt-2 text-sm font-bold text-blue-100">Khối 4–5</p></div>
+              <div className="rounded-2xl bg-white/10 p-4"><UsersRound className="size-6 text-cyan-300" aria-hidden="true" /><p className="mt-2 text-sm font-bold text-blue-100">Đối tượng theo thể lệ</p></div>
               <div className="col-span-2 rounded-2xl bg-white/10 p-4 lg:col-span-1"><CalendarDays className="size-6 text-cyan-300" aria-hidden="true" /><p className="mt-2 text-sm font-bold text-blue-100"><time dateTime={campaign.startsAt}>{formatPublicDate(campaign.startsAt)}</time> – <time dateTime={campaign.endsAt}>{formatPublicDate(campaign.endsAt)}</time></p></div>
             </aside>
           </div>
         </section>
 
         <section id="hanh-trinh" aria-label="Hành trình 6 vòng" className="scroll-mt-36">
+          <span id="lich-thi" className="block scroll-mt-36" aria-hidden="true" />
           <SectionEyebrow>Mốc thời gian chính thức</SectionEyebrow>
           <h2 id="campaign-journey-title" className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Hành trình 6 vòng</h2>
           <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-600">Một lộ trình duy nhất để gia đình dễ theo dõi trạng thái, thời gian và bước tiếp theo của từng vòng.</p>
