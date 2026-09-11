@@ -235,6 +235,7 @@ describe('Competition public portal release journey', () => {
       },
     }).as('submitAttempt');
 
+    cy.clock(new Date('2026-09-01T01:00:00.000Z').getTime(), ['Date']);
     visitAsStudent(`/thi/${campaignSlug}`);
     cy.wait('@studentProfile');
     cy.wait('@studentPortal');
@@ -253,13 +254,15 @@ describe('Competition public portal release journey', () => {
     cy.contains('h1', 'Sẵn sàng vào thi').should('be.visible');
     cy.wrap(null).then(() => expect(attemptCreateCount).to.eq(0));
 
-    cy.on('window:confirm', () => true);
     cy.contains('a', 'BẮT ĐẦU').click();
     cy.contains('button', 'BẮT ĐẦU BÀI THI').click();
     cy.wait('@roundPreflight');
     cy.wait('@startAttempt');
     cy.contains('h1', 'Đề vòng 1').should('be.visible');
-    cy.contains('button', 'Nộp bài').click();
+    cy.contains('button', 'Nộp bài').should('be.enabled').click();
+    cy.get('[role="dialog"]').should('contain.text', 'Xác nhận thao tác').within(() => {
+      cy.contains('button', 'Nộp bài').click();
+    });
     cy.wait('@submitAttempt');
     cy.contains('h1', 'Kết quả bài thi').should('be.visible');
     cy.contains('Điểm: 10').should('be.visible');
