@@ -133,9 +133,18 @@ describe('Competition public frontend refresh', () => {
       `/cuoc-thi/${campaign.slug}`,
     );
     expect(screen.getByRole('navigation', { name: 'Lối tắt nội dung cuộc thi' })).toBeInTheDocument();
+    const headerNavigation = screen.getByRole('navigation', { name: 'Điều hướng cuộc thi' });
+    expect(within(headerNavigation).getByRole('link', { name: 'Các cuộc thi' })).toHaveAttribute(
+      'href',
+      '#competition-groups',
+    );
+    expect(within(headerNavigation).getByRole('link', { name: 'Hành trình 6 vòng' })).toHaveAttribute(
+      'href',
+      '#six-round-journey',
+    );
   });
 
-  it('organizes campaign information with Vietnamese labels and quick navigation', async () => {
+  it('guides families from the active round to one clear six-round journey', async () => {
     render(
       <MemoryRouter initialEntries={[`/cuoc-thi/${campaign.slug}`]}>
         <CompetitionCampaignPage />
@@ -145,11 +154,47 @@ describe('Competition public frontend refresh', () => {
     expect(await screen.findByRole('heading', { level: 1, name: campaign.title })).toBeInTheDocument();
     const navigation = screen.getByRole('navigation', { name: 'Khám phá cuộc thi' });
     expect(screen.getByRole('link', { name: 'Chi tiết cuộc thi' })).toHaveAttribute('aria-current', 'page');
-    expect(within(navigation).getByRole('link', { name: 'Lịch thi' })).toHaveAttribute('href', '#lich-thi');
+    expect(within(navigation).getByRole('link', { name: 'Hành trình' })).toHaveAttribute('href', '#hanh-trinh');
     expect(within(navigation).getByRole('link', { name: 'Tin mới' })).toHaveAttribute('href', '#tin-tuc');
-    expect(screen.getByRole('heading', { name: 'Lịch thi' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Các cuộc thi' })).not.toBeInTheDocument();
+
+    const nextAction = screen.getByRole('region', { name: 'Việc cần làm ngay' });
+    expect(within(nextAction).getByText('Vòng 1 đang mở')).toBeInTheDocument();
+    expect(within(nextAction).getByRole('link', { name: 'Vào thi vòng 1' })).toHaveAttribute(
+      'href',
+      `/thi/${campaign.slug}/vong/1`,
+    );
+
+    expect(screen.getAllByRole('heading', { name: 'Hành trình 6 vòng' })).toHaveLength(1);
+    expect(document.getElementById('lich-thi')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Lịch thi' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Đối tượng theo thể lệ')).toHaveLength(2);
+    expect(screen.queryByText('Khối 4–5')).not.toBeInTheDocument();
+    expect(screen.getByText('6 vòng thi')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '3 bước tham gia' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Thể lệ' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Hướng dẫn' })).toBeInTheDocument();
+
+    const mobileActions = screen.getByRole('navigation', { name: 'Thao tác nhanh trên thiết bị di động' });
+    expect(within(mobileActions).getByRole('link', { name: 'Vào thi ngay' })).toHaveAttribute(
+      'href',
+      `/thi/${campaign.slug}`,
+    );
+  });
+
+  it('does not repeat the campaign title when the configured hero title is identical', async () => {
+    mocks.getCompetition.mockResolvedValueOnce({
+      ...campaign,
+      hero: { ...campaign.hero, title: campaign.title },
+    });
+
+    render(
+      <MemoryRouter initialEntries={[`/cuoc-thi/${campaign.slug}`]}>
+        <CompetitionCampaignPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findAllByText(campaign.title)).toHaveLength(1);
   });
 
   it('turns a public article into a readable editorial page', async () => {

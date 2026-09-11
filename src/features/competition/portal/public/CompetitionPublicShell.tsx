@@ -20,6 +20,13 @@ const CompetitionPublicShell = ({ children, ctaHref, campaignSlug }: Competition
   const isCampaignRoute = Boolean(
     campaignSlug && (location.pathname === campaignHref || location.pathname === `${campaignHref}/`),
   );
+  const journeyHref = isIndexRoute
+    ? '#six-round-journey'
+    : isCampaignRoute
+      ? '#hanh-trinh'
+      : campaignSlug
+        ? `${campaignHref}#hanh-trinh`
+        : '#six-round-journey';
   const activeLinkClassName = 'bg-blue-50 text-blue-700 shadow-sm shadow-blue-900/5';
   const inactiveLinkClassName = 'text-slate-600 hover:bg-blue-50 hover:text-blue-700';
 
@@ -57,13 +64,15 @@ const CompetitionPublicShell = ({ children, ctaHref, campaignSlug }: Competition
             >
               Trang cuộc thi
             </Link>
-            <a className={`inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 py-2 transition ${inactiveLinkClassName} ${focusClassName}`} href="#competition-groups">
-              Các cuộc thi
-            </a>
-            <a className={`inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 py-2 transition ${inactiveLinkClassName} ${focusClassName}`} href="#six-round-journey">
+            {(isIndexRoute || !campaignSlug) && (
+              <a className={`inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 py-2 transition ${inactiveLinkClassName} ${focusClassName}`} href="#competition-groups">
+                Các cuộc thi
+              </a>
+            )}
+            <a className={`inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 py-2 transition ${inactiveLinkClassName} ${focusClassName}`} href={journeyHref}>
               Hành trình 6 vòng
             </a>
-            {campaignSlug && (
+            {campaignSlug && !isIndexRoute && (
               <Link
                 aria-current={isCampaignRoute ? 'page' : undefined}
                 className={`inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 py-2 transition ${isCampaignRoute ? activeLinkClassName : inactiveLinkClassName} ${focusClassName}`}
