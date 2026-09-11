@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 420" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="500" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFF6FF"/>
+      <stop offset=".5" stop-color="#FFFBEB"/>
+      <stop offset="1" stop-color="#FEF3C7"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1E293B" flood-opacity=".08"/>
+    </filter>
+  </defs>
+  <rect width="500" height="420" rx="32" fill="url(#sky)"/>
+  <circle cx="410" cy="90" r="65" fill="#FEF08A" fill-opacity=".45"/>
+  <circle cx="80" cy="340" r="90" fill="#93C5FD" fill-opacity=".25"/>
+  <g filter="url(#shadow)">
+    <path d="M120 290C170 270 230 275 250 295C270 275 330 270 380 290V345C330 325 270 330 250 350C230 330 170 325 120 345V290Z" fill="#172554"/>
+    <path d="M125 282C172 263 232 268 250 288C268 268 328 263 375 282V335C328 316 268 321 250 340C232 321 172 316 125 335V282Z" fill="#fff"/>
+    <path d="M130 275C175 256 233 261 250 280C267 261 325 256 370 275V325C325 306 267 311 250 330C233 311 175 306 130 325V275Z" fill="#FFFDF8"/>
+    <path d="M247 280H253V348H247V280Z" fill="#E2E8F0"/>
+    <path d="M250 280C250 310 240 335 235 365L245 358L255 365C252 340 250 315 250 280Z" fill="#DC2626"/>
+    <path d="M150 292C180 284 215 288 230 296M270 296C285 288 320 284 350 292" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"/>
+    <path d="M150 306C180 298 215 302 230 310M270 310C285 302 320 298 350 306" stroke="#CBD5E1" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path d="M200 170C200 150 300 150 300 170V195C300 215 200 215 200 195V170Z" fill="#0F172A"/>
+    <path d="M190 185C130 175 90 130 110 110C130 90 170 145 195 168Z" fill="#1E293B"/>
+    <path d="M190 185C135 178 100 138 116 122C132 106 168 152 195 168Z" fill="#2563EB" fill-opacity=".85"/>
+    <path d="M310 185C370 175 410 130 390 110C370 90 330 145 305 168Z" fill="#1E293B"/>
+    <path d="M310 185C365 178 400 138 384 122C368 106 332 152 305 168Z" fill="#2563EB" fill-opacity=".85"/>
+    <path d="M250 100L370 142L250 184L130 142L250 100Z" fill="#172554"/>
+    <path d="M250 106L358 142L250 178L142 142L250 106Z" fill="#1E3A8A"/>
+    <ellipse cx="250" cy="142" rx="10" ry="7" fill="#FBBF24"/>
+    <path d="M250 142C290 155 330 185 340 220" stroke="#F59E0B" stroke-width="4" stroke-linecap="round"/>
+    <rect x="333" y="215" width="14" height="24" rx="3" fill="#D97706"/>
+    <path d="M335 239V255M340 239V258M345 239V255" stroke="#FBBF24" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#shadow)">
+    <circle cx="370" cy="220" r="38" fill="#F59E0B"/>
+    <circle cx="370" cy="220" r="32" fill="#FBBF24"/>
+    <path d="M370 198L376 214H392L379 224L384 240L370 230L356 240L361 224L348 214H364L370 198Z" fill="#B45309"/>
+    <path d="M370 202L375 215H389L378 223L382 236L370 228L358 236L362 223L351 215H365L370 202Z" fill="#FEF08A"/>
+  </g>
+  <g font-family="Be Vietnam Pro, sans-serif" font-weight="700" font-size="12">
+    <g filter="url(#shadow)"><rect x="45" y="160" width="95" height="34" rx="17" fill="#fff"/><circle cx="63" cy="177" r="7" fill="#3B82F6"/><text x="78" y="182" fill="#1E293B">Khám phá</text></g>
+    <g filter="url(#shadow)"><rect x="355" y="80" width="102" height="34" rx="17" fill="#fff"/><circle cx="373" cy="97" r="7" fill="#10B981"/><text x="388" y="102" fill="#1E293B">Rèn luyện</text></g>
+    <g filter="url(#shadow)"><rect x="200" y="45" width="100" height="34" rx="17" fill="#fff"/><circle cx="218" cy="62" r="7" fill="#F59E0B"/><text x="233" y="67" fill="#1E293B">Tỏa sáng</text></g>
+    <g filter="url(#shadow)"><rect x="135" y="375" width="230" height="32" rx="16" fill="#172554"/><text x="250" y="396" text-anchor="middle" fill="#FDE68A" letter-spacing=".4">Học hỏi · Tự tin · Tỏa sáng</text></g>
+  </g>
+</svg>
