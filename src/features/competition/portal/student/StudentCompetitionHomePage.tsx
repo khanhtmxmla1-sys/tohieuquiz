@@ -72,15 +72,21 @@ const StudentCompetitionHomePage = () => {
   })) ?? [];
   const nextRound = rounds.find(item => item.presentation.actionLabel);
   const nextRoundId = nextRound?.canonical.id;
+  const hasPassedRound = rounds.some(item => item.presentation.state === 'PASSED');
+  const waitingForRoundToOpen = !nextRound && rounds.some(item => item.presentation.state === 'LOCKED');
 
   const nextStepMessage = competition
     ? eligibilityBlocked
       ? 'Em chưa đủ điều kiện tham gia lúc này. Em hãy chờ giáo viên cập nhật điều kiện cho em.'
       : nextRound
         ? `${nextRound.presentation.actionLabel}. Em có thể tiếp tục hành trình ngay.`
+        : waitingForRoundToOpen
+          ? hasPassedRound
+            ? 'Em hãy chờ vòng tiếp theo mở để tiếp tục hành trình.'
+            : 'Em hãy chờ vòng đầu tiên mở để bắt đầu hành trình.'
         : qualified
           ? 'Em đã hoàn thành các vòng đang mở. Em hãy theo dõi lịch để biết khi vòng tiếp theo bắt đầu.'
-          : 'Em hãy kiểm tra lại thông tin tham gia với giáo viên.'
+          : 'Em hãy theo dõi lịch để biết bước tiếp theo của cuộc thi.'
     : null;
 
   const checkSchoolExam = async () => {

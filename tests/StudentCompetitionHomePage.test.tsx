@@ -258,4 +258,53 @@ describe('StudentCompetitionHomePage', () => {
     );
     expect(screen.queryByRole('link', { name: 'Vào thi vòng 2' })).not.toBeInTheDocument();
   });
+
+  it('guides an audience member with unknown eligibility to wait for the first round when the campaign is upcoming', async () => {
+    const upcomingPortal: StudentCompetitionPortalDto = {
+      ...portal,
+      publicState: 'UPCOMING',
+      rounds: portal.rounds.map(round => ({ ...round, state: 'LOCKED' })),
+    };
+    const scheduledCompetition: StudentCompetitionDetail = {
+      ...competition,
+      eligibility: null,
+      rounds: competition.rounds.map(round => ({
+        ...round,
+        status: 'SCHEDULED',
+        attemptsUsed: 0,
+        bestScore: null,
+        isPassed: false,
+        progressStatus: null,
+      })),
+    };
+    mocks.get.mockResolvedValue(scheduledCompetition);
+
+    renderPage(upcomingPortal);
+
+    const nextStep = await screen.findByRole('region', { name: 'Bước tiếp theo' });
+    expect(nextStep).toHaveTextContent(/chờ vòng đầu tiên mở/i);
+    expect(nextStep).not.toHaveTextContent(/giáo viên|kiểm tra lại thông tin/i);
+  });
+
+  it('guides an eligible-status-unknown student to wait for the next round when no round is actionable', async () => {
+    const scheduledCompetition: StudentCompetitionDetail = {
+      ...competition,
+      eligibility: null,
+      rounds: competition.rounds.map(round => ({
+        ...round,
+        status: round.roundNumber === 1 ? 'COMPLETED' : 'SCHEDULED',
+        attemptsUsed: round.roundNumber === 1 ? 1 : 0,
+        bestScore: round.roundNumber === 1 ? 90 : null,
+        isPassed: round.roundNumber === 1,
+        progressStatus: round.roundNumber === 1 ? 'PASSED' : null,
+      })),
+    };
+    mocks.get.mockResolvedValue(scheduledCompetition);
+
+    renderPage();
+
+    const nextStep = await screen.findByRole('region', { name: 'Bước tiếp theo' });
+    expect(nextStep).toHaveTextContent(/chờ vòng tiếp theo mở/i);
+    expect(nextStep).not.toHaveTextContent(/giáo viên|kiểm tra lại thông tin/i);
+  });
 });
