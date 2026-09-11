@@ -322,8 +322,8 @@ describe('Competition portal mobile accessibility', () => {
       assertCompetitionFocusTreatment();
 
       cy.visit('/thi/olympic-toan/school-exam/lam-bai');
-      cy.contains('h1', 'School Exam').should('be.visible');
-      cy.contains('button', 'BẮT ĐẦU SCHOOL EXAM').should('be.visible');
+      cy.contains('h1', 'Thi cấp trường').should('be.visible');
+      cy.contains('button', 'BẮT ĐẦU THI CẤP TRƯỜNG').should('be.visible');
       assertNoHorizontalOverflow();
       assertCompetitionTouchTargets();
       assertCompetitionFocusTreatment();

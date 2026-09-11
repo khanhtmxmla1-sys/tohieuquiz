@@ -2,34 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router';
 import type {
   CompetitionEntryPreflightDto,
-  CompetitionEntryPreflightReason,
   StudentCompetitionPortalDto,
 } from '../../../../../shared/competition-portal.contract';
 import { SYSTEM_TIME_ZONE } from '../../../../../shared/time-zone.contract';
 import { studentCompetitionPortalService } from '../studentCompetitionPortalService';
 import { formatSystemDateTime } from '../../../../utils/dateTime';
 import { hasAcknowledgedRules } from './rulesAcknowledgement';
-
-const reasonLabels: Record<CompetitionEntryPreflightReason, string> = {
-  NOT_IN_AUDIENCE: 'Em không thuộc danh sách tham gia cuộc thi.',
-  ROUND_CAMPAIGN_MISMATCH: 'Vòng thi không thuộc cuộc thi này.',
-  ROUND_NOT_OPEN: 'Vòng thi hiện chưa mở.',
-  PREREQUISITE_NOT_MET: 'Em chưa hoàn thành điều kiện của vòng trước.',
-  ELIGIBILITY_BLOCKED: 'Em chưa đủ điều kiện tham gia vòng thi.',
-  ATTEMPT_LIMIT_REACHED: 'Đã hết số lượt thi cho phép.',
-  QUIZ_MAPPING_UNAVAILABLE: 'Chưa có đề thi phù hợp với lớp của em.',
-  SCHOOL_EXAM_NOT_QUALIFIED: 'Em chưa đủ điều kiện tham gia School Exam.',
-  SCHOOL_EXAM_EVENT_NOT_READY: 'School Exam chưa sẵn sàng.',
-  SCHOOL_EXAM_MEMBER_NOT_READY: 'Thông tin thí sinh School Exam chưa sẵn sàng.',
-  SCHOOL_EXAM_ROOM_NOT_READY: 'Phòng School Exam chưa sẵn sàng.',
-  SCHOOL_EXAM_WINDOW_NOT_OPEN: 'Chưa đến giờ vào School Exam.',
-  SCHOOL_EXAM_WINDOW_CLOSED: 'Đã hết giờ vào School Exam.',
-  SCHOOL_EXAM_CAPACITY_NOT_CERTIFIED: 'School Exam chưa hoàn tất kiểm tra tải.',
-  SCHOOL_EXAM_SESSION_NOT_PROVISIONED: 'Phiên School Exam chưa được thiết lập.',
-  SCHOOL_EXAM_PARTICIPANT_SCOPE_MISMATCH: 'Thông tin thí sinh không khớp với School Exam.',
-  SCHOOL_EXAM_ACCESS_CODE_INVALID: 'Mã truy cập School Exam không hợp lệ.',
-  SCHOOL_EXAM_CANDIDATE_CODE_INVALID: 'Mã thí sinh School Exam không hợp lệ.',
-};
+import { getCompetitionPreflightReasonMessage } from './studentCompetitionPresentation';
 
 const PreflightWindow = ({
   window,
@@ -105,7 +84,7 @@ const StudentRoundPreflightPage = () => {
     return (
       <section role="alert" className="space-y-3 rounded-2xl border border-red-300 bg-red-50 p-5">
         <h1 className="text-xl font-bold"><span aria-hidden="true">⚠ </span>Không thể vào thi</h1>
-        <p>{reasonLabels[result.reason]}</p>
+        <p>{getCompetitionPreflightReasonMessage(result.reason)}</p>
         <p className="text-sm">Giờ máy chủ: {formatSystemDateTime(result.serverTime)}</p>
         {result.window && <PreflightWindow window={result.window} timezoneLabel={timezone} />}
       </section>

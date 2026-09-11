@@ -15,6 +15,7 @@ import {
   type StudentSchoolExamPreflightDto,
 } from '../studentCompetitionPortalService';
 import { mapRoundPresentation } from './roundPresentation';
+import { getCompetitionPreflightReasonMessage } from './studentCompetitionPresentation';
 
 const campaignStatus: Record<CompetitionPublicState, string> = {
   UPCOMING: 'Sắp diễn ra',
@@ -69,7 +70,18 @@ const StudentCompetitionHomePage = () => {
     portal: portal.rounds.find(item => item.roundId === round.id || item.roundNumber === round.roundNumber),
     presentation: mapRoundPresentation(round, eligibilityBlocked),
   })) ?? [];
-  const nextRoundId = rounds.find(item => item.presentation.actionLabel)?.canonical.id;
+  const nextRound = rounds.find(item => item.presentation.actionLabel);
+  const nextRoundId = nextRound?.canonical.id;
+
+  const nextStepMessage = competition
+    ? eligibilityBlocked
+      ? 'Em chưa đủ điều kiện tham gia lúc này. Em hãy chờ giáo viên cập nhật điều kiện cho em.'
+      : nextRound
+        ? `${nextRound.presentation.actionLabel}. Em có thể tiếp tục hành trình ngay.`
+        : qualified
+          ? 'Em đã hoàn thành các vòng đang mở. Em hãy theo dõi lịch để biết khi vòng tiếp theo bắt đầu.'
+          : 'Em hãy kiểm tra lại thông tin tham gia với giáo viên.'
+    : null;
 
   const checkSchoolExam = async () => {
     setSchoolExamPreflight('LOADING');
@@ -99,37 +111,45 @@ const StudentCompetitionHomePage = () => {
       {loadFailed && <p role="alert">Không thể tải tiến độ cuộc thi. Vui lòng thử lại sau.</p>}
 
       {competition && (
-        <section aria-labelledby="six-round-journey-title">
-          <h2 id="six-round-journey-title" className="text-xl font-bold text-slate-950">
-            Hành trình 6 vòng thi
-          </h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {rounds.map(({ canonical, portal: portalRound, presentation }) => (
-              <article key={canonical.id} className="rounded-2xl border border-slate-200 bg-white p-5">
-                <h3 className="text-lg font-bold text-slate-900">
-                  {portalRound?.title ?? `Vòng ${canonical.roundNumber}`}
-                </h3>
-                <p className="mt-2 font-semibold text-slate-700">{roundStatus[presentation.state]}</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  Đã dùng {canonical.attemptsUsed}/{canonical.maxAttempts} lượt
-                </p>
-                {presentation.actionLabel && canonical.id === nextRoundId && (
-                  <Link
-                    to={`/thi/${portal.slug}/vong/${canonical.roundNumber}`}
-                    className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
-                  >
-                    {presentation.actionLabel}
-                  </Link>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
+        <>
+          {nextStepMessage && (
+            <section aria-labelledby="next-step-title" className="rounded-2xl border border-sky-200 bg-sky-50 p-5">
+              <h2 id="next-step-title" className="text-xl font-bold text-slate-950">Bước tiếp theo</h2>
+              <p className="mt-2 text-slate-700">{nextStepMessage}</p>
+            </section>
+          )}
+          <section aria-labelledby="six-round-journey-title">
+            <h2 id="six-round-journey-title" className="text-xl font-bold text-slate-950">
+              Hành trình 6 vòng thi
+            </h2>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {rounds.map(({ canonical, portal: portalRound, presentation }) => (
+                <article key={canonical.id} className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {portalRound?.title ?? `Vòng ${canonical.roundNumber}`}
+                  </h3>
+                  <p className="mt-2 font-semibold text-slate-700">{roundStatus[presentation.state]}</p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Đã dùng {canonical.attemptsUsed}/{canonical.maxAttempts} lượt
+                  </p>
+                  {presentation.actionLabel && canonical.id === nextRoundId && (
+                    <Link
+                      to={`/thi/${portal.slug}/vong/${canonical.roundNumber}`}
+                      className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
+                    >
+                      {presentation.actionLabel}
+                    </Link>
+                  )}
+                </article>
+              ))}
+            </div>
+          </section>
+        </>
       )}
 
       {portal.schoolExam && (
         <section aria-labelledby="school-exam-title" className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h2 id="school-exam-title" className="text-xl font-bold text-slate-950">School Exam</h2>
+          <h2 id="school-exam-title" className="text-xl font-bold text-slate-950">Thi cấp trường</h2>
           <p className="mt-2 text-slate-700">
             {portal.schoolExam.qualified ? 'Em đã đủ điều kiện dự thi cấp trường.' : 'Em chưa đủ điều kiện dự thi cấp trường.'}
           </p>
@@ -144,28 +164,28 @@ const StudentCompetitionHomePage = () => {
               disabled={schoolExamPreflight === 'LOADING'}
               className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-60"
             >
-              Kiểm tra School Exam
+              Kiểm tra thi cấp trường
             </button>
           )}
           {schoolExamPreflight === 'LOADING' && (
-            <p role="status" aria-live="polite" className="mt-3">Đang kiểm tra School Exam…</p>
+            <p role="status" aria-live="polite" className="mt-3">Đang kiểm tra thi cấp trường…</p>
           )}
           {schoolExamPreflight === 'ERROR' && (
-            <p role="alert" className="mt-3">Không thể kiểm tra School Exam. Vui lòng thử lại.</p>
+            <p role="alert" className="mt-3">Không thể kiểm tra thi cấp trường. Vui lòng thử lại.</p>
           )}
           {schoolExamPreflight && typeof schoolExamPreflight === 'object' && (
             <div className="mt-3">
               <p role="status" aria-live="polite">
                 {schoolExamPreflight.status === 'READY'
-                  ? `School Exam sẵn sàng. Mã truy cập: ${schoolExamPreflight.accessCode}`
-                  : `Chưa thể tham gia School Exam: ${schoolExamPreflight.reason}`}
+                  ? `Thi cấp trường sẵn sàng. Mã truy cập: ${schoolExamPreflight.accessCode}`
+                  : getCompetitionPreflightReasonMessage(schoolExamPreflight.reason)}
               </p>
               {schoolExamPreflight.status === 'READY' && (
                 <Link
                   to={`/thi/${portal.slug}/school-exam/lam-bai`}
                   className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-sky-700 px-4 py-2 font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2"
                 >
-                  VÀO SCHOOL EXAM
+                  VÀO THI CẤP TRƯỜNG
                 </Link>
               )}
             </div>
