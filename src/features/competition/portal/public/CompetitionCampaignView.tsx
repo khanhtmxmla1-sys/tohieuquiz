@@ -246,25 +246,19 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
           </section>
         )}
 
-        <section aria-labelledby="campaign-final-cta" className="relative hidden overflow-hidden rounded-[2rem] bg-blue-950 px-8 py-12 text-center text-white shadow-xl shadow-blue-950/15 md:block">
+        <section aria-labelledby="campaign-final-cta" className="relative overflow-hidden rounded-[2rem] bg-blue-950 px-6 py-10 text-center text-white shadow-xl shadow-blue-950/15 sm:px-8 sm:py-12">
           <div className="absolute -left-16 -top-16 size-64 rounded-full bg-blue-600/25 blur-2xl" aria-hidden="true" />
           <div className="absolute -bottom-16 -right-16 size-64 rounded-full bg-amber-300/20 blur-2xl" aria-hidden="true" />
-          <div className="relative mx-auto max-w-2xl">
+          <nav aria-label="Thao tác nhanh trên thiết bị di động" className="relative mx-auto max-w-2xl">
             <SectionEyebrow tone="light">Cơ hội rèn luyện &amp; tỏa sáng</SectionEyebrow>
             <h2 id="campaign-final-cta" className="mt-3 text-3xl font-black sm:text-4xl">Sẵn sàng tham gia {campaign.title}?</h2>
             <p className="mt-4 leading-7 text-blue-100">Đăng nhập để theo dõi đúng vòng thi đang mở và bắt đầu hành trình học tập của em.</p>
-            <Link to={examHref} className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-amber-300 px-8 py-3 font-black text-blue-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-950 motion-reduce:transform-none">
-              VÀO THI NGAY<ArrowRight className="size-5" aria-hidden="true" />
+            <Link to={examHref} className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-amber-300 px-8 py-3 font-black uppercase text-blue-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-950 motion-reduce:transform-none">
+              Vào thi ngay<ArrowRight className="size-5" aria-hidden="true" />
             </Link>
-          </div>
+          </nav>
         </section>
       </div>
-
-      <nav aria-label="Thao tác nhanh trên thiết bị di động" className="mx-4 mb-8 overflow-hidden rounded-3xl bg-blue-950 p-6 text-center text-white shadow-xl md:hidden">
-        <p className="text-xl font-black">Sẵn sàng tham gia {campaign.title}?</p>
-        <p className="mt-2 text-sm leading-6 text-blue-100">Đăng nhập để theo dõi vòng thi và bắt đầu hành trình của em.</p>
-        <Link to={examHref} className="mx-auto mt-5 flex min-h-12 max-w-lg items-center justify-center gap-2 rounded-full bg-amber-300 px-5 py-3 font-black text-blue-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-950">Vào thi ngay<ArrowRight className="size-5" aria-hidden="true" /></Link>
-      </nav>
     </CompetitionPublicShell>
   );
 };
