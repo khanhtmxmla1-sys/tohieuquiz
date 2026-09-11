@@ -12,7 +12,7 @@ import type {
 import { formatSystemDateTimeWithOptions } from '../../../../utils/dateTime';
 import CompetitionPublicShell from './CompetitionPublicShell';
 import {
-  ArticleTypeIcon, CompetitionConstellation, LearningSeal, PublicStateBadge,
+  ArticleTypeIcon, PublicStateBadge,
   RoundStateBadge, SectionEyebrow, articleTypePresentation,
 } from './CompetitionPublicDesign';
 
@@ -71,62 +71,69 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
 
   return (
     <CompetitionPublicShell campaignSlug={campaign.slug} ctaHref={examHref}>
-      <section aria-labelledby="campaign-hero-title" className="relative isolate overflow-hidden bg-blue-950 text-white">
-        <CompetitionConstellation />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-cyan-800/35 to-transparent" aria-hidden="true" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-20">
+      <section id="bat-dau" aria-labelledby="campaign-hero-title" className="relative isolate overflow-hidden border-b border-amber-100 bg-[#fff9ed] text-slate-950">
+        <div className="pointer-events-none absolute -left-24 top-12 size-72 rounded-full bg-amber-200/35 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute -right-20 -top-24 size-96 rounded-full bg-cyan-200/30 blur-3xl" aria-hidden="true" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[1.06fr_0.94fr] lg:px-8 lg:py-20">
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <PublicStateBadge state={campaign.publicState} />
-              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-cyan-100">Năm học {campaign.schoolYear}</span>
-              <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-200">Đối tượng theo thể lệ</span>
+              <span className="rounded-full border border-blue-200 bg-white/80 px-3 py-1 text-xs font-bold text-blue-800">Năm học {campaign.schoolYear}</span>
+              <span className="rounded-full border border-amber-300 bg-amber-100/70 px-3 py-1 text-xs font-bold text-amber-900">Đối tượng theo thể lệ</span>
             </div>
-            <p className="mt-7 font-bold uppercase tracking-[0.18em] text-cyan-300">Sân chơi kiến thức tiểu học</p>
-            <h1 id="campaign-hero-title" className="mt-3 max-w-4xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">{campaign.title}</h1>
-            {!heroTitleIsDuplicate && <h2 className="mt-4 max-w-2xl text-2xl font-black leading-snug text-amber-300 sm:text-3xl">{campaign.hero.title}</h2>}
-            {campaign.hero.subtitle && <p className={`${heroTitleIsDuplicate ? 'mt-4 text-2xl font-black text-amber-300 sm:text-3xl' : 'mt-3 text-lg text-cyan-100'} max-w-2xl leading-8`}>{campaign.hero.subtitle}</p>}
-            <p className="mt-5 max-w-2xl leading-8 text-blue-100/85">{campaign.summary}</p>
+            <p className="mt-8 font-black uppercase tracking-[0.2em] text-blue-700">Sân chơi kiến thức tiểu học</p>
+            <h1 id="campaign-hero-title" className="mt-3 max-w-4xl text-[2.125rem] font-black leading-[2.75rem] tracking-[-0.02em] text-blue-950 sm:text-[3.5rem] sm:leading-[4.25rem]">{campaign.title}</h1>
+            {!heroTitleIsDuplicate && <h2 className="mt-5 max-w-2xl text-2xl font-black leading-snug text-amber-700 sm:text-3xl">{campaign.hero.title}</h2>}
+            {campaign.hero.subtitle && <p className={`${heroTitleIsDuplicate ? 'mt-5 text-2xl font-black text-amber-700 sm:text-3xl' : 'mt-3 text-lg font-semibold text-blue-800'} max-w-2xl leading-8`}>{campaign.hero.subtitle}</p>}
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">{campaign.summary}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to={examHref} className="group inline-flex min-h-12 items-center gap-2 rounded-2xl bg-amber-400 px-7 py-3 font-black text-blue-950 shadow-xl shadow-blue-950/25 transition hover:-translate-y-0.5 hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-950 motion-reduce:transform-none">
+              <Link to={examHref} className="group inline-flex min-h-12 items-center gap-2 rounded-2xl bg-blue-950 px-7 py-3 font-black text-white shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 motion-reduce:transform-none">
                 {campaign.cta.label}<ArrowRight className="size-5 transition group-hover:translate-x-0.5 motion-reduce:transform-none" aria-hidden="true" />
               </Link>
-              <a href="#hanh-trinh" className="inline-flex min-h-12 items-center rounded-2xl border border-white/25 bg-white/10 px-6 py-3 font-bold text-white backdrop-blur-sm transition hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-950">Xem hành trình</a>
+              <a href="#hanh-trinh" className="inline-flex min-h-12 items-center rounded-2xl border border-blue-200 bg-white/80 px-6 py-3 font-bold text-blue-950 transition hover:border-blue-300 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2">Xem lịch thi</a>
             </div>
           </div>
 
           <div className="relative mx-auto w-full max-w-xl">
             {showHeroImage ? (
-              <div className="relative aspect-[4/3] overflow-hidden rounded-[2rem] border border-white/20 bg-white/10 p-2 shadow-2xl">
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[2.5rem] border border-amber-200 bg-white p-2 shadow-2xl shadow-blue-950/10">
                 <img className="h-full w-full rounded-[1.6rem] object-cover" src={campaign.hero.imageUrl} alt={`Học sinh tham gia ${campaign.title}`} width="1200" height="900" onError={() => setHeroImageFailed(true)} />
                 <div className="absolute inset-x-6 bottom-6 rounded-2xl bg-blue-950/80 p-4 backdrop-blur-md"><p className="flex items-center gap-2 font-extrabold text-white"><Sparkles className="size-5 text-amber-300" aria-hidden="true" /> Học hỏi · Tự tin · Tỏa sáng</p></div>
               </div>
             ) : (
-              <div role="img" aria-label={`Hình minh họa học sinh tham gia ${campaign.title}`} className="flex aspect-[4/3] flex-col items-center justify-center gap-5 rounded-[2rem] border border-white/20 bg-white/10 p-8 text-center shadow-2xl backdrop-blur-sm">
-                <LearningSeal /><span className="text-sm font-bold text-cyan-100">Học hỏi · Tự tin · Tỏa sáng</span>
+              <div className="relative aspect-square overflow-hidden rounded-[2rem] border border-amber-100 bg-white p-4 shadow-2xl shadow-blue-950/10 sm:p-6">
+                <img
+                  src="/competition/trang-nguyen-nhi-illustration.svg"
+                  alt={`Hình minh họa học sinh tham gia ${campaign.title}`}
+                  width="500"
+                  height="420"
+                  className="h-full w-full object-contain"
+                />
               </div>
             )}
           </div>
         </div>
       </section>
 
-      <nav aria-label="Khám phá cuộc thi" className="relative z-10 mx-auto -mt-6 flex max-w-5xl flex-wrap justify-center gap-2 rounded-3xl border border-blue-100 bg-white p-3 shadow-xl shadow-blue-950/5 sm:p-4">
-        <a href="#viec-can-lam" className="inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><Target className="size-4" aria-hidden="true" />Bắt đầu</a>
-        <a href="#hanh-trinh" className="inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><CalendarDays className="size-4" aria-hidden="true" />Hành trình</a>
-        <a href="#tin-tuc" className="inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><BookOpenCheck className="size-4" aria-hidden="true" />Tin mới</a>
-        <a href="#cach-tham-gia" className="inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><CheckCircle2 className="size-4" aria-hidden="true" />Cách tham gia</a>
+      <nav aria-label="Khám phá cuộc thi" className="relative z-30 mx-auto -mt-6 flex max-w-5xl flex-nowrap justify-start gap-1 overflow-x-auto rounded-3xl border border-amber-100 bg-white/95 p-3 shadow-xl shadow-blue-950/5 backdrop-blur-md sm:justify-center sm:gap-2 sm:p-4 lg:sticky lg:top-20">
+        <a href="#bat-dau" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-blue-950 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><Target className="size-4" aria-hidden="true" />Bắt đầu</a>
+        <a href="#viec-can-lam" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><Sparkles className="size-4" aria-hidden="true" />Cần làm ngay</a>
+        <a href="#hanh-trinh" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><CalendarDays className="size-4" aria-hidden="true" />Hành trình</a>
+        <a href="#cach-tham-gia" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><CheckCircle2 className="size-4" aria-hidden="true" />Cách tham gia</a>
+        <a href="#tin-tuc" className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-2xl px-4 py-2 font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"><BookOpenCheck className="size-4" aria-hidden="true" />Tin mới</a>
       </nav>
 
-      <div className="mx-auto max-w-7xl space-y-16 px-4 py-14 pb-28 sm:px-6 md:pb-14 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-20 px-4 py-16 sm:px-6 lg:px-8">
         <section id="viec-can-lam" aria-label="Việc cần làm ngay" className="scroll-mt-36">
           <div className="grid gap-6 lg:grid-cols-[1.45fr_0.55fr]">
-            <div className="overflow-hidden rounded-[2rem] border border-blue-200 bg-white shadow-lg shadow-blue-950/5">
-              <div className="border-b border-blue-100 bg-blue-50 px-6 py-5 sm:px-8">
+            <div className="overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg shadow-blue-950/5">
+              <div className="border-b border-amber-100 bg-[#fff9ed] px-6 py-5 sm:px-8">
                 <SectionEyebrow>Việc cần làm ngay</SectionEyebrow>
                 <h2 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">{openRounds.length > 0 ? `${openRounds.length === 1 ? 'Vòng thi' : `${openRounds.length} vòng`} đang mở` : 'Chuẩn bị cho vòng tiếp theo'}</h2>
               </div>
               <div className="grid gap-4 p-6 sm:p-8">
                 {openRounds.length > 0 ? openRounds.map((round) => (
-                  <article key={round.roundNumber} className="flex flex-col justify-between gap-5 rounded-3xl border border-cyan-200 bg-cyan-50/60 p-5 sm:flex-row sm:items-center">
+                  <article key={round.roundNumber} className="flex flex-col justify-between gap-5 rounded-3xl border border-emerald-200 bg-emerald-50/60 p-5 sm:flex-row sm:items-center">
                     <div>
                       <p className="font-black text-cyan-800">Vòng {round.roundNumber} đang mở</p>
                       <h3 className="mt-1 text-xl font-black text-slate-950">{round.title}</h3>
@@ -143,25 +150,27 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
               </div>
             </div>
 
-            <aside aria-label="Thông tin nhanh" className="grid grid-cols-2 gap-3 rounded-[2rem] bg-blue-950 p-5 text-white lg:grid-cols-1">
-              <div className="rounded-2xl bg-white/10 p-4"><span className="text-2xl font-black text-amber-300">6</span><p className="mt-1 text-sm font-bold text-blue-100">6 vòng thi</p></div>
+            <aside aria-label="Thông tin nhanh" className="grid grid-cols-2 gap-3 rounded-[2rem] border border-blue-100 bg-blue-950 p-5 text-white lg:grid-cols-1">
+              <div className="rounded-2xl bg-white/10 p-4"><span className="text-3xl font-black text-amber-300">6</span><p className="mt-1 text-sm font-bold text-blue-100">6 vòng thi</p></div>
               <div className="rounded-2xl bg-white/10 p-4"><UsersRound className="size-6 text-cyan-300" aria-hidden="true" /><p className="mt-2 text-sm font-bold text-blue-100">Đối tượng theo thể lệ</p></div>
-              <div className="col-span-2 rounded-2xl bg-white/10 p-4 lg:col-span-1"><CalendarDays className="size-6 text-cyan-300" aria-hidden="true" /><p className="mt-2 text-sm font-bold text-blue-100"><time dateTime={campaign.startsAt}>{formatPublicDate(campaign.startsAt)}</time> – <time dateTime={campaign.endsAt}>{formatPublicDate(campaign.endsAt)}</time></p></div>
+              <div className="col-span-2 rounded-2xl bg-white/10 p-4 lg:col-span-1"><CalendarDays className="size-6 text-amber-300" aria-hidden="true" /><p className="mt-2 text-sm font-bold text-blue-100"><time dateTime={campaign.startsAt}>{formatPublicDate(campaign.startsAt)}</time> – <time dateTime={campaign.endsAt}>{formatPublicDate(campaign.endsAt)}</time></p></div>
             </aside>
           </div>
         </section>
 
         <section id="hanh-trinh" aria-label="Hành trình 6 vòng" className="scroll-mt-36">
           <span id="lich-thi" className="block scroll-mt-36" aria-hidden="true" />
-          <SectionEyebrow>Mốc thời gian chính thức</SectionEyebrow>
-          <h2 id="campaign-journey-title" className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Hành trình 6 vòng</h2>
-          <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-600">Một lộ trình duy nhất để gia đình dễ theo dõi trạng thái, thời gian và bước tiếp theo của từng vòng.</p>
+          <div className="mx-auto max-w-2xl text-center">
+            <SectionEyebrow>Mốc thời gian chính thức</SectionEyebrow>
+            <h2 id="campaign-journey-title" className="mt-2 text-3xl font-black tracking-tight text-blue-950 sm:text-4xl">Hành trình 6 vòng</h2>
+            <p className="mt-3 text-lg leading-8 text-slate-600">Một lộ trình duy nhất để gia đình dễ theo dõi trạng thái, thời gian và bước tiếp theo của từng vòng.</p>
+          </div>
           <ol aria-label="Hành trình 6 vòng" className="relative mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {rounds.map((round) => {
               const isOpen = round.state === 'OPEN';
               return (
-                <li key={round.roundNumber} className={`relative overflow-hidden rounded-3xl border p-5 shadow-sm ${isOpen ? 'border-cyan-300 bg-cyan-50 ring-2 ring-cyan-200' : 'border-blue-100 bg-white'}`}>
-                  <div className={`absolute inset-y-0 left-0 w-1.5 ${isOpen ? 'bg-cyan-500' : 'bg-blue-200'}`} aria-hidden="true" />
+                <li key={round.roundNumber} className={`relative overflow-hidden rounded-3xl border p-5 transition hover:-translate-y-0.5 hover:shadow-md motion-reduce:transform-none ${isOpen ? 'border-blue-100 bg-white shadow-sm' : 'border-transparent bg-[#f9f3e7]'}`}>
+                  <div className={`absolute inset-y-0 left-0 w-1.5 ${isOpen ? 'bg-emerald-500' : 'bg-blue-200'}`} aria-hidden="true" />
                   <div className="flex items-start justify-between gap-4 pl-2">
                     <div><span className="text-xs font-black uppercase tracking-wider text-blue-600">Vòng {round.roundNumber}</span><h3 className="mt-1 text-xl font-black text-slate-900">{round.title}</h3></div>
                     <RoundStateBadge state={round.state} tone="light" />
@@ -179,18 +188,21 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
           </ol>
         </section>
 
-        <section id="cach-tham-gia" aria-labelledby="participation-title" className="scroll-mt-36 rounded-[2rem] bg-blue-950 p-7 text-white sm:p-10">
-          <SectionEyebrow tone="light">Dễ dàng bắt đầu</SectionEyebrow>
-          <h2 id="participation-title" className="mt-2 text-3xl font-black sm:text-4xl">3 bước tham gia</h2>
+        <section id="cach-tham-gia" aria-labelledby="participation-title" className="scroll-mt-36 overflow-hidden rounded-[2rem] border border-amber-100 bg-[#f9f3e7] p-7 sm:p-10">
+          <div className="mx-auto max-w-xl text-center">
+            <SectionEyebrow>Dễ dàng bắt đầu</SectionEyebrow>
+            <h2 id="participation-title" className="mt-2 text-3xl font-black text-blue-950 sm:text-4xl">3 bước tham gia</h2>
+            <p className="mt-3 text-slate-600">Dễ dàng để học sinh tiểu học làm quen với nền tảng thi trực tuyến.</p>
+          </div>
           <ol className="mt-8 grid gap-4 md:grid-cols-3">
             {[
               ['1', 'Đăng nhập tài khoản', 'Học sinh dùng tài khoản đã được nhà trường cấp.'],
               ['2', 'Kiểm tra vòng đang mở', 'Đọc lịch thi và chọn đúng vòng dành cho mình.'],
               ['3', 'Làm bài và nộp bài', 'Hoàn thành câu hỏi, kiểm tra đáp án trước khi nộp.'],
             ].map(([number, title, description]) => (
-              <li key={number} className="rounded-3xl border border-white/15 bg-white/[0.07] p-5">
-                <span className="grid size-11 place-items-center rounded-2xl bg-amber-400 text-xl font-black text-blue-950">{number}</span>
-                <h3 className="mt-4 text-lg font-black">{title}</h3><p className="mt-2 leading-7 text-blue-100/80">{description}</p>
+              <li key={number} className="rounded-3xl border border-amber-100 bg-white p-5 shadow-sm">
+                <span className="grid size-14 place-items-center rounded-2xl bg-blue-950 text-xl font-black text-amber-300">0{number}</span>
+                <h3 className="mt-4 text-lg font-black text-slate-950">{title}</h3><p className="mt-2 leading-7 text-slate-600">{description}</p>
               </li>
             ))}
           </ol>
@@ -202,7 +214,7 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
             {featuredArticle && <span className="inline-flex w-fit items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-sm font-black text-amber-900"><Sparkles className="size-4" aria-hidden="true" />Có cập nhật mới</span>}
           </div>
           {articleGroups.length === 0 ? <p className="mt-7 rounded-3xl border border-dashed border-blue-200 bg-white p-6 text-slate-600">Nội dung đang được cập nhật.</p> : (
-            <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <div className={`mt-8 grid gap-6 ${articleGroups.length > 1 ? 'lg:grid-cols-2' : ''}`}>
               {articleGroups.map((group) => {
                 const presentation = articleTypePresentation[group.type];
                 const headingId = `articles-${group.type.toLowerCase()}`;
@@ -233,11 +245,20 @@ const CompetitionCampaignView = ({ campaign }: CompetitionCampaignViewProps) => 
             </div>
           </section>
         )}
-      </div>
 
-      <nav aria-label="Thao tác nhanh trên thiết bị di động" className="fixed inset-x-0 bottom-0 z-50 border-t border-blue-100 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.12)] backdrop-blur-md md:hidden">
-        <Link to={examHref} className="mx-auto flex min-h-12 max-w-lg items-center justify-center gap-2 rounded-2xl bg-blue-700 px-5 py-3 font-black text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2">Vào thi ngay<ArrowRight className="size-5" aria-hidden="true" /></Link>
-      </nav>
+        <section aria-labelledby="campaign-final-cta" className="relative overflow-hidden rounded-[2rem] bg-blue-950 px-6 py-10 text-center text-white shadow-xl shadow-blue-950/15 sm:px-8 sm:py-12">
+          <div className="absolute -left-16 -top-16 size-64 rounded-full bg-blue-600/25 blur-2xl" aria-hidden="true" />
+          <div className="absolute -bottom-16 -right-16 size-64 rounded-full bg-amber-300/20 blur-2xl" aria-hidden="true" />
+          <nav aria-label="Thao tác nhanh trên thiết bị di động" className="relative mx-auto max-w-2xl">
+            <SectionEyebrow tone="light">Cơ hội rèn luyện &amp; tỏa sáng</SectionEyebrow>
+            <h2 id="campaign-final-cta" className="mt-3 text-3xl font-black sm:text-4xl">Sẵn sàng tham gia {campaign.title}?</h2>
+            <p className="mt-4 leading-7 text-blue-100">Đăng nhập để theo dõi đúng vòng thi đang mở và bắt đầu hành trình học tập của em.</p>
+            <Link to={examHref} className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-amber-300 px-8 py-3 font-black uppercase text-blue-950 shadow-lg transition hover:-translate-y-0.5 hover:bg-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-950 motion-reduce:transform-none">
+              Vào thi ngay<ArrowRight className="size-5" aria-hidden="true" />
+            </Link>
+          </nav>
+        </section>
+      </div>
     </CompetitionPublicShell>
   );
 };
