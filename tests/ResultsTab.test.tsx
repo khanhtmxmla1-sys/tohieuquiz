@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   fetchResultAnswersBulk: vi.fn(),
   getByResult: vi.fn(),
   removeResult: vi.fn(),
+  saveAs: vi.fn(),
   showError: vi.fn(),
 }));
 
@@ -51,6 +52,8 @@ vi.mock('../stores/quizStore', () => ({
 }));
 
 vi.mock('../src/utils/toast', () => ({ showError: mocks.showError }));
+
+vi.mock('file-saver', () => ({ saveAs: mocks.saveAs }));
 
 vi.mock('../src/utils/question/scoring.util', () => ({
   checkAnswer: (_question: unknown, answer: unknown) => ({
@@ -196,6 +199,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
     mocks.fetchResultAnswersBulk.mockReset().mockImplementation(() => new Promise(() => undefined));
     mocks.getByResult.mockReset().mockResolvedValue(null);
     mocks.removeResult.mockReset().mockResolvedValue(undefined);
+    mocks.saveAs.mockReset();
     mocks.showError.mockReset();
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test');
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
@@ -366,6 +370,39 @@ describe('TeacherDashboard ResultsTab contracts', () => {
 
     expect(downloads).toContain('ket-qua-2026-07-19.csv');
     expect(downloads).toContain('bao-cao-tong-hop-2026-07-19.txt');
+  });
+
+  it('exports the latest scores as xlsx from the filtered results menu item', async () => {
+    renderResults(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
+
+    await click(screen.getByRole('button', { name: /Xuất/ }));
+    expect(screen.getByRole('button', { name: 'Xuất Excel điểm mới nhất' })).toBeInTheDocument();
+
+    await click(screen.getByRole('button', { name: 'Xuất Excel điểm mới nhất' }));
+
+    await waitFor(() => {
+      expect(mocks.saveAs).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringMatching(/^diem-moi-nhat-\d{4}-\d{2}-\d{2}\.xlsx$/),
+      );
+    });
+    expect(screen.queryByRole('button', { name: 'Xuất Excel điểm mới nhất' })).not.toBeInTheDocument();
+  });
+
+  it('shows a Vietnamese error when latest-score xlsx export fails without an unhandled rejection', async () => {
+    mocks.saveAs.mockImplementation(() => {
+      throw new Error('Không thể lưu tệp.');
+    });
+    renderResults(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
+
+    await click(screen.getByRole('button', { name: /Xuất/ }));
+    await click(screen.getByRole('button', { name: 'Xuất Excel điểm mới nhất' }));
+
+    await waitFor(() => {
+      expect(mocks.showError).toHaveBeenCalledWith(
+        'Không thể xuất điểm mới nhất: Không thể lưu tệp.',
+      );
+    });
   });
 
   it('hides server-backed row actions offline while keeping local export available', () => {

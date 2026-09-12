@@ -72,6 +72,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) 
           phieuDisabled={!canCreateClassReports}
           onExportCsv={actions.exportCsv}
           onExportSummary={actions.exportSummary}
+          onExportLatestScores={actions.exportLatestScores}
           serverActionsDisabled={!filters.resultsHook.isOnline}
         />
         <AsyncState

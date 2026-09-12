@@ -4,7 +4,11 @@ import type { StudentResult } from '../../../types';
 import { showError } from '../../../utils/toast';
 import { useQuizStore } from '../../../../stores/quizStore';
 import type { ResultsStatistics } from '../../../utils/statisticsUtils';
-import { exportResultsCsv, exportResultsSummary } from './resultsExport';
+import {
+  exportLatestResultsXlsx,
+  exportResultsCsv,
+  exportResultsSummary,
+} from './resultsExport';
 
 export const useResultsTabActions = (
   filteredResults: StudentResult[],
@@ -24,6 +28,14 @@ export const useResultsTabActions = (
       showError(`Loi: ${normalized.message}`);
     }
   }, []);
+  const exportLatestScores = useCallback(async () => {
+    try {
+      await exportLatestResultsXlsx(filteredResults);
+    } catch (error) {
+      const normalized = error instanceof Error ? error : new Error(String(error));
+      showError(`Không thể xuất điểm mới nhất: ${normalized.message}`);
+    }
+  }, [filteredResults]);
 
   return {
     isNavigatingDetail,
@@ -31,5 +43,6 @@ export const useResultsTabActions = (
     deleteResult,
     exportCsv: () => exportResultsCsv(filteredResults),
     exportSummary: () => exportResultsSummary(statistics),
+    exportLatestScores,
   };
 };
