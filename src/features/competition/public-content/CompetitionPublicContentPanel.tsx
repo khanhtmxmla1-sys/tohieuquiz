@@ -11,10 +11,11 @@ export interface CompetitionPublicContentPanelProps {
   schoolExamEvents: SchoolExamEventView[];
   campaign?: CompetitionCampaignView | null;
   rounds?: CompetitionRoundView[];
+  roundsLoadedCampaignId: string | null;
 }
 
 const CompetitionPublicContentPanel: React.FC<CompetitionPublicContentPanelProps> = ({
-  campaignId, isAdmin, schoolExamEvents, campaign, rounds,
+  campaignId, isAdmin, schoolExamEvents, campaign, rounds, roundsLoadedCampaignId,
 }) => {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="competition-public-content-title">
@@ -38,7 +39,7 @@ const CompetitionPublicContentPanel: React.FC<CompetitionPublicContentPanelProps
       ) : (
         <div className="mt-5 grid gap-5 xl:grid-cols-2">
           <PublicPageEditor campaignId={campaignId} isAdmin={isAdmin} />
-          <CompetitionArticleManager campaignId={campaignId} isAdmin={isAdmin} campaign={campaign} rounds={rounds} />
+          <CompetitionArticleManager campaignId={campaignId} isAdmin={isAdmin} campaign={campaign} rounds={rounds} roundsLoadedCampaignId={roundsLoadedCampaignId} />
           <GoldenBoardConfigPanel campaignId={campaignId} isAdmin={isAdmin} schoolExamEvents={schoolExamEvents} />
           <AwardRuleVersionEditor campaignId={campaignId} isAdmin={isAdmin} />
         </div>

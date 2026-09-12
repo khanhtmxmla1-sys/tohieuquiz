@@ -76,7 +76,7 @@ const rounds = [
 ];
 
 const renderPanel = (isAdmin = true) => render(
-  <CompetitionPublicContentPanel campaignId="campaign-1" isAdmin={isAdmin} schoolExamEvents={events} campaign={campaign} rounds={rounds} />,
+  <CompetitionPublicContentPanel campaignId="campaign-1" isAdmin={isAdmin} schoolExamEvents={events} campaign={campaign} rounds={rounds} roundsLoadedCampaignId="campaign-1" />,
 );
 
 describe('CompetitionPublicContentPanel', () => {
@@ -192,6 +192,23 @@ describe('CompetitionPublicContentPanel', () => {
         schoolExamEvents={events}
         campaign={{ ...campaign, id: 'campaign-other' }}
         rounds={rounds}
+        roundsLoadedCampaignId="campaign-1"
+      />,
+    );
+
+    await screen.findByLabelText('Loại bài viết mới');
+    expect(screen.queryByRole('button', { name: 'Điền mẫu từ cấu hình' })).not.toBeInTheDocument();
+  });
+
+  it('keeps template controls hidden until rounds are loaded for the selected campaign', async () => {
+    render(
+      <CompetitionPublicContentPanel
+        campaignId="campaign-1"
+        isAdmin
+        schoolExamEvents={events}
+        campaign={campaign}
+        rounds={rounds}
+        roundsLoadedCampaignId={null}
       />,
     );
 
@@ -211,6 +228,24 @@ describe('CompetitionPublicContentPanel', () => {
     const typeSelect = await screen.findByLabelText('Loại bài viết mới');
     fireEvent.change(typeSelect, { target: { value: 'GUIDE' } });
     expect(await screen.findByText(/Đã có bài viết loại Hướng dẫn/)).toBeInTheDocument();
+  });
+
+  it('keeps archived article slugs occupied when prefilling a new draft', async () => {
+    service.listArticles.mockResolvedValueOnce([{
+      ...article,
+      type: 'SCHEDULE',
+      status: 'ARCHIVED',
+      slug: 'lich-thi-trang-nguyen-nhi',
+    }]);
+    renderPanel();
+
+    const typeSelect = await screen.findByLabelText('Loại bài viết mới');
+    fireEvent.change(typeSelect, { target: { value: 'SCHEDULE' } });
+    expect(await screen.findByText(/Đã có bài viết loại Lịch thi \(ARCHIVED\)/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Điền mẫu từ cấu hình' }));
+
+    expect(screen.getByLabelText('Slug bài viết mới')).toHaveValue('lich-thi-trang-nguyen-nhi-2');
+    expect(service.createArticle).not.toHaveBeenCalled();
   });
 
   it('publishes a draft article only after confirmation and archives the published article', async () => {

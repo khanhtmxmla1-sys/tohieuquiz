@@ -93,6 +93,7 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
   const [campaigns, setCampaigns] = useState<CompetitionCampaignView[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   const [rounds, setRounds] = useState<CompetitionRoundView[]>([]);
+  const [roundsLoadedCampaignId, setRoundsLoadedCampaignId] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState<CompetitionEligibilityView | null>(null);
   const [admissions, setAdmissions] = useState<CompetitionSchoolExamAdmissionsView | null>(null);
   const [progress, setProgress] = useState<CompetitionProgressItemView[]>([]);
@@ -153,6 +154,7 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
   }, []);
 
   useEffect(() => {
+    setRoundsLoadedCampaignId(null);
     if (!selectedCampaignId) {
       setRounds([]);
       setEligibility(null);
@@ -172,6 +174,7 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
     ]).then(([roundResult, eligibilityResult, examResult, progressResult, admissionResult]) => {
       if (cancelled) return;
       setRounds(roundResult.status === 'fulfilled' ? roundResult.value : []);
+      if (roundResult.status === 'fulfilled') setRoundsLoadedCampaignId(selectedCampaignId);
       setEligibility(eligibilityResult.status === 'fulfilled' ? eligibilityResult.value : null);
       setSchoolExamEvents(examResult.status === 'fulfilled' ? examResult.value : []);
       setProgress(progressResult.status === 'fulfilled' ? progressResult.value : []);
@@ -916,6 +919,7 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
         schoolExamEvents={schoolExamEvents}
         campaign={selectedCampaign}
         rounds={rounds}
+        roundsLoadedCampaignId={roundsLoadedCampaignId}
       />
 
       <div className="grid gap-5 xl:grid-cols-2">

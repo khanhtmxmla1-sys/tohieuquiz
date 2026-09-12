@@ -61,4 +61,35 @@ describe('competition article templates', () => {
     expect(template?.content).toContain('Cần đạt: Chưa cấu hình.');
     expect(template?.content).not.toContain('6/6');
   });
+
+  it('keeps generated titles and slugs within article schema limits', () => {
+    const template = createCompetitionArticleTemplate('SCHEDULE', {
+      ...context,
+      campaign: { ...context.campaign, title: `Cuộc thi ${'x'.repeat(210)}` },
+    });
+
+    expect(template?.title.length).toBeLessThanOrEqual(200);
+    expect(template?.slug.length).toBeLessThanOrEqual(160);
+    expect(template?.slug).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+    expect(template?.slug).not.toMatch(/-$/);
+  });
+
+  it('chooses a bounded unique slug when canonical and suffixed slugs are occupied', () => {
+    const template = createCompetitionArticleTemplate('RULES', {
+      ...context,
+      occupiedSlugs: [
+        'the-le-trang-nguyen-nhi',
+        'the-le-trang-nguyen-nhi-2',
+      ],
+    });
+
+    expect(template?.slug).toBe('the-le-trang-nguyen-nhi-3');
+    expect(template?.slug.length).toBeLessThanOrEqual(160);
+  });
+
+  it('keeps Rules content readable as plain text for the student rules consumer', () => {
+    const template = createCompetitionArticleTemplate('RULES', context);
+
+    expect(template?.content.split('\n').every(line => !/^#{1,6}\s|^-\s/.test(line))).toBe(true);
+  });
 });

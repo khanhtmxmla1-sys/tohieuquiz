@@ -17,6 +17,7 @@ interface CompetitionArticleManagerProps {
   isAdmin: boolean;
   campaign?: CompetitionCampaignView | null;
   rounds?: CompetitionRoundView[];
+  roundsLoadedCampaignId: string | null;
 }
 
 type ArticleForm = {
@@ -102,7 +103,7 @@ const isLegacyGuideArticle = (article: StaffCompetitionArticleDto): boolean => (
   && article.slug.toLowerCase().startsWith('huong-dan-')
 );
 
-const CompetitionArticleManager: React.FC<CompetitionArticleManagerProps> = ({ campaignId, isAdmin, campaign, rounds = [] }) => {
+const CompetitionArticleManager: React.FC<CompetitionArticleManagerProps> = ({ campaignId, isAdmin, campaign, rounds = [], roundsLoadedCampaignId }) => {
   const [articles, setArticles] = useState<StaffCompetitionArticleDto[]>([]);
   const [newArticle, setNewArticle] = useState<ArticleForm>(toForm());
   const [editForms, setEditForms] = useState<Record<string, ArticleForm>>({});
@@ -233,9 +234,13 @@ const CompetitionArticleManager: React.FC<CompetitionArticleManagerProps> = ({ c
   };
 
   const fillNewArticleTemplate = () => {
-    if (!isAdmin || !campaign || campaign.id !== campaignId || !competitionArticleTemplateTypes.includes(newArticle.type as typeof competitionArticleTemplateTypes[number])) return;
+    if (!isAdmin || !campaign || campaign.id !== campaignId || roundsLoadedCampaignId !== campaignId || !competitionArticleTemplateTypes.includes(newArticle.type as typeof competitionArticleTemplateTypes[number])) return;
     const templateType = newArticle.type as typeof competitionArticleTemplateTypes[number];
-    const template = createCompetitionArticleTemplate(templateType, { campaign, rounds });
+    const template = createCompetitionArticleTemplate(templateType, {
+      campaign,
+      rounds,
+      occupiedSlugs: articles.map(article => article.slug),
+    });
     if (!template) return;
     setNewArticle(template);
     setError(null);
@@ -243,13 +248,13 @@ const CompetitionArticleManager: React.FC<CompetitionArticleManagerProps> = ({ c
   };
 
   const existingArticleOfSelectedType = articles.find(article => (
-    article.status !== 'ARCHIVED'
-    && (article.type === newArticle.type || (newArticle.type === 'GUIDE' && isLegacyGuideArticle(article)))
+    article.type === newArticle.type || (newArticle.type === 'GUIDE' && isLegacyGuideArticle(article))
   ));
   const canFillTemplate = Boolean(
     isAdmin
     && campaign
     && campaign.id === campaignId
+    && roundsLoadedCampaignId === campaignId
     && competitionArticleTemplateTypes.includes(newArticle.type as typeof competitionArticleTemplateTypes[number]),
   );
 

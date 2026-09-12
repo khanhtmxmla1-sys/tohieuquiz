@@ -7,6 +7,7 @@ export type CompetitionArticleTemplateType = Extract<CompetitionArticleType, 'RU
 export interface CompetitionArticleTemplateContext {
   campaign: CompetitionCampaignView;
   rounds: CompetitionRoundView[];
+  occupiedSlugs?: readonly string[];
 }
 
 export interface CompetitionArticleTemplate {
@@ -19,6 +20,9 @@ export interface CompetitionArticleTemplate {
 }
 
 const TEMPLATE_TYPES: readonly CompetitionArticleTemplateType[] = ['RULES', 'SCHEDULE', 'GUIDE'];
+const MAX_ARTICLE_TITLE_LENGTH = 200;
+const MAX_ARTICLE_SLUG_LENGTH = 160;
+const MAX_SLUG_SUFFIX = 999;
 
 export const competitionArticleTemplateTypes = TEMPLATE_TYPES;
 
@@ -48,6 +52,29 @@ const campaignSlug = (campaign: CompetitionCampaignView): string => {
   return titlePart || `cuoc-thi-${toSlugPart(campaign.schoolYear) || 'moi'}`;
 };
 
+const truncateTitle = (prefix: string, title: string): string => (
+  `${prefix}${title}`.slice(0, MAX_ARTICLE_TITLE_LENGTH).trim()
+);
+
+const trimSlug = (slug: string): string => slug
+  .slice(0, MAX_ARTICLE_SLUG_LENGTH)
+  .replace(/-+$/g, '');
+
+const uniqueArticleSlug = (baseSlug: string, occupiedSlugs: readonly string[] = []): string | null => {
+  const occupied = new Set(occupiedSlugs.map(slug => slug.trim().toLowerCase()).filter(Boolean));
+  const base = trimSlug(baseSlug);
+  if (!base) return null;
+  if (!occupied.has(base)) return base;
+
+  for (let suffix = 2; suffix <= MAX_SLUG_SUFFIX; suffix += 1) {
+    const suffixText = `-${suffix}`;
+    const candidateBase = trimSlug(base.slice(0, MAX_ARTICLE_SLUG_LENGTH - suffixText.length));
+    const candidate = `${candidateBase}${suffixText}`;
+    if (!occupied.has(candidate)) return candidate;
+  }
+  return null;
+};
+
 const listOrFallback = (items: Array<string | number> | undefined, fallback: string): string => (
   items && items.length > 0 ? items.join(', ') : fallback
 );
@@ -57,11 +84,23 @@ const audienceLines = (campaign: CompetitionCampaignView): string[] => [
   `- Lớp: ${listOrFallback(campaign.audienceRule?.classIds, 'Chưa cấu hình')}`,
 ];
 
+const plainAudienceLines = (campaign: CompetitionCampaignView): string[] => [
+  `Khối: ${listOrFallback(campaign.audienceRule?.gradeLevels, 'Chưa cấu hình')}`,
+  `Lớp: ${listOrFallback(campaign.audienceRule?.classIds, 'Chưa cấu hình')}`,
+];
+
 const qualificationLine = (campaign: CompetitionCampaignView): string => {
   const policy = campaign.eligibilityPolicy;
   return policy
     ? `- Cần đạt: ${policy.requiredPassedRounds}/${policy.requiredRounds} vòng thi.`
     : '- Cần đạt: Chưa cấu hình.';
+};
+
+const plainQualificationLine = (campaign: CompetitionCampaignView): string => {
+  const policy = campaign.eligibilityPolicy;
+  return policy
+    ? `Cần đạt: ${policy.requiredPassedRounds}/${policy.requiredRounds} vòng thi.`
+    : 'Cần đạt: Chưa cấu hình.';
 };
 
 const roundsByNumber = (rounds: CompetitionRoundView[], campaignId: string): CompetitionRoundView[] => rounds
@@ -80,36 +119,40 @@ const roundLines = (rounds: CompetitionRoundView[], campaignId: string): string[
   ]);
 };
 
-const rulesTemplate = (context: CompetitionArticleTemplateContext): CompetitionArticleTemplate => {
+const rulesTemplate = (context: CompetitionArticleTemplateContext): CompetitionArticleTemplate | null => {
   const { campaign } = context;
+  const slug = uniqueArticleSlug(`the-le-${campaignSlug(campaign)}`, context.occupiedSlugs);
+  if (!slug) return null;
   return {
     type: 'RULES',
-    title: `Thể lệ ${campaign.title}`,
-    slug: `the-le-${campaignSlug(campaign)}`,
+    title: truncateTitle('Thể lệ ', campaign.title),
+    slug,
     summary: `Thông tin thể lệ của ${campaign.title}, năm học ${campaign.schoolYear}.`,
     coverImageUrl: '',
     content: [
-      `# Thể lệ ${campaign.title}`,
+      `THỂ LỆ ${campaign.title}`.slice(0, MAX_ARTICLE_TITLE_LENGTH),
       '',
-      `- Năm học: ${campaign.schoolYear}`,
+      `Năm học: ${campaign.schoolYear}`,
       '',
-      '## Đối tượng dự thi',
-      ...audienceLines(campaign),
+      'Đối tượng dự thi',
+      ...plainAudienceLines(campaign),
       '',
-      '## Điều kiện hoàn thành',
-      qualificationLine(campaign),
+      'Điều kiện hoàn thành',
+      plainQualificationLine(campaign),
       '',
       'Nội dung điểm đạt, số lượt và thời gian của từng vòng được nêu trong mục Lịch thi.',
     ].join('\n'),
   };
 };
 
-const scheduleTemplate = (context: CompetitionArticleTemplateContext): CompetitionArticleTemplate => {
+const scheduleTemplate = (context: CompetitionArticleTemplateContext): CompetitionArticleTemplate | null => {
   const { campaign } = context;
+  const slug = uniqueArticleSlug(`lich-thi-${campaignSlug(campaign)}`, context.occupiedSlugs);
+  if (!slug) return null;
   return {
     type: 'SCHEDULE',
-    title: `Lịch thi ${campaign.title}`,
-    slug: `lich-thi-${campaignSlug(campaign)}`,
+    title: truncateTitle('Lịch thi ', campaign.title),
+    slug,
     summary: `Lịch mở và đóng các vòng thi của ${campaign.title}.`,
     coverImageUrl: '',
     content: [
@@ -123,12 +166,14 @@ const scheduleTemplate = (context: CompetitionArticleTemplateContext): Competiti
   };
 };
 
-const guideTemplate = (context: CompetitionArticleTemplateContext): CompetitionArticleTemplate => {
+const guideTemplate = (context: CompetitionArticleTemplateContext): CompetitionArticleTemplate | null => {
   const { campaign } = context;
+  const slug = uniqueArticleSlug(`huong-dan-tham-gia-${campaignSlug(campaign)}`, context.occupiedSlugs);
+  if (!slug) return null;
   return {
     type: 'GUIDE',
-    title: `Hướng dẫn tham gia ${campaign.title}`,
-    slug: `huong-dan-tham-gia-${campaignSlug(campaign)}`,
+    title: truncateTitle('Hướng dẫn tham gia ', campaign.title),
+    slug,
     summary: `Hướng dẫn tham gia ${campaign.title}, năm học ${campaign.schoolYear}.`,
     coverImageUrl: '',
     content: [
