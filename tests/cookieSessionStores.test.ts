@@ -83,4 +83,20 @@ describe('cookie-backed session stores', () => {
     expect(localStorage.getItem(StorageKeys.STUDENT_SESSION)).toBeNull();
     expect(localStorage.getItem(StorageKeys.STUDENT_SESSION_RESTORE_HINT)).toBe('1');
   });
+
+  it('clears the student loading state when logging out', () => {
+    useClassroomStore.setState({
+      studentSession: { studentId: 'student-a', username: 'student-a', fullName: 'Lan', classId: 'class-a' },
+      isLoading: true,
+      error: 'previous error',
+    });
+
+    useClassroomStore.getState().logoutStudent();
+
+    expect(useClassroomStore.getState()).toMatchObject({
+      studentSession: null,
+      isLoading: false,
+      error: null,
+    });
+  });
 });

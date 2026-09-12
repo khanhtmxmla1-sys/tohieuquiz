@@ -131,4 +131,176 @@ describe('executeApiAction — error handling', () => {
             'Unknown API action: not_an_action',
         );
     });
+
+    it('times out when an auth response body never settles', async () => {
+        vi.useFakeTimers();
+        try {
+            const hangingResponse = {
+                ok: true,
+                status: 200,
+                json: () => new Promise<never>(() => {
+                    // Intentionally pending to exercise the auth body timeout.
+                }),
+            } as unknown as Response;
+            mockFetch.mockResolvedValueOnce(hangingResponse);
+
+            const request = executeApiAction('login', { username: 'teacher-a', password: 'secret' });
+            const rejection = expect(request).rejects.toMatchObject({
+                status: 408,
+                code: 'AUTH_REQUEST_TIMEOUT',
+            });
+            await vi.advanceTimersByTimeAsync(15_000);
+
+            await rejection;
+            expect((mockFetch.mock.calls[0][1] as RequestInit).signal).toBeInstanceOf(AbortSignal);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('times out when an auth fetch never settles', async () => {
+        vi.useFakeTimers();
+        try {
+            mockFetch.mockImplementationOnce(() => new Promise<Response>(() => {
+                // Intentionally pending to exercise the auth fetch timeout.
+            }));
+            const request = executeApiAction('login', { username: 'teacher-a', password: 'secret' });
+            const rejection = expect(request).rejects.toMatchObject({ status: 408 });
+            await vi.advanceTimersByTimeAsync(15_000);
+            await rejection;
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it.each([
+        'activate_parent_link',
+        'parent_login',
+        'get_parent_session',
+        'parent_logout',
+    ])('times out when parent auth action %s stalls', async (action) => {
+        vi.useFakeTimers();
+        try {
+            mockFetch.mockImplementationOnce(() => new Promise<Response>(() => {
+                // Intentionally pending to verify every parent session action is bounded.
+            }));
+            let failure: unknown;
+            void executeApiAction(action).catch((error) => {
+                failure = error;
+            });
+
+            await vi.advanceTimersByTimeAsync(15_000);
+
+            expect(failure).toMatchObject({
+                status: 408,
+                code: 'AUTH_REQUEST_TIMEOUT',
+            });
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('allows a later auth request to succeed after a timeout', async () => {
+        vi.useFakeTimers();
+        try {
+            const hangingResponse = {
+                ok: true,
+                status: 200,
+                json: () => new Promise<never>(() => {
+                    // Intentionally pending to exercise recovery after a timeout.
+                }),
+            } as unknown as Response;
+            mockFetch.mockResolvedValueOnce(hangingResponse);
+            const firstRequest = executeApiAction('login', { username: 'teacher-a', password: 'secret' });
+            const rejection = expect(firstRequest).rejects.toMatchObject({ status: 408 });
+            await vi.advanceTimersByTimeAsync(15_000);
+            await rejection;
+
+            mockOk({ status: 'success' });
+            await expect(executeApiAction('login', { username: 'teacher-a', password: 'secret' }))
+                .resolves.toEqual({ status: 'success' });
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('serializes and deduplicates logout before a subsequent login', async () => {
+        let releaseLogout: (() => void) | undefined;
+        mockFetch.mockImplementation((input) => {
+            const url = String(input);
+            if (url.endsWith('/api/logout')) {
+                return new Promise<Response>((resolve) => {
+                    releaseLogout = () => resolve(new Response(JSON.stringify({ status: 'success' }), { status: 200 }));
+                });
+            }
+            return Promise.resolve(new Response(JSON.stringify({ status: 'success' }), { status: 200 }));
+        });
+
+        const firstLogout = executeApiAction('logout');
+        const duplicateLogout = executeApiAction('logout');
+        const login = executeApiAction('login', { username: 'teacher-a', password: 'secret' });
+        await Promise.resolve();
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/api\/logout$/);
+
+        releaseLogout?.();
+        await expect(firstLogout).resolves.toEqual({ status: 'success' });
+        await expect(duplicateLogout).resolves.toEqual({ status: 'success' });
+        await expect(login).resolves.toEqual({ status: 'success' });
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(String(mockFetch.mock.calls[1][0])).toMatch(/\/api\/login$/);
+    });
+
+    it('does not deduplicate a logout separated by a login', async () => {
+        const releaseLogouts: Array<() => void> = [];
+        mockFetch.mockImplementation((input) => {
+            const url = String(input);
+            if (url.endsWith('/api/logout')) {
+                return new Promise<Response>((resolve) => {
+                    releaseLogouts.push(() => resolve(new Response(JSON.stringify({ status: 'success' }), { status: 200 })));
+                });
+            }
+            return Promise.resolve(new Response(JSON.stringify({ status: 'success' }), { status: 200 }));
+        });
+
+        const firstLogout = executeApiAction('logout');
+        const login = executeApiAction('login', { username: 'teacher-a', password: 'secret' });
+        const secondLogout = executeApiAction('logout');
+        await Promise.resolve();
+
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        releaseLogouts.shift()?.();
+        await expect(firstLogout).resolves.toEqual({ status: 'success' });
+        await expect(login).resolves.toEqual({ status: 'success' });
+        await Promise.resolve();
+
+        expect(mockFetch).toHaveBeenCalledTimes(3);
+        expect(String(mockFetch.mock.calls[2][0])).toMatch(/\/api\/logout$/);
+        releaseLogouts.shift()?.();
+        await expect(secondLogout).resolves.toEqual({ status: 'success' });
+    });
+
+    it('continues the auth mutation queue after a rejected logout', async () => {
+        vi.useFakeTimers();
+        try {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: () => new Promise<never>(() => {
+                    // Intentionally pending to exercise queue recovery after rejection.
+                }),
+            } as unknown as Response);
+            const logout = executeApiAction('logout');
+            const rejection = expect(logout).rejects.toMatchObject({ status: 408 });
+            await vi.advanceTimersByTimeAsync(15_000);
+            await rejection;
+
+            mockOk({ status: 'success' });
+            await expect(executeApiAction('login', { username: 'teacher-a', password: 'secret' }))
+                .resolves.toEqual({ status: 'success' });
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });
