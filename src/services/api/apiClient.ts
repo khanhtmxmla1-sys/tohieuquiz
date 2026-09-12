@@ -1,9 +1,87 @@
 import type { ApiPayload } from './types';
 import { getWorkersApiBaseUrl } from './config';
 import { buildAuthHeaders } from './auth';
-import { toApiError, normalizeNetworkError } from './errors';
+import { ApiError, toApiError, normalizeNetworkError } from './errors';
 import { resolveApiRoute } from './routeResolver';
 import { cacheService } from '../CacheService';
+
+const AUTH_REQUEST_TIMEOUT_MS = 15_000;
+
+// Keep the guard limited to short-lived authentication/session requests. Long-running
+// authenticated work such as AI generation must retain its own request lifetime.
+const AUTH_REQUEST_ACTIONS = new Set([
+    'login',
+    'student_login',
+    'get_account_profile',
+    'student_profile',
+    'logout',
+    'logout_all',
+    'change_password',
+    'change_student_password',
+    'get_account_passkeys',
+    'begin_passkey_registration',
+    'finish_passkey_registration',
+    'begin_passkey_authentication',
+    'finish_passkey_authentication',
+    'get_account_sessions',
+    'get_account_security_events',
+    'revoke_account_session',
+    'revoke_all_account_sessions',
+    'revoke_account_passkey',
+]);
+
+// These endpoints can set or clear the shared auth_token cookie. Serializing them
+// prevents a delayed logout response from clearing a cookie issued by a later login.
+const AUTH_COOKIE_MUTATION_ACTIONS = new Set([
+    'login',
+    'student_login',
+    'logout',
+    'logout_all',
+    'change_password',
+    'change_student_password',
+    'finish_passkey_authentication',
+    'revoke_account_session',
+    'revoke_all_account_sessions',
+]);
+
+let authCookieMutationTail: Promise<void> = Promise.resolve();
+let pendingLogout: Promise<unknown> | null = null;
+
+function withAuthRequestTimeout<T>(operation: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+            controller.abort();
+            reject(new ApiError(
+                'Yêu cầu xác thực đã quá thời gian chờ. Vui lòng thử lại.',
+                408,
+                'AUTH_REQUEST_TIMEOUT',
+            ));
+        }, AUTH_REQUEST_TIMEOUT_MS);
+    });
+
+    return Promise.race([operation(controller.signal), timeout]).finally(() => {
+        if (timeoutId !== undefined) clearTimeout(timeoutId);
+    });
+}
+
+function enqueueAuthCookieMutation<T>(action: string, operation: () => Promise<T>): Promise<T> {
+    if (action === 'logout' && pendingLogout) return pendingLogout as Promise<T>;
+    if (action !== 'logout') pendingLogout = null;
+
+    const queued = authCookieMutationTail.then(operation, operation);
+    // Always resolve the tail so one failed request cannot poison later auth actions.
+    authCookieMutationTail = queued.then(() => undefined, () => undefined);
+
+    if (action !== 'logout') return queued;
+
+    const tracked = queued.finally(() => {
+        if (pendingLogout === tracked) pendingLogout = null;
+    });
+    pendingLogout = tracked;
+    return tracked;
+}
 
 function buildUrl(base: string, path: string, query?: URLSearchParams): string {
     const qs = query?.toString();
@@ -42,8 +120,8 @@ export async function executeApiAction<T = any>(
         requestInit.body = JSON.stringify(body);
     }
 
-    try {
-        const response = await fetch(url, requestInit);
+    const performRequest = async (signal?: AbortSignal): Promise<T> => {
+        const response = await fetch(url, signal ? { ...requestInit, signal } : requestInit);
 
         if (!response.ok) {
             if (response.status === 401 || response.status === 403) cacheService.clear();
@@ -51,6 +129,16 @@ export async function executeApiAction<T = any>(
         }
 
         return (await response.json()) as T;
+    };
+
+    const perform = () => AUTH_REQUEST_ACTIONS.has(action)
+        ? withAuthRequestTimeout((signal) => performRequest(signal))
+        : performRequest();
+
+    try {
+        return AUTH_COOKIE_MUTATION_ACTIONS.has(action)
+            ? await enqueueAuthCookieMutation(action, perform)
+            : await perform();
     } catch (error: unknown) {
         throw normalizeNetworkError(error);
     }

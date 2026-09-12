@@ -59,7 +59,7 @@ export const useClassroomStore = create<ClassroomStore>((set, get) => ({
         void classroomService.logoutSession().catch(() => undefined);
         clearUserBrowserData();
         cacheService.setNamespace('anonymous');
-        set({ studentSession: null });
+        set({ studentSession: null, isLoading: false, error: null });
         useAssignmentStore.getState().resetAssignments();
         useGamificationStore.getState().clearGamification();
         useHomeworkStore.getState().resetStore();
