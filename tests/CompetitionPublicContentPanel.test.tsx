@@ -63,8 +63,20 @@ const events = [
   { id: 'event-other', campaignId: 'campaign-other', title: 'Không được chọn', status: 'READY', examDate: '2026-08-10T00:00:00.000Z' },
 ];
 
+const campaign = {
+  id: 'campaign-1', title: 'Trạng Nguyên Nhí', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh', status: 'PUBLISHED',
+  audienceRule: { gradeLevels: [4, 5], classIds: ['4A', '5B'] },
+  eligibilityPolicy: { requiredRounds: 6 as const, requiredPassedRounds: 5 },
+  startsAt: '2026-08-24T09:00:00.000Z', endsAt: '2026-12-31T16:00:00.000Z',
+};
+
+const rounds = [
+  { id: 'round-1', campaignId: 'campaign-1', roundNumber: 1, opensAt: '2026-08-25T09:00:00.000Z', closesAt: '2026-08-31T16:00:00.000Z', maxAttempts: 2, passingScore: 7, status: 'SCHEDULED' },
+  { id: 'round-2', campaignId: 'campaign-1', roundNumber: 2, opensAt: '2026-09-01T09:00:00.000Z', closesAt: '2026-09-07T16:00:00.000Z', maxAttempts: 3, passingScore: 8, status: 'SCHEDULED' },
+];
+
 const renderPanel = (isAdmin = true) => render(
-  <CompetitionPublicContentPanel campaignId="campaign-1" isAdmin={isAdmin} schoolExamEvents={events} />,
+  <CompetitionPublicContentPanel campaignId="campaign-1" isAdmin={isAdmin} schoolExamEvents={events} campaign={campaign} rounds={rounds} roundsLoadedCampaignId="campaign-1" />,
 );
 
 describe('CompetitionPublicContentPanel', () => {
@@ -118,6 +130,122 @@ describe('CompetitionPublicContentPanel', () => {
       campaignId: 'campaign-1', title: 'Hướng dẫn tham gia', slug: 'huong-dan',
       content: 'Các bước tham gia', status: 'DRAFT', requestId: expect.any(String),
     })));
+  });
+
+  it('prefills an official schedule draft from canonical configuration without calling the API', async () => {
+    renderPanel();
+
+    const typeSelect = await screen.findByLabelText('Loại bài viết mới');
+    fireEvent.change(typeSelect, { target: { value: 'SCHEDULE' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Điền mẫu từ cấu hình' }));
+
+    expect(screen.getByLabelText('Tiêu đề bài viết mới')).toHaveValue('Lịch thi Trạng Nguyên Nhí');
+    expect(screen.getByLabelText('Slug bài viết mới')).toHaveValue('lich-thi-trang-nguyen-nhi');
+    const scheduleContent = screen.getByLabelText('Nội dung bài viết mới') as HTMLTextAreaElement;
+    expect(scheduleContent.value).toContain('25/08/2026 16:00');
+    expect(scheduleContent.value).toContain('Số lượt tối đa: 2');
+    expect(scheduleContent.value).toContain('Điểm đạt: 7');
+    expect(service.createArticle).not.toHaveBeenCalled();
+  });
+
+  it('prefills rules and guide only with canonical campaign facts and warns about duplicate types', async () => {
+    renderPanel();
+
+    const typeSelect = screen.getByLabelText('Loại bài viết mới');
+    expect(screen.getByRole('option', { name: 'Thể lệ' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Hướng dẫn' })).toBeInTheDocument();
+
+    fireEvent.change(typeSelect, { target: { value: 'RULES' } });
+    expect(await screen.findByText(/Đã có bài viết loại Thể lệ/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Điền mẫu từ cấu hình' }));
+    const rulesContent = screen.getByLabelText('Nội dung bài viết mới') as HTMLTextAreaElement;
+    expect(rulesContent.value).toContain('Năm học: 2026-2027');
+    expect(rulesContent.value).toContain('Khối: 4, 5');
+    expect(rulesContent.value).toContain('Lớp: 4A, 5B');
+    expect(rulesContent.value).toContain('Cần đạt: 5/6 vòng thi');
+    expect(rulesContent.value).not.toContain('Giải');
+    expect(rulesContent.value).not.toContain('Thời lượng');
+    expect(rulesContent.value).not.toContain('hotline');
+
+    fireEvent.change(typeSelect, { target: { value: 'GUIDE' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Điền mẫu từ cấu hình' }));
+    expect(screen.getByLabelText('Tiêu đề bài viết mới')).toHaveValue('Hướng dẫn tham gia Trạng Nguyên Nhí');
+    const guideContent = screen.getByLabelText('Nội dung bài viết mới') as HTMLTextAreaElement;
+    expect(guideContent.value).toContain('Số lượt tối đa: 2');
+    expect(guideContent.value).toContain('Điểm đạt: 7');
+    expect(service.createArticle).not.toHaveBeenCalled();
+  });
+
+  it('does not expose template or create controls to a read-only teacher', async () => {
+    renderPanel(false);
+
+    await screen.findByText('Thể lệ');
+    expect(screen.queryByRole('button', { name: 'Điền mẫu từ cấu hình' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tạo bài viết' })).not.toBeInTheDocument();
+  });
+
+  it('does not enable templates when campaign context belongs to another campaign', async () => {
+    render(
+      <CompetitionPublicContentPanel
+        campaignId="campaign-1"
+        isAdmin
+        schoolExamEvents={events}
+        campaign={{ ...campaign, id: 'campaign-other' }}
+        rounds={rounds}
+        roundsLoadedCampaignId="campaign-1"
+      />,
+    );
+
+    await screen.findByLabelText('Loại bài viết mới');
+    expect(screen.queryByRole('button', { name: 'Điền mẫu từ cấu hình' })).not.toBeInTheDocument();
+  });
+
+  it('keeps template controls hidden until rounds are loaded for the selected campaign', async () => {
+    render(
+      <CompetitionPublicContentPanel
+        campaignId="campaign-1"
+        isAdmin
+        schoolExamEvents={events}
+        campaign={campaign}
+        rounds={rounds}
+        roundsLoadedCampaignId={null}
+      />,
+    );
+
+    await screen.findByLabelText('Loại bài viết mới');
+    expect(screen.queryByRole('button', { name: 'Điền mẫu từ cấu hình' })).not.toBeInTheDocument();
+  });
+
+  it('warns about a published legacy announcement that uses a guide slug', async () => {
+    service.listArticles.mockResolvedValueOnce([{
+      ...article,
+      type: 'ANNOUNCEMENT',
+      status: 'PUBLISHED',
+      slug: 'huong-dan-tham-gia-trang-nguyen-nhi-2026-2027',
+    }]);
+    renderPanel();
+
+    const typeSelect = await screen.findByLabelText('Loại bài viết mới');
+    fireEvent.change(typeSelect, { target: { value: 'GUIDE' } });
+    expect(await screen.findByText(/Đã có bài viết loại Hướng dẫn/)).toBeInTheDocument();
+  });
+
+  it('keeps archived article slugs occupied when prefilling a new draft', async () => {
+    service.listArticles.mockResolvedValueOnce([{
+      ...article,
+      type: 'SCHEDULE',
+      status: 'ARCHIVED',
+      slug: 'lich-thi-trang-nguyen-nhi',
+    }]);
+    renderPanel();
+
+    const typeSelect = await screen.findByLabelText('Loại bài viết mới');
+    fireEvent.change(typeSelect, { target: { value: 'SCHEDULE' } });
+    expect(await screen.findByText(/Đã có bài viết loại Lịch thi \(ARCHIVED\)/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Điền mẫu từ cấu hình' }));
+
+    expect(screen.getByLabelText('Slug bài viết mới')).toHaveValue('lich-thi-trang-nguyen-nhi-2');
+    expect(service.createArticle).not.toHaveBeenCalled();
   });
 
   it('publishes a draft article only after confirmation and archives the published article', async () => {
