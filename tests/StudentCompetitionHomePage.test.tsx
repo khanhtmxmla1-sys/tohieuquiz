@@ -127,7 +127,7 @@ describe('StudentCompetitionHomePage', () => {
     );
   });
 
-  it('preflights a qualified ready School Exam without joining or starting an ordinary attempt', async () => {
+  it('preflights a qualified ready thi cấp trường without joining or starting an ordinary attempt', async () => {
     let resolvePreflight!: (value: {
       status: 'READY';
       campaignId: string;
@@ -141,14 +141,14 @@ describe('StudentCompetitionHomePage', () => {
     mocks.preflightSchoolExam.mockReturnValue(new Promise(resolve => { resolvePreflight = resolve; }));
     renderPage();
 
-    const action = await screen.findByRole('button', { name: /kiểm tra school exam/i });
+    const action = await screen.findByRole('button', { name: /kiểm tra thi cấp trường/i });
     fireEvent.click(action);
     expect(screen.getByRole('status')).toHaveTextContent(/đang kiểm tra/i);
 
     resolvePreflight({
       status: 'READY',
       campaignId: portal.campaignId,
-      title: 'School Exam',
+      title: 'Thi cấp trường',
       roomName: 'Phòng A',
       scheduledAt: portal.schoolExam!.scheduledAt,
       serverTime: '2026-10-10T07:55:00.000Z',
@@ -160,10 +160,10 @@ describe('StudentCompetitionHomePage', () => {
       accessCode: 'ROOM-123',
     });
 
-    const ready = await screen.findByText(/school exam sẵn sàng/i);
+    const ready = await screen.findByText(/thi cấp trường sẵn sàng/i);
     expect(ready).toHaveTextContent(/sẵn sàng/i);
     expect(ready).toHaveTextContent('ROOM-123');
-    expect(screen.getByRole('link', { name: 'VÀO SCHOOL EXAM' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'VÀO THI CẤP TRƯỜNG' })).toHaveAttribute(
       'href',
       '/thi/olympic-toan/school-exam/lam-bai',
     );
@@ -172,7 +172,7 @@ describe('StudentCompetitionHomePage', () => {
     expect(mocks.joinLiveExam).not.toHaveBeenCalled();
   });
 
-  it('shows the canonical School Exam block reason returned by preflight', async () => {
+  it('shows a friendly thi cấp trường block reason returned by preflight', async () => {
     mocks.preflightSchoolExam.mockResolvedValue({
       status: 'BLOCKED',
       campaignId: portal.campaignId,
@@ -182,25 +182,26 @@ describe('StudentCompetitionHomePage', () => {
     });
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: /kiểm tra school exam/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /kiểm tra thi cấp trường/i }));
 
-    expect(await screen.findByText(/SCHOOL_EXAM_WINDOW_NOT_OPEN/)).toBeInTheDocument();
+    expect(await screen.findByText(/chưa đến giờ vào thi cấp trường/i)).toBeInTheDocument();
+    expect(screen.queryByText(/SCHOOL_EXAM_WINDOW_NOT_OPEN/)).not.toBeInTheDocument();
     expect(mocks.start).not.toHaveBeenCalled();
     expect(mocks.joinLiveExam).not.toHaveBeenCalled();
   });
 
-  it('shows a useful School Exam preflight error without joining or starting', async () => {
+  it('shows a useful thi cấp trường preflight error without joining or starting', async () => {
     mocks.preflightSchoolExam.mockRejectedValue(new Error('NETWORK_ERROR'));
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: /kiểm tra school exam/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /kiểm tra thi cấp trường/i }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/không thể kiểm tra school exam/i);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/không thể kiểm tra thi cấp trường/i);
     expect(mocks.start).not.toHaveBeenCalled();
     expect(mocks.joinLiveExam).not.toHaveBeenCalled();
   });
 
-  it('renders canonical student status, exactly six rounds, a separate School Exam card, and the next CTA', async () => {
+  it('renders canonical student status, exactly six rounds, a separate thi cấp trường card, and the next CTA', async () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { level: 1, name: portal.title })).toBeInTheDocument();
@@ -216,9 +217,10 @@ describe('StudentCompetitionHomePage', () => {
       '/thi/olympic-toan/vong/2',
     );
 
-    const schoolExam = screen.getByRole('region', { name: 'School Exam' });
+    const schoolExam = screen.getByRole('region', { name: 'Thi cấp trường' });
     expect(schoolExam).toHaveTextContent('Phòng A');
-    expect(within(journey).queryByText('School Exam')).not.toBeInTheDocument();
+    expect(within(journey).queryByText('Thi cấp trường')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Bước tiếp theo' })).toHaveTextContent('Vào thi vòng 2');
     expect(mocks.get).toHaveBeenCalledWith(portal.campaignId);
     expect(mocks.officialResult).toHaveBeenCalledWith(portal.campaignId);
   });
@@ -240,5 +242,69 @@ describe('StudentCompetitionHomePage', () => {
     expect(result).toHaveTextContent('Hạng toàn trường: 4');
     expect(result).toHaveTextContent('Hạng khối: 2');
     expect(result).toHaveTextContent('Hạng lớp: 1');
+  });
+
+  it('explains the next step when eligibility is blocked instead of presenting an action', async () => {
+    mocks.get.mockResolvedValue({
+      ...competition,
+      status: 'ELIGIBILITY_LOCKED',
+      eligibility: { version: 2, qualified: false, reasonCodes: ['ELIGIBILITY_BLOCKED'] },
+    });
+
+    renderPage();
+
+    expect(await screen.findByRole('region', { name: 'Bước tiếp theo' })).toHaveTextContent(
+      /chờ giáo viên cập nhật điều kiện/i,
+    );
+    expect(screen.queryByRole('link', { name: 'Vào thi vòng 2' })).not.toBeInTheDocument();
+  });
+
+  it('guides an audience member with unknown eligibility to wait for the first round when the campaign is upcoming', async () => {
+    const upcomingPortal: StudentCompetitionPortalDto = {
+      ...portal,
+      publicState: 'UPCOMING',
+      rounds: portal.rounds.map(round => ({ ...round, state: 'LOCKED' })),
+    };
+    const scheduledCompetition: StudentCompetitionDetail = {
+      ...competition,
+      eligibility: null,
+      rounds: competition.rounds.map(round => ({
+        ...round,
+        status: 'SCHEDULED',
+        attemptsUsed: 0,
+        bestScore: null,
+        isPassed: false,
+        progressStatus: null,
+      })),
+    };
+    mocks.get.mockResolvedValue(scheduledCompetition);
+
+    renderPage(upcomingPortal);
+
+    const nextStep = await screen.findByRole('region', { name: 'Bước tiếp theo' });
+    expect(nextStep).toHaveTextContent(/chờ vòng đầu tiên mở/i);
+    expect(nextStep).not.toHaveTextContent(/giáo viên|kiểm tra lại thông tin/i);
+  });
+
+  it('guides an eligible-status-unknown student to wait for the next round when no round is actionable', async () => {
+    const scheduledCompetition: StudentCompetitionDetail = {
+      ...competition,
+      eligibility: null,
+      rounds: competition.rounds.map(round => ({
+        ...round,
+        status: round.roundNumber === 1 ? 'COMPLETED' : 'SCHEDULED',
+        attemptsUsed: round.roundNumber === 1 ? 1 : 0,
+        bestScore: round.roundNumber === 1 ? 90 : null,
+        isPassed: round.roundNumber === 1,
+        progressStatus: round.roundNumber === 1 ? 'PASSED' : null,
+      })),
+    };
+    mocks.get.mockResolvedValue(scheduledCompetition);
+
+    renderPage();
+
+    const nextStep = await screen.findByRole('region', { name: 'Bước tiếp theo' });
+    expect(nextStep).toHaveTextContent(/chờ vòng tiếp theo mở/i);
+    expect(nextStep).not.toHaveTextContent(/giáo viên|kiểm tra lại thông tin/i);
   });
 });

@@ -78,7 +78,7 @@ const readyPreflight = {
 
 const joinedSession = {
   id: 'live-school-1',
-  title: 'School Exam',
+  title: 'Thi cấp trường',
   quizId: 'quiz-1',
   duration: 60,
   status: 'waiting',
@@ -137,7 +137,7 @@ describe('CompetitionSchoolExamPlayer', () => {
   it('freshly preflights explicit start, joins canonical Live Exam exactly once, and never starts an ordinary attempt', async () => {
     renderPlayer();
 
-    fireEvent.click(screen.getByRole('button', { name: 'BẮT ĐẦU SCHOOL EXAM' }));
+    fireEvent.click(screen.getByRole('button', { name: 'BẮT ĐẦU THI CẤP TRƯỜNG' }));
 
     await waitFor(() => expect(mocks.preflightSchoolExam).toHaveBeenCalledWith(portal.campaignId));
     expect(mocks.preflightSchoolExam).toHaveBeenCalledTimes(1);
@@ -151,9 +151,10 @@ describe('CompetitionSchoolExamPlayer', () => {
     mocks.joinLiveExam.mockRejectedValue(new Error('SCHOOL_EXAM_WINDOW_CLOSED'));
     renderPlayer();
 
-    fireEvent.click(screen.getByRole('button', { name: 'BẮT ĐẦU SCHOOL EXAM' }));
+    fireEvent.click(screen.getByRole('button', { name: 'BẮT ĐẦU THI CẤP TRƯỜNG' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('SCHOOL_EXAM_WINDOW_CLOSED');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/đã hết thời gian vào thi cấp trường/i);
+    expect(screen.queryByText('SCHOOL_EXAM_WINDOW_CLOSED')).not.toBeInTheDocument();
     expect(mocks.controllerJoin).not.toHaveBeenCalled();
     expect(screen.queryByText(/canonical-live-exam/)).not.toBeInTheDocument();
   });

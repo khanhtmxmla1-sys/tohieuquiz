@@ -331,8 +331,8 @@ describe('Competition public portal release journey', () => {
     visitAsStudent(`/thi/${campaignSlug}/school-exam/lam-bai`);
     cy.wait('@studentProfile');
     cy.wait('@studentPortal');
-    cy.contains('h1', 'School Exam').should('be.visible');
-    cy.contains('button', 'BẮT ĐẦU SCHOOL EXAM').click();
+    cy.contains('h1', 'Thi cấp trường').should('be.visible');
+    cy.contains('button', 'BẮT ĐẦU THI CẤP TRƯỜNG').click();
     cy.wait('@schoolExamPreflight');
     cy.wait('@liveExamJoin');
     cy.contains('Bài thi đã được ghi nhận. Kết quả chính thức sẽ được công bố sau khi Ban tổ chức hoàn tất đối soát.')
