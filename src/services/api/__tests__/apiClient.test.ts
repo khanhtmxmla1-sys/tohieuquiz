@@ -173,6 +173,33 @@ describe('executeApiAction — error handling', () => {
         }
     });
 
+    it.each([
+        'activate_parent_link',
+        'parent_login',
+        'get_parent_session',
+        'parent_logout',
+    ])('times out when parent auth action %s stalls', async (action) => {
+        vi.useFakeTimers();
+        try {
+            mockFetch.mockImplementationOnce(() => new Promise<Response>(() => {
+                // Intentionally pending to verify every parent session action is bounded.
+            }));
+            let failure: unknown;
+            void executeApiAction(action).catch((error) => {
+                failure = error;
+            });
+
+            await vi.advanceTimersByTimeAsync(15_000);
+
+            expect(failure).toMatchObject({
+                status: 408,
+                code: 'AUTH_REQUEST_TIMEOUT',
+            });
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('allows a later auth request to succeed after a timeout', async () => {
         vi.useFakeTimers();
         try {

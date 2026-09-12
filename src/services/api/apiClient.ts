@@ -12,9 +12,13 @@ const AUTH_REQUEST_TIMEOUT_MS = 15_000;
 const AUTH_REQUEST_ACTIONS = new Set([
     'login',
     'student_login',
+    'activate_parent_link',
+    'parent_login',
     'get_account_profile',
     'student_profile',
+    'get_parent_session',
     'logout',
+    'parent_logout',
     'logout_all',
     'change_password',
     'change_student_password',
