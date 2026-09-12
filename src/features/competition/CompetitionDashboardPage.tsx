@@ -914,6 +914,8 @@ const CompetitionDashboardPage: React.FC<CompetitionDashboardPageProps> = ({ isA
         campaignId={selectedCampaign?.id ?? ''}
         isAdmin={isAdmin}
         schoolExamEvents={schoolExamEvents}
+        campaign={selectedCampaign}
+        rounds={rounds}
       />
 
       <div className="grid gap-5 xl:grid-cols-2">
