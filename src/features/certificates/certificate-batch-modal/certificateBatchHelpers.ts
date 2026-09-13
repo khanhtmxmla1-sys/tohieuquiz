@@ -3,7 +3,7 @@ import type { BatchStudentRow, QuizOption, ResultRecord, StudentOption } from '.
 
 export const defaultCertificateDateLine = (): string => {
   const { day, month, year } = getSystemDateParts();
-  return `Mường La, ngày ${day} tháng ${month} năm ${year}`;
+  return `Tô Hiệu, ngày ${day} tháng ${month} năm ${year}`;
 };
 
 export const mergeStudentsWithResults = (

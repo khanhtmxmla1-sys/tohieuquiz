@@ -87,7 +87,7 @@ export const CertificateContentFields = (props: CertificateContentFieldsProps) =
         value={props.dateLine}
         maxLength={200}
         onChange={event => props.setDateLine(event.target.value)}
-        placeholder="Mường La, ngày 15 tháng 7 năm 2026"
+        placeholder="Tô Hiệu, ngày 15 tháng 7 năm 2026"
         className="w-full border border-amber-200 bg-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
       />
     </div>
