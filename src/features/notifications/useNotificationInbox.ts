@@ -24,7 +24,7 @@ export interface NotificationInboxState {
 }
 
 const messageFromError = (error: unknown): string => (
-  error instanceof Error ? error.message : 'Kh?ng th? t?i th?ng b?o.'
+  error instanceof Error ? error.message : 'Không thể tải thông báo.'
 );
 
 export function useNotificationInbox(enabled = true) {

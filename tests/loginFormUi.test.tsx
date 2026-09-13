@@ -2,6 +2,18 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import LoginForm from '../src/components/HomePage/components/LoginForm';
+import type { Announcement } from '../src/services/announcementService';
+
+const loginAnnouncement: Announcement = {
+  id: 'login-notice',
+  content: 'Hệ thống có thể phản hồi chậm trong giờ cao điểm.',
+  bannerTitle: 'Lưu ý khi đăng nhập',
+  isActive: true,
+  updatedAt: '2026-07-24T00:00:00.000Z',
+  priority: 'IMPORTANT',
+  channels: ['TICKER'],
+  dismissible: true,
+};
 
 const renderLoginForm = (overrides: Partial<React.ComponentProps<typeof LoginForm>> = {}) => {
   const props: React.ComponentProps<typeof LoginForm> = {
@@ -55,6 +67,27 @@ describe('landing login form UI', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Ghi nhớ đăng nhập' }));
     expect(setRememberLogin).toHaveBeenCalledWith(true);
+  });
+
+  it('renders one login notice after the role switcher without a ticker animation', () => {
+    renderLoginForm({ loginNotification: loginAnnouncement });
+
+    const roleSwitcher = screen.getByRole('group', { name: 'Chọn vai trò đăng nhập' });
+    const notices = screen.getByLabelText('Thông báo đăng nhập');
+    const form = screen.getByRole('form', { name: 'Đăng nhập' });
+
+    expect(roleSwitcher.compareDocumentPosition(notices) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notices.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Lưu ý khi đăng nhập' })).toBeInTheDocument();
+    expect(screen.queryByTestId('notification-ticker-track')).not.toBeInTheDocument();
+  });
+
+  it('gives ticker fallback notices a clear login title', () => {
+    renderLoginForm({
+      loginNotification: { ...loginAnnouncement, bannerTitle: undefined },
+    });
+
+    expect(screen.getByRole('region', { name: 'Thông báo đăng nhập' })).toBeInTheDocument();
   });
 
   it('exposes inline field and form errors to assistive technology', () => {

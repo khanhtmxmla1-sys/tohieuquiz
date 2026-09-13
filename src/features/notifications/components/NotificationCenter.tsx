@@ -101,7 +101,7 @@ export function NotificationCenter({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            aria-label="C?i ??t th?ng b?o"
+            aria-label="Cài đặt thông báo"
             aria-pressed={preferencesOpen}
             className="rounded-full p-2 text-slate-600 hover:bg-slate-100"
             onClick={() => setPreferencesOpen((current) => !current)}

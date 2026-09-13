@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -40,11 +40,28 @@ vi.mock('../src/components/HomePage/components/HeroSection', () => ({
   default: () => <div>Học vui mỗi ngày</div>,
 }));
 vi.mock('../src/components/HomePage/components/LoginForm', () => ({
-  default: ({ activeTab }: { activeTab: 'student' | 'teacher' }) => (
-    <form aria-label="Đăng nhập">
-      <span data-testid="login-role">{activeTab}</span>
-      <button type="submit">Đăng nhập</button>
-    </form>
+  default: ({
+    activeTab,
+    setActiveTab,
+    loginNotification,
+  }: {
+    activeTab: 'student' | 'teacher';
+    setActiveTab: (role: 'student' | 'teacher') => void;
+    loginNotification?: { id: string; content: string } | null;
+  }) => (
+    <section data-testid="login-form-shell">
+      <div data-purpose="role-switcher">
+        <button type="button" onClick={() => setActiveTab('student')}>Học sinh</button>
+        <button type="button" onClick={() => setActiveTab('teacher')}>Giáo viên</button>
+      </div>
+      {loginNotification && (
+        <div data-testid="login-notification">{loginNotification.content}</div>
+      )}
+      <form aria-label="Đăng nhập">
+        <span data-testid="login-role">{activeTab}</span>
+        <button type="submit">Đăng nhập</button>
+      </form>
+    </section>
   ),
 }));
 vi.mock('../src/components/HomePage/components/LandingFooter', () => ({
@@ -60,19 +77,23 @@ describe('login notification integration', () => {
   beforeEach(() => {
     localStorage.clear();
     getAnnouncements.mockReset();
-    getAnnouncements.mockResolvedValue([
+    getAnnouncements.mockImplementation(async (role?: 'student' | 'teacher') => [
       {
-        id: 'ticker-login',
-        content: 'Thông báo chung cho phụ huynh và học sinh',
+        id: `${role || 'all'}-critical-login`,
+        content: role === 'teacher'
+          ? 'Giáo viên: hệ thống đang được bảo trì.'
+          : 'Học sinh: hệ thống đang được bảo trì.',
         isActive: true,
         updatedAt: '2026-07-24T00:00:00.000Z',
-        priority: 'INFO',
-        channels: ['TICKER'],
-        dismissible: true,
+        priority: 'URGENT',
+        channels: ['CRITICAL_STRIP'],
+        dismissible: false,
       },
       {
-        id: 'banner-login',
-        content: 'Vui lòng cập nhật thông tin trước năm học mới',
+        id: `${role || 'all'}-banner-login`,
+        content: role === 'teacher'
+          ? 'Giáo viên: xem hướng dẫn cập nhật dữ liệu.'
+          : 'Học sinh: xem hướng dẫn cập nhật thông tin.',
         bannerTitle: 'Chuẩn bị năm học mới',
         isActive: true,
         updatedAt: '2026-07-24T00:00:01.000Z',
@@ -93,24 +114,36 @@ describe('login notification integration', () => {
     });
   });
 
-  it('renders public ticker and in-flow banner before the login form', async () => {
+  it('renders critical alert below the header and a static role-specific notice inside the login form', async () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <LoginLandingPage />
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('region', { name: 'Thông báo chung' }))
-      .toBeInTheDocument();
-    const banner = screen.getByRole('region', { name: 'Chuẩn bị năm học mới' });
-    expect(banner).not.toHaveClass('fixed');
-    expect(getAnnouncements).toHaveBeenCalledWith(undefined);
+    const critical = await screen.findByRole('region', { name: 'Cảnh báo hệ thống' });
+    expect(critical).toBeInTheDocument();
+    expect(screen.queryByTestId('notification-ticker-track')).not.toBeInTheDocument();
+    expect(screen.getByTestId('login-notification')).toHaveTextContent(
+      'Học sinh: xem hướng dẫn cập nhật thông tin.',
+    );
+    expect(getAnnouncements).toHaveBeenCalledWith('student');
 
     const form = screen.getByRole('form', { name: 'Đăng nhập' });
+    const roleSwitcher = screen.getByTestId('login-form-shell').querySelector('[data-purpose="role-switcher"]');
+    const notice = screen.getByTestId('login-notification');
+    expect(roleSwitcher?.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notice.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Giáo viên' }));
     await waitFor(() => {
-      expect(
-        banner.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
+      expect(getAnnouncements).toHaveBeenLastCalledWith('teacher');
+      expect(screen.getByTestId('login-notification')).toHaveTextContent(
+        'Giáo viên: xem hướng dẫn cập nhật dữ liệu.',
+      );
+      expect(screen.getByRole('region', { name: 'Cảnh báo hệ thống' })).toHaveTextContent(
+        'Giáo viên: hệ thống đang được bảo trì.',
+      );
     });
   });
 

@@ -152,4 +152,12 @@ describe('useNotificationInbox', () => {
     expect(result.current.unreadCount).toBe(2);
     expect(result.current.items.every((notification) => !notification.isRead)).toBe(true);
   });
+
+  it('uses a readable Vietnamese fallback when an unknown error is returned', async () => {
+    service.fetchNotificationInbox.mockRejectedValue({ reason: 'offline' });
+    const { result } = renderHook(() => useNotificationInbox());
+    await flushRequests();
+
+    expect(result.current.error).toBe('Không thể tải thông báo.');
+  });
 });

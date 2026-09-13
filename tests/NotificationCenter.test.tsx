@@ -105,4 +105,12 @@ describe('NotificationCenter', () => {
     expect(screen.getByRole('dialog', { name: 'Thông báo' }))
       .toHaveAttribute('data-variant', 'bottom-sheet');
   });
+
+  it('uses readable Vietnamese labels in the inbox controls and severity chips', () => {
+    render(<NotificationCenter />);
+    fireEvent.click(screen.getByRole('button', { name: 'Thông báo, 1 chưa đọc' }));
+
+    expect(screen.getByRole('button', { name: 'Cài đặt thông báo' })).toBeInTheDocument();
+    expect(screen.getAllByText('Thông tin')).toHaveLength(2);
+  });
 });
