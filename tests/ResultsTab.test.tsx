@@ -169,6 +169,16 @@ const click = async (element: HTMLElement) => {
   });
 };
 
+const readBlobArrayBuffer = async (blob: Blob): Promise<ArrayBuffer> => {
+  if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+};
+
 const results = [
   makeResult('1', 'An', '3A', 'quiz-1', '2026-07-19T07:00:00.000Z'),
   makeResult('2', 'Bình', '3A', 'quiz-2', '2026-07-19T06:00:00.000Z'),
@@ -372,8 +382,41 @@ describe('TeacherDashboard ResultsTab contracts', () => {
     expect(downloads).toContain('bao-cao-tong-hop-2026-07-19.txt');
   });
 
-  it('exports the latest scores as xlsx from the filtered results menu item', async () => {
-    renderResults(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
+  it('exports latest filtered scores with bulk answer overrides', async () => {
+    const latestResults = [
+      {
+        ...results[0],
+        id: 'old',
+        studentId: 'student-1',
+        score: 8,
+        totalQuestions: 2,
+        submittedAt: '2026-07-19T07:00:00.000Z',
+      },
+      {
+        ...results[0],
+        id: 'new',
+        studentId: 'student-1',
+        score: 8,
+        totalQuestions: 2,
+        submittedAt: '2026-07-19T08:00:00.000Z',
+      },
+      {
+        ...results[1],
+        id: 'other-student',
+        studentId: 'student-2',
+        score: 7,
+        submittedAt: '2026-07-19T06:00:00.000Z',
+      },
+    ];
+    mocks.fetchResultAnswersBulk.mockResolvedValue({
+      new: {
+        questionA: { selectedAnswer: 'ok', questionSnapshot: { type: 'multiple-choice' } },
+        questionB: { selectedAnswer: 'wrong', questionSnapshot: { type: 'multiple-choice' } },
+      },
+      'other-student': {},
+    });
+
+    renderResults(<ResultsTab results={latestResults as any} quizzes={quizzes} />);
 
     await click(screen.getByRole('button', { name: /Xuất/ }));
     expect(screen.getByRole('button', { name: 'Xuất Excel điểm mới nhất' })).toBeInTheDocument();
@@ -386,6 +429,15 @@ describe('TeacherDashboard ResultsTab contracts', () => {
         expect.stringMatching(/^diem-moi-nhat-\d{4}-\d{2}-\d{2}\.xlsx$/),
       );
     });
+    expect(mocks.fetchResultAnswersBulk).toHaveBeenCalledWith(['new', 'other-student']);
+    expect(mocks.fetchResultAnswersBulk).toHaveBeenCalledTimes(1);
+    const [blob] = mocks.saveAs.mock.calls[0] as [Blob, string];
+    const { readSheet } = await import('read-excel-file/browser');
+    await expect(readSheet(await readBlobArrayBuffer(blob))).resolves.toEqual([
+      ['STT', 'Họ và tên', 'Bài kiểm tra', 'Điểm', 'Thời gian làm'],
+      [1, 'An', 'Phân số', 5, '12 phút'],
+      [2, 'Bình', 'Hình học', 7, '12 phút'],
+    ]);
     expect(screen.queryByRole('button', { name: 'Xuất Excel điểm mới nhất' })).not.toBeInTheDocument();
   });
 
@@ -393,6 +445,7 @@ describe('TeacherDashboard ResultsTab contracts', () => {
     mocks.saveAs.mockImplementation(() => {
       throw new Error('Không thể lưu tệp.');
     });
+    mocks.fetchResultAnswersBulk.mockResolvedValue({});
     renderResults(<ResultsTab results={results.slice(0, 1)} quizzes={quizzes} />);
 
     await click(screen.getByRole('button', { name: /Xuất/ }));
