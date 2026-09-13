@@ -11,6 +11,21 @@ const systemSettings = {
 const announcements = {
   status: 'success',
   data: { items: [{
+    id: 'critical-rollout',
+    content: 'Hệ thống đang được theo dõi để bảo đảm trải nghiệm đăng nhập ổn định.',
+    isActive: false,
+    isBannerActive: false,
+    status: 'PUBLISHED',
+    effectiveStatus: 'PUBLISHED',
+    audience: 'ALL',
+    priority: 'URGENT',
+    channels: ['CRITICAL_STRIP'],
+    dismissible: false,
+    startsAt: null,
+    endsAt: null,
+    updatedAt: '2026-07-24T00:00:02.000Z',
+    surfaceOverrides: {},
+  }, {
     id: 'ticker-rollout',
     content: 'Lịch kiểm tra học kỳ đã được cập nhật; giáo viên, học sinh và phụ huynh vui lòng xem lịch mới trước khi đến trường vào sáng thứ Hai tuần tới.',
     isActive: true,
@@ -49,7 +64,9 @@ const announcements = {
 
 const installPublicNotificationApi = () => {
   cy.intercept('GET', '**/api/system-settings*', systemSettings);
-  cy.intercept('GET', '**/api/announcements*', announcements);
+  cy.intercept('GET', '**/api/announcements/current*', announcements);
+  cy.intercept('GET', '**/api/announcements?loginRole=*', announcements);
+  cy.intercept('GET', '**/api/announcements', announcements);
 };
 
 const assertNoHorizontalOverflow = () => {
@@ -64,18 +81,37 @@ describe('Unified notification responsive rollout', () => {
     { width: 1440, height: 900, label: 'login desktop' },
     { width: 390, height: 844, label: 'student mobile width' },
   ].forEach(({ width, height, label }) => {
-    it(`keeps the ${label} form usable with ticker and banner`, () => {
+    it(`keeps the ${label} form usable with a static login notice`, () => {
       cy.viewport(width, height);
       installPublicNotificationApi();
       cy.visit('/');
 
-      cy.get('[data-notification-surface="LOGIN"]').should('be.visible');
-      cy.get('[role="region"][aria-label="Thông báo chung"]').should('be.visible');
-      cy.get('[role="region"][aria-label="Thông báo năm học"]').should('be.visible');
-      cy.get('[role="region"][aria-label="Thông báo chung"]')
-        .focus()
+      cy.get('[role="group"][aria-label="Chọn vai trò đăng nhập"]')
+        .should('be.visible')
+        .within(() => {
+          cy.contains('button', 'Học sinh').should('have.attr', 'aria-pressed', 'true');
+          cy.contains('button', 'Giáo viên').should('be.visible');
+        });
+      cy.get('header').first().then(($header) => {
+        cy.get('section[aria-label="Cảnh báo hệ thống"]')
+          .should('be.visible')
+          .then(($critical) => {
+            expect($header[0].compareDocumentPosition($critical[0]) & Node.DOCUMENT_POSITION_FOLLOWING)
+              .to.be.greaterThan(0);
+          });
+      });
+      cy.get('[data-purpose="login-notifications"]')
+        .should('be.visible')
+        .and('have.length', 1)
         .find('[data-testid="notification-ticker-track"]')
-        .should('have.class', 'notification-ticker__track--paused');
+        .should('not.exist');
+      cy.get('[role="region"][aria-label="Thông báo năm học"]').should('be.visible');
+      cy.get('[data-purpose="role-switcher"]').then(($switcher) => {
+        cy.get('[data-purpose="login-notifications"]').then(($notice) => {
+          expect($switcher[0].compareDocumentPosition($notice[0]) & Node.DOCUMENT_POSITION_FOLLOWING)
+            .to.be.greaterThan(0);
+        });
+      });
       cy.get('form').filter(':visible').first().scrollIntoView().should('be.visible').then(($form) => {
         const rect = $form[0].getBoundingClientRect();
         expect(rect.top, 'form top within viewport tolerance').to.be.gte(-1);

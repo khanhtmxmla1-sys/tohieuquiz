@@ -5,7 +5,8 @@ import { useClassroomStore } from '../../stores/useClassroomStore';
 import { showError } from '../../utils/toast';
 import PasswordChangeDialog from '../common/PasswordChangeDialog';
 import CurrentAnnouncementBanner from '../common/CurrentAnnouncementBanner';
-import { NotificationSurfaceStack } from '../../features/notifications/components';
+import { CriticalAlertStrip } from '../../features/notifications/components';
+import { useLoginNotificationSurfaces } from '../../features/notifications/useLoginNotificationSurfaces';
 import { useUnifiedNotificationsFeatureFlag } from '../../features/notifications/useUnifiedNotificationsFeatureFlag';
 import { authenticateTeacherWithPasskey, passkeysSupported } from '../../services/passkeyService';
 
@@ -101,6 +102,7 @@ const LoginLandingPage: React.FC = () => {
     const authStore = useAuthStore();
     const classroomStore = useClassroomStore();
     const notificationFlag = useUnifiedNotificationsFeatureFlag();
+    const loginNotificationSurfaces = useLoginNotificationSurfaces(activeTab, notificationFlag.enabled);
     const { username, password, rememberLogin } = drafts[activeTab];
 
     useEffect(() => {
@@ -296,7 +298,12 @@ const LoginLandingPage: React.FC = () => {
             <LandingHeader />
             {notificationFlag.ready && (
                 notificationFlag.enabled
-                    ? <NotificationSurfaceStack surface="LOGIN" />
+                    ? loginNotificationSurfaces.critical && (
+                        <CriticalAlertStrip
+                            announcement={loginNotificationSurfaces.critical}
+                            surface="LOGIN"
+                        />
+                    )
                     : <CurrentAnnouncementBanner role={activeTab} />
             )}
 
@@ -324,6 +331,7 @@ const LoginLandingPage: React.FC = () => {
                         onPasskey={() => void handlePasskeyLogin()}
                         isPasskeyLoading={isPasskeyLoading}
                         passkeyAvailable={passkeysSupported()}
+                        loginNotification={notificationFlag.enabled ? loginNotificationSurfaces.notice : null}
                         usernameError={usernameError}
                         passwordError={passwordError}
                         formError={formError}

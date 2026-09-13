@@ -6,6 +6,18 @@ export const systemRoutes: RouteRegistry = {
         auth: 'public',
         path: () => '/api/announcements',
     },
+    get_login_announcements: {
+        method: 'GET',
+        auth: 'public',
+        path: () => '/api/announcements',
+        query: ({ loginRole }) => {
+            const params = new URLSearchParams();
+            if (loginRole === 'teacher' || loginRole === 'student') {
+                params.set('loginRole', loginRole);
+            }
+            return params;
+        },
+    },
     get_teacher_announcement: {
         method: 'GET', auth: 'session', path: () => '/api/announcements/current',
     },

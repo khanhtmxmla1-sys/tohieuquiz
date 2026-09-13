@@ -8,6 +8,8 @@ import {
     Lock,
     UserRound,
 } from 'lucide-react';
+import type { Announcement } from '../../../services/announcementService';
+import { InFlowAnnouncementBanner } from '../../../features/notifications/components';
 
 interface LoginFormProps {
     activeTab: 'student' | 'teacher';
@@ -23,6 +25,7 @@ interface LoginFormProps {
     onPasskey?: () => void;
     isPasskeyLoading?: boolean;
     passkeyAvailable?: boolean;
+    loginNotification?: Announcement | null;
     usernameError?: string | null;
     passwordError?: string | null;
     formError?: string | null;
@@ -42,6 +45,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
     onPasskey,
     isPasskeyLoading = false,
     passkeyAvailable = false,
+    loginNotification = null,
     usernameError = null,
     passwordError = null,
     formError = null,
@@ -96,6 +100,22 @@ const LoginForm: React.FC<LoginFormProps> = ({
                             Giáo viên
                         </button>
                     </div>
+
+                    {loginNotification && (
+                        <div
+                            data-purpose="login-notifications"
+                            className="-mt-1 mb-5 space-y-1 sm:mb-6"
+                            aria-label="Thông báo đăng nhập"
+                        >
+                            <InFlowAnnouncementBanner
+                                key={`${loginNotification.id}-${loginNotification.updatedAt}`}
+                                announcement={loginNotification.bannerTitle
+                                    ? loginNotification
+                                    : { ...loginNotification, bannerTitle: 'Thông báo đăng nhập' }}
+                                surface="LOGIN"
+                            />
+                        </div>
+                    )}
 
                     <form onSubmit={onSubmit} aria-label="Đăng nhập" noValidate>
                         <div className="mb-4">

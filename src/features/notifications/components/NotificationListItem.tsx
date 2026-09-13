@@ -8,9 +8,9 @@ interface NotificationListItemProps {
 }
 
 const severityLabel = {
-  critical: 'Kh?n c?p',
-  action_required: 'C?n h?nh ??ng',
-  informational: 'Th?ng tin',
+  critical: 'Khẩn cấp',
+  action_required: 'Cần hành động',
+  informational: 'Thông tin',
 } as const;
 
 export function NotificationListItem({
