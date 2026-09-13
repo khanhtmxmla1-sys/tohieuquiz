@@ -217,12 +217,22 @@ async function audienceForRequest(request: Request, env: Env): Promise<Announcem
     return 'ALL';
 }
 
+function loginAudienceForRequest(request: Request, path: string): AnnouncementAudience | null {
+    if (path !== '/api/announcements') return null;
+    const values = new URL(request.url).searchParams.getAll('loginRole');
+    if (values.length !== 1) return null;
+    if (values[0] === 'teacher') return 'TEACHERS';
+    if (values[0] === 'student') return 'STUDENTS';
+    return null;
+}
+
 export async function handleAnnouncementRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
     const db = env.DB;
     const publicPath = path === '/api/announcements' || path === '/api/announcements/current';
 
     if (publicPath && method === 'GET') {
-        const audience = await audienceForRequest(request, env);
+        const audience = loginAudienceForRequest(request, path)
+            || await audienceForRequest(request, env);
         const now = new Date().toISOString();
         const audienceSql = audience === 'ALL' ? "audience = 'ALL'" : 'audience IN (\'ALL\', ?)';
         const statement = db.prepare(`

@@ -107,6 +107,24 @@ export const getAnnouncements = async (
     }
 };
 
+export const getLoginAnnouncements = async (
+    role: 'teacher' | 'student',
+): Promise<Announcement[]> => {
+    try {
+        const data = await callApi<any>('get_login_announcements', { loginRole: role });
+        const items = Array.isArray(data?.data?.items)
+            ? data.data.items
+            : data?.announcement
+                ? [data.announcement]
+                : data?.content !== undefined
+                    ? [data]
+                    : [];
+        return items.map(mapAnnouncement);
+    } catch {
+        return [];
+    }
+};
+
 export const getAnnouncement = async (
     role?: 'teacher' | 'student',
 ): Promise<Announcement | null> => (await getAnnouncements(role))[0] || null;

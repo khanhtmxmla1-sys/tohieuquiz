@@ -65,6 +65,7 @@ const announcements = {
 const installPublicNotificationApi = () => {
   cy.intercept('GET', '**/api/system-settings*', systemSettings);
   cy.intercept('GET', '**/api/announcements/current*', announcements);
+  cy.intercept('GET', '**/api/announcements?loginRole=*', announcements);
   cy.intercept('GET', '**/api/announcements', announcements);
 };
 

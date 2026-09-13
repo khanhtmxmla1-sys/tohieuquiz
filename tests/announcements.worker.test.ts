@@ -141,6 +141,54 @@ describe('system announcement delivery', () => {
 
   it.each([
     ['teacher', 'TEACHERS'],
+    ['student', 'STUDENTS'],
+  ] as const)('scopes anonymous login announcements for %s to %s', async (loginRole, audience) => {
+    const db = new FakeDatabase([announcement(loginRole)]);
+
+    const response = await handleAnnouncementRoutes(
+      request(`/api/announcements?loginRole=${loginRole}`),
+      env(db),
+      '/api/announcements',
+      'GET',
+    );
+
+    expect(response.status).toBe(200);
+    expect(db.statements[0].sql).toContain("audience IN ('ALL', ?)");
+    expect(db.statements[0].bindings.at(-1)).toBe(audience);
+  });
+
+  it.each(['admin', 'Teacher', 'parent'])('falls back safely for an unsupported loginRole: %s', async (loginRole) => {
+    const db = new FakeDatabase([announcement('unsupported')]);
+
+    const response = await handleAnnouncementRoutes(
+      request(`/api/announcements?loginRole=${loginRole}`),
+      env(db),
+      '/api/announcements',
+      'GET',
+    );
+
+    expect(response.status).toBe(200);
+    expect(db.statements[0].sql).toContain("audience = 'ALL'");
+    expect(db.statements[0].bindings).toEqual([expect.any(String), expect.any(String)]);
+  });
+
+  it('ignores loginRole on the session-aware current endpoint', async () => {
+    currentUser = { id: 'teacher-1', username: 'teacher-1', role: 'teacher' };
+    const db = new FakeDatabase([announcement('current')]);
+
+    await handleAnnouncementRoutes(
+      request('/api/announcements/current?loginRole=student', {}, true),
+      env(db),
+      '/api/announcements/current',
+      'GET',
+    );
+
+    expect(db.statements[0].sql).toContain("audience IN ('ALL', ?)");
+    expect(db.statements[0].bindings.at(-1)).toBe('TEACHERS');
+  });
+
+  it.each([
+    ['teacher', 'TEACHERS'],
     ['admin', 'TEACHERS'],
     ['student', 'STUDENTS'],
   ] as const)('scopes %s delivery to ALL plus %s', async (role, audience) => {

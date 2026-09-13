@@ -3,11 +3,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const getAnnouncements = vi.hoisted(() => vi.fn());
+const getLoginAnnouncements = vi.hoisted(() => vi.fn());
 
 vi.mock('../src/services/announcementService', async () => {
   const actual = await vi.importActual('../src/services/announcementService');
-  return { ...actual, getAnnouncements };
+  return { ...actual, getLoginAnnouncements };
 });
 vi.mock('../src/services/systemSettingsService', () => ({
   getSystemSettings: vi.fn(async () => ({
@@ -76,8 +76,8 @@ import LoginLandingPage from '../src/components/HomePage/LoginLandingPage';
 describe('login notification integration', () => {
   beforeEach(() => {
     localStorage.clear();
-    getAnnouncements.mockReset();
-    getAnnouncements.mockImplementation(async (role?: 'student' | 'teacher') => [
+    getLoginAnnouncements.mockReset();
+    getLoginAnnouncements.mockImplementation(async (role?: 'student' | 'teacher') => [
       {
         id: `${role || 'all'}-critical-login`,
         content: role === 'teacher'
@@ -127,7 +127,7 @@ describe('login notification integration', () => {
     expect(screen.getByTestId('login-notification')).toHaveTextContent(
       'Học sinh: xem hướng dẫn cập nhật thông tin.',
     );
-    expect(getAnnouncements).toHaveBeenCalledWith('student');
+    expect(getLoginAnnouncements).toHaveBeenCalledWith('student');
 
     const form = screen.getByRole('form', { name: 'Đăng nhập' });
     const roleSwitcher = screen.getByTestId('login-form-shell').querySelector('[data-purpose="role-switcher"]');
@@ -137,7 +137,7 @@ describe('login notification integration', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Giáo viên' }));
     await waitFor(() => {
-      expect(getAnnouncements).toHaveBeenLastCalledWith('teacher');
+      expect(getLoginAnnouncements).toHaveBeenLastCalledWith('teacher');
       expect(screen.getByTestId('login-notification')).toHaveTextContent(
         'Giáo viên: xem hướng dẫn cập nhật dữ liệu.',
       );

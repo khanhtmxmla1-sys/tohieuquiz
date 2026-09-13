@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Announcement } from '../../services/announcementService';
-import { getAnnouncements } from '../../services/announcementService';
+import { getLoginAnnouncements } from '../../services/announcementService';
 import { selectAnnouncementSurfaces } from './selectAnnouncements';
 
 export type LoginNotificationRole = 'student' | 'teacher';
@@ -37,7 +37,7 @@ export function useLoginNotificationSurfaces(
     }
 
     setSurfaces(EMPTY_SURFACES);
-    void getAnnouncements(role)
+    void getLoginAnnouncements(role)
       .then((items) => {
         if (!active) return;
         const selected = selectAnnouncementSurfaces(items, 'LOGIN');

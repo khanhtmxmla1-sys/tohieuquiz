@@ -165,6 +165,14 @@ describe('resolveApiRoute', () => {
         expect(r.auth).toBe('public');
     });
 
+    it('resolves role-bound login announcements through the public endpoint', () => {
+        const r = resolveApiRoute('get_login_announcements');
+        expect(r).toMatchObject({ method: 'GET', auth: 'public' });
+        expect(r.path({})).toBe('/api/announcements');
+        expect(r.query?.({ loginRole: 'teacher' }).toString()).toBe('loginRole=teacher');
+        expect(r.query?.({ loginRole: 'admin' }).toString()).toBe('');
+    });
+
     it('resolves the admin-only bulk teacher password reset route', () => {
         const r = resolveApiRoute('reset_all_teacher_passwords');
         expect(r.method).toBe('POST');

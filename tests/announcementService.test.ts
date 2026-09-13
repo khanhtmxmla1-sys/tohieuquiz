@@ -7,6 +7,7 @@ vi.mock('../src/services/apiAdapter', () => ({ callApi }));
 import {
   getAnnouncement,
   getAnnouncements,
+  getLoginAnnouncements,
 } from '../src/services/announcementService';
 
 describe('announcement service compatibility adapter', () => {
@@ -58,5 +59,26 @@ describe('announcement service compatibility adapter', () => {
       id: 'legacy-1',
       channels: ['TICKER'],
     });
+  });
+
+  it('uses a public role-bound action for anonymous login announcements', async () => {
+    callApi.mockResolvedValue({
+      status: 'success',
+      data: {
+        items: [{
+          id: 'student-login-notice',
+          content: 'Thông báo dành cho học sinh',
+          updatedAt: '2026-07-24T00:00:00.000Z',
+          priority: 'IMPORTANT',
+          channels: ['BANNER'],
+          dismissible: true,
+        }],
+      },
+    });
+
+    await expect(getLoginAnnouncements('student')).resolves.toEqual([
+      expect.objectContaining({ id: 'student-login-notice' }),
+    ]);
+    expect(callApi).toHaveBeenCalledWith('get_login_announcements', { loginRole: 'student' });
   });
 });
