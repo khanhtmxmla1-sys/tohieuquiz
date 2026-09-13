@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { BarChart, ChevronDown, ClipboardList, Download, FileText, RefreshCw } from 'lucide-react';
+import {
+  BarChart,
+  ChevronDown,
+  ClipboardList,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  RefreshCw,
+} from 'lucide-react';
 import { Button } from '../../common';
 
 interface ResultsActionsProps {
@@ -10,8 +18,11 @@ interface ResultsActionsProps {
   phieuDisabled: boolean;
   onExportCsv: () => void;
   onExportSummary: () => void;
+  onExportLatestScores: () => Promise<void>;
   serverActionsDisabled?: boolean;
 }
+
+type Exporter = () => void | Promise<void>;
 
 export const ResultsActions = ({
   isMobile,
@@ -21,12 +32,18 @@ export const ResultsActions = ({
   phieuDisabled,
   onExportCsv,
   onExportSummary,
+  onExportLatestScores,
   serverActionsDisabled = false,
 }: ResultsActionsProps) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const runExport = (exporter: () => void) => {
-    exporter();
+  const runExport = (exporter: Exporter) => {
     setShowExportMenu(false);
+    try {
+      const result = exporter();
+      if (result) void result.catch(() => undefined);
+    } catch {
+      // Keep the menu click from surfacing a synchronous exporter exception.
+    }
   };
 
   return (
@@ -67,6 +84,12 @@ export const ResultsActions = ({
           <>
             <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
             <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl border shadow-lg z-50">
+              <button
+                onClick={() => runExport(onExportLatestScores)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 first:rounded-t-xl"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-blue-600" /> Xuất Excel điểm mới nhất
+              </button>
               <button
                 onClick={() => runExport(onExportCsv)}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 first:rounded-t-xl"

@@ -10,8 +10,12 @@ import {
     type QuizLoadOptions,
 } from '../src/domain/quiz/quizLoadPolicy';
 import { logger } from '../src/services/logger';
+import { MAX_COLLECTION_LIMIT } from '../shared/pagination.contract';
 
 let activeQuizLoad: Promise<void> | null = null;
+const MAX_RESULT_PAGE_REQUESTS = 1000;
+const INVALID_RESULTS_PAGINATION_ERROR = 'Dữ liệu phân trang kết quả học tập không hợp lệ.';
+const RESULTS_PAGINATION_LIMIT_ERROR = 'Dữ liệu kết quả học tập vượt quá giới hạn phân trang.';
 
 type ViewType = 'home' | 'student' | 'teacher_login' | 'teacher_dash' | 'student_portal' | 'shop';
 
@@ -475,13 +479,54 @@ export const useQuizStore = create<QuizState>()(
             loadResults: async () => {
                 try {
                     set({ error: null });
-                    const data = await callApi<any>('get_results');
+                    const rawResults: any[] = [];
+                    let cursor: string | undefined;
+                    const seenCursors = new Set<string>();
+                    let paginationComplete = false;
 
-                    // Handle both legacy array format and new object format { data: [], meta: {} }
-                    const rawResults = Array.isArray(data) ? data : data?.data;
+                    for (let page = 0; page < MAX_RESULT_PAGE_REQUESTS; page += 1) {
+                        if (cursor !== undefined) {
+                            if (seenCursors.has(cursor)) break;
+                            seenCursors.add(cursor);
+                        }
 
-                    if (!Array.isArray(rawResults)) {
-                        throw new Error('Dữ liệu kết quả học tập không hợp lệ.');
+                        const data = await callApi<any>('get_results', {
+                            limit: MAX_COLLECTION_LIMIT,
+                            ...(cursor !== undefined ? { cursor } : {}),
+                        });
+
+                        // Handle both legacy array format and new object format { data: [], meta: {} }
+                        if (Array.isArray(data)) {
+                            rawResults.push(...data);
+                            paginationComplete = true;
+                            break;
+                        }
+
+                        if (!Array.isArray(data?.data)) {
+                            throw new Error('Dữ liệu kết quả học tập không hợp lệ.');
+                        }
+                        rawResults.push(...data.data);
+
+                        const hasMore = data.meta?.hasMore;
+                        if (typeof hasMore !== 'boolean') {
+                            throw new Error(INVALID_RESULTS_PAGINATION_ERROR);
+                        }
+                        if (!hasMore) {
+                            paginationComplete = true;
+                            break;
+                        }
+
+                        const nextCursor = data.meta?.nextCursor;
+                        if (typeof nextCursor !== 'string' || !nextCursor.trim()) {
+                            throw new Error(INVALID_RESULTS_PAGINATION_ERROR);
+                        }
+                        if (seenCursors.has(nextCursor)) {
+                            throw new Error(INVALID_RESULTS_PAGINATION_ERROR);
+                        }
+                        cursor = nextCursor;
+                    }
+                    if (!paginationComplete) {
+                        throw new Error(RESULTS_PAGINATION_LIMIT_ERROR);
                     }
                     const results: StudentResult[] = rawResults
                         .map(mapResultRow)

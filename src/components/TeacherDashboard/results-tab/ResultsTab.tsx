@@ -24,7 +24,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) 
     filters.dateRange,
   );
   const phieu = usePhieuResult();
-  const actions = useResultsTabActions(filters.filteredResults, filters.statistics);
+  const actions = useResultsTabActions(filters.filteredResults, filters.statistics, quizzes);
   const selectedQuiz = quizzes.find((quiz) => quiz.id === filters.activeQuizId);
   const canCreateClassReports = filters.activeQuizId !== 'all'
     && filters.resultsHook.filterClass !== 'All'
@@ -72,6 +72,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ results, quizzes, onRefresh }) 
           phieuDisabled={!canCreateClassReports}
           onExportCsv={actions.exportCsv}
           onExportSummary={actions.exportSummary}
+          onExportLatestScores={actions.exportLatestScores}
           serverActionsDisabled={!filters.resultsHook.isOnline}
         />
         <AsyncState
