@@ -75,7 +75,13 @@ export async function processBatch(
         };
       }
       if (field.key === 'date' && dateLine !== null) {
-        return { ...field, prefix: '', format: undefined };
+        return {
+          ...field,
+          fontSize: (field.fontSize ?? 32) + 1,
+          fontStyle: 'italic' as const,
+          prefix: '',
+          format: undefined,
+        };
       }
       return field;
     });

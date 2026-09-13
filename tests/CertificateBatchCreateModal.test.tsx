@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BatchCreateModal from '../src/features/certificates/BatchCreateModal';
 import BatchCreateModalModule from '../src/features/certificates/certificate-batch-modal';
+import { getSystemDateParts } from '../src/utils/dateTime';
 
 const mocks = vi.hoisted(() => ({
   fetchTemplateOptions: vi.fn(),
@@ -131,6 +132,15 @@ describe('Certificate BatchCreateModal contracts', () => {
     );
   });
 
+  it('uses Tô Hiệu in the default date line and placeholder while retaining system date parts', async () => {
+    renderModal();
+    await waitForInitialLoad();
+
+    const dateInput = screen.getByPlaceholderText('Tô Hiệu, ngày 15 tháng 7 năm 2026');
+    const { day, month, year } = getSystemDateParts();
+    expect(dateInput).toHaveValue(`Tô Hiệu, ngày ${day} tháng ${month} năm ${year}`);
+  });
+
   it('toggles only the students visible in the current search', async () => {
     renderModal();
     await waitForInitialLoad();
@@ -153,8 +163,8 @@ describe('Certificate BatchCreateModal contracts', () => {
     fireEvent.change(screen.getByPlaceholderText('Đã hoàn thành xuất sắc'), {
       target: { value: 'Đã tiến bộ vượt bậc' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Mường La, ngày 15 tháng 7 năm 2026'), {
-      target: { value: 'Mường La, ngày 19 tháng 7 năm 2026' },
+    fireEvent.change(screen.getByPlaceholderText('Tô Hiệu, ngày 15 tháng 7 năm 2026'), {
+      target: { value: 'Tô Hiệu, ngày 19 tháng 7 năm 2026' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Xem trước ảnh' }));
 
@@ -166,7 +176,7 @@ describe('Certificate BatchCreateModal contracts', () => {
       student_id: 'student-1',
       student_name_font: 'Playwrite VN',
       achievement_prefix: 'Đã tiến bộ vượt bậc',
-      date_line: 'Mường La, ngày 19 tháng 7 năm 2026',
+      date_line: 'Tô Hiệu, ngày 19 tháng 7 năm 2026',
     });
     expect(screen.getByAltText('Xem trước chứng nhận của An')).toHaveAttribute('src', 'blob:certificate-preview');
 

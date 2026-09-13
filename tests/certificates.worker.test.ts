@@ -254,7 +254,7 @@ describe('certificate worker authorization and integrity', () => {
           fields_config: JSON.stringify([
             { key: 'student_name', x: 635, y: 304, fontSize: 64, fontFamily: 'Great Vibes' },
             { key: 'quiz_title', x: 635, y: 390, fontSize: 28, fontFamily: 'Spectral', fontWeight: 'bold', prefix: 'Mặc định ' },
-            { key: 'date', x: 990, y: 535, fontSize: 22, fontFamily: 'Spectral', fontWeight: 'bold', prefix: 'Mặc định ' },
+            { key: 'date', x: 990, y: 535, fontSize: 22, fontFamily: 'Spectral', fontWeight: 'bold', fontStyle: 'normal', prefix: 'Mặc định ' },
           ]),
         };
       }
@@ -287,7 +287,7 @@ describe('certificate worker authorization and integrity', () => {
         body: JSON.stringify({
           template_id: 'template-1', class_id: 'class-1', student_id: 'student-1', quiz_id: 'quiz-1',
           achievement_prefix: 'Đã tiến bộ vượt bậc',
-          date_line: 'TôHiệuQuiz, ngày 20 tháng 7 năm 2026',
+          date_line: 'Tô Hiệu, ngày 20 tháng 7 năm 2026',
           student_name_font: 'Playwrite VN',
         }),
       },
@@ -298,7 +298,8 @@ describe('certificate worker authorization and integrity', () => {
     expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
     expect(svg).toContain('Lê Văn Tuấn');
     expect(svg).toContain('Đã tiến bộ vượt bậc Ôn tập Toán');
-    expect(svg).toContain('TôHiệuQuiz, ngày 20 tháng 7 năm 2026');
+    expect(svg).toContain('Tô Hiệu, ngày 20 tháng 7 năm 2026');
+    expect(svg).toContain('x="990" y="535" font-family="Spectral" font-size="23" font-weight="700" font-style="italic"');
     expect(svg).toContain('font-family="Playwrite VN"');
     expect(svg).toContain('@font-face');
     expect(db.batches).toHaveLength(0);
