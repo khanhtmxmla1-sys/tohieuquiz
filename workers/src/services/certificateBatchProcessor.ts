@@ -6,7 +6,7 @@ import { renderCertificate } from './certificateRenderer';
 import { createParentNotification } from '../parentPortal/notificationService';
 import { createNotification, createNotifications } from './notificationWriter';
 
-const CERTIFICATE_RENDER_CONCURRENCY = 4;
+const CERTIFICATE_RENDER_CONCURRENCY = 1;
 
 export interface BatchStudent {
   certificate_id: string;
@@ -14,6 +14,119 @@ export interface BatchStudent {
   student_name: string;
   student_score: number | null;
   quiz_title: string | null;
+}
+
+interface SentCertificate {
+  certificate_id: string;
+  student_id: string;
+  sent_at: string | null;
+}
+
+interface CertificateBatchCounts {
+  total_count: number | null;
+  sent_count: number | null;
+  failed_count: number | null;
+}
+
+function certificateOwnerPredicate(): string {
+  return `
+    AND EXISTS (
+      SELECT 1 FROM certificate_batches owner_batch
+      WHERE owner_batch.id = certificates.batch_id
+        AND owner_batch.status = 'processing'
+        AND owner_batch.processing_started_at = ?
+    )`;
+}
+
+export async function finalizeCertificateBatch(
+  env: Env,
+  batchId: string,
+  batchTitle: string,
+  totalCount: number,
+  terminalSentAt: string,
+  finalStatus: 'sent' | 'partial' | 'failed' = 'sent',
+): Promise<void> {
+  const batch = await env.DB.prepare(`
+    SELECT teacher_id, sent_at
+    FROM certificate_batches WHERE id = ?
+  `).bind(batchId).first<{ teacher_id: string; sent_at: string | null }>();
+  const notificationTerminalAt = batch?.sent_at || terminalSentAt;
+  const sentCertificates = await env.DB.prepare(`
+    SELECT id AS certificate_id, student_id, sent_at
+    FROM certificates
+    WHERE batch_id = ? AND status = 'sent'
+    ORDER BY issued_at, id
+  `).bind(batchId).all<SentCertificate>();
+  const sentCount = sentCertificates.results.length;
+
+  try {
+    if (batch?.teacher_id) {
+      await createNotification(env.DB, {
+        userId: batch.teacher_id,
+        userRole: 'teacher',
+        type: 'certificate_batch_completed',
+        priority: finalStatus === 'sent' ? 'INFO' : 'IMPORTANT',
+        title: 'Đợt cấp chứng nhận đã hoàn tất',
+        body: `${batchTitle}: ${sentCount}/${totalCount} chứng nhận được tạo thành công.`,
+        actionUrl: `/teacher/certificates?batch=${encodeURIComponent(batchId)}`,
+        data: {
+          batch_id: batchId,
+          status: finalStatus,
+          success_count: sentCount,
+          total_count: totalCount,
+        },
+        sourceType: 'certificate_batch',
+        sourceId: batchId,
+        createdAt: notificationTerminalAt,
+      });
+    }
+  } catch (error) {
+    console.error('[NotificationWriter] certificate_batch_completed failed', {
+      batchId,
+      error,
+    });
+  }
+
+  try {
+    await createNotifications(env.DB, sentCertificates.results.map((certificate) => ({
+      userId: certificate.student_id,
+      userRole: 'student' as const,
+      type: 'certificate_issued' as const,
+      priority: 'IMPORTANT' as const,
+      title: 'Em có chứng nhận mới! 🎓',
+      body: `Em vừa nhận được chứng nhận: ${batchTitle}`,
+      actionUrl: `/student/achievements?certificate=${encodeURIComponent(certificate.certificate_id)}`,
+      data: {
+        batch_id: batchId,
+        certificate_id: certificate.certificate_id,
+      },
+      sourceType: 'certificate',
+      sourceId: certificate.certificate_id,
+      createdAt: certificate.sent_at || notificationTerminalAt,
+    })));
+  } catch (error) {
+    console.error('[NotificationWriter] certificate_issued failed', {
+      batchId,
+      error,
+    });
+  }
+
+  for (const certificate of sentCertificates.results) {
+    try {
+      await createParentNotification(env.DB, {
+        studentId: certificate.student_id,
+        kind: 'certificate_issued',
+        sourceType: 'certificate',
+        sourceId: certificate.certificate_id,
+        title: 'Con có chứng nhận mới',
+        body: `Đã nhận chứng nhận: ${batchTitle}`,
+        payload: { certificateId: certificate.certificate_id, batchId },
+        publishedAt: certificate.sent_at || notificationTerminalAt,
+      });
+    } catch (error) {
+      console.error(`[CertificateProcessor] parent notification failed certificate=${certificate.certificate_id}`, error);
+    }
+  }
 }
 
 async function runWithConcurrency<T>(
@@ -45,6 +158,7 @@ export async function processBatch(
   achievementPrefix: string | null = null,
   dateLine: string | null = null,
   studentNameFont: CertificateNameFont | null = null,
+  processingStartedAt: string | null = null,
 ): Promise<void> {
   const successfulCertificateIds = new Set<string>();
 
@@ -104,7 +218,11 @@ export async function processBatch(
           },
         });
 
-        const r2Key = `certs/${student.certificate_id}.png`;
+        // Each lease writes its own image; only the current owner can publish
+        // the key in D1, so an expired renderer cannot overwrite a newer image.
+        const r2Key = processingStartedAt === null
+          ? `certs/${student.certificate_id}.png`
+          : `certs/${student.certificate_id}/${encodeURIComponent(processingStartedAt)}.png`;
         await env.CERT_IMAGES.put(r2Key, pngBuffer, {
           httpMetadata: { contentType: 'image/png' },
           customMetadata: { certificateId: student.certificate_id, batchId },
@@ -112,11 +230,12 @@ export async function processBatch(
 
         const now = new Date().toISOString();
         const authenticatedImagePath = `/api/certificates/${student.certificate_id}/image`;
-        await env.DB.prepare(`
+        const certificateUpdate = await env.DB.prepare(`
           UPDATE certificates
           SET image_url = ?, png_r2_key = ?, status = 'sent', sent_at = ?,
               error_message = NULL, updated_at = ?
           WHERE id = ? AND batch_id = ? AND status = 'processing'
+          ${processingStartedAt === null ? '' : certificateOwnerPredicate()}
         `).bind(
           authenticatedImagePath,
           r2Key,
@@ -124,119 +243,70 @@ export async function processBatch(
           now,
           student.certificate_id,
           batchId,
+          ...(processingStartedAt === null ? [] : [processingStartedAt]),
         ).run();
-        successfulCertificateIds.add(student.certificate_id);
+        if (Number(certificateUpdate.meta?.changes ?? 1) > 0) {
+          successfulCertificateIds.add(student.certificate_id);
+        }
       } catch (error) {
         console.error(`[CertificateProcessor] render failed certificate=${student.certificate_id}`, error);
         await env.DB.prepare(`
           UPDATE certificates
           SET status = 'failed', error_message = ?, updated_at = ?
-          WHERE id = ? AND batch_id = ?
+          WHERE id = ? AND batch_id = ? AND status = 'processing'
+          ${processingStartedAt === null ? '' : certificateOwnerPredicate()}
         `).bind(
           error instanceof Error ? error.message : String(error),
           new Date().toISOString(),
           student.certificate_id,
           batchId,
+          ...(processingStartedAt === null ? [] : [processingStartedAt]),
         ).run();
       }
     });
 
-    const successCount = successfulCertificateIds.size;
-    const finalStatus = successCount === students.length
+    const counts = await env.DB.prepare(`
+      SELECT COUNT(*) AS total_count,
+             SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) AS sent_count,
+             SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count
+      FROM certificates WHERE batch_id = ?
+    `).bind(batchId).first<CertificateBatchCounts>();
+    const totalCount = Number(counts?.total_count ?? students.length);
+    const successCount = Number(counts?.sent_count ?? successfulCertificateIds.size);
+    const finalStatus = totalCount > 0 && successCount === totalCount
       ? 'sent'
-      : successCount === 0
-        ? 'failed'
-        : 'partial';
+      : successCount > 0
+        ? 'partial'
+        : 'failed';
     const now = new Date().toISOString();
-    await env.DB.prepare(`
+    const finalization = await env.DB.prepare(`
       UPDATE certificate_batches
-      SET status = ?, sent_at = ?, processing_started_at = NULL,
+      SET status = ?,
+          sent_at = CASE WHEN ? IN ('sent', 'partial') THEN COALESCE(sent_at, ?) ELSE NULL END,
+          processing_started_at = NULL,
           error_message = NULL, updated_at = ?
-      WHERE id = ?
-    `).bind(finalStatus, successCount > 0 ? now : null, now, batchId).run();
-
-    try {
-      const batch = await env.DB.prepare(
-        'SELECT teacher_id FROM certificate_batches WHERE id = ?',
-      ).bind(batchId).first<{ teacher_id: string }>();
-      if (batch?.teacher_id) {
-        await createNotification(env.DB, {
-          userId: batch.teacher_id,
-          userRole: 'teacher',
-          type: 'certificate_batch_completed',
-          priority: finalStatus === 'sent' ? 'INFO' : 'IMPORTANT',
-          title: 'Đợt cấp chứng nhận đã hoàn tất',
-          body: `${batchTitle}: ${successCount}/${students.length} chứng nhận được tạo thành công.`,
-          actionUrl: `/teacher/certificates?batch=${encodeURIComponent(batchId)}`,
-          data: {
-            batch_id: batchId,
-            status: finalStatus,
-            success_count: successCount,
-            total_count: students.length,
-          },
-          sourceType: 'certificate_batch',
-          sourceId: batchId,
-          createdAt: now,
-        });
-      }
-    } catch (error) {
-      console.error('[NotificationWriter] certificate_batch_completed failed', {
-        batchId,
-        error,
-      });
-    }
-
-    try {
-      await createNotifications(env.DB, students
-        .filter((student) => successfulCertificateIds.has(student.certificate_id))
-        .map((student) => ({
-          userId: student.student_id,
-          userRole: 'student' as const,
-          type: 'certificate_issued' as const,
-          priority: 'IMPORTANT' as const,
-          title: 'Em có chứng nhận mới! 🎓',
-          body: `Em vừa nhận được chứng nhận: ${batchTitle}`,
-          actionUrl: `/student/achievements?certificate=${encodeURIComponent(student.certificate_id)}`,
-          data: {
-            batch_id: batchId,
-            certificate_id: student.certificate_id,
-          },
-          sourceType: 'certificate',
-          sourceId: student.certificate_id,
-          createdAt: now,
-        })));
-    } catch (error) {
-      console.error('[NotificationWriter] certificate_issued failed', {
-        batchId,
-        error,
-      });
-    }
-
-    for (const student of students) {
-      if (!successfulCertificateIds.has(student.certificate_id)) continue;
-      try {
-        await createParentNotification(env.DB, {
-          studentId: student.student_id,
-          kind: 'certificate_issued',
-          sourceType: 'certificate',
-          sourceId: student.certificate_id,
-          title: 'Con có chứng nhận mới',
-          body: `Đã nhận chứng nhận: ${batchTitle}`,
-          payload: { certificateId: student.certificate_id, batchId },
-          publishedAt: now,
-        });
-      } catch (error) {
-        console.error(`[CertificateProcessor] parent notification failed certificate=${student.certificate_id}`, error);
-      }
-    }
+      WHERE id = ? AND status = 'processing'
+      ${processingStartedAt === null ? '' : 'AND processing_started_at = ?'}
+    `).bind(
+      finalStatus,
+      finalStatus,
+      now,
+      now,
+      batchId,
+      ...(processingStartedAt === null ? [] : [processingStartedAt]),
+    ).run();
+    if (Number(finalization.meta?.changes ?? 1) === 0) return;
+    await finalizeCertificateBatch(env, batchId, batchTitle, totalCount, now, finalStatus);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    await env.DB.prepare(`
-      UPDATE certificate_batches
-      SET status = 'failed', processing_started_at = NULL,
-          error_message = ?, updated_at = ?
-      WHERE id = ?
-    `).bind(errorMessage, new Date().toISOString(), batchId).run();
+    if (processingStartedAt === null) {
+      await env.DB.prepare(`
+        UPDATE certificate_batches
+        SET status = 'failed', processing_started_at = NULL,
+            error_message = ?, updated_at = ?
+        WHERE id = ? AND status = 'processing'
+      `).bind(errorMessage, new Date().toISOString(), batchId).run();
+    }
     throw error;
   }
 }

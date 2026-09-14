@@ -20,6 +20,7 @@ function resultMeta(result?: StatementResultingChanges) {
     size_after: 0,
     rows_read: 0,
     rows_written: result ? Number(result.changes) : 0,
+    changes: result ? Number(result.changes) : 0,
     last_row_id: result ? Number(result.lastInsertRowid) : 0,
     changed_db: Boolean(result && Number(result.changes) > 0),
   };
