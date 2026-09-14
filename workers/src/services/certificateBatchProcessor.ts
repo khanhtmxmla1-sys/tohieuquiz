@@ -102,7 +102,7 @@ export async function finalizeCertificateBatch(
       },
       sourceType: 'certificate',
       sourceId: certificate.certificate_id,
-      createdAt: certificate.sent_at || notificationTerminalAt,
+      createdAt: notificationTerminalAt,
     })));
   } catch (error) {
     console.error('[NotificationWriter] certificate_issued failed', {
@@ -121,7 +121,7 @@ export async function finalizeCertificateBatch(
         title: 'Con có chứng nhận mới',
         body: `Đã nhận chứng nhận: ${batchTitle}`,
         payload: { certificateId: certificate.certificate_id, batchId },
-        publishedAt: certificate.sent_at || notificationTerminalAt,
+        publishedAt: notificationTerminalAt,
       });
     } catch (error) {
       console.error(`[CertificateProcessor] parent notification failed certificate=${certificate.certificate_id}`, error);

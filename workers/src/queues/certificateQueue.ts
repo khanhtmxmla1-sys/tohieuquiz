@@ -192,7 +192,7 @@ export default {
           const finalizedAt = new Date().toISOString();
           const finalization = await env.DB.prepare(`
             UPDATE certificate_batches
-            SET status = ?, sent_at = CASE WHEN ? = 'sent' THEN COALESCE(sent_at, ?) ELSE sent_at END,
+            SET status = ?, sent_at = CASE WHEN ? IN ('sent', 'partial') THEN COALESCE(sent_at, ?) ELSE sent_at END,
                 processing_started_at = NULL,
                 error_message = CASE WHEN ? = 'failed' THEN 'No pending certificates to process' ELSE NULL END,
                 updated_at = ?

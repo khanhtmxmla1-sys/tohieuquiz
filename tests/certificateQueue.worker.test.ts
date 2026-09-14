@@ -332,6 +332,25 @@ describe('certificate queue delivery semantics', () => {
     }
   });
 
+  it('records terminal sent_at when recovery finalizes a partial batch', async () => {
+    const { db, sqlite } = createSqliteQueueDb({ sentCount: 3, processingCount: 0 });
+    sqlite.exec("UPDATE certificates SET status = 'failed' WHERE id = 'cert-3'");
+    const message = queueMessage(2);
+
+    try {
+      await dispatch(db, message);
+
+      expect(message.ack).toHaveBeenCalledOnce();
+      expect(sqlite.prepare('SELECT status, sent_at FROM certificate_batches WHERE id = ?').get('batch-1'))
+        .toEqual({ status: 'partial', sent_at: '2026-09-14T00:00:00.000Z' });
+      expect(finalizeBatchMock).toHaveBeenCalledWith(
+        expect.anything(), 'batch-1', 'Hoàn thành tốt', 3, '2026-09-14T00:00:00.000Z', 'partial',
+      );
+    } finally {
+      sqlite.close();
+    }
+  });
+
   it('retries a transient processor failure without acknowledging it', async () => {
     const errorSpy = expectConsoleError();
     const db = new QueueDB();

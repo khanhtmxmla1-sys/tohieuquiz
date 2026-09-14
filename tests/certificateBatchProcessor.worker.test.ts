@@ -3,6 +3,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { expectConsoleError, expectConsoleMessage } from './helpers/expectedConsole';
 import { createSqliteD1 } from './helpers/sqliteD1';
+import { createParentNotification } from '../workers/src/parentPortal/notificationService';
+import { createNotification } from '../workers/src/services/notificationWriter';
 
 const renderCertificateMock = vi.hoisted(() => vi.fn());
 
@@ -10,7 +12,7 @@ vi.mock('../workers/src/services/certificateRenderer', () => ({
   renderCertificate: renderCertificateMock,
 }));
 
-import { processBatch } from '../workers/src/services/certificateBatchProcessor';
+import { finalizeCertificateBatch, processBatch } from '../workers/src/services/certificateBatchProcessor';
 
 class ProcessorStatement {
   bindings: unknown[] = [];
@@ -286,9 +288,8 @@ describe('certificate batch processor', () => {
       expect(sqlite.prepare("SELECT body FROM notifications WHERE type = 'certificate_batch_completed'").get())
         .toEqual({ body: 'Hoàn thành xuất sắc: 21/21 chứng nhận được tạo thành công.' });
       expect(sqlite.prepare("SELECT created_at FROM notifications WHERE source_id = 'cert-1'").get())
-        .toEqual({ created_at: '2026-09-13T22:00:01.000Z' });
+        .toEqual({ created_at: '2026-09-14T00:30:00.000Z' });
 
-      const { finalizeCertificateBatch } = await import('../workers/src/services/certificateBatchProcessor');
       await finalizeCertificateBatch(env, 'batch-1', 'Hoàn thành xuất sắc', 21, '2026-09-14T00:30:00.000Z');
       expect(sqlite.prepare("SELECT COUNT(*) AS count FROM notifications WHERE type = 'certificate_issued'").get())
         .toEqual({ count: 21 });
@@ -298,5 +299,49 @@ describe('certificate batch processor', () => {
       sqlite.close();
       vi.useRealTimers();
     }
+  });
+
+  it('does not duplicate legacy student or parent notifications across the batch hour boundary', async () => {
+    const { db, sqlite } = createSqliteProcessorDb();
+    const certificateSentAt = '2026-09-14T00:59:59.000Z';
+    const batchSentAt = '2026-09-14T01:00:01.000Z';
+    sqlite.exec("UPDATE certificates SET status = 'failed'; UPDATE certificates SET status = 'sent' WHERE id = 'cert-1'");
+    sqlite.prepare("UPDATE certificate_batches SET status = 'sent', sent_at = ? WHERE id = 'batch-1'")
+      .run(batchSentAt);
+    sqlite.prepare("UPDATE certificates SET sent_at = ? WHERE id = 'cert-1'")
+      .run(certificateSentAt);
+    const env = { DB: db } as any;
+
+    await createNotification(db, {
+      userId: 'student-1',
+      userRole: 'student',
+      type: 'certificate_issued',
+      priority: 'IMPORTANT',
+      title: 'Em có chứng nhận mới! 🎓',
+      body: 'Em vừa nhận được chứng nhận: Hoàn thành xuất sắc',
+      actionUrl: '/student/achievements?certificate=cert-1',
+      data: { batch_id: 'batch-1', certificate_id: 'cert-1' },
+      sourceType: 'certificate',
+      sourceId: 'cert-1',
+      createdAt: batchSentAt,
+    });
+    await createParentNotification(db, {
+      studentId: 'student-1',
+      kind: 'certificate_issued',
+      sourceType: 'certificate',
+      sourceId: 'cert-1',
+      title: 'Con có chứng nhận mới',
+      body: 'Đã nhận chứng nhận: Hoàn thành xuất sắc',
+      payload: { certificateId: 'cert-1', batchId: 'batch-1' },
+      publishedAt: batchSentAt,
+    });
+
+    await finalizeCertificateBatch(env, 'batch-1', 'Hoàn thành xuất sắc', 21, '2026-09-14T01:00:02.000Z', 'sent');
+
+    expect(sqlite.prepare("SELECT COUNT(*) AS count FROM notifications WHERE type = 'certificate_issued'").get())
+      .toEqual({ count: 1 });
+    expect(sqlite.prepare("SELECT COUNT(*) AS count FROM parent_notifications WHERE kind = 'certificate_issued'").get())
+      .toEqual({ count: 1 });
+    sqlite.close();
   });
 });
