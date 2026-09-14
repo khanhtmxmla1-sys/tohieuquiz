@@ -6,6 +6,7 @@
         "dev": "wrangler dev",
         "deploy": "wrangler deploy --config ./wrangler.toml",
         "deploy:api": "wrangler deploy --config ./wrangler.toml",
+        "deploy:certificate-consumer": "wrangler deploy --config ./wrangler.certificate-consumer.toml",
         "db:migrate": "wrangler d1 execute tohieuquiz-db --file=schema.sql --remote",
         "db:migrate:local": "wrangler d1 execute tohieuquiz-db --file=schema.sql --local",
         "db:migrate:0013:local": "wrangler d1 execute tohieuquiz-db --file=migrations/0013_add_question_skill_metadata.sql --local",
