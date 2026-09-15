@@ -133,6 +133,7 @@ const ResultScreen: React.FC<Props> = ({ quiz, result, answers, onExit, initialT
                             quiz={quiz}
                             result={displayResult}
                             answers={answers}
+                            hasAuthoritativeValidation={Array.isArray(result.validationDetails) && result.validationDetails.length > 0}
                             initialFilter={reviewFilter}
                         />
                     ) : null}

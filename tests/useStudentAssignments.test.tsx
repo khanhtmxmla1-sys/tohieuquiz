@@ -6,10 +6,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   fetchResultAnswerReview: vi.fn(),
+  showError: vi.fn(),
 }));
 
 vi.mock('../src/services/results/resultAnswersService', () => ({
   fetchResultAnswerReview: mocks.fetchResultAnswerReview,
+}));
+
+vi.mock('../src/utils/toast', () => ({
+  showError: mocks.showError,
 }));
 
 import { useStudentAssignments } from '../src/features/student-dashboard/hooks/useStudentAssignments';
@@ -106,6 +111,138 @@ describe('useStudentAssignments review integrity', () => {
     });
 
     expect(mocks.fetchResultAnswerReview).toHaveBeenCalledWith('result-A');
+    expect(result.current.reviewState?.result.id).toBe('result-A');
+  });
+
+  it('opens the newest attempt for the selected assignment, not the newest result globally', async () => {
+    useQuizStore.setState({
+      results: [
+        resultRow('result-A-first', 'assignment-A', '2026-08-10T08:00:00.000Z'),
+        resultRow('result-A-latest', 'assignment-A', '2026-08-12T08:00:00.000Z'),
+        resultRow('result-B-latest', 'assignment-B', '2026-08-13T08:00:00.000Z'),
+      ],
+    } as any);
+    mocks.fetchResultAnswerReview.mockImplementation(async (resultId: string) => ({
+      answers: {
+        _questionOrder: ['q1'],
+        q1: {
+          selectedAnswer: resultId === 'result-A-latest' ? '1' : '0',
+          questionSnapshot: quiz.questions[0],
+        },
+      },
+      reviewDetails: [],
+    }));
+
+    const { result } = renderHook(() => useStudentAssignments(), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={['/student/assignments']}>{children}</MemoryRouter>
+      ),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const assignmentA = result.current.pagedQuizzes.find(
+      (item) => item._assignmentData?.id === 'assignment-A',
+    );
+    expect(assignmentA).toBeTruthy();
+
+    await act(async () => {
+      await result.current.reviewQuiz(assignmentA!);
+    });
+
+    expect(mocks.fetchResultAnswerReview).toHaveBeenCalledWith('result-A-latest');
+    expect(result.current.reviewState?.result.id).toBe('result-A-latest');
+    expect(result.current.reviewState?.answers.q1).toBe('1');
+  });
+
+  it('replaces the previous review state when a different assignment is opened', async () => {
+    mocks.fetchResultAnswerReview.mockImplementation(async (resultId: string) => ({
+      answers: {
+        _questionOrder: ['q1'],
+        q1: {
+          selectedAnswer: resultId === 'result-A' ? 'A-answer' : 'B-answer',
+          questionSnapshot: quiz.questions[0],
+        },
+      },
+      reviewDetails: [{
+        questionId: 'q1',
+        type: 'MCQ',
+        status: resultId === 'result-A' ? 'wrong' : 'correct',
+        isCorrect: resultId !== 'result-A',
+      }],
+    }));
+
+    const { result } = renderHook(() => useStudentAssignments(), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={['/student/assignments']}>{children}</MemoryRouter>
+      ),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const assignmentA = result.current.pagedQuizzes.find(
+      (item) => item._assignmentData?.id === 'assignment-A',
+    );
+    const assignmentB = result.current.pagedQuizzes.find(
+      (item) => item._assignmentData?.id === 'assignment-B',
+    );
+    expect(assignmentA).toBeTruthy();
+    expect(assignmentB).toBeTruthy();
+
+    await act(async () => {
+      await result.current.reviewQuiz(assignmentA!);
+    });
+    expect(result.current.reviewState?.result.id).toBe('result-A');
+
+    await act(async () => {
+      await result.current.reviewQuiz(assignmentB!);
+    });
+
+    expect(result.current.reviewState?.result.id).toBe('result-B');
+    expect(result.current.reviewState?.answers.q1).toBe('B-answer');
+    expect(result.current.reviewState?.result.reviewDetails?.[0]).toMatchObject({
+      status: 'correct',
+      isCorrect: true,
+    });
+  });
+
+  it('clears the loading marker after a result-answer fetch failure so the dashboard can retry', async () => {
+    mocks.fetchResultAnswerReview
+      .mockRejectedValueOnce(new Error('Không thể tải bài làm'))
+      .mockResolvedValueOnce({
+        answers: {
+          _questionOrder: ['q1'],
+          q1: {
+            selectedAnswer: '1',
+            questionSnapshot: quiz.questions[0],
+          },
+        },
+        reviewDetails: [],
+      });
+
+    const { result } = renderHook(() => useStudentAssignments(), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={['/student/assignments']}>{children}</MemoryRouter>
+      ),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const assignmentA = result.current.pagedQuizzes.find(
+      (item) => item._assignmentData?.id === 'assignment-A',
+    );
+    expect(assignmentA).toBeTruthy();
+
+    await act(async () => {
+      await result.current.reviewQuiz(assignmentA!);
+    });
+
+    expect(mocks.showError).toHaveBeenCalledWith('Không thể tải bài làm');
+    expect(result.current.reviewingAssignmentId).toBeNull();
+    expect(result.current.reviewState).toBeNull();
+
+    await act(async () => {
+      await result.current.reviewQuiz(assignmentA!);
+    });
+
+    expect(mocks.fetchResultAnswerReview).toHaveBeenLastCalledWith('result-A');
     expect(result.current.reviewState?.result.id).toBe('result-A');
   });
 });

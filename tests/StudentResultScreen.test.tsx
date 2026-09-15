@@ -117,6 +117,113 @@ describe('student result screen', () => {
     expect(screen.getByText('SERVER-CORRECT')).toBeInTheDocument();
   });
 
+  it('renders authoritative structured options once in the student review flow', () => {
+    const structuredQuiz: Quiz = {
+      ...quiz,
+      questions: [{
+        id: 'structured-review',
+        type: QuestionType.IMAGE_QUESTION,
+        question: 'Quan sát hình và chọn đáp án.',
+        image: 'main.png',
+        options: ['Trùng nội dung', 'Trùng nội dung'],
+        optionImages: ['first.png', 'second.png'],
+        correctAnswer: 'B',
+      } as any],
+    };
+    const structuredResult: StudentResult = {
+      ...result,
+      quizId: structuredQuiz.id,
+      score: 0,
+      correctCount: 0,
+      totalQuestions: 1,
+      answers: {
+        'structured-review': {
+          selectedAnswer: { type: 'IMAGE_QUESTION', optionId: 'option-0' },
+          isCorrect: false,
+          questionSnapshot: structuredQuiz.questions[0],
+        },
+      },
+      reviewDetails: [{
+        questionId: 'structured-review',
+        type: 'IMAGE_QUESTION',
+        status: 'wrong',
+        isCorrect: false,
+        studentAnswer: { kind: 'text', lines: [{ value: 'Trùng nội dung' }] },
+        correctAnswer: { kind: 'text', lines: [{ value: 'Trùng nội dung' }] },
+        presentation: {
+          schemaVersion: 1,
+          source: 'submission',
+          type: 'IMAGE_QUESTION',
+          items: [
+            { id: 'option-0', index: 0, text: 'Trùng nội dung', selected: true, correct: false, state: 'incorrect' },
+            { id: 'option-1', index: 1, text: 'Trùng nội dung', selected: false, correct: true, state: 'skipped' },
+          ],
+        },
+      }],
+    } as any;
+
+    render(
+      <ResultScreen
+        quiz={structuredQuiz}
+        result={structuredResult}
+        answers={{ 'structured-review': { type: 'IMAGE_QUESTION', optionId: 'option-0' } }}
+        initialTab="review"
+        onExit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Hình minh họa câu hỏi' })).toHaveAttribute('src', 'main.png');
+    expect(screen.getByRole('img', { name: 'Đáp án A: Trùng nội dung' })).toHaveAttribute('src', 'first.png');
+    expect(screen.getByRole('img', { name: 'Đáp án B: Trùng nội dung' })).toHaveAttribute('src', 'second.png');
+    expect(screen.getAllByRole('img')).toHaveLength(3);
+    expect(screen.getByText('Em chọn · Sai')).toBeInTheDocument();
+    expect(screen.getByText('Đáp án đúng · Em chưa chọn')).toBeInTheDocument();
+    expect(screen.queryByText('Câu trả lời của em')).not.toBeInTheDocument();
+  });
+
+  it('does not expose a recomputed correct answer when the result has no server review', () => {
+    const legacyQuiz: Quiz = {
+      ...quiz,
+      questions: [{
+        id: 'legacy-review',
+        type: QuestionType.MCQ,
+        question: 'Câu hỏi lịch sử chưa đủ dữ liệu.',
+        options: ['BÀI_EM_LÀM', 'ĐÁP_ÁN_TÍNH_LẠI'],
+        correctAnswer: 'B',
+      }],
+    };
+    const legacyResult: StudentResult = {
+      ...result,
+      quizId: legacyQuiz.id,
+      score: 0,
+      correctCount: 0,
+      totalQuestions: 1,
+      answers: {
+        'legacy-review': {
+          selectedAnswer: 'A',
+          isCorrect: false,
+          questionSnapshot: legacyQuiz.questions[0],
+        },
+      },
+      reviewDetails: undefined,
+    };
+
+    render(
+      <ResultScreen
+        quiz={legacyQuiz}
+        result={legacyResult}
+        answers={{ 'legacy-review': 'A' }}
+        initialTab="review"
+        onExit={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Dữ liệu lịch sử chưa đủ để đối chiếu từng đáp án.')).toBeInTheDocument();
+    expect(screen.getByTestId('student-review-body')).toHaveTextContent('BÀIEMLÀM');
+    expect(screen.queryByText('ĐÁP_ÁN_TÍNH_LẠI')).not.toBeInTheDocument();
+    expect(screen.queryByText('Đáp án đúng')).not.toBeInTheDocument();
+  });
+
   it('presents a compact factual result summary and three useful areas', () => {
     renderScreen();
 

@@ -42,6 +42,7 @@ describe('answer review model', () => {
     expect(student).toContain(studentText);
     expect(correct).toContain(correctText);
     expect(`${student} ${correct}`).not.toMatch(/\[object Object\]|gradingVersion|questionSnapshot|isCorrect/);
+    expect(review.presentation?.schemaVersion).toBe(1);
   });
 
   it('renders a skipped drag-drop answer as empty while preserving the correct blank values', () => {

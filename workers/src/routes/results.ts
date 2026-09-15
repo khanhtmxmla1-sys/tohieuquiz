@@ -17,11 +17,13 @@ import { normalizeGameLoopCategory } from '../gameLoop/normalization';
 import { loadResultDashboardSummary } from '../services/resultSummaryService';
 import {
     QuizGradingServiceError,
+    attachReviewDetailsWithinBudget,
     buildAuthoritativeReviewDetails,
     buildAuthoritativeStoredAnswers,
     buildStoredResultReviewDetails,
     gradeQuizSubmission,
     loadQuizQuestionsForGrading,
+    readStoredReviewDetails,
 } from '../services/quizGradingService';
 import {
     recordScoringShadowObservation,
@@ -425,11 +427,19 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             parsedAnswers = {};
         }
         let reviewDetails: QuestionAnswerReview[] = [];
-        try {
-            const questions = await loadQuizQuestionsForGrading(db, String(result.quiz_id || ''));
-            reviewDetails = buildStoredResultReviewDetails(questions, parsedAnswers);
-        } catch (error) {
-            if (!(error instanceof QuizGradingServiceError)) throw error;
+        const storedReviewDetails = readStoredReviewDetails(parsedAnswers);
+        if (storedReviewDetails) {
+            reviewDetails = storedReviewDetails;
+        } else {
+            try {
+                const questions = await loadQuizQuestionsForGrading(db, String(result.quiz_id || ''));
+                reviewDetails = buildStoredResultReviewDetails(questions, parsedAnswers);
+            } catch (error) {
+                if (!(error instanceof QuizGradingServiceError)) throw error;
+                if (error.code === 'QUIZ_QUESTIONS_NOT_FOUND') {
+                    reviewDetails = buildStoredResultReviewDetails([], parsedAnswers);
+                }
+            }
         }
         return jsonResponse({
             answers: rawAnswers,
@@ -651,6 +661,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             authoritativeAnswers,
             grading.details,
         );
+        const answersWithReview = attachReviewDetailsWithinBudget(authoritativeAnswers, reviewDetails);
         const submittedAt = new Date().toISOString();
         const insertResult = await db.prepare(`
             INSERT INTO results (
@@ -663,7 +674,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             body.quizTitle || '', score, correctCount,
             totalQuestions, body.timeTaken || 0,
             submittedAt,
-            JSON.stringify(authoritativeAnswers),
+            JSON.stringify(answersWithReview),
             grading.gradingVersion,
         ).run();
         const resultId = insertResult.meta.last_row_id;
@@ -717,7 +728,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             voidedCount: grading.voidedCount,
             gradingVersion: grading.gradingVersion,
             scoringMode,
-            answers: authoritativeAnswers,
+            answers: answersWithReview,
             validationDetails: grading.details,
             reviewDetails,
         });

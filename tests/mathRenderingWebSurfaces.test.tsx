@@ -95,7 +95,7 @@ describe('math rendering on secondary web surfaces', () => {
     vi.useRealTimers();
   });
 
-  it('typesets questions, student answers, and correct answers in the result review', () => {
+  it('typesets the historical prompt and student answer without exposing an unverified correct answer', () => {
     render(
       <ReviewTab
         quiz={formulaQuiz}
@@ -104,9 +104,10 @@ describe('math rendering on secondary web surfaces', () => {
       />,
     );
 
-    expect(screen.getAllByTestId('mathjax')).toHaveLength(3);
+    expect(screen.getAllByTestId('mathjax')).toHaveLength(2);
     expect(screen.getByText(/\\frac\{3\}\{2\}/)).toBeInTheDocument();
-    expect(screen.getByText(/\\frac\{7\}\{4\}/)).toBeInTheDocument();
+    expect(screen.queryByText(/\\frac\{7\}\{4\}/)).not.toBeInTheDocument();
+    expect(screen.getByText('Dữ liệu lịch sử chưa đủ để đối chiếu từng đáp án.')).toBeInTheDocument();
   });
 
   it('keeps the full formula intact in difficult-question and timing analytics', () => {
