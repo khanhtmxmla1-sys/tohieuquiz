@@ -8,14 +8,13 @@
 
 const CLOUDINARY_BASE = import.meta.env.VITE_CLOUDINARY_AVATAR_BASE_URL?.trim().replace(/\/+$/, '') || '';
 const CLOUDINARY_FOLDER = import.meta.env.VITE_CLOUDINARY_AVATAR_FOLDER?.trim().replace(/^\/+|\/+$/g, '') || '';
-const LOCAL_AVATARS = ['/avatar1.webp', '/avatar2.webp', '/avatar3.webp'] as const;
+const LOCAL_AVATAR_FOLDER = '/avatars/students';
 
 const avatarUrl = (id: string): string => {
     if (CLOUDINARY_BASE && CLOUDINARY_FOLDER) {
         return `${CLOUDINARY_BASE}/w_200,h_200,c_fill,f_auto,q_auto/${CLOUDINARY_FOLDER}/${id}`;
     }
-    const numericPart = Number.parseInt(id.match(/\d+/)?.[0] || '1', 10);
-    return LOCAL_AVATARS[(numericPart - 1) % LOCAL_AVATARS.length];
+    return `${LOCAL_AVATAR_FOLDER}/${id}.webp`;
 };
 
 export interface AvatarOption {
