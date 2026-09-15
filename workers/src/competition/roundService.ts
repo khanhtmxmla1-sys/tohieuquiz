@@ -6,7 +6,11 @@ import {
 } from '../../../schemas/competition.schema';
 import { gradeQuiz } from '../../../src/domain/quiz-scoring';
 import { mapLiveExamQuestionRow } from '../services/liveExamQuestionMapper';
-import { buildAuthoritativeStoredAnswers } from '../services/quizGradingService';
+import {
+  attachReviewDetailsToStoredAnswers,
+  buildAuthoritativeReviewDetails,
+  buildAuthoritativeStoredAnswers,
+} from '../services/quizGradingService';
 import { auditStatement } from '../utils/audit';
 import { generateId } from '../utils/response';
 import { assertQuizSnapshotIntegrity, createOrReuseQuizSnapshot } from './quizSnapshotService';
@@ -1045,7 +1049,10 @@ export async function submitRoundAttempt(
   ));
   const restoredAnswers = restoreCompetitionPresentationAnswers(payload.questions, answers);
   const grading = gradeQuiz({ questions }, restoredAnswers);
-  const storedAnswers = buildAuthoritativeStoredAnswers(questions, restoredAnswers, grading.details);
+  const storedAnswers = attachReviewDetailsToStoredAnswers(
+    buildAuthoritativeStoredAnswers(questions, restoredAnswers, grading.details),
+    buildAuthoritativeReviewDetails(questions, restoredAnswers, grading.details),
+  );
   const frozenStudent = await getFrozenStudent(db, attempt.campaign_id, studentId);
   if (!frozenStudent) throw new Error('COMPETITION_STUDENT_NOT_IN_AUDIENCE');
   const submittedAt = new Date().toISOString();

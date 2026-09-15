@@ -4,11 +4,11 @@ import type { Quiz, StudentResult } from '../../../../types';
 import {
     buildQuestionAnswerReview,
     unwrapStoredResultAnswer,
-    type AnswerReviewValue,
 } from '../../../../domain/quiz-scoring';
 import MathSpan from '../../../common/MathSpan';
 import QuestionRichTextRenderer from '../../../common/QuestionRichTextRenderer';
 import QuestionMedia from '../../../common/QuestionMedia';
+import StudentReviewBody from '../../../common/QuestionReview/StudentReviewBody';
 import {
     getStoredAnswerOutcome,
     type AnswerOutcome,
@@ -22,17 +22,6 @@ interface ReviewTabProps {
 }
 
 type ReviewFilter = 'all' | 'incorrect' | 'skipped';
-
-const ReviewValue: React.FC<{ value: AnswerReviewValue }> = ({ value }) => (
-    <div className="space-y-1.5">
-        {value.lines.map((line, index) => (
-            <div key={`${line.label || 'value'}-${index}`} className="break-words">
-                {line.label ? <span className="font-semibold">{line.label}: </span> : null}
-                <MathSpan content={line.value} />
-            </div>
-        ))}
-    </div>
-);
 
 const statusMeta: Record<AnswerOutcome, { label: string; className: string; icon: React.ReactNode }> = {
     correct: {
@@ -102,7 +91,7 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFil
                     const meta = statusMeta[outcome];
                     const storedAnswer = result.answers?.[question.id] ?? answers[question.id];
                     const serverReview = result.reviewDetails?.find((detail) => detail.questionId === question.id);
-                    const review = serverReview ?? buildQuestionAnswerReview(
+                    const localReview = buildQuestionAnswerReview(
                         question,
                         unwrapStoredResultAnswer(storedAnswer),
                         {
@@ -112,10 +101,12 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFil
                             isCorrect: outcome === 'correct',
                         },
                     );
-                    const questionText = (question as any).question || (question as any).mainQuestion || `Câu ${index + 1}`;
-                    const showCorrectAnswer = outcome !== 'correct'
-                        && outcome !== 'voided'
-                        && review.correctAnswer.kind !== 'unsupported';
+                    const review = serverReview ?? localReview;
+                    const questionText = (question as any).question
+                        || (question as any).mainQuestion
+                        || (question as any).questionText
+                        || (question as any).text
+                        || `Câu ${index + 1}`;
 
                     return (
                         <article key={question.id} className="rounded-[12px] border border-slate-200 bg-white p-4 sm:p-5">
@@ -139,23 +130,13 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFil
                                     className="mt-3 font-semibold leading-relaxed text-slate-900"
                                 />
                             )}
-                            <QuestionMedia question={question} className="mt-4" />
-                            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                                <div className="rounded-[9px] bg-slate-50 p-3">
-                                    <dt className="font-semibold text-slate-500">Câu trả lời của em</dt>
-                                    <dd className="mt-1 font-medium text-slate-800">
-                                        <ReviewValue value={review.studentAnswer} />
-                                    </dd>
-                                </div>
-                                {showCorrectAnswer ? (
-                                    <div className="rounded-[9px] bg-emerald-50 p-3">
-                                        <dt className="font-semibold text-emerald-700">Đáp án đúng</dt>
-                                        <dd className="mt-1 font-medium text-emerald-900">
-                                            <ReviewValue value={review.correctAnswer} />
-                                        </dd>
-                                    </div>
-                                ) : null}
-                            </dl>
+                            <QuestionMedia question={question} className="mt-4" showOptionImages={false} />
+                            <StudentReviewBody
+                                question={question}
+                                selectedAnswer={unwrapStoredResultAnswer(storedAnswer)}
+                                reviewDetail={review}
+                                outcome={outcome}
+                            />
                         </article>
                     );
                 })}

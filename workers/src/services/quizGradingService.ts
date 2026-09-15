@@ -1,13 +1,17 @@
 import {
   QUIZ_ANSWER_SCHEMA_VERSION,
   QUIZ_SCORING_ENGINE_VERSION,
-  buildQuizAnswerReview,
+  buildQuestionAnswerReview,
   gradeQuiz,
   isRawAnswerSkipped,
+  normalizeQuestionForGrading,
   unwrapStoredResultAnswer,
+  type ReviewPresentation,
+  type ReviewPresentationSource,
   type QuestionAnswerReview,
   type QuestionGradingResult,
 } from '../../../src/domain/quiz-scoring';
+import { deserializeQuestionRichText } from '../../../shared/question-rich-text.contract';
 import { mapLiveExamQuestionRow } from './liveExamQuestionMapper';
 
 export class QuizGradingServiceError extends Error {
@@ -175,46 +179,434 @@ export function buildAuthoritativeReviewDetails(
   submittedAnswers: unknown,
   details: readonly QuestionGradingResult[],
 ): QuestionAnswerReview[] {
-  return buildQuizAnswerReview(questions, submittedAnswers, details);
+  return buildReviewDetailsForSource(questions, submittedAnswers, details, 'submission');
 }
+
+export const STORED_REVIEW_DETAILS_KEY = '_reviewDetails' as const;
+export const STORED_REVIEW_DETAILS_SCHEMA_VERSION = 1 as const;
+
+export interface StoredReviewDetailsMetadata {
+  schemaVersion: typeof STORED_REVIEW_DETAILS_SCHEMA_VERSION;
+  source: 'submission';
+  details: QuestionAnswerReview[];
+}
+
+const REVIEW_STATUSES = new Set(['correct', 'wrong', 'skipped', 'invalid', 'voided']);
+const REVIEW_SOURCES = new Set(['submission', 'verified-current', 'legacy-unverified']);
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  Boolean(value && typeof value === 'object' && !Array.isArray(value))
+);
+
+const isAnswerReviewValue = (value: unknown): boolean => {
+  if (!isRecord(value) || typeof value.kind !== 'string' || !Array.isArray(value.lines)) return false;
+  return value.lines.every((line) => isRecord(line) && typeof line.value === 'string');
+};
+
+const isReviewPresentation = (value: unknown): value is ReviewPresentation => {
+  if (!isRecord(value) || value.schemaVersion !== 1 || typeof value.source !== 'string'
+    || !REVIEW_SOURCES.has(value.source) || typeof value.type !== 'string' || !Array.isArray(value.items)) {
+    return false;
+  }
+  return value.items.every((item) => isRecord(item) && typeof item.id === 'string');
+};
+
+const isQuestionAnswerReview = (value: unknown): value is QuestionAnswerReview => {
+  if (!isRecord(value) || typeof value.questionId !== 'string' || !value.questionId
+    || typeof value.type !== 'string' || !REVIEW_STATUSES.has(String(value.status))
+    || typeof value.isCorrect !== 'boolean'
+    || !isAnswerReviewValue(value.studentAnswer) || !isAnswerReviewValue(value.correctAnswer)) {
+    return false;
+  }
+  return value.presentation === undefined || isReviewPresentation(value.presentation);
+};
+
+/**
+ * Read the additive review metadata stored inside a result's answers JSON.
+ * Invalid metadata is ignored so legacy answer envelopes remain readable.
+ */
+export function readStoredReviewMetadata(storedAnswers: unknown): StoredReviewDetailsMetadata | null {
+  if (!isRecord(storedAnswers)) return null;
+  const raw = storedAnswers[STORED_REVIEW_DETAILS_KEY];
+  if (!isRecord(raw) || raw.schemaVersion !== STORED_REVIEW_DETAILS_SCHEMA_VERSION
+    || raw.source !== 'submission' || !Array.isArray(raw.details) || raw.details.length === 0) {
+    return null;
+  }
+  const details = raw.details.filter(isQuestionAnswerReview);
+  if (details.length !== raw.details.length) return null;
+  const ids = new Set(details.map((detail) => detail.questionId));
+  if (ids.size !== details.length) return null;
+  return {
+    schemaVersion: STORED_REVIEW_DETAILS_SCHEMA_VERSION,
+    source: 'submission',
+    details,
+  };
+}
+
+export const readStoredReviewDetails = (storedAnswers: unknown): QuestionAnswerReview[] | null => (
+  readStoredReviewMetadata(storedAnswers)?.details ?? null
+);
+
+export function attachReviewDetailsToStoredAnswers(
+  storedAnswers: Record<string, unknown>,
+  details: readonly QuestionAnswerReview[],
+): Record<string, unknown> {
+  return {
+    ...storedAnswers,
+    [STORED_REVIEW_DETAILS_KEY]: {
+      schemaVersion: STORED_REVIEW_DETAILS_SCHEMA_VERSION,
+      source: 'submission',
+      details: [...details],
+    } satisfies StoredReviewDetailsMetadata,
+  };
+}
+
+export const attachStoredReviewMetadata = attachReviewDetailsToStoredAnswers;
+
+export function buildReviewDetailsForSource(
+  questions: readonly Record<string, unknown>[],
+  answers: unknown,
+  details: readonly QuestionGradingResult[],
+  source: ReviewPresentationSource,
+): QuestionAnswerReview[] {
+  const answerMap = isRecord(answers) ? answers : {};
+  const detailMap = new Map(details.map((detail) => [detail.questionId, detail]));
+  return questions.map((question) => {
+    const questionId = String(question.id ?? '');
+    return buildQuestionAnswerReview(
+      question,
+      answerMap[questionId],
+      detailMap.get(questionId),
+      { source },
+    );
+  });
+}
+
+export function buildVerifiedCurrentReviewDetails(
+  questions: readonly Record<string, unknown>[],
+  storedAnswers: unknown,
+  details: readonly QuestionGradingResult[],
+): QuestionAnswerReview[] {
+  return buildReviewDetailsForSource(questions, storedAnswers, details, 'verified-current');
+}
+
+const parseList = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string' || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    // Pipe-separated options are the legacy D1 representation.
+  }
+  return value.split('|');
+};
+
+const itemText = (value: unknown): string => {
+  if (!isRecord(value)) return String(value ?? '').trim();
+  return String(value.text ?? value.content ?? value.label ?? value.name ?? value.statement ?? value.left ?? '').trim();
+};
+
+const itemIdentity = (value: unknown, fallback: string): string => (
+  isRecord(value) && value.id !== undefined ? String(value.id) : fallback
+);
+
+const optionProjection = (value: unknown): Array<{ id: string; text: string }> => (
+  parseList(value).map((option, index) => ({
+    id: itemIdentity(option, `option-${index}`),
+    text: itemText(option),
+  }))
+);
+
+const itemProjection = (value: unknown): Array<{ id: string; text: string }> => (
+  parseList(value).map((item, index) => ({
+    id: itemIdentity(item, `item-${index}`),
+    text: itemText(item),
+  }))
+);
+
+const pairProjection = (value: unknown): Array<{ left: string; right: string }> => (
+  parseList(value).map((pair) => {
+    const record = isRecord(pair) ? pair : {};
+    return { left: String(record.left ?? record.leftText ?? '').trim(), right: String(record.right ?? record.rightText ?? '').trim() };
+  })
+);
+
+const blankProjection = (value: unknown): Array<{ id: string; options: string[] }> => (
+  parseList(value).map((blank, index) => {
+    const record = isRecord(blank) ? blank : {};
+    return {
+      id: itemIdentity(blank, `blank-${index}`),
+      options: parseList(record.options).map((option) => itemText(option)),
+    };
+  })
+);
+
+const canonicalType = (question: Record<string, unknown>): string => {
+  const normalized = normalizeQuestionForGrading({ id: String(question.id ?? 'compatibility'), type: question.type });
+  return normalized.ok ? normalized.question.type : normalized.type;
+};
+
+const textField = (question: Record<string, unknown>, ...keys: string[]): string => {
+  for (const key of keys) {
+    if (question[key] !== undefined && question[key] !== null) return String(question[key]).trim();
+  }
+  return '';
+};
+
+const firstNonEmptyTextField = (question: Record<string, unknown>, ...keys: string[]): string => {
+  for (const key of keys) {
+    const value = question[key];
+    if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
+  }
+  return '';
+};
+
+const promptsMatch = (
+  snapshot: Record<string, unknown>,
+  currentQuestion: Record<string, unknown>,
+  ...keys: string[]
+): boolean => {
+  const snapshotPrompt = firstNonEmptyTextField(snapshot, ...keys);
+  const currentPrompt = firstNonEmptyTextField(currentQuestion, ...keys);
+  return Boolean(snapshotPrompt && currentPrompt && snapshotPrompt === currentPrompt);
+};
+
+const stableJson = (value: unknown): string => JSON.stringify(value);
+
+/**
+ * Return only the canonical answer key for a question. Legacy snapshots are
+ * eligible for current-key rendering only when this projection can be built
+ * from both the snapshot and the current question. A visible-only snapshot
+ * therefore remains unverified instead of silently receiving a newer key.
+ */
+const authoritativeAnswerKeyProjection = (question: Record<string, unknown>): unknown => {
+  const normalized = normalizeQuestionForGrading(question);
+  if (!normalized.ok) return null;
+
+  switch (normalized.question.type) {
+    case 'MCQ':
+    case 'IMAGE_QUESTION':
+      return { correctOptionId: normalized.question.correctOptionId };
+    case 'MULTIPLE_SELECT':
+      return { correctOptionIds: normalized.question.correctOptionIds };
+    case 'SHORT_ANSWER':
+    case 'RIDDLE':
+      return { acceptedValues: [...normalized.question.acceptedValues].sort() };
+    case 'TRUE_FALSE':
+      return { correctValues: normalized.question.correctValues };
+    case 'MATCHING':
+      return { correctPairs: normalized.question.correctPairs };
+    case 'DROPDOWN':
+    case 'DRAG_DROP':
+      return { correctValues: normalized.question.correctValues };
+    case 'ORDERING':
+      return { correctRanks: normalized.question.correctRanks };
+    case 'CATEGORIZATION':
+      return { correctCategories: normalized.question.correctCategories };
+    case 'UNDERLINE':
+      return { correctIndexes: normalized.question.correctIndexes };
+    case 'WORD_SCRAMBLE':
+      return { correctWord: normalized.question.correctWord };
+    case 'ERROR_CORRECTION':
+      return { wrongWord: normalized.question.wrongWord, correctWord: normalized.question.correctWord };
+  }
+};
+
+const richTextField = (question: Record<string, unknown>): unknown => (
+  question.questionRichText !== undefined
+    ? question.questionRichText
+    : question.question_rich_text
+);
+
+const richTextMatches = (
+  snapshot: Record<string, unknown>,
+  currentQuestion: Record<string, unknown>,
+): boolean => {
+  const snapshotRichText = richTextField(snapshot);
+  const currentRichText = richTextField(currentQuestion);
+  if ((snapshotRichText === undefined) !== (currentRichText === undefined)) return false;
+  if (snapshotRichText === undefined) return true;
+  const normalizedSnapshot = deserializeQuestionRichText(snapshotRichText) ?? snapshotRichText;
+  const normalizedCurrent = deserializeQuestionRichText(currentRichText) ?? currentRichText;
+  return stableJson(normalizedSnapshot) === stableJson(normalizedCurrent);
+};
+
+/**
+ * Compare only question presentation fields that survive stripCorrectFields.
+ * A minimal `{id, type}` snapshot is intentionally not considered compatible.
+ */
+export function areReviewSnapshotsCompatible(
+  snapshot: unknown,
+  currentQuestion: Record<string, unknown>,
+): boolean {
+  if (!isRecord(snapshot)) return false;
+  const currentType = canonicalType(currentQuestion);
+  const snapshotType = canonicalType(snapshot);
+  if (!currentType || currentType !== snapshotType
+    || String(snapshot.id ?? '') !== String(currentQuestion.id ?? '')) return false;
+
+  if (!richTextMatches(snapshot, currentQuestion)) return false;
+
+  const snapshotAnswerKey = authoritativeAnswerKeyProjection(snapshot);
+  const currentAnswerKey = authoritativeAnswerKeyProjection(currentQuestion);
+  if (snapshotAnswerKey === null || currentAnswerKey === null
+    || stableJson(snapshotAnswerKey) !== stableJson(currentAnswerKey)) return false;
+
+  switch (currentType) {
+    case 'MCQ':
+    case 'IMAGE_QUESTION':
+    case 'MULTIPLE_SELECT': {
+      const snapshotOptions = optionProjection(snapshot.options);
+      return snapshotOptions.length >= 2
+        && stableJson(snapshotOptions) === stableJson(optionProjection(currentQuestion.options))
+        && promptsMatch(snapshot, currentQuestion, 'question', 'mainQuestion')
+        && (currentType !== 'IMAGE_QUESTION'
+          || textField(snapshot, 'image') === textField(currentQuestion, 'image'));
+    }
+    case 'TRUE_FALSE':
+      return promptsMatch(snapshot, currentQuestion, 'question', 'mainQuestion')
+        && itemProjection(snapshot.items).length > 0
+        && stableJson(itemProjection(snapshot.items)) === stableJson(itemProjection(currentQuestion.items));
+    case 'MATCHING':
+      return promptsMatch(snapshot, currentQuestion, 'question', 'mainQuestion')
+        && pairProjection(snapshot.pairs ?? snapshot.items).length > 0
+        && stableJson(pairProjection(snapshot.pairs ?? snapshot.items))
+          === stableJson(pairProjection(currentQuestion.pairs ?? currentQuestion.items));
+    case 'DROPDOWN':
+    case 'DRAG_DROP':
+      return promptsMatch(snapshot, currentQuestion, 'text', 'question', 'mainQuestion')
+        && blankProjection(snapshot.blanks).length > 0
+        && stableJson(blankProjection(snapshot.blanks)) === stableJson(blankProjection(currentQuestion.blanks));
+    case 'ORDERING':
+      return promptsMatch(snapshot, currentQuestion, 'question', 'mainQuestion')
+        && itemProjection(snapshot.items).length > 0
+        && stableJson(itemProjection(snapshot.items)) === stableJson(itemProjection(currentQuestion.items));
+    case 'CATEGORIZATION':
+      return promptsMatch(snapshot, currentQuestion, 'question', 'mainQuestion')
+        && itemProjection(snapshot.items).length > 0
+        && stableJson(itemProjection(snapshot.items)) === stableJson(itemProjection(currentQuestion.items))
+        && stableJson(optionProjection(snapshot.categories ?? snapshot.distractors))
+          === stableJson(optionProjection(currentQuestion.categories ?? currentQuestion.distractors));
+    case 'UNDERLINE':
+      return promptsMatch(snapshot, currentQuestion, 'sentence', 'question', 'mainQuestion')
+        && itemProjection(snapshot.words ?? snapshot.items).length > 0
+        && stableJson(itemProjection(snapshot.words ?? snapshot.items))
+          === stableJson(itemProjection(currentQuestion.words ?? currentQuestion.items));
+    case 'WORD_SCRAMBLE':
+      return promptsMatch(snapshot, currentQuestion, 'question', 'mainQuestion')
+        && itemProjection(snapshot.letters ?? snapshot.items).length > 1
+        && stableJson(itemProjection(snapshot.letters ?? snapshot.items))
+          === stableJson(itemProjection(currentQuestion.letters ?? currentQuestion.items));
+    case 'RIDDLE':
+      return promptsMatch(snapshot, currentQuestion, 'question', 'mainQuestion')
+        && itemProjection(snapshot.riddleLines ?? snapshot.items).length > 0
+        && stableJson(itemProjection(snapshot.riddleLines ?? snapshot.items))
+          === stableJson(itemProjection(currentQuestion.riddleLines ?? currentQuestion.items));
+    case 'ERROR_CORRECTION':
+      return promptsMatch(snapshot, currentQuestion, 'passage', 'question', 'mainQuestion')
+        && textField(snapshot, 'wrongWord') === textField(currentQuestion, 'wrongWord');
+    case 'SHORT_ANSWER':
+      return promptsMatch(snapshot, currentQuestion, 'question', 'mainQuestion');
+    default:
+      return false;
+  }
+}
+
+const currentOutcomeAgreesWithStoredStatus = (
+  review: QuestionAnswerReview,
+  status: string,
+): boolean => {
+  const presentation = review.presentation;
+  if (!presentation || presentation.type === 'UNSUPPORTED') return false;
+  const items = Array.from(presentation.items as unknown as readonly unknown[], (item) => (
+    item as Record<string, unknown>
+  ));
+  if (status === 'skipped') {
+    return items.length > 0
+      && items.some((item) => item.state === 'skipped')
+      && items.every((item) => item.state !== 'correct' && item.state !== 'incorrect');
+  }
+  if (status !== 'correct' && status !== 'wrong') return false;
+  if (status === 'correct') {
+    if (presentation.type === 'MCQ' || presentation.type === 'IMAGE_QUESTION' || presentation.type === 'MULTIPLE_SELECT') {
+      return items.every((item) => item.selected === item.correct);
+    }
+    return items.length > 0 && items.every((item) => item.state === 'correct');
+  }
+  return items.some((item) => item.state === 'incorrect' || item.state === 'skipped');
+};
+
+const storedDetailFor = (
+  questionId: string,
+  type: string,
+  stored: Record<string, unknown>,
+): QuestionGradingResult => {
+  const selectedAnswer = unwrapStoredResultAnswer(stored);
+  const rawStatus = String(stored.status ?? '');
+  const status = REVIEW_STATUSES.has(rawStatus)
+    ? rawStatus as QuestionGradingResult['status']
+    : isRawAnswerSkipped(selectedAnswer)
+      ? 'skipped'
+      : stored.isCorrect === true
+        ? 'correct'
+        : stored.isCorrect === false
+          ? 'wrong'
+          : 'invalid';
+  return {
+    questionId,
+    type,
+    status,
+    isCorrect: stored.isCorrect === true,
+    normalizedStudentAnswer: selectedAnswer,
+  };
+};
+
+const buildLegacyReview = (
+  question: Record<string, unknown>,
+  stored: Record<string, unknown>,
+  detail: QuestionGradingResult,
+): QuestionAnswerReview => {
+  const snapshot = isRecord(stored.questionSnapshot)
+    ? stripCorrectFields(stored.questionSnapshot) as Record<string, unknown>
+    : { id: detail.questionId, type: detail.type };
+  return buildQuestionAnswerReview(snapshot, unwrapStoredResultAnswer(stored), detail, { source: 'legacy-unverified' });
+};
 
 export function buildStoredResultReviewDetails(
   questions: readonly Record<string, unknown>[],
   storedAnswers: unknown,
 ): QuestionAnswerReview[] {
-  const answerMap = storedAnswers && typeof storedAnswers === 'object' && !Array.isArray(storedAnswers)
-    ? storedAnswers as Record<string, unknown>
-    : {};
-  const details: QuestionGradingResult[] = questions.map((question) => {
+  const answerMap = isRecord(storedAnswers) ? storedAnswers : {};
+  const details: QuestionAnswerReview[] = [];
+  const seen = new Set<string>();
+  for (const question of questions) {
     const questionId = String(question.id ?? '');
-    const stored = answerMap[questionId];
-    const envelope = stored && typeof stored === 'object' && !Array.isArray(stored)
-      ? stored as Record<string, unknown>
+    if (!questionId) continue;
+    seen.add(questionId);
+    const envelope = isRecord(answerMap[questionId])
+      ? answerMap[questionId]
       : {};
-    const selectedAnswer = unwrapStoredResultAnswer(stored);
-    const rawStatus = String(envelope.status ?? '');
-    const storedStatus = rawStatus === 'correct'
-      || rawStatus === 'wrong'
-      || rawStatus === 'skipped'
-      || rawStatus === 'invalid'
-      || rawStatus === 'voided'
-      ? rawStatus
-      : null;
-    const status = storedStatus
-      ?? (isRawAnswerSkipped(selectedAnswer)
-        ? 'skipped'
-        : envelope.isCorrect === true
-          ? 'correct'
-          : envelope.isCorrect === false
-            ? 'wrong'
-            : 'invalid');
-    return {
-      questionId,
-      type: String(question.type ?? ''),
-      status,
-      isCorrect: envelope.isCorrect === true,
-      normalizedStudentAnswer: selectedAnswer,
-    };
-  });
-  return buildQuizAnswerReview(questions, answerMap, details);
+    const detail = storedDetailFor(questionId, String(question.type ?? ''), envelope);
+    const snapshot = envelope.questionSnapshot;
+    if (!isRecord(snapshot) || !areReviewSnapshotsCompatible(snapshot, question)) {
+      details.push(buildLegacyReview(question, envelope, detail));
+      continue;
+    }
+    const currentReview = buildQuestionAnswerReview(question, envelope, detail, { source: 'verified-current' });
+    details.push(currentOutcomeAgreesWithStoredStatus(currentReview, detail.status)
+      ? currentReview
+      : buildLegacyReview(question, envelope, detail));
+  }
+
+  // Preserve legacy answers for questions deleted from the current quiz.  They
+  // are rendered from their sanitized snapshot only and never from a current key.
+  for (const [questionId, value] of Object.entries(answerMap)) {
+    if (questionId.startsWith('_') || seen.has(questionId) || !isRecord(value)) continue;
+    const snapshot = isRecord(value.questionSnapshot) ? value.questionSnapshot : null;
+    if (!snapshot) continue;
+    const detail = storedDetailFor(questionId, String(snapshot.type ?? ''), value);
+    details.push(buildLegacyReview(snapshot, value, detail));
+  }
+  return details;
 }

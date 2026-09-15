@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { plainTextToRichText } from '../shared/question-rich-text.contract';
 import {
   QuizGradingServiceError,
+  areReviewSnapshotsCompatible,
   buildAuthoritativeStoredAnswers,
   buildStoredResultReviewDetails,
   gradeQuizSubmission,
@@ -198,6 +199,275 @@ describe('Worker quiz grading service', () => {
     expect(review[0]).toMatchObject({ questionId: 'drop', status: 'skipped', isCorrect: false });
     expect(review[1]).toMatchObject({ questionId: 'match', status: 'wrong', isCorrect: false });
   });
+
+  it('does not verify a legacy skipped answer when the snapshot has no answer key', () => {
+    const review = buildStoredResultReviewDetails([
+      {
+        id: 'skipped-mcq', type: 'MCQ', question: 'Chọn đáp án.',
+        options: ['A', 'B'], correctAnswer: 'A',
+      },
+    ], {
+      'skipped-mcq': {
+        selectedAnswer: null,
+        isCorrect: false,
+        status: 'skipped',
+        questionSnapshot: {
+          id: 'skipped-mcq', type: 'MCQ', question: 'Chọn đáp án.', options: ['A', 'B'],
+        },
+      },
+    });
+
+    expect(review[0]).toMatchObject({
+      questionId: 'skipped-mcq',
+      status: 'skipped',
+      presentation: { source: 'legacy-unverified', type: 'UNSUPPORTED' },
+      correctAnswer: { kind: 'unsupported' },
+    });
+  });
+
+  it('verifies a legacy snapshot when its historical answer key matches the current question', () => {
+    const current = {
+      id: 'historical-mcq', type: 'MCQ', question: 'Chọn đáp án.',
+      options: ['A', 'B'], correctAnswer: 'A',
+    };
+    const snapshot = { ...current };
+
+    expect(areReviewSnapshotsCompatible(snapshot, current)).toBe(true);
+    const review = buildStoredResultReviewDetails([current], {
+      'historical-mcq': {
+        selectedAnswer: 'B',
+        isCorrect: false,
+        status: 'wrong',
+        questionSnapshot: snapshot,
+      },
+    });
+
+    expect(review[0]).toMatchObject({
+      status: 'wrong',
+      presentation: { source: 'verified-current', type: 'MCQ' },
+      correctAnswer: { kind: 'text', lines: [{ value: 'A' }] },
+    });
+  });
+
+  it('rejects a changed historical answer key even when visible content is unchanged', () => {
+    const current = {
+      id: 'changed-key-mcq', type: 'MCQ', question: 'Chọn đáp án.',
+      options: ['A', 'B'], correctAnswer: 'A',
+    };
+    const snapshot = { ...current, correctAnswer: 'B' };
+
+    expect(areReviewSnapshotsCompatible(snapshot, current)).toBe(false);
+    const review = buildStoredResultReviewDetails([current], {
+      'changed-key-mcq': {
+        selectedAnswer: 'B',
+        isCorrect: false,
+        status: 'wrong',
+        questionSnapshot: snapshot,
+      },
+    });
+
+    expect(review[0]).toMatchObject({
+      status: 'wrong',
+      presentation: { source: 'legacy-unverified' },
+      correctAnswer: { kind: 'unsupported' },
+    });
+  });
+
+  it('accepts legacy answer-key aliases and canonicalizes their semantics', () => {
+    expect(areReviewSnapshotsCompatible(
+      {
+        id: 'aliased-choice', type: 'MULTIPLE_CHOICE', question: 'Chọn.',
+        options: ['A', 'B'], correct_answer: 'B',
+      },
+      {
+        id: 'aliased-choice', type: 'MCQ', question: 'Chọn.',
+        options: ['A', 'B'], correctAnswer: 'B',
+      },
+    )).toBe(true);
+
+    expect(areReviewSnapshotsCompatible(
+      {
+        id: 'aliased-order', type: 'ORDERING', question: 'Sắp xếp.',
+        items: ['A', 'B'], correct_answer: '[1,0]',
+      },
+      {
+        id: 'aliased-order', type: 'ORDERING', question: 'Sắp xếp.',
+        items: ['A', 'B'], correctOrder: [1, 0],
+      },
+    )).toBe(true);
+  });
+
+  it('rejects rich-text drift even when the plain prompt is unchanged', () => {
+    const historicalRich = plainTextToRichText('Rich historical prompt');
+    const currentRich = plainTextToRichText('Rich historical prompt');
+    currentRich.doc.content[0].attrs = { textAlign: 'center' };
+    const current = {
+      id: 'rich-drift', type: 'MCQ', question: 'Rich historical prompt',
+      questionRichText: currentRich, options: ['A', 'B'], correctAnswer: 'A',
+    };
+    const snapshot = {
+      ...current,
+      questionRichText: historicalRich,
+    };
+
+    expect(areReviewSnapshotsCompatible(snapshot, current)).toBe(false);
+    const review = buildStoredResultReviewDetails([current], {
+      'rich-drift': {
+        selectedAnswer: 'B',
+        isCorrect: false,
+        status: 'wrong',
+        questionSnapshot: snapshot,
+      },
+    });
+    expect(review[0]).toMatchObject({
+      presentation: { source: 'legacy-unverified' },
+      correctAnswer: { kind: 'unsupported' },
+    });
+  });
+
+  it('compares equivalent rich text across legacy snake-case serialized storage', () => {
+    const rich = plainTextToRichText('Rich historical prompt');
+    const current = {
+      id: 'rich-alias', type: 'MCQ', question: 'Rich historical prompt',
+      questionRichText: rich, options: ['A', 'B'], correctAnswer: 'A',
+    };
+    const snapshot = {
+      id: 'rich-alias', type: 'MCQ', question: 'Rich historical prompt',
+      question_rich_text: JSON.stringify(rich), options: ['A', 'B'], correct_answer: 'A',
+    };
+
+    expect(areReviewSnapshotsCompatible(snapshot, current)).toBe(true);
+  });
+
+  it('keeps a partially answered multiple-select answer verified when a required choice is skipped', () => {
+    const review = buildStoredResultReviewDetails([
+      {
+        id: 'partial-multiple', type: 'MULTIPLE_SELECT', question: 'Chọn các đáp án.',
+        options: ['A', 'B', 'C'], correctAnswers: ['A', 'B'],
+      },
+    ], {
+      'partial-multiple': {
+        selectedAnswer: { type: 'MULTIPLE_SELECT', optionIds: ['option-0'] },
+        isCorrect: false,
+        status: 'wrong',
+        questionSnapshot: {
+          id: 'partial-multiple', type: 'MULTIPLE_SELECT', question: 'Chọn các đáp án.',
+          options: ['A', 'B', 'C'], correctAnswers: ['A', 'B'],
+        },
+      },
+    });
+
+    expect(review[0]).toMatchObject({
+      questionId: 'partial-multiple',
+      status: 'wrong',
+      presentation: { source: 'verified-current', type: 'MULTIPLE_SELECT' },
+    });
+    expect(review[0].presentation?.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'option-1', state: 'skipped' }),
+    ]));
+  });
+
+  it('keeps a partially answered true-false answer verified when a required statement is skipped', () => {
+    const review = buildStoredResultReviewDetails([
+      {
+        id: 'partial-true-false', type: 'TRUE_FALSE', mainQuestion: 'Đúng hay sai?',
+        items: [
+          { id: 'statement-a', statement: 'A', isCorrect: true },
+          { id: 'statement-b', statement: 'B', isCorrect: false },
+        ],
+      },
+    ], {
+      'partial-true-false': {
+        selectedAnswer: { type: 'TRUE_FALSE', values: { 'statement-a': true } },
+        isCorrect: false,
+        status: 'wrong',
+        questionSnapshot: {
+          id: 'partial-true-false', type: 'TRUE_FALSE', mainQuestion: 'Đúng hay sai?',
+          items: [
+            { id: 'statement-a', statement: 'A', isCorrect: true },
+            { id: 'statement-b', statement: 'B', isCorrect: false },
+          ],
+        },
+      },
+    });
+
+    expect(review[0]).toMatchObject({
+      questionId: 'partial-true-false',
+      status: 'wrong',
+      presentation: { source: 'verified-current', type: 'TRUE_FALSE' },
+    });
+    expect(review[0].presentation?.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'statement-b', state: 'skipped' }),
+    ]));
+  });
+
+  it.each([
+    {
+      type: 'MCQ',
+      current: { id: 'prompt-mcq', type: 'MCQ', question: 'Nội dung hiện tại.', options: ['A', 'B'], correctAnswer: 'A' },
+      snapshot: { id: 'prompt-mcq', type: 'MCQ', question: 'Nội dung cũ.', options: ['A', 'B'] },
+    },
+    {
+      type: 'TRUE_FALSE',
+      current: {
+        id: 'prompt-true-false', type: 'TRUE_FALSE', mainQuestion: 'Nội dung hiện tại.',
+        items: [{ id: 'a', statement: 'Mệnh đề.', isCorrect: true }],
+      },
+      snapshot: {
+        id: 'prompt-true-false', type: 'TRUE_FALSE', mainQuestion: 'Nội dung cũ.',
+        items: [{ id: 'a', statement: 'Mệnh đề.' }],
+      },
+    },
+    {
+      type: 'MATCHING',
+      current: {
+        id: 'prompt-matching', type: 'MATCHING', question: 'Nội dung hiện tại.',
+        pairs: [{ left: 'A', right: '1' }],
+      },
+      snapshot: {
+        id: 'prompt-matching', type: 'MATCHING', question: 'Nội dung cũ.',
+        pairs: [{ left: 'A', right: '1' }],
+      },
+    },
+    {
+      type: 'ORDERING',
+      current: {
+        id: 'prompt-ordering', type: 'ORDERING', question: 'Nội dung hiện tại.',
+        items: ['A', 'B'], correctOrder: [0, 1],
+      },
+      snapshot: {
+        id: 'prompt-ordering', type: 'ORDERING', question: 'Nội dung cũ.',
+        items: ['A', 'B'],
+      },
+    },
+    {
+      type: 'CATEGORIZATION',
+      current: {
+        id: 'prompt-categorization', type: 'CATEGORIZATION', question: 'Nội dung hiện tại.',
+        categories: [{ id: 'cat-a', name: 'Nhóm A' }],
+        items: [{ id: 'item-a', content: 'A', categoryId: 'cat-a' }],
+      },
+      snapshot: {
+        id: 'prompt-categorization', type: 'CATEGORIZATION', question: 'Nội dung cũ.',
+        categories: [{ id: 'cat-a', name: 'Nhóm A' }],
+        items: [{ id: 'item-a', content: 'A' }],
+      },
+    },
+    {
+      type: 'WORD_SCRAMBLE',
+      current: {
+        id: 'prompt-word-scramble', type: 'WORD_SCRAMBLE', question: 'Nội dung hiện tại.',
+        letters: ['A', 'B'], correctWord: 'AB',
+      },
+      snapshot: {
+        id: 'prompt-word-scramble', type: 'WORD_SCRAMBLE', question: 'Nội dung cũ.',
+        letters: ['A', 'B'],
+      },
+    },
+  ])('rejects a $type legacy snapshot when only its prompt changed', ({ current, snapshot }) => {
+    expect(areReviewSnapshotsCompatible(snapshot, current)).toBe(false);
+  });
+
   it('rejects a quiz with no questions', async () => {
     await expect(gradeQuizSubmission(new Database([]) as any, 'missing', {}))
       .rejects.toMatchObject<Partial<QuizGradingServiceError>>({ status: 404, code: 'QUIZ_QUESTIONS_NOT_FOUND' });

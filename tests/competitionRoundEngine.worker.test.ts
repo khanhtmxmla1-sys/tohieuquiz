@@ -328,7 +328,7 @@ describe('Competition V1 round engine', () => {
 
     expect(submitted).toMatchObject({ score: 10, correctCount: 1, totalQuestions: 1, status: 'SCORED' });
     const row = sqlite.prepare(`
-      SELECT assignment_id, student_id, class_id, quiz_id, score, correct_count, total_questions
+      SELECT assignment_id, student_id, class_id, quiz_id, score, correct_count, total_questions, answers
       FROM results WHERE id = ?
     `).get(submitted.resultId) as Record<string, unknown>;
     expect(row).toMatchObject({
@@ -339,6 +339,15 @@ describe('Competition V1 round engine', () => {
       score: 10,
       correct_count: 1,
       total_questions: 1,
+    });
+    const storedAnswers = JSON.parse(String(row.answers)) as Record<string, unknown>;
+    expect(storedAnswers._reviewDetails).toMatchObject({
+      schemaVersion: 1,
+      source: 'submission',
+      details: [expect.objectContaining({
+        questionId: 'q-class-1',
+        presentation: expect.objectContaining({ source: 'submission', type: 'MCQ' }),
+      })],
     });
   });
 

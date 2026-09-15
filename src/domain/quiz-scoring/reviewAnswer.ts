@@ -2,6 +2,11 @@ import { isRawAnswerSkipped } from './answerCompleteness';
 import { unwrapStoredResultAnswer } from './legacyAnswerAdapters';
 import { normalizeAnswerForNormalizedQuestion } from './normalizeAnswer';
 import { normalizeQuestionForGrading } from './normalizeQuestion';
+import {
+  buildQuestionAnswerPresentation,
+  type ReviewPresentation,
+  type ReviewPresentationOptions,
+} from './reviewPresentation';
 import { asArray, asRecord, optionText } from './questionIdentity';
 import type { GradingStatus, NormalizedGradableQuestion, QuestionGradingResult, QuizAnswer } from './types';
 
@@ -22,6 +27,7 @@ export interface QuestionAnswerReview {
   isCorrect: boolean;
   studentAnswer: AnswerReviewValue;
   correctAnswer: AnswerReviewValue;
+  presentation?: ReviewPresentation;
 }
 
 const emptyReview = (): AnswerReviewValue => ({
@@ -216,6 +222,7 @@ export const buildQuestionAnswerReview = (
   questionInput: unknown,
   answerInput: unknown,
   detail?: Pick<QuestionGradingResult, 'questionId' | 'type' | 'status' | 'isCorrect'>,
+  options?: ReviewPresentationOptions,
 ): QuestionAnswerReview => {
   const normalized = normalizeQuestionForGrading(questionInput);
   const status = detail?.status ?? (isRawAnswerSkipped(answerInput) ? 'skipped' : 'invalid');
@@ -228,6 +235,7 @@ export const buildQuestionAnswerReview = (
       isCorrect: false,
       studentAnswer: voidedReview(),
       correctAnswer: voidedReview(),
+      presentation: buildQuestionAnswerPresentation(questionInput, answerInput, detail, options),
     };
   }
   if (normalized.ok === false) {
@@ -238,6 +246,7 @@ export const buildQuestionAnswerReview = (
       isCorrect: detail?.isCorrect === true,
       studentAnswer: isRawAnswerSkipped(answerInput) ? emptyReview() : unsupportedReview(),
       correctAnswer: unsupportedReview(),
+      presentation: buildQuestionAnswerPresentation(questionInput, answerInput, detail, options),
     };
   }
   const base = {
@@ -255,6 +264,7 @@ export const buildQuestionAnswerReview = (
       isCorrect: false,
       studentAnswer: emptyReview(),
       correctAnswer: renderCorrectAnswer(normalized.question, questionInput),
+      presentation: buildQuestionAnswerPresentation(questionInput, answerInput, detail, options),
     };
   }
 
@@ -265,6 +275,7 @@ export const buildQuestionAnswerReview = (
       ? renderAnswer(normalized.question, questionInput, normalizedAnswer.answer)
       : unsupportedReview(),
     correctAnswer: renderCorrectAnswer(normalized.question, questionInput),
+    presentation: buildQuestionAnswerPresentation(questionInput, answerInput, detail, options),
   };
 };
 

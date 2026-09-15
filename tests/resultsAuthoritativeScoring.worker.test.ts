@@ -63,7 +63,20 @@ describe('POST /api/results authoritative scoring', () => {
       gradingVersion: '2.0.0',
     });
     expect(payload.answers.q1).toMatchObject({ selectedAnswer: 'B', isCorrect: false, gradingVersion: '2.0.0' });
-    expect(JSON.stringify(payload.answers)).not.toContain('correctAnswer');
+    expect(JSON.stringify(payload.answers.q1)).not.toContain('correctAnswer');
+    expect(payload.answers._reviewDetails).toMatchObject({
+      schemaVersion: 1,
+      source: 'submission',
+      details: [expect.objectContaining({
+        questionId: 'q1',
+        presentation: expect.objectContaining({
+          schemaVersion: 1,
+          source: 'submission',
+          type: 'MCQ',
+        }),
+      })],
+    });
+    expect(payload.reviewDetails[0].presentation.source).toBe('submission');
 
     const insert = db.executed.find((statement) => statement.sql.includes('INSERT INTO results'));
     expect(insert?.sql).toContain('grading_version');
