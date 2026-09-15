@@ -3,8 +3,10 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Question, Quiz } from '../src/types';
 import StudentView from '../src/components/StudentView';
+import { getAvatarUrl } from '../src/config/avatars';
 
 const mocks = vi.hoisted(() => ({
+  avatar: 'https://assets.example.test/an.png' as string | null,
   setShowSubmitConfirm: vi.fn(),
   changePage: vi.fn(),
   useQuizPlayerArgs: vi.fn(),
@@ -31,7 +33,7 @@ vi.mock('../src/features/quiz-player/hooks/useQuizPlayer', () => ({
     setStudentName: vi.fn(),
     studentClass: '4A1',
     setStudentClass: vi.fn(),
-    studentAvatar: 'https://assets.example.test/an.png',
+    studentAvatar: mocks.avatar,
     enteredCode: '',
     setEnteredCode: vi.fn(),
     codeError: '',
@@ -103,10 +105,20 @@ const quiz = {
 
 describe('StudentView desktop quiz layout', () => {
   beforeEach(() => {
+    mocks.avatar = 'https://assets.example.test/an.png';
     mocks.setShowSubmitConfirm.mockReset();
     mocks.changePage.mockReset();
     mocks.useQuizPlayerArgs.mockReset();
     mocks.questionPolicy.mockReset();
+  });
+
+  it.each(['boy_02', null])('renders session avatar %s using dashboard configuration', (avatar) => {
+    mocks.avatar = avatar;
+    render(<StudentView quiz={quiz} onExit={vi.fn()} onSaveResult={vi.fn()} />);
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
+      'src',
+      getAvatarUrl(avatar || undefined),
+    );
   });
 
   it('keeps the desktop controls stationary and makes only the question column scrollable', () => {
