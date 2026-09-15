@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Timer } from 'lucide-react';
+import { getAvatarUrl } from '../../../config/avatars';
 
 interface QuizHeaderProps {
   title: string;
@@ -26,6 +27,13 @@ const QuizHeader: React.FC<QuizHeaderProps> = ({
   showAvatar = false,
   showTimer = true,
 }) => {
+  const value = avatar?.trim() || '';
+  const resolvedAvatar = /^https:\/\//i.test(value) || /^\/(?!\/)/.test(value)
+    ? value : getAvatarUrl(value || undefined);
+  const defaultAvatar = getAvatarUrl();
+  const [failure, setFailure] = useState<{ source: string; stage: 1 | 2 } | null>(null);
+  const stage = failure?.source === resolvedAvatar ? failure.stage : 0;
+  const imageSource = stage === 0 ? resolvedAvatar : defaultAvatar;
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -48,9 +56,14 @@ const QuizHeader: React.FC<QuizHeaderProps> = ({
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {showAvatar ? (
-              avatar ? (
+              stage < 2 ? (
                 <img
-                  src={avatar}
+                  key={imageSource}
+                  src={imageSource}
+                  onError={() => setFailure({
+                    source: resolvedAvatar,
+                    stage: imageSource === defaultAvatar ? 2 : 1,
+                  })}
                   alt={avatarLabel}
                   className="h-10 w-10 shrink-0 rounded-[10px] border border-slate-200 bg-white object-cover sm:h-12 sm:w-12"
                 />

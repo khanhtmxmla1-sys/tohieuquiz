@@ -1,7 +1,8 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import QuizHeader from '../src/features/quiz-player/components/QuizHeader';
+import { getAvatarUrl } from '../src/config/avatars';
 
 describe('QuizHeader student avatar', () => {
   it('renders the student avatar when the standard quiz opts in', () => {
@@ -25,7 +26,28 @@ describe('QuizHeader student avatar', () => {
     );
   });
 
-  it('uses a compact student initial when avatar data is missing', () => {
+  it('resolves a configured avatar id to the same image used by the dashboard', () => {
+    render(
+      <QuizHeader
+        title="Bài kiểm tra"
+        timeLeft={600}
+        totalQuestions={10}
+        completedCount={0}
+        partialCount={0}
+        isPractice
+        studentName="An"
+        avatar="boy_02"
+        showAvatar
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
+      'src',
+      getAvatarUrl('boy_02'),
+    );
+  });
+
+  it('uses the configured default avatar when avatar data is missing', () => {
     render(
       <QuizHeader
         title="Bài kiểm tra"
@@ -40,7 +62,112 @@ describe('QuizHeader student avatar', () => {
       />,
     );
 
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
+      'src',
+      getAvatarUrl(),
+    );
+  });
+
+  it('keeps supported direct URLs and internal paths while normalizing invalid ids', () => {
+    const { rerender } = render(
+      <QuizHeader
+        title="Bài kiểm tra"
+        timeLeft={600}
+        totalQuestions={10}
+        completedCount={0}
+        partialCount={0}
+        isPractice
+        studentName="An"
+        avatar=" /avatar2.webp "
+        showAvatar
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
+      'src',
+      '/avatar2.webp',
+    );
+
+    rerender(
+      <QuizHeader
+        title="Bài kiểm tra"
+        timeLeft={600}
+        totalQuestions={10}
+        completedCount={0}
+        partialCount={0}
+        isPractice
+        studentName="An"
+        avatar="not-a-known-avatar"
+        showAvatar
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
+      'src',
+      getAvatarUrl('not-a-known-avatar'),
+    );
+
+    rerender(
+      <QuizHeader
+        title="Bài kiểm tra"
+        timeLeft={600}
+        totalQuestions={10}
+        completedCount={0}
+        partialCount={0}
+        isPractice
+        studentName="An"
+        avatar="https://assets.example.test/an.png"
+        showAvatar
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
+      'src',
+      'https://assets.example.test/an.png',
+    );
+  });
+
+  it('falls back once to the default image and then to the student initial', () => {
+    const { container, rerender } = render(
+      <QuizHeader
+        title="Bài kiểm tra"
+        timeLeft={600}
+        totalQuestions={10}
+        completedCount={0}
+        partialCount={0}
+        isPractice
+        studentName="An"
+        avatar="boy_02"
+        showAvatar
+      />,
+    );
+
+    fireEvent.error(screen.getByRole('img', { name: 'Ảnh đại diện của An' }));
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
+      'src',
+      getAvatarUrl(),
+    );
+
+    fireEvent.error(screen.getByRole('img', { name: 'Ảnh đại diện của An' }));
+    expect(container.querySelector('img')).not.toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveTextContent('A');
+    rerender(
+      <QuizHeader
+        title="Bài kiểm tra"
+        timeLeft={600}
+        totalQuestions={10}
+        completedCount={0}
+        partialCount={0}
+        isPractice
+        studentName="An"
+        avatar="boy_03"
+        showAvatar
+      />,
+    );
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
+      'src',
+      getAvatarUrl('boy_03'),
+    );
   });
 
   it('does not add an avatar to shared quiz headers unless explicitly enabled', () => {
