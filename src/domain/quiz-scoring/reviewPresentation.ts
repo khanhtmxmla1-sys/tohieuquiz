@@ -265,15 +265,21 @@ const buildTrueFalsePresentation = (
   const answer = answerState.value;
   const rawItems = asArray(rawQuestion.items);
   const answerValues = answer?.type === 'TRUE_FALSE' ? answer.values : {};
-  const items = Object.entries(question.correctValues).map(([id, correctValue], index) => {
-    const raw = asRecord(rawItems[index]);
-    const statement = rawItemText(rawItems[index], `Mệnh đề ${index + 1}`);
+  const orderedItems = rawItems.length > 0
+    ? rawItems.map((raw, index) => ({
+      raw,
+      id: String(asRecord(raw).id ?? `item-${index}`),
+    })).filter(({ id }) => hasOwn(question.correctValues, id))
+    : Object.keys(question.correctValues).map((id) => ({ raw: undefined, id }));
+  const items = orderedItems.map(({ raw, id }, index) => {
+    const correctValue = question.correctValues[id];
+    const statement = rawItemText(raw, `Mệnh đề ${index + 1}`);
     const hasStudentValue = hasOwn(answerValues, id) && typeof answerValues[id] === 'boolean';
     const studentValue = hasStudentValue ? answerValues[id] : undefined;
     return {
       id,
       index,
-      statement: statement || String(raw.statement ?? `Mệnh đề ${index + 1}`),
+      statement,
       ...(studentValue === undefined ? {} : { studentValue }),
       correctValue,
       state: !answerState.available

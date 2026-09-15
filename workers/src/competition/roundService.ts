@@ -7,7 +7,7 @@ import {
 import { gradeQuiz } from '../../../src/domain/quiz-scoring';
 import { mapLiveExamQuestionRow } from '../services/liveExamQuestionMapper';
 import {
-  attachReviewDetailsToStoredAnswers,
+  attachReviewDetailsWithinBudget,
   buildAuthoritativeReviewDetails,
   buildAuthoritativeStoredAnswers,
 } from '../services/quizGradingService';
@@ -1049,7 +1049,7 @@ export async function submitRoundAttempt(
   ));
   const restoredAnswers = restoreCompetitionPresentationAnswers(payload.questions, answers);
   const grading = gradeQuiz({ questions }, restoredAnswers);
-  const storedAnswers = attachReviewDetailsToStoredAnswers(
+  const storedAnswers = attachReviewDetailsWithinBudget(
     buildAuthoritativeStoredAnswers(questions, restoredAnswers, grading.details),
     buildAuthoritativeReviewDetails(questions, restoredAnswers, grading.details),
   );

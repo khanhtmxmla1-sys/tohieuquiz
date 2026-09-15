@@ -17,7 +17,7 @@ import { normalizeGameLoopCategory } from '../gameLoop/normalization';
 import { loadResultDashboardSummary } from '../services/resultSummaryService';
 import {
     QuizGradingServiceError,
-    attachReviewDetailsToStoredAnswers,
+    attachReviewDetailsWithinBudget,
     buildAuthoritativeReviewDetails,
     buildAuthoritativeStoredAnswers,
     buildStoredResultReviewDetails,
@@ -661,7 +661,7 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             authoritativeAnswers,
             grading.details,
         );
-        const answersWithReview = attachReviewDetailsToStoredAnswers(authoritativeAnswers, reviewDetails);
+        const answersWithReview = attachReviewDetailsWithinBudget(authoritativeAnswers, reviewDetails);
         const submittedAt = new Date().toISOString();
         const insertResult = await db.prepare(`
             INSERT INTO results (

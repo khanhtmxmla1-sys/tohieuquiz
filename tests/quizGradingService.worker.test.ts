@@ -6,6 +6,7 @@ import {
   buildAuthoritativeStoredAnswers,
   buildStoredResultReviewDetails,
   gradeQuizSubmission,
+  attachReviewDetailsWithinBudget,
 } from '../workers/src/services/quizGradingService';
 
 class Statement {
@@ -148,6 +149,27 @@ describe('Worker quiz grading service', () => {
     expect(() => buildAuthoritativeStoredAnswers(questions, { 'plain-large': 'A' }, details)).not.toThrow();
     const stored = buildAuthoritativeStoredAnswers(questions, { 'plain-large': 'A' }, details);
     expect((stored['plain-large'] as any).questionSnapshot.question).toBe(largePlain);
+  });
+
+  it('omits oversized review metadata while keeping the authoritative answer envelope', () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const storedAnswers = {
+      q: { selectedAnswer: 'A', questionSnapshot: { id: 'q', type: 'MCQ' } },
+    };
+    const oversizedDetails = [{
+      questionId: 'q',
+      type: 'MCQ',
+      status: 'wrong',
+      isCorrect: false,
+      studentAnswer: { kind: 'text', lines: [{ value: 'x'.repeat(1_600_000) }] },
+      correctAnswer: { kind: 'empty', lines: [] },
+    }] as any;
+    const bounded = attachReviewDetailsWithinBudget(storedAnswers, oversizedDetails);
+
+    expect(bounded).toBe(storedAnswers);
+    expect(bounded).not.toHaveProperty('_reviewDetails');
+    expect(info).toHaveBeenCalledWith(expect.stringContaining('result_review_metadata_budget_exceeded'));
+    info.mockRestore();
   });
 
   it('stores skipped metadata-only wrappers as a null selected answer', async () => {

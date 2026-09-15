@@ -261,6 +261,30 @@ export function attachReviewDetailsToStoredAnswers(
   };
 }
 
+/**
+ * Attach review metadata only when the complete answers envelope remains
+ * within the conservative D1 payload budget. Oversized metadata is omitted
+ * so submitting a result never fails solely because review details duplicate
+ * a large question payload; the result remains readable through the legacy
+ * unverified path.
+ */
+export function attachReviewDetailsWithinBudget(
+  storedAnswers: Record<string, unknown>,
+  details: readonly QuestionAnswerReview[],
+): Record<string, unknown> {
+  const candidate = attachReviewDetailsToStoredAnswers(storedAnswers, details);
+  const candidateAnswersBytes = utf8ByteLength(JSON.stringify(candidate));
+  if (candidateAnswersBytes <= MAX_RESULT_ANSWERS_WITH_RICH_BYTES) return candidate;
+
+  console.info(JSON.stringify({
+    event: 'result_review_metadata_budget_exceeded',
+    candidateAnswersBytes,
+    limitBytes: MAX_RESULT_ANSWERS_WITH_RICH_BYTES,
+    reviewDetailsCount: details.length,
+  }));
+  return storedAnswers;
+}
+
 export const attachStoredReviewMetadata = attachReviewDetailsToStoredAnswers;
 
 export function buildReviewDetailsForSource(

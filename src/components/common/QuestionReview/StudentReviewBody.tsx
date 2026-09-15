@@ -304,7 +304,7 @@ const BlankReview: React.FC<{
                     className={`rounded-[10px] border p-3 ${stateClassName(item.state)}`}
                 >
                     <div className="min-w-0 space-y-1 break-words text-sm">
-                        <div className="font-semibold">Ô trống {item.blankToken ?? `#${item.index + 1}`}</div>
+                        <div className="font-semibold">Chỗ trống {item.index + 1}</div>
                         <div><span className="font-semibold">Em làm: </span><MathSpan content={valueText(item.studentValue)} /></div>
                         <div><span className="font-semibold">Đáp án đúng: </span><MathSpan content={item.correctValue} /></div>
                         <StateLabel state={item.state} />

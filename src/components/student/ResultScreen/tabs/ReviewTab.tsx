@@ -18,6 +18,7 @@ interface ReviewTabProps {
     quiz: Quiz;
     result: StudentResult;
     answers: Record<string, unknown>;
+    hasAuthoritativeValidation?: boolean;
     initialFilter?: ReviewFilter;
 }
 
@@ -46,7 +47,13 @@ const statusMeta: Record<AnswerOutcome, { label: string; className: string; icon
     },
 };
 
-const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFilter = 'all' }) => {
+const ReviewTab: React.FC<ReviewTabProps> = ({
+    quiz,
+    result,
+    answers,
+    hasAuthoritativeValidation = false,
+    initialFilter = 'all',
+}) => {
     const [filter, setFilter] = useState<ReviewFilter>(initialFilter);
     const items = useMemo(() => quiz.questions.map((question, index) => ({
         question,
@@ -91,6 +98,13 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFil
                     const meta = statusMeta[outcome];
                     const storedAnswer = result.answers?.[question.id] ?? answers[question.id];
                     const serverReview = result.reviewDetails?.find((detail) => detail.questionId === question.id);
+                    const storedSnapshot = storedAnswer && typeof storedAnswer === 'object' && !Array.isArray(storedAnswer)
+                        ? (storedAnswer as { questionSnapshot?: unknown }).questionSnapshot
+                        : undefined;
+                    const hasAuthoritativeSnapshot = storedSnapshot && typeof storedSnapshot === 'object'
+                        && !Array.isArray(storedSnapshot)
+                        && Object.keys(storedSnapshot).length > 2;
+                    const canUseCurrentPresentation = hasAuthoritativeValidation && Boolean(hasAuthoritativeSnapshot);
                     const localReview = buildQuestionAnswerReview(
                         question,
                         unwrapStoredResultAnswer(storedAnswer),
@@ -100,8 +114,11 @@ const ReviewTab: React.FC<ReviewTabProps> = ({ quiz, result, answers, initialFil
                             status: outcome === 'incorrect' ? 'wrong' : outcome,
                             isCorrect: outcome === 'correct',
                         },
+                        { source: canUseCurrentPresentation ? 'submission' : 'legacy-unverified' },
                     );
-                    const review = serverReview ?? localReview;
+                    const review = serverReview?.presentation?.type === 'UNSUPPORTED' && canUseCurrentPresentation
+                        ? localReview
+                        : serverReview ?? localReview;
                     const questionText = (question as any).question
                         || (question as any).mainQuestion
                         || (question as any).questionText

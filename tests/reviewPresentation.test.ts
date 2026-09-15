@@ -201,6 +201,30 @@ describe('review presentation contract', () => {
     expect(presentation.items[1]).not.toHaveProperty('studentValue');
   });
 
+  it('keeps true/false statement order when ids are numeric-like', () => {
+    const presentation = presentationOf(buildQuestionAnswerPresentation({
+      id: 'numeric-true-false',
+      type: 'TRUE_FALSE',
+      items: [
+        { id: '2', statement: 'Mệnh đề thứ nhất.', isCorrect: true },
+        { id: '1', statement: 'Mệnh đề thứ hai.', isCorrect: false },
+      ],
+    }, { '2': true, '1': false }, {
+      questionId: 'numeric-true-false',
+      type: 'TRUE_FALSE',
+      status: 'correct',
+      isCorrect: true,
+    }, { source: 'submission' }));
+
+    expect(presentation).toMatchObject({
+      type: 'TRUE_FALSE',
+      items: [
+        { id: '2', statement: 'Mệnh đề thứ nhất.', correctValue: true },
+        { id: '1', statement: 'Mệnh đề thứ hai.', correctValue: false },
+      ],
+    });
+  });
+
   it('uses unknown when the normalized question contract cannot supply authoritative data', () => {
     const presentation = presentationOf(buildQuestionAnswerPresentation({
       id: 'unknown-question',
