@@ -30,8 +30,9 @@ describe('Public home and login flow', () => {
     cy.get('#login-title').should('have.text', 'Chào mừng bạn trở lại').and('be.visible');
     cy.get('[role="group"][aria-label="Chọn vai trò đăng nhập"]').within(() => {
       cy.contains('button', 'Học sinh').should('have.attr', 'aria-pressed', 'true');
-      cy.contains('button', 'Giáo viên').click().should('have.attr', 'aria-pressed', 'true');
+      cy.contains('button', 'Giáo viên').click();
     });
+    cy.contains('button', 'Giáo viên').should('have.attr', 'aria-pressed', 'true');
 
     cy.get('#landing-login-username').should('have.attr', 'placeholder', 'Tài khoản giáo viên');
     cy.get('#landing-login-password').should('have.attr', 'type', 'password');
