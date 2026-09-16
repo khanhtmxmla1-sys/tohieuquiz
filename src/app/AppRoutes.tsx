@@ -95,11 +95,21 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
     const requestedLogin = loginParams.get('login');
     const hasExplicitLoginRequest = requestedLogin === 'student' || requestedLogin === 'teacher';
     const requestedReturnTo = loginParams.get('returnTo');
+    const requestedRole = requestedLogin === 'student' || requestedLogin === 'teacher' ? requestedLogin : null;
+    const hasStaleRoleReturnTo = requestedRole === 'teacher'
+        ? Boolean(classroomStore.studentSession && requestedReturnTo && requestedReturnTo.startsWith('/teacher/') && resolveSafeReturnTo(requestedReturnTo, 'teacher'))
+        : requestedRole === 'student'
+            ? Boolean(authStore.isLoggedIn && requestedReturnTo && requestedReturnTo.startsWith('/student/') && resolveSafeReturnTo(requestedReturnTo, 'student'))
+            : false;
     const explicitLoginDestination = requestedLogin === 'student' && classroomStore.studentSession
         ? resolveSafeReturnTo(requestedReturnTo, 'student') || '/student/dashboard'
         : requestedLogin === 'teacher' && authStore.isLoggedIn
             ? resolveSafeReturnTo(requestedReturnTo, 'teacher') || '/teacher/overview'
-            : null;
+            : hasStaleRoleReturnTo && classroomStore.studentSession
+                ? '/student/dashboard'
+                : hasStaleRoleReturnTo && authStore.isLoggedIn
+                    ? '/teacher/overview'
+                    : null;
     const onNavigate = (path: RoutePath) => navigate(path);
     const goBackHome = () => {
         quizStore.goHome();

@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import { useLocation } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { useAuthStore } from '../../../stores/authStore';
 import { useClassroomStore } from '../../stores/useClassroomStore';
 import { showError } from '../../utils/toast';
@@ -9,6 +9,7 @@ import { CriticalAlertStrip } from '../../features/notifications/components';
 import { useLoginNotificationSurfaces } from '../../features/notifications/useLoginNotificationSurfaces';
 import { useUnifiedNotificationsFeatureFlag } from '../../features/notifications/useUnifiedNotificationsFeatureFlag';
 import { authenticateTeacherWithPasskey, passkeysSupported } from '../../services/passkeyService';
+import { buildLoginRoleSwitch } from '../../app/navigationRoutes';
 
 import LandingHeader from './components/LandingHeader';
 import HeroSection from './components/HeroSection';
@@ -87,11 +88,26 @@ const writeSavedLoginState = (state: SavedLoginState) => {
 
 const LoginLandingPage: React.FC = () => {
     const location = useLocation();
-    const requestedRole = new URLSearchParams(location.search).get('login');
-    const [activeTab, setActiveTab] = useState<LoginRole>(requestedRole === 'teacher' ? 'teacher' : 'student');
+    const navigate = useNavigate();
+    const requestedLogin = new URLSearchParams(location.search).get('login');
+    const requestedRole: LoginRole | null = requestedLogin === 'teacher' || requestedLogin === 'student'
+        ? requestedLogin
+        : null;
+    const [savedLoginAtMount] = useState<SavedLoginState>(readSavedLoginState);
+    const [activeTab, setActiveTab] = useState<LoginRole>(
+        requestedRole || savedLoginAtMount.lastRole,
+    );
     const [drafts, setDrafts] = useState<Record<LoginRole, LoginDraft>>({
-        student: { username: '', password: '', rememberLogin: false },
-        teacher: { username: '', password: '', rememberLogin: false },
+        student: {
+            username: savedLoginAtMount.accounts.student?.username || '',
+            password: '',
+            rememberLogin: Boolean(savedLoginAtMount.accounts.student),
+        },
+        teacher: {
+            username: savedLoginAtMount.accounts.teacher?.username || '',
+            password: '',
+            rememberLogin: Boolean(savedLoginAtMount.accounts.teacher),
+        },
     });
     const [usernameError, setUsernameError] = useState<string | null>(null);
     const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -106,24 +122,7 @@ const LoginLandingPage: React.FC = () => {
     const { username, password, rememberLogin } = drafts[activeTab];
 
     useEffect(() => {
-        const saved = readSavedLoginState();
-        setDrafts((current) => ({
-            student: {
-                ...current.student,
-                username: saved.accounts.student?.username || '',
-                password: '',
-                rememberLogin: Boolean(saved.accounts.student),
-            },
-            teacher: {
-                ...current.teacher,
-                username: saved.accounts.teacher?.username || '',
-                password: '',
-                rememberLogin: Boolean(saved.accounts.teacher),
-            },
-        }));
-        if (requestedRole !== 'teacher' && requestedRole !== 'student') {
-            setActiveTab(saved.lastRole);
-        }
+        if (requestedRole) setActiveTab(requestedRole);
     }, [requestedRole]);
 
     const isLoading = activeTab === 'teacher' ? authStore.isLoggingIn : classroomStore.isLoading;
@@ -144,6 +143,7 @@ const LoginLandingPage: React.FC = () => {
     const handleRoleChange = (role: LoginRole) => {
         setActiveTab(role);
         clearErrors();
+        navigate(buildLoginRoleSwitch(role, location.search), { replace: true });
     };
 
     const persistSavedLoginAccount = () => {

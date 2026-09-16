@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const loginStudent = vi.hoisted(() => vi.fn());
@@ -38,8 +38,19 @@ import LoginLandingPage from '../src/components/HomePage/LoginLandingPage';
 const renderPage = (entry = '/') => render(
   <MemoryRouter initialEntries={[entry]}>
     <LoginLandingPage />
+    <LocationProbe />
   </MemoryRouter>,
 );
+const LocationProbe = () => {
+  const location = useLocation();
+  return (
+    <>
+      <div data-testid="location">{location.pathname}{location.search}</div>
+      <div data-testid="location-pathname">{location.pathname}</div>
+      <div data-testid="location-search">{location.search}</div>
+    </>
+  );
+};
 const usernameInput = () => screen.getByLabelText('Tên đăng nhập') as HTMLInputElement;
 const passwordInput = () => screen.getByLabelText('Mật khẩu') as HTMLInputElement;
 
@@ -62,6 +73,48 @@ describe('login landing state integrity', () => {
 
     fireEvent.change(usernameInput(), { target: { value: 'teacher.one' } });
     fireEvent.change(passwordInput(), { target: { value: 'teacher-secret' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Học sinh' }));
+    expect(usernameInput()).toHaveValue('student.one');
+    expect(passwordInput()).toHaveValue('student-secret');
+  });
+
+  it('syncs the URL role and removes an incompatible teacher returnTo when switching to student', () => {
+    renderPage('/?login=teacher&returnTo=%2Fteacher%2Foverview');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Học sinh' }));
+
+    const search = screen.getByTestId('location-search').textContent || '';
+    const params = new URLSearchParams(search);
+    expect(params.get('login')).toBe('student');
+    expect(params.get('returnTo')).toBeNull();
+  });
+
+  it('syncs the URL role and removes an incompatible student returnTo when switching to teacher', () => {
+    renderPage('/?login=student&returnTo=%2Fstudent%2Fdashboard');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Giáo viên' }));
+
+    const search = screen.getByTestId('location-search').textContent || '';
+    const params = new URLSearchParams(search);
+    expect(params.get('login')).toBe('teacher');
+    expect(params.get('returnTo')).toBeNull();
+  });
+
+  it('retains each role draft while switching through URL-synchronized login tabs', () => {
+    renderPage('/?login=teacher&returnTo=%2Fteacher%2Foverview');
+    fireEvent.change(usernameInput(), { target: { value: 'teacher.one' } });
+    fireEvent.change(passwordInput(), { target: { value: 'teacher-secret' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Học sinh' }));
+    expect(usernameInput()).toHaveValue('');
+    expect(passwordInput()).toHaveValue('');
+    fireEvent.change(usernameInput(), { target: { value: 'student.one' } });
+    fireEvent.change(passwordInput(), { target: { value: 'student-secret' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Giáo viên' }));
+    expect(usernameInput()).toHaveValue('teacher.one');
+    expect(passwordInput()).toHaveValue('teacher-secret');
+
     fireEvent.click(screen.getByRole('button', { name: 'Học sinh' }));
     expect(usernameInput()).toHaveValue('student.one');
     expect(passwordInput()).toHaveValue('student-secret');

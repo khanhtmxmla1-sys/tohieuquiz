@@ -144,3 +144,14 @@ export const buildLoginRedirect = (
   if (returnTo) params.set('returnTo', returnTo);
   return `/?${params.toString()}`;
 };
+
+export const buildLoginRoleSwitch = (
+  role: 'teacher' | 'student',
+  currentSearch: string,
+): string => {
+  const currentParams = new URLSearchParams(currentSearch);
+  const nextParams = new URLSearchParams({ login: role });
+  const returnTo = resolveSafeReturnTo(currentParams.get('returnTo'), role);
+  if (returnTo) nextParams.set('returnTo', returnTo);
+  return `/?${nextParams.toString()}`;
+};
