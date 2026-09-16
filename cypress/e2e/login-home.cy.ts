@@ -64,6 +64,67 @@ describe('Public home and login flow', () => {
     cy.get('#landing-login-password').should('have.value', '');
   });
 
+  it('clears a stale teacher return link when switching roles from a teacher deep link', () => {
+    cy.visit('/?login=teacher&returnTo=%2Fteacher%2Foverview');
+
+    cy.contains('button', 'Học sinh').click().should('have.attr', 'aria-pressed', 'true');
+    cy.location('search').then((search) => {
+      const params = new URLSearchParams(search);
+      expect(params.get('login')).to.equal('student');
+      expect(params.has('returnTo')).to.equal(false);
+    });
+    cy.get('#landing-login-username')
+      .should('have.attr', 'placeholder', 'Mã học sinh')
+      .and('have.value', '');
+    cy.get('#landing-login-password').should('have.attr', 'placeholder', 'Mật khẩu học sinh');
+
+    cy.contains('button', 'Giáo viên').click().should('have.attr', 'aria-pressed', 'true');
+    cy.location('search').then((search) => {
+      const params = new URLSearchParams(search);
+      expect(params.get('login')).to.equal('teacher');
+      expect(params.has('returnTo')).to.equal(false);
+    });
+    cy.get('#landing-login-username')
+      .should('have.attr', 'placeholder', 'Tài khoản giáo viên')
+      .and('have.value', '');
+    cy.get('#landing-login-password')
+      .should('have.attr', 'type', 'password')
+      .and('have.value', '');
+  });
+
+  it('clears a stale student return link when switching to the teacher role', () => {
+    cy.visit('/?login=student&returnTo=%2Fstudent%2Fdashboard');
+
+    cy.contains('button', 'Giáo viên').click().should('have.attr', 'aria-pressed', 'true');
+    cy.location('search').then((search) => {
+      const params = new URLSearchParams(search);
+      expect(params.get('login')).to.equal('teacher');
+      expect(params.has('returnTo')).to.equal(false);
+    });
+    cy.get('#landing-login-username').should('have.attr', 'placeholder', 'Tài khoản giáo viên');
+    cy.get('#landing-login-password').should('have.attr', 'type', 'password');
+  });
+
+  it('switches roles without preserving guarded return links in either direction', () => {
+    cy.visit('/?login=teacher&returnTo=%2Fteacher%2Foverview');
+
+    cy.contains('button', 'Học sinh').click();
+    cy.location('search')
+      .should('include', 'login=student')
+      .should('not.include', 'returnTo');
+
+    cy.contains('button', 'Giáo viên').click();
+    cy.location('search')
+      .should('include', 'login=teacher')
+      .should('not.include', 'returnTo');
+
+    cy.visit('/?login=student&returnTo=%2Fstudent%2Fdashboard');
+    cy.contains('button', 'Giáo viên').click();
+    cy.location('search')
+      .should('include', 'login=teacher')
+      .should('not.include', 'returnTo');
+  });
+
   it('submits the teacher login contract without using live credentials', () => {
     cy.intercept('POST', '**/api/login', (request) => {
       expect(request.body).to.deep.equal({ username: 'teacher.e2e', password: 'wrong-password' });
