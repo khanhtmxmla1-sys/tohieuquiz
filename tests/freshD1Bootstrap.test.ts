@@ -64,6 +64,9 @@ describe('fresh D1 bootstrap contract', () => {
       'student_reward_ledger',
       'student_weekly_subjects',
       'student_weekly_state',
+      'coin_award_batches',
+      'coin_award_settings',
+      'coin_award_setting_audit',
       'competition_campaigns',
       'competition_rounds',
       'competition_round_attempts',
@@ -131,8 +134,8 @@ describe('fresh D1 bootstrap contract', () => {
       'utf8',
     );
 
-    expect(migrationNames).toHaveLength(80);
-    expect(migrationNames.at(-1)).toBe('0081_competition_school_exam_admissions.sql');
+    expect(migrationNames).toHaveLength(81);
+    expect(migrationNames.at(-1)).toBe('0082_student_coin_awards.sql');
     for (const migrationName of migrationNames) {
       const escaped = migrationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       expect(registry.match(new RegExp(`'${escaped}'`, 'g'))).toHaveLength(1);
