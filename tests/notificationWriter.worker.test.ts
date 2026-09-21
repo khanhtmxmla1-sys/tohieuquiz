@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createNotification,
   createNotifications,
+  prepareMandatoryNotificationBatch,
 } from '../workers/src/services/notificationWriter';
 
 class WriterStatement {
@@ -62,6 +63,21 @@ const baseInput = {
 };
 
 describe('unified notification writer', () => {
+  it('exposes a mandatory batch statement that bypasses preference delivery decisions', async () => {
+    const db = new WriterDatabase();
+    const statement = prepareMandatoryNotificationBatch(db as any, [{
+      ...baseInput,
+      type: 'coin_awarded',
+      sourceType: 'coin_award',
+      sourceId: 'batch-1',
+      actionUrl: '/student/achievements?view=coin-history',
+    }]);
+
+    expect(statement.sql).toContain('json_each(?)');
+    expect(statement.bindings[0]).toContain('coin_awarded');
+    expect(statement.bindings[0]).toContain('coin_award');
+  });
+
   it('validates type, priority, severity, internal action URL and JSON payload', async () => {
     const db = new WriterDatabase();
 
