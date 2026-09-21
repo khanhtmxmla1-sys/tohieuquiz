@@ -54,6 +54,7 @@ import { handleNotificationRoutes } from './routes/notifications/route';
 import { handleClientErrorRoute } from './routes/clientErrors';
 import { handleClientTelemetryRoute } from './routes/clientTelemetry';
 import { handleActionCenterRoutes } from './routes/actionCenter';
+import { handleCoinAwardRoutes } from './routes/coinAwards';
 import { handleOperationsRoutes } from './routes/operations';
 import { Env } from './types';
 import { createWorkerFetch } from './router/createWorkerFetch';
@@ -109,6 +110,7 @@ const fetch = createWorkerFetch({
     handleClientErrorRoute,
     handleClientTelemetryRoute,
     handleActionCenterRoutes,
+    handleCoinAwardRoutes,
     handleOperationsRoutes,
     handlePhieuSubdomain,
     handlePublicPhieuApi,

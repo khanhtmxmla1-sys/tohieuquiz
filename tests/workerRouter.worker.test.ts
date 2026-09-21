@@ -46,6 +46,7 @@ const routeMocks = {
   handleClientErrorRoute: vi.fn(async () => null as Response | null),
   handleClientTelemetryRoute: vi.fn(async () => null as Response | null),
   handleActionCenterRoutes: vi.fn(async () => null as Response | null),
+  handleCoinAwardRoutes: vi.fn(async () => null as Response | null),
   handleOperationsRoutes: vi.fn(async () => null as Response | null),
   handlePhieuSubdomain: vi.fn(async () => null as Response | null),
   handlePublicPhieuApi: vi.fn(async () => null as Response | null),
@@ -365,6 +366,52 @@ describe('Worker root route dispatch', () => {
     expect(response.status).toBe(200);
     expect(routeMocks.handleOperationsRoutes).toHaveBeenCalledWith(
       expect.any(Request), env, '/api/admin/operations', 'GET',
+    );
+  });
+
+  it('dispatches staff and student coin-award namespaces through the authenticated route chain', async () => {
+    verifyTokenMock.mockReturnValue(null);
+    routeMocks.handleCoinAwardRoutes.mockResolvedValue(new Response('{}', { status: 200 }));
+
+    const staffResponse = await workerFetch(request('/api/coin-awards/history'), env);
+    expect(staffResponse.status).toBe(200);
+    expect(routeMocks.handleCoinAwardRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/coin-awards/history', 'GET',
+    );
+
+    routeMocks.handleCoinAwardRoutes.mockClear();
+    const studentResponse = await workerFetch(request('/api/student/coin-awards/history'), env);
+    expect(studentResponse.status).toBe(200);
+    expect(routeMocks.handleCoinAwardRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/student/coin-awards/history', 'GET',
+    );
+  });
+
+  it('fails closed before dispatching unsafe coin-award mutations when the rate-limit store is unavailable', async () => {
+    verifyTokenMock.mockReturnValue(null);
+    rateLimitMock.mockResolvedValueOnce(unavailable());
+
+    const response = await workerFetch(request('/api/coin-awards/batches', 'POST'), env);
+
+    expect(response.status).toBe(503);
+    expect(rateLimitMock).toHaveBeenCalledWith(
+      expect.any(Request),
+      env,
+      expect.objectContaining({ windowMs: 60 * 1000, maxRequests: 30, failureMode: 'closed' }),
+    );
+    expect(routeMocks.handleCoinAwardRoutes).not.toHaveBeenCalled();
+  });
+
+  it('does not apply the mutation limiter to coin-award history reads', async () => {
+    verifyTokenMock.mockReturnValue(null);
+    routeMocks.handleCoinAwardRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/coin-awards/history'), env);
+
+    expect(response.status).toBe(200);
+    expect(rateLimitMock).not.toHaveBeenCalled();
+    expect(routeMocks.handleCoinAwardRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/coin-awards/history', 'GET',
     );
   });
 

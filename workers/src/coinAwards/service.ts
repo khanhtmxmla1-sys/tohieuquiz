@@ -199,7 +199,7 @@ const makeNotifications = (
   createdAt: string,
 ) => recipients.map((student) => ({
   id: generateId('coin-notification'),
-  userId: student.username,
+  userId: student.id,
   userRole: 'student' as const,
   type: 'coin_awarded' as const,
   title: amount >= 0 ? `Bạn được ${actor.displayName} thưởng ${amount} xu` : `Xu của bạn đã được điều chỉnh ${amount} xu`,

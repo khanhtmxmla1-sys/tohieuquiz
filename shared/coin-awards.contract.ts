@@ -7,6 +7,8 @@ export type CoinAwardBatchKind = 'AWARD' | 'REVERSAL' | 'ADJUSTMENT';
 
 export type CoinAwardErrorCode =
   | 'FEATURE_DISABLED'
+  | 'SETTINGS_NOT_FOUND'
+  | 'SETTINGS_CONFLICT'
   | 'INVALID_AMOUNT'
   | 'INVALID_REASON'
   | 'INVALID_RECIPIENT_COUNT'

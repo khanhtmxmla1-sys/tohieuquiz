@@ -111,7 +111,7 @@ beforeEach(() => {
     INSERT INTO classes(id, name, teacher_username, created_at) VALUES
       ('class-a', 'Lớp A', 'teacher-a', '2026-01-01'), ('class-b', 'Lớp B', 'teacher-b', '2026-01-01');
     INSERT INTO students(id, full_name, username, class_id, coins, created_at) VALUES
-      ('student-a', 'Học sinh A', 'student-a', 'class-a', 100, '2026-01-01'),
+      ('student-a', 'Học sinh A', 'student-a-login', 'class-a', 100, '2026-01-01'),
       ('student-b', 'Học sinh B', 'student-b', 'class-a', 100, '2026-01-01'),
       ('student-c', 'Học sinh C', 'student-c', 'class-a', 100, '2026-01-01'),
       ('student-other', 'Học sinh khác', 'student-other', 'class-b', 100, '2026-01-01'),
@@ -131,6 +131,7 @@ describe('student coin award domain service', () => {
     expect(sqlite.prepare(`SELECT coins FROM students WHERE id='student-a'`).get()).toEqual({ coins: 120 });
     expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger WHERE source_type='MANUAL_AWARD'`).get()).toEqual({ count: 1 });
     expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM notifications WHERE type='coin_awarded'`).get()).toEqual({ count: 1 });
+    expect(sqlite.prepare(`SELECT user_id FROM notifications WHERE type='coin_awarded'`).get()).toEqual({ user_id: 'student-a' });
   });
 
   it('previews the normalized batch without changing the wallet or ledger', async () => {
