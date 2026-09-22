@@ -301,6 +301,17 @@ describe('CoinAwardsPage', () => {
     expect(await screen.findByText('Đã cộng +40 xu')).toBeInTheDocument();
   });
 
+  it('formats history and receipt timestamps in Hanoi time across a UTC date boundary', async () => {
+    const boundaryReceipt = { ...receipt, createdAt: '2026-09-20T23:30:00.000Z' };
+    useCoinAwardsStore.setState({ view: 'history', receipt: boundaryReceipt });
+    service.listAwardHistory.mockResolvedValue({ items: [boundaryReceipt], nextCursor: null });
+
+    render(<CoinAwardsPage />);
+
+    expect(await screen.findByText('Lớp 4A · 21/09/2026 06:30')).toBeInTheDocument();
+    expect(screen.getByText('Thời gian: 21/09/2026 06:30')).toBeInTheDocument();
+  });
+
   it('previews a single student award before mutation and shows the remaining allowance', async () => {
     render(<CoinAwardsPage initialClassId="class-1" initialStudentIds={['s-1']} />);
     await screen.findByLabelText('Lý do');
@@ -655,7 +666,7 @@ describe('CoinAwardsPage', () => {
     act(() => useCoinAwardsStore.setState({ receipt: { ...receipt, kind: 'REVERSAL', totalCoins: -40 } }));
     expect(await screen.findByText('Đã hoàn tác -40 xu')).toBeInTheDocument();
     expect(screen.getByText(/Người thực hiện: Cô A/)).toBeInTheDocument();
-    expect(screen.getByText(/21\/9\/2026/)).toBeInTheDocument();
+    expect(screen.getByText(/21\/09\/2026 07:00/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Hoàn tác/ })).not.toBeInTheDocument();
     act(() => useCoinAwardsStore.setState({ receipt: { ...receipt, kind: 'ADJUSTMENT', totalCoins: -40, reversalExpiresAt: null } }));
     expect(await screen.findByText('Đã điều chỉnh -40 xu')).toBeInTheDocument();

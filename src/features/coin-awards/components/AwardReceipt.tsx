@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CoinAwardReceipt } from '../../../../shared/coin-awards.contract';
+import { formatSystemDateTime } from '../../../utils/dateTime';
 
 interface AwardReceiptProps {
   receipt: CoinAwardReceipt;
@@ -36,7 +37,7 @@ export const AwardReceipt = ({ receipt, submitting, onReverse }: AwardReceiptPro
       <p className="mt-1 text-sm text-emerald-800">Batch {receipt.batchId} · {receipt.recipientCount} học sinh · {receipt.coinsPerStudent} xu/người</p>
       <p className="mt-3 text-sm text-emerald-900">Lý do: {receipt.reason}</p>
       <p className="mt-2 text-sm text-emerald-900">Người thực hiện: {receipt.actorDisplayName} ({receipt.actorUsername})</p>
-      <p className="mt-1 text-xs text-emerald-800">Thời gian: {new Date(receipt.createdAt).toLocaleString('vi-VN')}</p>
+      <p className="mt-1 text-xs text-emerald-800">Thời gian: {formatSystemDateTime(receipt.createdAt)}</p>
       {reversalEligible && (
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <label className="text-sm font-medium text-emerald-950">Lý do hoàn tác

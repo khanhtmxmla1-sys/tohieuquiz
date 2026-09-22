@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { CoinAwardHistoryEntry } from '../../../../shared/coin-awards.contract';
 import type { CoinAwardAdjustmentInput } from '../coinAwardsService';
+import { formatSystemDateTime } from '../../../utils/dateTime';
 import { useModalFocusTrap } from './useModalFocusTrap';
 
 interface AwardHistoryProps {
@@ -82,7 +83,7 @@ export const AwardHistory = ({ items, loading, nextCursor, onLoadMore, isAdmin, 
               <div>
                 <p className="font-semibold text-slate-900">{item.kind === 'AWARD' ? '+' : '-'}{Math.abs(item.totalCoins)} xu · {item.recipientCount} học sinh</p>
                 <p className="mt-1 text-sm text-slate-600">{item.reason}</p>
-                <p className="mt-1 text-xs text-slate-500">{item.className || 'Toàn trường'} · {new Date(item.createdAt).toLocaleString('vi-VN')}</p>
+                <p className="mt-1 text-xs text-slate-500">{item.className || 'Toàn trường'} · {formatSystemDateTime(item.createdAt)}</p>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs font-medium text-slate-500">{item.kind === 'AWARD' ? 'Đã cộng' : item.kind === 'REVERSAL' ? 'Đã hoàn tác' : 'Đã điều chỉnh'}</span>
