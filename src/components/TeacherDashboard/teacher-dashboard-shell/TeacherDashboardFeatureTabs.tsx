@@ -17,6 +17,7 @@ import {
   SystemQuestionBankAdminPage,
   TeacherCertificatesPage,
   TeacherManagementTab,
+  CoinAwardsPage,
 } from './dashboardLazyTabs';
 
 interface TeacherDashboardFeatureTabsProps {
@@ -61,5 +62,6 @@ export const TeacherDashboardFeatureTabs = (props: TeacherDashboardFeatureTabsPr
     {props.activeTab === 'math-audit' && props.isAdmin && <MathAuditPage />}
     {props.activeTab === 'operations' && props.isAdmin && <OperationsCenterPage />}
     {props.activeTab === 'system-question-bank' && props.isAdmin && <SystemQuestionBankAdminGate />}
+    {props.activeTab === 'coin-awards' && <CoinAwardsPage />}
   </>
 );

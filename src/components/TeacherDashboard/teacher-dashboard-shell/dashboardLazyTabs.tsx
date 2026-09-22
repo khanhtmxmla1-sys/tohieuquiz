@@ -21,3 +21,4 @@ export const MathAuditPage = React.lazy(() => import('../../../features/math-aud
 export const OperationsCenterPage = React.lazy(() => import('../../../features/operations/OperationsCenterPage'));
 export const SystemQuestionBankAdminPage = React.lazy(() => import('../../../features/question-bank/SystemQuestionBankAdminPage'));
 export const PersonalSettingsTab = React.lazy(() => import('../PersonalSettingsTab'));
+export const CoinAwardsPage = React.lazy(() => import('../../../features/coin-awards/CoinAwardsPage'));

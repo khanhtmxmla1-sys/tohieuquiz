@@ -14,6 +14,7 @@ import {
 } from '../../../stores/useTeacherDashboardUIStore';
 import { isManualQuizWorkspaceEnabled } from '../../../config/featureFlags';
 import { useCompetitionV1FeatureFlag } from '../../../features/competition/useCompetitionV1FeatureFlag';
+import { useCoinAwardsFeatureFlag } from '../../../features/coin-awards/useCoinAwardsFeatureFlag';
 import { buildManualQuizSeed } from '../../../features/manual-quiz-workspace/domain/manualQuizSeed';
 import { useManualQuizWorkspaceStore } from '../../../features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 import { TeacherDashboardLayout } from './TeacherDashboardLayout';
@@ -44,6 +45,8 @@ const TeacherDashboard = () => {
   const manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled();
   const competitionFlag = useCompetitionV1FeatureFlag();
   const competitionEnabled = competitionFlag.ready && competitionFlag.enabled;
+  const coinAwardsFlag = useCoinAwardsFeatureFlag();
+  const coinAwardsEnabled = coinAwardsFlag.ready && coinAwardsFlag.enabled;
   const activeTab = isDashboardTabAllowed(requestedTab, authStore.isAdmin, giftShopEnabled, competitionEnabled)
     ? requestedTab
     : 'overview';
@@ -91,6 +94,7 @@ const TeacherDashboard = () => {
     isAdmin: authStore.isAdmin,
     giftShopEnabled,
     competitionEnabled,
+    coinAwardsEnabled,
   });
   const accessCode = useAccessCodeEditor();
   const runLegacyLogout = useTeacherLogout(setLegacyActiveTab, clearAssignmentComposerDraft);

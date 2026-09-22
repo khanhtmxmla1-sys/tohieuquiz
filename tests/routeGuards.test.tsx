@@ -100,11 +100,13 @@ describe('URL navigation contracts', () => {
     expect(getTeacherRoute('live-exam')).toBe('/teacher/live-exams');
     expect(getTeacherRoute('gift-shop')).toBe('/teacher/gift-shop');
     expect(getTeacherRoute('system-question-bank')).toBe('/teacher/system-question-bank');
+    expect(getTeacherRoute('coin-awards')).toBe('/teacher/coin-awards');
     expect(getTeacherRoute('feature-rollout')).toBe('/teacher/feature-rollout');
     expect(getTeacherRoute('login-media')).toBe('/teacher/login-media');
     expect(resolveTeacherTabFromLocation('/teacher/system-question-bank', '')).toBe('system-question-bank');
     expect(resolveTeacherTabFromLocation('/teacher/feature-rollout', '')).toBe('feature-rollout');
     expect(resolveTeacherTabFromLocation('/teacher/login-media', '')).toBe('login-media');
+    expect(resolveTeacherTabFromLocation('/teacher/coin-awards', '')).toBe('coin-awards');
     expect(resolveTeacherTabFromLocation('/teacher/quizzes', '?mode=create')).toBe('create');
     expect(resolveTeacherTabFromLocation('/teacher/unknown', '')).toBe('overview');
   });
