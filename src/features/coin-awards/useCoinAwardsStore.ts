@@ -15,6 +15,14 @@ import type {
 
 export type CoinAwardsView = 'award' | 'history' | 'settings';
 
+export interface CoinAwardPrefill {
+  token: string;
+  actorUsername: string;
+  classId: string;
+  studentIds: string[];
+  selectionMode: 'SELECTED';
+}
+
 export interface CoinAwardsState {
   view: CoinAwardsView;
   submitting: boolean;
@@ -24,9 +32,12 @@ export interface CoinAwardsState {
   history: CoinAwardHistoryEntry[];
   nextCursor: string | null;
   settings: CoinAwardSettings | null;
+  awardPrefill: CoinAwardPrefill | null;
   error: string | null;
   idempotencyKey: string;
   setView(view: CoinAwardsView): void;
+  setAwardPrefill(prefill: CoinAwardPrefill | null): void;
+  consumeAwardPrefill(token?: string | null, actorUsername?: string | null): CoinAwardPrefill | null;
   cancelAward(): void;
   submitAward(input: Omit<CoinAwardCreateInput, 'idempotencyKey'>): Promise<CoinAwardReceipt | null>;
   previewAward(input: Omit<CoinAwardCreateInput, 'idempotencyKey'>): Promise<CoinAwardPreview | null>;
@@ -75,6 +86,7 @@ const initialState = {
   history: [] as CoinAwardHistoryEntry[],
   nextCursor: null,
   settings: null,
+  awardPrefill: null,
   error: null,
   idempotencyKey: createIdempotencyKey(),
 };
@@ -85,6 +97,26 @@ export const useCoinAwardsStore = create<CoinAwardsState>((set, get) => ({
   ...initialState,
 
   setView: (view) => set({ view }),
+
+  setAwardPrefill: (prefill) => set({
+    awardPrefill: prefill
+      ? { ...prefill, studentIds: Array.from(new Set(prefill.studentIds)) }
+      : null,
+  }),
+
+  consumeAwardPrefill: (token, actorUsername) => {
+    const prefill = get().awardPrefill;
+    if (!prefill) return null;
+    let consumed: CoinAwardPrefill | null = null;
+    set((state) => {
+      const current = state.awardPrefill;
+      if (current && token && actorUsername && current.token === token && current.actorUsername === actorUsername) {
+        consumed = { ...current, studentIds: [...current.studentIds] };
+      }
+      return { awardPrefill: null };
+    });
+    return consumed;
+  },
 
   cancelAward: () => {
     if (get().submitting) return;

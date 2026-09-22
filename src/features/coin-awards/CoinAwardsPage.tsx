@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 import type { CoinAwardCreateInput } from '../../../shared/coin-awards.contract';
 import { useAuthStore } from '../../../stores/authStore';
 import { useClassStore } from '../../stores/useClassStore';
 import { useCoinAwardsFeatureFlag } from './useCoinAwardsFeatureFlag';
-import { useCoinAwardsStore } from './useCoinAwardsStore';
+import { useCoinAwardsStore, type CoinAwardPrefill } from './useCoinAwardsStore';
 import { AwardComposer, type CoinAwardDraft } from './components/AwardComposer';
 import { AwardHistory } from './components/AwardHistory';
 import { AwardReceipt } from './components/AwardReceipt';
@@ -14,6 +15,10 @@ export interface CoinAwardsPageProps {
   initialStudentIds?: string[];
 }
 
+interface CoinAwardNavigationState {
+  coinAwardPrefillToken?: string;
+}
+
 const toStoreInput = (draft: CoinAwardDraft): Omit<CoinAwardCreateInput, 'idempotencyKey'> => draft;
 
 const CoinAwardsPage = ({ initialClassId, initialStudentIds = [] }: CoinAwardsPageProps) => {
@@ -21,11 +26,24 @@ const CoinAwardsPage = ({ initialClassId, initialStudentIds = [] }: CoinAwardsPa
   const authStore = useAuthStore();
   const classStore = useClassStore();
   const store = useCoinAwardsStore();
+  const location = useLocation();
   const settingsLoadStartedRef = useRef(false);
+  const prefillConsumedRef = useRef(false);
+  const [rosterPrefill, setRosterPrefill] = useState<CoinAwardPrefill | null>(null);
   const startSettingsLoad = useCallback(() => {
     settingsLoadStartedRef.current = true;
     void store.loadSettings();
   }, [store.loadSettings]);
+
+  useEffect(() => {
+    if (prefillConsumedRef.current) return;
+    prefillConsumedRef.current = true;
+    const navigationState = location.state as CoinAwardNavigationState | null;
+    const navigationToken = navigationState?.coinAwardPrefillToken || null;
+    const actorUsername = authStore.username?.trim() || null;
+    const prefill = store.consumeAwardPrefill(navigationToken, actorUsername);
+    if (prefill) setRosterPrefill(prefill);
+  }, [authStore.username, location.state, store.consumeAwardPrefill]);
 
   useEffect(() => {
     if (flag.ready && flag.enabled && authStore.isAdmin) void classStore.fetchClasses();
@@ -36,8 +54,10 @@ const CoinAwardsPage = ({ initialClassId, initialStudentIds = [] }: CoinAwardsPa
     : authStore.teacherClasses.length > 0
     ? authStore.teacherClasses
     : (authStore.teacherClass ? [{ id: authStore.teacherClass, name: authStore.teacherClass }] : []);
-  const resolvedClasses = initialClassId && !classes.some((item) => item.id === initialClassId)
-    ? [...classes, { id: initialClassId, name: initialClassId }]
+  const resolvedClassId = rosterPrefill?.classId ?? initialClassId;
+  const resolvedStudentIds = rosterPrefill?.studentIds ?? initialStudentIds;
+  const resolvedClasses = resolvedClassId && !classes.some((item) => item.id === resolvedClassId)
+    ? [...classes, { id: resolvedClassId, name: resolvedClassId }]
     : classes;
   const settingsReady = Boolean(store.settings?.updatedAt?.trim());
 
@@ -98,7 +118,7 @@ const CoinAwardsPage = ({ initialClassId, initialStudentIds = [] }: CoinAwardsPa
       )}
       {store.view === 'award' && settingsReady && store.settings && (
         <>
-          <AwardComposer classes={resolvedClasses} initialClassId={initialClassId} initialStudentIds={initialStudentIds} settings={store.settings} submitting={store.submitting} onPreview={(draft) => store.previewAward(toStoreInput(draft))} onSubmit={submitAward} />
+          <AwardComposer classes={resolvedClasses} initialClassId={resolvedClassId} initialStudentIds={resolvedStudentIds} initialSelectionMode={rosterPrefill?.selectionMode} settings={store.settings} submitting={store.submitting} onPreview={(draft) => store.previewAward(toStoreInput(draft))} onSubmit={submitAward} />
         </>
       )}
       {store.view === 'history' && <AwardHistory items={store.history} loading={store.loadingHistory} nextCursor={store.nextCursor} isAdmin={authStore.isAdmin} onLoadMore={store.loadMoreHistory} onAdjust={adjustBatch} />}

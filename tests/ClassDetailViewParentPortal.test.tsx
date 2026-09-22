@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 const fixtures = vi.hoisted(() => ({
@@ -28,7 +29,7 @@ import { ClassDetailView } from '../src/features/class-management/views/ClassDet
 
 describe('ClassDetailView Parent Portal integration', () => {
   it('owns the modal state and renders class communication separately', () => {
-    render(<ClassDetailView classroom={{ id: 'class-1', name: '4A9', teacherUsername: 'teacher-a', createdAt: '2026-07-22' }} onBack={vi.fn()} />);
+    render(<MemoryRouter><ClassDetailView classroom={{ id: 'class-1', name: '4A9', teacherUsername: 'teacher-a', createdAt: '2026-07-22' }} onBack={vi.fn()} /></MemoryRouter>);
     expect(screen.getByText('parent-communication-class-1')).toBeInTheDocument();
     expect(document.querySelector('[data-module-icon="students"]')).toBeInTheDocument();
     fireEvent.click(screen.getByText('open-parent-access'));

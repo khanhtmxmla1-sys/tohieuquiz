@@ -13,6 +13,7 @@ interface AwardComposerProps {
   classes: Array<{ id: string; name: string }>;
   initialClassId?: string;
   initialStudentIds?: string[];
+  initialSelectionMode?: CoinAwardSelectionMode;
   settings: CoinAwardSettings | null;
   submitting: boolean;
   onPreview: (draft: CoinAwardDraft) => Promise<CoinAwardPreview | null>;
@@ -30,6 +31,7 @@ export const AwardComposer = ({
   classes,
   initialClassId,
   initialStudentIds = [],
+  initialSelectionMode,
   settings,
   submitting,
   onPreview,
@@ -38,7 +40,7 @@ export const AwardComposer = ({
   const fallbackClassId = initialClassId || classes[0]?.id || '';
   const [classId, setClassId] = useState(fallbackClassId);
   const [selectionMode, setSelectionMode] = useState<CoinAwardSelectionMode>(
-    initialStudentIds.length === 1 ? 'STUDENT' : 'SELECTED',
+    initialSelectionMode ?? (initialStudentIds.length === 1 ? 'STUDENT' : 'SELECTED'),
   );
   const [studentIdsText, setStudentIdsText] = useState(initialStudentIds.join(', '));
   const [coinsPerStudent, setCoinsPerStudent] = useState(10);
@@ -61,6 +63,10 @@ export const AwardComposer = ({
   useEffect(() => {
     if (initialStudentIds.length > 0) setStudentIdsText(initialStudentIds.join(', '));
   }, [initialStudentIds]);
+
+  useEffect(() => {
+    if (initialSelectionMode) setSelectionMode(initialSelectionMode);
+  }, [initialSelectionMode]);
 
   useEffect(() => {
     submittingRef.current = submitting;

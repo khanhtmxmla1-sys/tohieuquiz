@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CoinAwardHistoryPage, CoinAwardReceipt } from '../shared/coin-awards.contract';
 
@@ -18,10 +19,14 @@ const service = vi.hoisted(() => ({
 const classroomService = vi.hoisted(() => ({
   getClasses: vi.fn(),
 }));
+const router = vi.hoisted(() => ({
+  location: { pathname: '/teacher/coin-awards', state: null as unknown },
+}));
 
 vi.mock('../src/features/coin-awards/useCoinAwardsFeatureFlag', () => featureFlag);
 vi.mock('../src/features/coin-awards/coinAwardsService', () => service);
 vi.mock('../src/services/classroomService', () => classroomService);
+vi.mock('react-router', () => ({ useLocation: () => router.location }));
 
 import CoinAwardsPage from '../src/features/coin-awards/CoinAwardsPage';
 import { useCoinAwardsStore } from '../src/features/coin-awards/useCoinAwardsStore';
@@ -87,11 +92,106 @@ describe('CoinAwardsPage', () => {
       reversalWindowMinutes: 15, updatedBy: 'admin', updatedAt: '2026-09-21T00:00:00.000Z',
     });
     resetStore();
+    router.location = { pathname: '/teacher/coin-awards', state: null };
     useAuthStore.setState({
       isAdmin: false,
+      username: 'teacher-a',
       teacherClasses: [{ id: 'class-1', name: 'Lớp 4A' }],
     });
     useClassStore.setState({ classes: [], isLoading: false, error: null, lastUpdatedAt: null });
+  });
+
+  it('consumes a matching roster prefill exactly once and preserves SELECTED for one student', async () => {
+    useCoinAwardsStore.setState({
+      awardPrefill: {
+        token: 'prefill-token-1',
+        actorUsername: 'teacher-a',
+        classId: 'class-1',
+        studentIds: ['s-1'],
+        selectionMode: 'SELECTED',
+      },
+    });
+    router.location = {
+      pathname: '/teacher/coin-awards',
+      state: { coinAwardPrefillToken: 'prefill-token-1' },
+    };
+
+    const { rerender } = render(<React.StrictMode><CoinAwardsPage /></React.StrictMode>);
+    await screen.findByLabelText('Lý do');
+
+    expect(screen.getByLabelText('Kiểu người nhận')).toHaveValue('SELECTED');
+    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('s-1');
+    expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
+
+    rerender(<React.StrictMode><CoinAwardsPage /></React.StrictMode>);
+    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('s-1');
+    expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
+  });
+
+  it('syncs the roster selection mode when settings are already cached before the prefill arrives', async () => {
+    useCoinAwardsStore.setState({
+      settings: {
+        scopeKey: 'school', maxCoinsPerStudent: 100, maxTeacherDailyCoins: 2000,
+        reversalWindowMinutes: 15, updatedBy: 'admin', updatedAt: '2026-09-21T00:00:00.000Z',
+      },
+      awardPrefill: {
+        token: 'prefill-token-cached-settings',
+        actorUsername: 'teacher-a',
+        classId: 'class-1',
+        studentIds: ['s-1'],
+        selectionMode: 'SELECTED',
+      },
+    });
+    router.location = {
+      pathname: '/teacher/coin-awards',
+      state: { coinAwardPrefillToken: 'prefill-token-cached-settings' },
+    };
+
+    render(<CoinAwardsPage initialClassId="class-1" initialStudentIds={['legacy-student']} />);
+    await screen.findByLabelText('Lý do');
+
+    expect(screen.getByLabelText('Kiểu người nhận')).toHaveValue('SELECTED');
+    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('s-1');
+  });
+
+  it('discards a mismatched actor prefill and never exposes its student ids', async () => {
+    useCoinAwardsStore.setState({
+      awardPrefill: {
+        token: 'prefill-token-actor',
+        actorUsername: 'teacher-b',
+        classId: 'class-1',
+        studentIds: ['s-1'],
+        selectionMode: 'SELECTED',
+      },
+    });
+    router.location = {
+      pathname: '/teacher/coin-awards',
+      state: { coinAwardPrefillToken: 'prefill-token-actor' },
+    };
+
+    render(<CoinAwardsPage />);
+    await screen.findByLabelText('Lý do');
+
+    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('');
+    expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
+  });
+
+  it('clears an unconsumed prefill on a manual visit without navigation token', async () => {
+    useCoinAwardsStore.setState({
+      awardPrefill: {
+        token: 'prefill-token-manual',
+        actorUsername: 'teacher-a',
+        classId: 'class-1',
+        studentIds: ['s-1'],
+        selectionMode: 'SELECTED',
+      },
+    });
+
+    render(<CoinAwardsPage />);
+    await screen.findByLabelText('Lý do');
+
+    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('');
+    expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
   });
 
   it('shows presets and a normalized selected-recipient summary', async () => {

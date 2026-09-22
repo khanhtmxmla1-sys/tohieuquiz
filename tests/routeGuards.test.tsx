@@ -239,6 +239,20 @@ describe('URL navigation contracts', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/teacher/classes');
   });
 
+  it('renders an authenticated teacher coin-awards deep link through the protected dashboard route', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'teacher.one',
+      teacherName: 'Giáo viên Một',
+    });
+
+    renderRoutes('/teacher/coin-awards');
+
+    expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/teacher/coin-awards');
+  });
+
   it('redirects a non-admin teacher away from the internal design system', async () => {
     useAuthStore.setState({
       status: 'authenticated',

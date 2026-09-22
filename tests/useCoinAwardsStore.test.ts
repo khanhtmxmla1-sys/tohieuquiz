@@ -53,9 +53,10 @@ const reset = () => {
     receipt: null,
     history: [],
     nextCursor: null,
-    settings: null,
-    error: null,
-    idempotencyKey: 'test-key-1',
+  settings: null,
+  error: null,
+  idempotencyKey: 'test-key-1',
+  awardPrefill: null,
   });
 };
 
@@ -70,6 +71,45 @@ afterEach(() => {
 });
 
 describe('useCoinAwardsStore', () => {
+  it('atomically stores and consumes one-time roster prefill state', () => {
+    const prefill = {
+      token: 'prefill-token-1',
+      actorUsername: 'teacher-a',
+      classId: 'class-1',
+      studentIds: ['student-1', 'student-2'],
+      selectionMode: 'SELECTED' as const,
+    };
+
+    useCoinAwardsStore.getState().setAwardPrefill(prefill);
+    expect(useCoinAwardsStore.getState().awardPrefill).toEqual(prefill);
+    expect(useCoinAwardsStore.getState().consumeAwardPrefill('prefill-token-1', 'teacher-a')).toEqual(prefill);
+    expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
+    expect(useCoinAwardsStore.getState().consumeAwardPrefill('prefill-token-1', 'teacher-a')).toBeNull();
+  });
+
+  it('discards a stale or cross-session prefill when its token or actor does not match', () => {
+    useCoinAwardsStore.getState().setAwardPrefill({
+      token: 'prefill-token-stale',
+      actorUsername: 'teacher-a',
+      classId: 'class-1',
+      studentIds: ['student-1'],
+      selectionMode: 'SELECTED',
+    });
+
+    expect(useCoinAwardsStore.getState().consumeAwardPrefill('different-token', 'teacher-a')).toBeNull();
+    expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
+
+    useCoinAwardsStore.getState().setAwardPrefill({
+      token: 'prefill-token-other-actor',
+      actorUsername: 'teacher-b',
+      classId: 'class-1',
+      studentIds: ['student-1'],
+      selectionMode: 'SELECTED',
+    });
+    expect(useCoinAwardsStore.getState().consumeAwardPrefill('prefill-token-other-actor', 'teacher-a')).toBeNull();
+    expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
+  });
+
   it('locks concurrent submissions and keeps the same key after a failed request', async () => {
     let release: ((value: never) => void) | undefined;
     service.createAward.mockImplementation(() => new Promise((resolve, reject) => {
