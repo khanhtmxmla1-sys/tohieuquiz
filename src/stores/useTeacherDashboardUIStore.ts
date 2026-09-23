@@ -26,6 +26,7 @@ const TEACHER_DASHBOARD_TABS = [
     'operations',
     'system-question-bank',
     'personal-settings',
+    'coin-awards',
 ] as const;
 
 export type TeacherDashboardTab = typeof TEACHER_DASHBOARD_TABS[number];

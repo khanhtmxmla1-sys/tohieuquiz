@@ -42,6 +42,7 @@ export const DASHBOARD_SEARCH_ITEMS: DashboardSearchDestination[] = [
   { id: 'feature-rollout', kind: 'tab', tab: 'feature-rollout', label: 'Tính năng thử nghiệm', keywords: 'feature rollout bật tắt tính năng thử nghiệm' },
   { id: 'login-media', kind: 'tab', tab: 'login-media', label: 'Banner đăng nhập', keywords: 'banner đăng nhập truyền thông hình ảnh login media' },
   { id: 'operations', kind: 'tab', tab: 'operations', label: 'Operations Center', keywords: 'health dependency operations request id release' },
+  { id: 'coin-awards', kind: 'tab', tab: 'coin-awards', label: 'Thưởng xu', keywords: 'học sinh cộng xu phần thưởng động lực' },
 ];
 
 export const isGiftShopFeatureEnabled = () => String(

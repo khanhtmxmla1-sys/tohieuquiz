@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, UserPlus, Loader2, Search, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { Classroom, CreateStudentPayload } from '../types';
 import { Button, ModuleIcon } from '../../../components/common';
 import { StudentTable } from '../components/StudentTable';
@@ -9,6 +10,10 @@ import ParentCommunicationPanel from '../components/ParentCommunicationPanel';
 import { useRosterStore } from '../../../stores/useRosterStore';
 import { showSuccess, showError } from '../../../utils/toast';
 import type { Student } from '../types';
+import { getTeacherRoute } from '../../../app/navigationRoutes';
+import { useCoinAwardsFeatureFlag } from '../../coin-awards/useCoinAwardsFeatureFlag';
+import { useCoinAwardsStore } from '../../coin-awards/useCoinAwardsStore';
+import { useAuthStore } from '../../../../stores/authStore';
 
 interface ClassDetailViewProps {
     classroom: Classroom;
@@ -16,9 +21,22 @@ interface ClassDetailViewProps {
     isOnline?: boolean;
 }
 
+let fallbackCoinAwardPrefillToken = 0;
+const EMPTY_STUDENT_ROSTER: Student[] = [];
+
+const createCoinAwardPrefillToken = (): string => {
+    const uuid = globalThis.crypto?.randomUUID?.();
+    if (uuid) return `coin-award-prefill-${uuid}`;
+    fallbackCoinAwardPrefillToken += 1;
+    return `coin-award-prefill-fallback-${fallbackCoinAwardPrefillToken}`;
+};
+
 export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onBack, isOnline = true }) => {
     const store = useRosterStore();
-    const students = store.students[classroom.id] || [];
+    const authStore = useAuthStore();
+    const navigate = useNavigate();
+    const coinAwardsFlag = useCoinAwardsFeatureFlag();
+    const students = store.students[classroom.id] || EMPTY_STUDENT_ROSTER;
     const isLoadingStudents = store.isLoading;
     
     const [showAddModal, setShowAddModal] = useState(false);
@@ -30,6 +48,20 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
     const [resetError, setResetError] = useState<string | null>(null);
     const [isResetting, setIsResetting] = useState(false);
     const [parentAccessStudent, setParentAccessStudent] = useState<Student | null>(null);
+    const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+    const coinAwardsEnabled = coinAwardsFlag.ready && coinAwardsFlag.enabled;
+
+    useEffect(() => {
+        setSelectedStudentIds([]);
+    }, [classroom.id]);
+
+    useEffect(() => {
+        const activeStudentIds = new Set(students.map((student) => student.id));
+        setSelectedStudentIds((currentIds) => {
+            const nextIds = currentIds.filter((studentId) => activeStudentIds.has(studentId));
+            return nextIds.length === currentIds.length ? currentIds : nextIds;
+        });
+    }, [students]);
 
     const visibleStudents = useMemo(() => {
         const keyword = searchTerm.trim().toLocaleLowerCase('vi');
@@ -124,6 +156,21 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
         if (archived) showSuccess('Đã lưu trữ học sinh.');
     };
 
+    const handleOpenCoinAwards = ({ studentIds }: { classId: string; studentIds: string[]; selectionMode: 'SELECTED' }) => {
+        if (!isOnline || !coinAwardsEnabled || studentIds.length === 0) return;
+        const actorUsername = authStore.username?.trim();
+        if (!actorUsername) return;
+        const prefillId = createCoinAwardPrefillToken();
+        useCoinAwardsStore.getState().setAwardPrefill({
+            token: prefillId,
+            actorUsername,
+            classId: classroom.id,
+            studentIds,
+            selectionMode: 'SELECTED',
+        });
+        navigate(getTeacherRoute('coin-awards'), { state: { coinAwardPrefillToken: prefillId } });
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -179,6 +226,12 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
                     onRemoveStudent={handleRemoveStudent}
                     onParentAccess={(student) => { if (isOnline) setParentAccessStudent(student); }}
                     serverActionsDisabled={!isOnline}
+                    selectedStudentIds={selectedStudentIds}
+                    onSelectionChange={setSelectedStudentIds}
+                    onOpenCoinAwards={handleOpenCoinAwards}
+                    allStudentIds={students.map((student) => student.id)}
+                    selectionDisabled={!isOnline}
+                    selectionEnabled={coinAwardsEnabled}
                 />
             ) : students.length > 0 ? (
                 <div className="bg-white rounded-2xl border p-10 text-center text-gray-500">Không tìm thấy học sinh phù hợp.</div>

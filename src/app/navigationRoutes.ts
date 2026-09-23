@@ -22,6 +22,7 @@ const TEACHER_ROUTE_BY_TAB: Record<TeacherDashboardTab, string> = {
   operations: '/teacher/operations',
   'system-question-bank': '/teacher/system-question-bank',
   'personal-settings': '/teacher/settings',
+  'coin-awards': '/teacher/coin-awards',
 };
 
 const TEACHER_TAB_BY_PATH = new Map<string, TeacherDashboardTab>([
@@ -44,6 +45,7 @@ const TEACHER_TAB_BY_PATH = new Map<string, TeacherDashboardTab>([
   ['/teacher/operations', 'operations'],
   ['/teacher/system-question-bank', 'system-question-bank'],
   ['/teacher/settings', 'personal-settings'],
+  ['/teacher/coin-awards', 'coin-awards'],
 ]);
 
 export type StudentRouteName =

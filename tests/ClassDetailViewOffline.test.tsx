@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -43,11 +44,13 @@ import { ClassDetailView } from '../src/features/class-management/views/ClassDet
 describe('ClassDetailView offline behavior', () => {
   it('keeps cached roster visible while disabling server actions and refetch', () => {
     render(
-      <ClassDetailView
-        classroom={{ id: 'c1', name: '4A', teacherUsername: 'teacher-a', createdAt: '2026-08-01' }}
-        onBack={vi.fn()}
-        isOnline={false}
-      /> as any,
+      <MemoryRouter>
+        <ClassDetailView
+          classroom={{ id: 'c1', name: '4A', teacherUsername: 'teacher-a', createdAt: '2026-08-01' }}
+          onBack={vi.fn()}
+          isOnline={false}
+        />
+      </MemoryRouter> as any,
     );
 
     expect(screen.getByRole('button', { name: 'Thêm học sinh' })).toBeDisabled();

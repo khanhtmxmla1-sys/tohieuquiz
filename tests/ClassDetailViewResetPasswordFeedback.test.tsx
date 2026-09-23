@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -57,11 +58,13 @@ describe('ClassDetailView reset-password clipboard feedback', () => {
 
   it('does not claim the password was copied when clipboard access fails', async () => {
     render(
-      <ClassDetailView
-        classroom={{ id: 'c1', name: '4A', teacherUsername: 'teacher-a', createdAt: '2026-08-01' }}
-        onBack={vi.fn()}
-        isOnline
-      />,
+      <MemoryRouter>
+        <ClassDetailView
+          classroom={{ id: 'c1', name: '4A', teacherUsername: 'teacher-a', createdAt: '2026-08-01' }}
+          onBack={vi.fn()}
+          isOnline
+        />
+      </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'open-reset' }));

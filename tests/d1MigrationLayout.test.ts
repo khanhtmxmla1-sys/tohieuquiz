@@ -32,7 +32,7 @@ describe('D1 migration layout', () => {
     expect(new Set(registered).size).toBe(registered.length);
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
-    expect(migrations.at(-1)).toBe('0081_competition_school_exam_admissions.sql');
+    expect(migrations.at(-1)).toBe('0082_student_coin_awards.sql');
     expect(EXPECTED_LATEST_MIGRATION).toBe(migrations.at(-1));
   });
 
@@ -79,5 +79,20 @@ describe('D1 migration layout', () => {
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS teacher_ai_daily_usage');
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS ai_generation_actions');
     expect(sql).toContain("CHECK(status IN ('RESERVED', 'SUCCEEDED', 'FAILED', 'EXPIRED'))");
+  });
+
+  it('stores immutable student coin award governance in migration 0082', () => {
+    const sql = fs.readFileSync(
+      path.join(migrationsDir, '0082_student_coin_awards.sql'),
+      'utf8',
+    );
+
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS coin_award_batches');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS coin_award_settings');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS coin_award_setting_audit');
+    expect(sql).toContain('COIN_AWARD_BATCH_IMMUTABLE');
+    expect(sql).toContain('COIN_AWARD_PER_STUDENT_LIMIT');
+    expect(sql).toContain('COIN_AWARD_DAILY_LIMIT');
+    expect(sql).toContain("'student_coin_awards_v1'");
   });
 });

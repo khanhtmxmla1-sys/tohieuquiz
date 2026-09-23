@@ -101,6 +101,30 @@ describe('resolveApiRoute', () => {
         expect(qs).toContain('actorIsAdmin=true');
     });
 
+    it('resolves student coin award routes with scoped auth and query/path fields', () => {
+        const create = resolveApiRoute('create_coin_award');
+        expect(create).toMatchObject({ method: 'POST', auth: 'session' });
+        expect(create.path({})).toBe('/api/coin-awards/batches');
+
+        const history = resolveApiRoute('list_coin_award_history');
+        expect(history).toMatchObject({ method: 'GET', auth: 'session' });
+        expect(history.path({})).toBe('/api/coin-awards/history');
+        expect(history.query?.({ cursor: 'next page', limit: 10 }).toString()).toBe('cursor=next+page&limit=10');
+
+        const reverse = resolveApiRoute('reverse_coin_award');
+        expect(reverse.path({ batchId: 'batch 1' })).toBe('/api/coin-awards/batches/batch%201/reverse');
+        expect(reverse.body?.('reverse_coin_award', { batchId: 'batch 1', reason: 'Hoàn tác' })).toEqual({ reason: 'Hoàn tác' });
+
+        const adjustment = resolveApiRoute('adjust_coin_award');
+        expect(adjustment.path({ parentBatchId: 'batch 1' })).toBe('/api/coin-awards/batches/batch%201/adjustments');
+        expect(adjustment.body?.('adjust_coin_award', { parentBatchId: 'batch 1', studentIds: ['s1'] }))
+            .toEqual({ studentIds: ['s1'] });
+
+        const studentHistory = resolveApiRoute('list_my_coin_award_history');
+        expect(studentHistory).toMatchObject({ method: 'GET', auth: 'studentSession' });
+        expect(studentHistory.path({})).toBe('/api/student/coin-awards/history');
+    });
+
     it('resolves Gift Shop governance actions', () => {
         const approve = resolveApiRoute('approve_gift_shop_order');
         expect(approve).toMatchObject({ method: 'PATCH', auth: 'session' });

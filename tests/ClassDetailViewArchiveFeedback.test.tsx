@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -38,11 +39,13 @@ import { ClassDetailView } from '../src/features/class-management/views/ClassDet
 describe('ClassDetailView archive feedback', () => {
   it('confirms a successful soft archive to the teacher', async () => {
     render(
-      <ClassDetailView
-        classroom={{ id: 'c1', name: '4A', teacherUsername: 'teacher-a', createdAt: '2026-08-01' }}
-        onBack={vi.fn()}
-        isOnline
-      />,
+      <MemoryRouter>
+        <ClassDetailView
+          classroom={{ id: 'c1', name: '4A', teacherUsername: 'teacher-a', createdAt: '2026-08-01' }}
+          onBack={vi.fn()}
+          isOnline
+        />
+      </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'archive-student' }));
