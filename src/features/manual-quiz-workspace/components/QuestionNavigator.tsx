@@ -35,10 +35,18 @@ export const handleQuestionDragEnd = (
 interface QuestionNavigatorProps {
     onOpenQuestionBank?: () => void;
     onOpenImport?: () => void;
+    onBeforeAction?: () => boolean;
+    readOnly?: boolean;
     teacherId?: string;
 }
 
-const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({ onOpenQuestionBank, onOpenImport, teacherId = '' }) => {
+const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
+    onOpenQuestionBank,
+    onOpenImport,
+    onBeforeAction,
+    readOnly = false,
+    teacherId = '',
+}) => {
     const [query, setQuery] = useState('');
     const [isTypePickerOpen, setTypePickerOpen] = useState(false);
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
@@ -65,9 +73,15 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({ onOpenQuestionBan
     }, [query, questions]);
 
     const createQuestion = (type: QuestionType) => {
+        if (onBeforeAction && !onBeforeAction()) return;
         const draft = createManualQuestionDraft(type) as ManualQuizQuestion;
         addQuestion(draft);
         setTypePickerOpen(false);
+    };
+
+    const runAction = (action: () => void) => {
+        if (onBeforeAction && !onBeforeAction()) return;
+        action();
     };
 
     return (
@@ -80,7 +94,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({ onOpenQuestionBan
                 <div className="mb-3 flex items-center justify-between gap-2">
                     <h2 className="font-semibold text-[#172033]">Câu hỏi ({questions.length})</h2>
                     <div className="flex items-center gap-1">
-                        {questions.length > 0 && (
+                        {questions.length > 0 && !readOnly && (
                             <button
                                 type="button"
                                 onClick={() => bulkSelection.setSelectionMode(!bulkSelection.selectionMode)}
@@ -135,7 +149,10 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({ onOpenQuestionBan
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
-                    onDragEnd={(event) => handleQuestionDragEnd(event, reorderQuestion)}
+                    onDragEnd={(event) => {
+                        if (onBeforeAction && !onBeforeAction()) return;
+                        handleQuestionDragEnd(event, reorderQuestion);
+                    }}
                 >
                     <div className="space-y-2">
                         {filteredQuestions.map((question) => {
@@ -147,13 +164,14 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({ onOpenQuestionBan
                                     index={index}
                                     total={questions.length}
                                     selected={envelope?.selectedQuestionId === question.id}
+                                    readOnly={readOnly}
                                     selectionMode={bulkSelection.selectionMode}
                                     bulkSelected={bulkSelection.selectedIds.has(question.id)}
                                     onToggleBulk={() => bulkSelection.toggle(question.id)}
-                                    onSelect={() => selectQuestion(question.id)}
-                                    onMove={(offset) => moveQuestion(question.id, offset)}
-                                    onDuplicate={() => duplicateQuestion(question.id)}
-                                    onDelete={() => undo.deleteWithUndo(question.id)}
+                                    onSelect={() => runAction(() => selectQuestion(question.id))}
+                                    onMove={(offset) => runAction(() => moveQuestion(question.id, offset))}
+                                    onDuplicate={() => runAction(() => duplicateQuestion(question.id))}
+                                    onDelete={() => runAction(() => undo.deleteWithUndo(question.id))}
                                 />
                             );
                         })}
@@ -166,6 +184,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({ onOpenQuestionBan
                     selectedIds={bulkSelection.selectedIds}
                     teacherId={teacherId}
                     onClear={bulkSelection.clear}
+                    onBeforeAction={onBeforeAction}
                 />
             )}
 
@@ -178,7 +197,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({ onOpenQuestionBan
                     <p>Đã xóa câu {undo.pendingDeletion.displayNumber}.</p>
                     <button
                         type="button"
-                        onClick={undo.undoDeletion}
+                        onClick={() => runAction(undo.undoDeletion)}
                         aria-label="Hoàn tác xóa câu hỏi"
                         className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-lg bg-white px-3 font-semibold text-amber-800"
                     >
@@ -189,7 +208,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({ onOpenQuestionBan
 
             <div className="shrink-0 space-y-3 border-t border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Thêm nhanh</p>
-                <div className="grid grid-cols-2 gap-2">
+                {!readOnly && <div className="grid grid-cols-2 gap-2">
                     {QUICK_ADD_TYPES.map((item) => (
                         <button
                             key={item.type}
@@ -202,29 +221,29 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({ onOpenQuestionBan
                             {item.label}
                         </button>
                     ))}
-                </div>
-                <button
+                </div>}
+                {!readOnly && <button
                     type="button"
                     onClick={() => setTypePickerOpen(true)}
                     aria-label="Thêm dạng khác"
                     className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-sky-500 px-3 text-sm font-semibold text-white hover:bg-sky-600"
                 >
                     <Plus className="h-4 w-4" /> Thêm dạng khác
-                </button>
-                <button
+                </button>}
+                {!readOnly && <button
                     type="button"
-                    onClick={onOpenQuestionBank}
+                    onClick={() => runAction(() => onOpenQuestionBank?.())}
                     className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-slate-200 bg-white px-3 text-sm font-medium"
                 >
                     <Library className="h-4 w-4" /> Mở kho câu hỏi
-                </button>
-                <button
+                </button>}
+                {!readOnly && <button
                     type="button"
-                    onClick={onOpenImport}
+                    onClick={() => runAction(() => onOpenImport?.())}
                     className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-slate-200 bg-white px-3 text-sm font-medium"
                 >
                     <FileUp className="h-4 w-4" /> Nhập từ tệp
-                </button>
+                </button>}
             </div>
 
             <QuestionTypePicker

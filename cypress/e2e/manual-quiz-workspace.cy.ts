@@ -64,6 +64,28 @@ const longDraft = () => {
     return draft;
 };
 
+const twoQuestionDraft = () => {
+    const draft = validDraft();
+    draft.draftId = 'manual-e2e-two-question-draft';
+    draft.selectedQuestionId = 'manual-e2e-question-1';
+    draft.quiz.questions = [
+        {
+            ...draft.quiz.questions[0],
+            id: 'manual-e2e-question-1',
+            question: 'Câu hỏi số một',
+        },
+        {
+            ...draft.quiz.questions[0],
+            id: 'manual-e2e-question-2',
+            question: 'Câu hỏi số hai',
+            correctAnswer: 'A',
+        },
+    ];
+    draft.quiz.questions[0].points = 5;
+    draft.quiz.questions[1].points = 5;
+    return draft;
+};
+
 const installAuth = (win: Window) => {
     win.localStorage.setItem('auth-storage', authStorageValue);
 };
@@ -247,6 +269,57 @@ describe('Manual quiz workspace end-to-end', () => {
         });
         cy.get('button[aria-label^="Chọn câu 30:"]').should('be.visible').click();
         cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Câu hỏi số 30');
+    });
+
+    it('flushes a just-typed question before switching navigator rows', () => {
+        visitManualWorkspace(twoQuestionDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.get('[data-testid="question-rich-editor"]')
+            .click()
+            .type('{ctrl}a{backspace}')
+            .type('Noi dung vua go');
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Noi dung vua go');
+        cy.window().then((win) => {
+            const raw = win.localStorage.getItem(
+                `tohieuquiz:manual-draft:v1:${TEACHER}:manual-e2e-two-question-draft`,
+            );
+            expect(JSON.parse(raw!).quiz.questions[0].question).to.eq('Câu hỏi số một');
+        });
+        cy.get('button[aria-label="Chọn câu 2: Câu hỏi số hai"]').click();
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Câu hỏi số hai');
+        cy.window().then((win) => {
+            const raw = win.localStorage.getItem(
+                `tohieuquiz:manual-draft:v1:${TEACHER}:manual-e2e-two-question-draft`,
+            );
+            expect(raw).to.be.a('string');
+            expect(JSON.parse(raw!).quiz.questions[0].question).to.eq('Noi dung vua go');
+        });
+    });
+
+    it('keeps the current question selected when immediate local persistence fails', () => {
+        visitManualWorkspace(twoQuestionDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.window().then((win) => {
+            const originalSetItem = win.localStorage.setItem.bind(win.localStorage);
+            cy.stub(win.Storage.prototype, 'setItem').callsFake((key, value) => {
+                if (String(key).includes('tohieuquiz:manual-draft:')) {
+                    throw new DOMException('Quota exceeded', 'QuotaExceededError');
+                }
+                originalSetItem(key, value);
+            });
+        });
+        cy.get('[data-testid="question-rich-editor"]')
+            .click()
+            .type('{ctrl}a{backspace}')
+            .type('Noi dung chua luu');
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Noi dung chua luu');
+        cy.get('button[aria-label="Chọn câu 2: Câu hỏi số hai"]').click();
+
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Noi dung chua luu');
+        cy.get('[data-question-id="manual-e2e-question-1"]').should('have.class', 'bg-sky-50');
+        cy.contains(/Bộ nhớ trình duyệt đã đầy|chưa thể lưu bản nháp/i).should('be.visible');
     });
 
     it('preserves Enter formatting through draft save, reload and publish', () => {

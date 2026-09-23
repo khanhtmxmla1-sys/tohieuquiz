@@ -24,6 +24,7 @@ interface QuestionNavigatorItemProps {
     selected: boolean;
     selectionMode?: boolean;
     bulkSelected?: boolean;
+    readOnly?: boolean;
     onToggleBulk?(): void;
     onSelect(): void;
     onMove(offset: -1 | 1): void;
@@ -38,6 +39,7 @@ const QuestionNavigatorItem: React.FC<QuestionNavigatorItemProps> = ({
     selected,
     selectionMode = false,
     bulkSelected = false,
+    readOnly = false,
     onToggleBulk,
     onSelect,
     onMove,
@@ -79,7 +81,7 @@ const QuestionNavigatorItem: React.FC<QuestionNavigatorItemProps> = ({
                         />
                     </label>
                 )}
-                {!selectionMode && <button
+                {!selectionMode && !readOnly && <button
                     ref={draggable.setActivatorNodeRef}
                     type="button"
                     aria-label={`Kéo câu ${index + 1}`}
@@ -110,7 +112,7 @@ const QuestionNavigatorItem: React.FC<QuestionNavigatorItemProps> = ({
                 </button>
             </div>
 
-            {!selectionMode && <div className="mt-1 flex items-center justify-end gap-1 border-t border-slate-100 pt-1">
+            {!selectionMode && !readOnly && <div className="mt-1 flex items-center justify-end gap-1 border-t border-slate-100 pt-1">
                 <button
                     type="button"
                     disabled={index === 0}

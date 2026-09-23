@@ -25,12 +25,16 @@ const SOURCE_TYPE_COPY: Record<string, string> = {
 interface WorkspaceHeaderProps {
     onOpenValidation(): void;
     onOpenSettings(): void;
+    onTogglePreview(): void;
+    onGoBack?(): void;
     readOnly?: boolean;
 }
 
 const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
     onOpenValidation,
     onOpenSettings,
+    onTogglePreview,
+    onGoBack,
     readOnly = false,
 }) => {
     const navigate = useNavigate();
@@ -41,7 +45,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
     const isPreviewCollapsed = useManualQuizWorkspaceStore((state) => state.isPreviewCollapsed);
     const updateQuiz = useManualQuizWorkspaceStore((state) => state.updateQuiz);
     const setNavigatorCollapsed = useManualQuizWorkspaceStore((state) => state.setNavigatorCollapsed);
-    const setPreviewCollapsed = useManualQuizWorkspaceStore((state) => state.setPreviewCollapsed);
     const sourceLabel = envelope?.quiz.sourceType ? SOURCE_TYPE_COPY[envelope.quiz.sourceType] : undefined;
     const versionNumber = Number(envelope?.quiz.versionNumber || 1);
 
@@ -53,7 +56,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
         >
             <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => (onGoBack ? onGoBack() : navigate(-1))}
                 className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-slate-200 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 aria-label="Quay lại trang tạo đề"
             >
@@ -111,7 +114,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                 </button>
                 <button
                     type="button"
-                    onClick={() => setPreviewCollapsed(!isPreviewCollapsed)}
+                    onClick={onTogglePreview}
                     className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-slate-200 px-3 text-sm font-medium"
                     aria-label={isPreviewCollapsed ? 'Mở xem trước' : 'Thu gọn xem trước'}
                 >

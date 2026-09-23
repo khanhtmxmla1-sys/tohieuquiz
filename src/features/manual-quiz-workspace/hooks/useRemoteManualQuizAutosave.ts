@@ -23,6 +23,7 @@ import { reportManualQuizTelemetry } from '../../../services/telemetryService';
 
 export interface RemoteManualQuizAutosaveController extends DraftConflictResolutionController {
     saveNow(): void;
+    persistLocalNow(envelope: ManualQuizDraftEnvelope): void;
 }
 
 const REMOTE_AUTOSAVE_DELAY_MS = 2_000;
@@ -233,10 +234,26 @@ export const useRemoteManualQuizAutosave = (
         setSaveStatus,
     ]);
 
+    const persistLocalNow = useCallback((draft: ManualQuizDraftEnvelope): void => {
+        try {
+            persistImmediately(draft);
+            setSaveStatus(browserIsOnline() ? 'saved' : 'offline');
+        } catch (error) {
+            setSaveStatus(
+                'error',
+                error instanceof Error ? error.message : 'Không thể lưu bản nháp trên trình duyệt.',
+            );
+            throw error;
+        }
+    }, [persistImmediately, setSaveStatus]);
+
     const saveNow = useCallback(() => {
-        const current = latestEnvelopeRef.current;
+        // Read directly from Zustand so a synchronous store update immediately
+        // before this call cannot be lost behind React's next render.
+        const current = useManualQuizWorkspaceStore.getState().envelope
+            ?? latestEnvelopeRef.current;
         if (!current) return;
-        persistImmediately(current);
+        persistLocalNow(current);
         if (!browserIsOnline()) {
             setSaveStatus('offline');
             return;
@@ -248,12 +265,12 @@ export const useRemoteManualQuizAutosave = (
         forceImmediateRemoteRef.current = true;
         setSaveStatus('idle');
         setRemoteRetryTick((value) => value + 1);
-    }, [persistImmediately, setSaveStatus]);
+    }, [persistLocalNow, setSaveStatus]);
 
     useEffect(() => () => {
         controllersRef.current.forEach((controller) => controller.abort());
         controllersRef.current.clear();
     }, []);
 
-    return { ...conflictController, saveNow };
+    return { ...conflictController, saveNow, persistLocalNow };
 };

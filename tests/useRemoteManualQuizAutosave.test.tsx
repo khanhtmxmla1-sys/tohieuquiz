@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ManualQuizDraftRecord } from '../shared/manual-quiz-draft.contract';
 import DraftConflictDialog from '../src/features/manual-quiz-workspace/components/DraftConflictDialog';
 import { useManualQuizAutosave } from '../src/features/manual-quiz-workspace/hooks/useManualQuizAutosave';
@@ -69,7 +69,36 @@ const AutosaveHarness = () => {
     );
 };
 
+const PersistNowHarness = () => {
+    const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
+    const status = useManualQuizWorkspaceStore((state) => state.saveStatus);
+    const controller = useManualQuizAutosave(envelope);
+
+    return (
+        <>
+            <button
+                type="button"
+                onClick={() => {
+                    if (!envelope) return;
+                    try {
+                        controller.persistLocalNow(envelope);
+                    } catch {
+                        // The status is the behavior under test.
+                    }
+                }}
+            >
+                Persist now
+            </button>
+            <span data-testid="persist-now-status">{status}</span>
+        </>
+    );
+};
+
 describe('remote manual quiz autosave', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     beforeEach(() => {
         vi.useFakeTimers();
         localStorage.clear();
@@ -98,6 +127,19 @@ describe('remote manual quiz autosave', () => {
         );
         expect(useManualQuizWorkspaceStore.getState().envelope?.revision).toBe(1);
         expect(screen.getByTestId('remote-status')).toHaveTextContent('saved');
+    });
+
+    it('reports local persistence failure as error even while offline', () => {
+        setOnline(false);
+        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new DOMException('Quota exceeded', 'QuotaExceededError');
+        });
+        render(<PersistNowHarness />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Persist now' }));
+
+        expect(screen.getByTestId('persist-now-status')).toHaveTextContent('error');
+        expect(useManualQuizWorkspaceStore.getState().saveError).toMatch(/bản nháp|trình duyệt/i);
     });
 
     it('syncs the configured duration in the remote draft envelope', async () => {

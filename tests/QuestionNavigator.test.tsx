@@ -70,6 +70,17 @@ describe('QuestionNavigator operations', () => {
         expect(questionIds()).toEqual(['q-1', 'q-2', 'q-3']);
     });
 
+    it('runs the page transition guard before selecting another question', () => {
+        const guard = vi.fn(() => false);
+        useManualQuizWorkspaceStore.getState().selectQuestion('q-1');
+        render(<QuestionNavigator onBeforeAction={guard} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Chọn câu 2: Câu hai' }));
+
+        expect(guard).toHaveBeenCalledTimes(1);
+        expect(useManualQuizWorkspaceStore.getState().envelope?.selectedQuestionId).toBe('q-1');
+    });
+
     it('duplicates with a new stable id and selects the copy', () => {
         render(<QuestionNavigator />);
         fireEvent.click(screen.getByRole('button', { name: 'Nhân bản câu 1' }));

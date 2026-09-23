@@ -45,17 +45,22 @@ export const useManualQuizPublish = ({
     const [validationIssues, setValidationIssues] = useState<ManualQuizIssue[]>([]);
 
     const publish = useCallback(async (): Promise<boolean> => {
-        if (publishLockRef.current || !envelope) return false;
+        // The editor flushes its local draft synchronously immediately before
+        // publishing. Read Zustand here instead of relying on the previous
+        // render's prop snapshot, otherwise the same click can publish stale
+        // question content.
+        const currentEnvelope = useManualQuizWorkspaceStore.getState().envelope ?? envelope;
+        if (publishLockRef.current || !currentEnvelope) return false;
 
-        const snapshot = cloneQuizSnapshot(envelope.quiz);
-        const issues = validateManualQuiz(snapshot, { targetPoints: envelope.targetPoints });
+        const snapshot = cloneQuizSnapshot(currentEnvelope.quiz);
+        const issues = validateManualQuiz(snapshot, { targetPoints: currentEnvelope.targetPoints });
         setValidationIssues(issues);
         setError(null);
         setCleanupWarning(null);
 
         if (hasBlockingManualQuizIssues(issues)) {
             reportManualQuizTelemetry('validation_failed', {
-                mode: envelope.quizId ? 'edit' : 'new',
+                mode: currentEnvelope.quizId ? 'edit' : 'new',
                 outcome: 'blocked',
                 questionCount: snapshot.questions.length,
                 issueCount: issues.filter((issue) => issue.severity === 'error').length,
@@ -69,12 +74,12 @@ export const useManualQuizPublish = ({
         publishLockRef.current = true;
         setPublishing(true);
         try {
-            if (envelope.quizId) await modifyQuiz(snapshot);
+            if (currentEnvelope.quizId) await modifyQuiz(snapshot);
             else await createQuiz(snapshot);
 
             const cleanupResults = await Promise.allSettled([
-                Promise.resolve().then(() => removeLocalDraft(envelope.ownerUsername, envelope.draftId)),
-                deleteRemoteManualQuizDraftIfExists(envelope.draftId),
+                Promise.resolve().then(() => removeLocalDraft(currentEnvelope.ownerUsername, currentEnvelope.draftId)),
+                deleteRemoteManualQuizDraftIfExists(currentEnvelope.draftId),
             ]);
             if (cleanupResults.some((result) => result.status === 'rejected')) {
                 setCleanupWarning(
@@ -91,7 +96,7 @@ export const useManualQuizPublish = ({
             }
 
             reportManualQuizTelemetry('publish_succeeded', {
-                mode: envelope.quizId ? 'edit' : 'new',
+                mode: currentEnvelope.quizId ? 'edit' : 'new',
                 outcome: 'success',
                 durationMs: performance.now() - publishStartedAt,
                 questionCount: snapshot.questions.length,
@@ -102,7 +107,7 @@ export const useManualQuizPublish = ({
         } catch (caught) {
             const normalized = caught instanceof Error ? caught : new Error(String(caught));
             reportManualQuizTelemetry('publish_failed', {
-                mode: envelope.quizId ? 'edit' : 'new',
+                mode: currentEnvelope.quizId ? 'edit' : 'new',
                 outcome: 'failure',
                 durationMs: performance.now() - publishStartedAt,
                 questionCount: snapshot.questions.length,
