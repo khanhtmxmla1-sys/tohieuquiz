@@ -160,15 +160,15 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
         if (!isOnline || !coinAwardsEnabled || studentIds.length === 0) return;
         const actorUsername = authStore.username?.trim();
         if (!actorUsername) return;
-        const token = createCoinAwardPrefillToken();
+        const prefillId = createCoinAwardPrefillToken();
         useCoinAwardsStore.getState().setAwardPrefill({
-            token,
+            token: prefillId,
             actorUsername,
             classId: classroom.id,
             studentIds,
             selectionMode: 'SELECTED',
         });
-        navigate(getTeacherRoute('coin-awards'), { state: { coinAwardPrefillToken: token } });
+        navigate(getTeacherRoute('coin-awards'), { state: { coinAwardPrefillToken: prefillId } });
     };
 
     return (
