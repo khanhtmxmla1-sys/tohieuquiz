@@ -39,6 +39,16 @@ describe('QuestionEditorPane math composer integration', () => {
         });
     });
 
+    it('fills the focused workspace width instead of leaving unused flex space', async () => {
+        render(<QuestionEditorPane />);
+        await screen.findByTestId('question-rich-editor');
+
+        expect(screen.getByRole('main', { name: 'Trình soạn câu hỏi' })).toHaveClass(
+            'w-full',
+            'flex-1',
+        );
+    });
+
     it('opens and closes the full visual math panel inside the editor pane', async () => {
         render(<QuestionEditorPane />);
         await screen.findByTestId('question-rich-editor');

@@ -9,6 +9,7 @@ import {
     MoreHorizontal,
     Trash2,
 } from 'lucide-react';
+import MathSpan from '../../../components/common/MathSpan';
 import type { ManualQuizQuestion } from '../types/manualQuizWorkspace.types';
 import { getQuestionOverviewLabel, type QuestionOverviewRow } from '../overview/questionOverviewModel';
 
@@ -119,7 +120,7 @@ const QuestionNavigatorItem: React.FC<QuestionNavigatorItemProps> = ({
                 >
                     {isNew && <span className="mb-1 inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-sm font-semibold text-sky-700">Mới thêm</span>}
                     <span className="line-clamp-2 block text-[15px] font-medium leading-6 text-[#172033]">
-                        {overviewRow.label}
+                        <MathSpan content={overviewRow.label} />
                     </span>
                     {overviewRow.firstIssue && (
                         <span className="mt-1 block truncate text-xs text-slate-500">{overviewRow.firstIssue.message}</span>
