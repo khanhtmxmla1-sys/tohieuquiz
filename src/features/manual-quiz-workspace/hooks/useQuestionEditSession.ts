@@ -15,6 +15,7 @@ export type QuestionEditSessionFlushResult =
 
 export interface QuestionEditSessionOptions {
     persistLocalNow?: (envelope: ManualQuizDraftEnvelope) => void;
+    resetToken?: number;
 }
 
 export interface QuestionEditSession {
@@ -59,7 +60,7 @@ export const useQuestionEditSession = (
     readOnly: boolean,
     options: QuestionEditSessionOptions = {},
 ): QuestionEditSession => {
-    const { persistLocalNow } = options;
+    const { persistLocalNow, resetToken = 0 } = options;
     const persistDraftLocally = persistLocalNow ?? saveLocalDraft;
     const [draft, setDraft] = useState<AnyEditorDraft>(() => questionToDraft(question));
     const [dirty, setDirty] = useState(false);
@@ -67,6 +68,7 @@ export const useQuestionEditSession = (
     const draftRef = useRef<AnyEditorDraft>(draft);
     const dirtyRef = useRef(false);
     const questionIdRef = useRef(question.id);
+    const resetTokenRef = useRef(resetToken);
     const syncTimerRef = useRef<number | null>(null);
 
     const clearSyncTimer = useCallback(() => {
@@ -148,16 +150,43 @@ export const useQuestionEditSession = (
     }, [clearSyncTimer, commitDraftToStore, persistDraftLocally, readOnly]);
 
     useEffect(() => {
-        if (questionIdRef.current === question.id) return;
-        questionIdRef.current = question.id;
-        clearSyncTimer();
+        if (questionIdRef.current !== question.id) {
+            questionIdRef.current = question.id;
+            resetTokenRef.current = resetToken;
+            clearSyncTimer();
+            const nextDraft = questionToDraft(question);
+            draftRef.current = nextDraft;
+            dirtyRef.current = false;
+            setDraft(nextDraft);
+            setDirty(false);
+            setError(null);
+            return;
+        }
+
+        if (resetTokenRef.current !== resetToken) {
+            resetTokenRef.current = resetToken;
+            clearSyncTimer();
+            const nextDraft = questionToDraft(question);
+            draftRef.current = nextDraft;
+            dirtyRef.current = false;
+            setDraft(nextDraft);
+            setDirty(false);
+            setError(null);
+            return;
+        }
+
+        // A remote/bulk edit can replace the question object without changing
+        // its id. Accept it only while this editor is clean; a dirty local
+        // draft must remain authoritative until the user saves or discards it.
+        if (dirtyRef.current) return;
         const nextDraft = questionToDraft(question);
+        if (JSON.stringify(nextDraft) === JSON.stringify(draftRef.current)) return;
+        clearSyncTimer();
         draftRef.current = nextDraft;
-        dirtyRef.current = false;
         setDraft(nextDraft);
         setDirty(false);
         setError(null);
-    }, [clearSyncTimer, question]);
+    }, [clearSyncTimer, question, resetToken]);
 
     useEffect(() => () => clearSyncTimer(), [clearSyncTimer]);
 

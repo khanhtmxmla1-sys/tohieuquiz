@@ -195,6 +195,30 @@ describe('ManualQuizWorkspace focus and screen-reader access', () => {
         await waitFor(() => expect(screen.getByRole('button', { name: 'Sửa câu 1' })).toHaveFocus());
     });
 
+    it('focuses the first editable field after opening an existing question', async () => {
+        renderWorkspace();
+        await screen.findByRole('main', { name: 'Tổng quan câu hỏi' });
+        act(() => {
+            useManualQuizWorkspaceStore.getState().addQuestion({
+                id: 'q-focus-existing', type: QuestionType.MCQ, question: 'Câu cần sửa',
+                options: ['A', 'B'], correctAnswer: 'A', difficulty: 1, points: 1,
+            } as any);
+        });
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Sửa câu 1' }));
+
+        await waitFor(() => expect(screen.getByTestId('question-rich-editor')).toHaveFocus(), { timeout: 5000 });
+    }, 15_000);
+
+    it('focuses the first editable field after quick-add creates a question', async () => {
+        renderWorkspace();
+        await screen.findByRole('main', { name: 'Tổng quan câu hỏi' });
+
+        fireEvent.click(screen.getByRole('button', { name: 'Thêm nhanh Trắc nghiệm' }));
+
+        await waitFor(() => expect(screen.getByTestId('question-rich-editor')).toHaveFocus(), { timeout: 5000 });
+    }, 15_000);
+
     it('keeps live regions and keyboard alternatives available at high zoom', async () => {
         renderWorkspace();
         await screen.findByRole('main', { name: 'Tổng quan câu hỏi' });

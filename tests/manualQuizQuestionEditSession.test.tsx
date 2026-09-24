@@ -132,6 +132,60 @@ describe('useQuestionEditSession', () => {
         expect(result.result.current.error).toEqual(expect.stringMatching(/lưu bản nháp|trình duyệt/i));
     });
 
+    it('resyncs a clean session when the same question id is replaced externally', () => {
+        const question = useManualQuizWorkspaceStore.getState().envelope!.quiz.questions[0];
+        const result = renderHook(
+            ({ currentQuestion }) => useQuestionEditSession(currentQuestion, false),
+            { initialProps: { currentQuestion: question } },
+        );
+        const externallyUpdatedQuestion = {
+            ...question,
+            question: 'Nội dung vừa được cập nhật bên ngoài',
+        };
+
+        act(() => {
+            useManualQuizWorkspaceStore.getState().updateQuestion(
+                question.id,
+                () => externallyUpdatedQuestion,
+            );
+            result.rerender({
+                currentQuestion: useManualQuizWorkspaceStore.getState().envelope!.quiz.questions[0],
+            });
+        });
+
+        expect(result.result.current.dirty).toBe(false);
+        expect(result.result.current.draft.question).toBe(externallyUpdatedQuestion.question);
+        expect(result.result.current.previewQuestion.question).toBe(externallyUpdatedQuestion.question);
+    });
+
+    it('preserves a dirty local draft when the same question id is replaced externally', () => {
+        const question = useManualQuizWorkspaceStore.getState().envelope!.quiz.questions[0];
+        const result = renderHook(
+            ({ currentQuestion }) => useQuestionEditSession(currentQuestion, false),
+            { initialProps: { currentQuestion: question } },
+        );
+
+        act(() => {
+            result.result.current.onDraftChange((draft) => ({
+                ...draft,
+                question: 'Bản nháp đang gõ tại máy này',
+            }) as AnyEditorDraft);
+            useManualQuizWorkspaceStore.getState().updateQuestion(
+                question.id,
+                () => ({
+                    ...question,
+                    question: 'Nội dung vừa được cập nhật bên ngoài',
+                }),
+            );
+            result.rerender({
+                currentQuestion: useManualQuizWorkspaceStore.getState().envelope!.quiz.questions[0],
+            });
+        });
+
+        expect(result.result.current.dirty).toBe(true);
+        expect(result.result.current.draft.question).toBe('Bản nháp đang gõ tại máy này');
+    });
+
     it('warns beforeunload during the draft debounce and clears the guard after flush', () => {
         const question = useManualQuizWorkspaceStore.getState().envelope!.quiz.questions[0];
         const persistLocalNow = vi.fn();

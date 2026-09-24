@@ -1,9 +1,11 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { QuestionType } from '../src/types';
 import type { ManualQuizDraftRecord } from '../shared/manual-quiz-draft.contract';
 import DraftConflictDialog from '../src/features/manual-quiz-workspace/components/DraftConflictDialog';
 import { useManualQuizAutosave } from '../src/features/manual-quiz-workspace/hooks/useManualQuizAutosave';
+import { useQuestionEditSession } from '../src/features/manual-quiz-workspace/hooks/useQuestionEditSession';
 import { useManualQuizWorkspaceStore } from '../src/features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 import { ManualQuizDraftConflictError } from '../src/services/manualQuizDraftService';
 
@@ -90,6 +92,48 @@ const PersistNowHarness = () => {
                 Persist now
             </button>
             <span data-testid="persist-now-status">{status}</span>
+        </>
+    );
+};
+
+const AutosaveEditorHarness = () => {
+    const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
+    const controller = useManualQuizAutosave(envelope);
+    const question = envelope?.quiz.questions.find((item) => item.id === envelope.selectedQuestionId) ?? null;
+    const session = useQuestionEditSession(question ?? {
+        id: 'missing-editor-question',
+        type: QuestionType.MCQ,
+        question: '',
+        options: ['', ''],
+        correctAnswer: 'A',
+        difficulty: 1,
+        points: 1,
+    }, false, {
+        persistLocalNow: controller.persistLocalNow,
+        resetToken: controller.serverResolutionVersion,
+    });
+
+    return (
+        <>
+            <div data-testid="question-editor-draft">{session.draft.question}</div>
+            <button type="button" onClick={() => session.onDraftChange((current) => ({
+                ...current,
+                question: 'Bản cũ đã sửa cục bộ',
+            }))}>
+                Sửa cục bộ
+            </button>
+            <button type="button" onClick={() => session.flush()}>
+                Lưu câu hỏi
+            </button>
+            {controller.conflict && envelope && (
+                <DraftConflictDialog
+                    localDraft={envelope}
+                    serverRecord={controller.conflict}
+                    isResolving={controller.isResolvingConflict}
+                    onUseLocal={controller.resolveWithLocal}
+                    onUseServer={controller.resolveWithServer}
+                />
+            )}
         </>
     );
 };
@@ -220,6 +264,48 @@ describe('remote manual quiz autosave', () => {
         expect(useManualQuizWorkspaceStore.getState().envelope?.quiz.title).toBe('Đề trên hệ thống');
         expect(useManualQuizWorkspaceStore.getState().envelope?.revision).toBe(4);
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('resets a dirty editor after accepting the server version and cannot flush the old draft back', async () => {
+        useManualQuizWorkspaceStore.getState().addQuestion({
+            id: 'q-conflict-editor',
+            type: QuestionType.MCQ,
+            question: 'Bản cũ trong editor',
+            options: ['A', 'B'],
+            correctAnswer: 'A',
+            difficulty: 1,
+            points: 1,
+        } as any);
+        const current = serverRecord(4);
+        current.draft = {
+            ...current.draft,
+            quiz: {
+                ...current.draft.quiz,
+                questions: current.draft.quiz.questions.map((question) => ({
+                    ...question,
+                    question: 'Bản mới trên hệ thống',
+                })),
+            },
+        };
+        putRemoteMock.mockRejectedValueOnce(new ManualQuizDraftConflictError('conflict', current));
+        render(<AutosaveEditorHarness />);
+
+        expect(screen.getByTestId('question-editor-draft')).toHaveTextContent('Bản cũ trong editor');
+        fireEvent.click(screen.getByRole('button', { name: 'Sửa cục bộ' }));
+        await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(2_000); });
+
+        expect(screen.getByRole('dialog', { name: 'Bản nháp có thay đổi ở nơi khác' })).toBeInTheDocument();
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Dùng bản trên hệ thống' }));
+            await Promise.resolve();
+            await Promise.resolve();
+        });
+
+        expect(screen.getByTestId('question-editor-draft')).toHaveTextContent('Bản mới trên hệ thống');
+        fireEvent.click(screen.getByRole('button', { name: 'Lưu câu hỏi' }));
+        expect(useManualQuizWorkspaceStore.getState().envelope?.quiz.questions[0].question)
+            .toBe('Bản mới trên hệ thống');
     });
 
     it('can keep the latest local version by retrying against the server revision', async () => {

@@ -20,6 +20,8 @@ import {
 export interface QuestionEditorPaneProps {
     readOnly?: boolean;
     persistLocalNow?: (envelope: ManualQuizDraftEnvelope) => void;
+    editorResetToken?: number;
+    onEditorReady?: () => void;
     onBeforeAction?: () => boolean;
     currentQuestionIndex?: number;
     totalQuestions?: number;
@@ -45,20 +47,22 @@ interface InlineQuestionEditorProps {
     question: ManualQuizQuestion;
     readOnly: boolean;
     persistLocalNow?: (envelope: ManualQuizDraftEnvelope) => void;
+    editorResetToken?: number;
+    onEditorReady?: () => void;
     onBeforeAction?: () => boolean;
     onNext?(): void;
     keyboardShortcutsEnabled?: boolean;
 }
 
 const InlineQuestionEditor = React.forwardRef<InlineQuestionEditorHandle, InlineQuestionEditorProps>(
-    ({ question, readOnly, persistLocalNow, onBeforeAction, onNext, keyboardShortcutsEnabled = true }, ref) => {
+    ({ question, readOnly, persistLocalNow, editorResetToken, onEditorReady, onBeforeAction, onNext, keyboardShortcutsEnabled = true }, ref) => {
     const {
         draft,
         error,
         flush,
         onDraftChange,
         previewQuestion,
-    } = useQuestionEditSession(question, readOnly, { persistLocalNow });
+    } = useQuestionEditSession(question, readOnly, { persistLocalNow, resetToken: editorResetToken });
     const updateQuestion = useManualQuizWorkspaceStore((state) => state.updateQuestion);
     const selectQuestion = useManualQuizWorkspaceStore((state) => state.selectQuestion);
     const moveQuestion = useManualQuizWorkspaceStore((state) => state.moveQuestion);
@@ -68,18 +72,15 @@ const InlineQuestionEditor = React.forwardRef<InlineQuestionEditorHandle, Inline
     const saveQuestion = useCallback(() => flush(), [flush]);
 
     const saveQuestionAndNext = useCallback(() => {
-        if (!saveQuestion().ok) return;
-        const index = questions.findIndex((item) => item.id === question.id);
-        const next = questions[index + 1];
-        if (!next) return;
         if (onNext) {
             onNext();
             return;
         }
+        if (!saveQuestion().ok) return;
+        const index = questions.findIndex((item) => item.id === question.id);
+        const next = questions[index + 1];
+        if (!next) return;
         selectQuestion(next.id);
-        window.setTimeout(() => {
-            document.querySelector<HTMLElement>('[aria-label="Trình soạn câu hỏi"] [data-testid="question-rich-editor"]')?.focus();
-        }, 0);
     }, [onNext, question.id, questions, saveQuestion, selectQuestion]);
 
     useWorkspaceKeyboardShortcuts({
@@ -140,7 +141,8 @@ const InlineQuestionEditor = React.forwardRef<InlineQuestionEditorHandle, Inline
             draft={draft}
             onDraftChange={onDraftChange}
             onSave={saveQuestion}
-                mode="inline"
+            onEditorReady={onEditorReady}
+            mode="inline"
             />
         </div>
     );
@@ -152,6 +154,8 @@ const QuestionEditorPane = React.forwardRef<QuestionEditorPaneHandle, QuestionEd
     ({
         readOnly = false,
         persistLocalNow,
+        editorResetToken,
+        onEditorReady,
         onBeforeAction,
         currentQuestionIndex = 0,
         totalQuestions = 0,
@@ -291,6 +295,8 @@ const QuestionEditorPane = React.forwardRef<QuestionEditorPaneHandle, QuestionEd
                         question={selected}
                         readOnly={readOnly}
                         persistLocalNow={persistLocalNow}
+                        editorResetToken={editorResetToken}
+                        onEditorReady={onEditorReady}
                         onBeforeAction={onBeforeAction}
                         onNext={onNext}
                         keyboardShortcutsEnabled={keyboardShortcutsEnabled}

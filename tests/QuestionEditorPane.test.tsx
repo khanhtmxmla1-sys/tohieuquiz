@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QuestionType } from '../src/types';
 import QuestionEditorPane from '../src/features/manual-quiz-workspace/components/QuestionEditorPane';
 import { useManualQuizWorkspaceStore } from '../src/features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
@@ -72,5 +72,31 @@ describe('QuestionEditorPane math composer integration', () => {
             expect(saved.questionRichText?.schemaVersion).toBe(1);
             expect(saved.questionRichText?.doc?.content?.[0]?.attrs?.textAlign).toBe('center');
         });
+    });
+
+    it('delegates Ctrl+Enter to the page without flushing the editor twice', async () => {
+        const persistLocalNow = vi.fn();
+        const onNext = vi.fn();
+        useManualQuizWorkspaceStore.getState().addQuestion({
+            id: 'q-2',
+            type: QuestionType.SHORT_ANSWER,
+            question: 'Câu tiếp theo',
+            correctAnswer: 'Hai',
+            difficulty: 1,
+            points: 1,
+        });
+        useManualQuizWorkspaceStore.getState().selectQuestion('q-1');
+        render(
+            <QuestionEditorPane
+                persistLocalNow={persistLocalNow}
+                onNext={onNext}
+            />,
+        );
+        await screen.findByTestId('question-rich-editor');
+
+        fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+
+        expect(onNext).toHaveBeenCalledTimes(1);
+        expect(persistLocalNow).not.toHaveBeenCalled();
     });
 });
