@@ -92,11 +92,13 @@ describe('QuestionNavigator operations', () => {
         );
 
         expect(screen.getByRole('main', { name: 'Tổng quan câu hỏi' })).toHaveAttribute('data-question-navigator-variant', 'overview');
+        expect(screen.getByRole('main', { name: 'Tổng quan câu hỏi' })).toHaveClass('h-auto', 'overflow-visible', 'lg:h-full', 'lg:overflow-hidden');
+        expect(screen.getByTestId('question-navigator-scroll')).toHaveClass('flex-none', 'overflow-visible', 'lg:flex-1', 'lg:overflow-y-auto');
         expect(screen.getByRole('button', { name: 'Cần sửa' })).toBeInTheDocument();
-        const secondRow = screen.getByRole('button', { name: /Sửa câu 2:/ }).closest('article');
+        const secondRow = screen.getByRole('button', { name: /Chọn câu 2:/ }).closest('article');
         expect(secondRow).toHaveClass('lg:grid-cols-[auto_minmax(0,1fr)_180px_120px_auto]');
         expect(secondRow).not.toHaveClass('sm:grid-cols-[auto_minmax(0,1fr)_180px_120px_auto]');
-        const firstRow = screen.getByRole('button', { name: /Sửa câu 1:/ }).closest('article');
+        const firstRow = screen.getByRole('button', { name: /Chọn câu 1:/ }).closest('article');
         if (!firstRow) throw new Error('Expected the first overview row.');
         const summary = firstRow.querySelector('summary');
         if (!summary) throw new Error('Expected the row overflow menu.');
@@ -106,8 +108,8 @@ describe('QuestionNavigator operations', () => {
         expect(onEditQuestion).toHaveBeenCalledWith('q-2');
 
         fireEvent.click(screen.getByRole('button', { name: 'Cần sửa' }));
-        expect(screen.queryByRole('button', { name: /Sửa câu 1:/ })).not.toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Sửa câu 2:/ })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Chọn câu 1:/ })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Chọn câu 2:/ })).toBeInTheDocument();
     });
 
     it('keeps bulk selection reachable in the overview variant', () => {

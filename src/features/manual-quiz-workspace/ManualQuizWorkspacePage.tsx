@@ -15,7 +15,6 @@ import WorkspaceStatusBar from './components/WorkspaceStatusBar';
 import PublishValidationDrawer from './components/PublishValidationDrawer';
 import PointDistributionDialog from './components/PointDistributionDialog';
 import QuestionBankDrawer from './components/QuestionBankDrawer';
-import WorkspaceMobileTabs, { type WorkspaceMobilePane } from './components/WorkspaceMobileTabs';
 import QuizEditorAccessBanner from './components/QuizEditorAccessBanner';
 import QuizSettingsDrawer from './components/QuizSettingsDrawer';
 import {
@@ -35,6 +34,7 @@ import type {
     ManualQuizDraftEnvelope,
     ManualQuizNavigationState,
     ManualQuizSeed,
+    ManualQuizQuestion,
     QuizEditorEditability,
 } from './types/manualQuizWorkspace.types';
 
@@ -49,6 +49,8 @@ const DEFAULT_SEED: ManualQuizSeed = {
     requireCode: false,
     showOnHome: true,
 };
+
+type WorkspaceView = 'overview' | 'edit' | 'preview';
 
 const ManualQuizWorkspacePage: React.FC = () => {
     const { quizId } = useParams<{ quizId?: string }>();
@@ -72,10 +74,6 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const selectQuestion = useManualQuizWorkspaceStore((state) => state.selectQuestion);
     const updateQuiz = useManualQuizWorkspaceStore((state) => state.updateQuiz);
     const setQuestionPoints = useManualQuizWorkspaceStore((state) => state.setQuestionPoints);
-    const setNavigatorCollapsed = useManualQuizWorkspaceStore((state) => state.setNavigatorCollapsed);
-    const setPreviewCollapsed = useManualQuizWorkspaceStore((state) => state.setPreviewCollapsed);
-    const isNavigatorCollapsed = useManualQuizWorkspaceStore((state) => state.isNavigatorCollapsed);
-    const isPreviewCollapsed = useManualQuizWorkspaceStore((state) => state.isPreviewCollapsed);
     const [pendingRecovery, setPendingRecovery] = useState<ManualQuizDraftEnvelope | null>(null);
     const [recoveryChecked, setRecoveryChecked] = useState(false);
     const [isValidationOpen, setValidationOpen] = useState(false);
@@ -84,7 +82,9 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const [previousPoints, setPreviousPoints] = useState<Record<string, number> | null>(null);
     const [isQuestionBankOpen, setQuestionBankOpen] = useState(false);
     const [isQuestionImportOpen, setQuestionImportOpen] = useState(false);
-    const [mobilePane, setMobilePane] = useState<WorkspaceMobilePane>('editor');
+    const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('overview');
+    const [previewQuestion, setPreviewQuestion] = useState<ManualQuizQuestion | null>(null);
+    const [lastEditedQuestionId, setLastEditedQuestionId] = useState<string | null>(null);
     const openedDraftRef = useRef<string | null>(null);
     const requestedDraftId = useMemo(() => new URLSearchParams(location.search).get('draftId'), [location.search]);
     const [remoteDraftStatus, setRemoteDraftStatus] = useState<'loading' | 'loaded' | 'error'>(
@@ -210,15 +210,14 @@ const ManualQuizWorkspacePage: React.FC = () => {
         else if (isPointDialogOpen) setPointDialogOpen(false);
         else if (isQuestionImportOpen) setQuestionImportOpen(false);
         else if (isQuestionBankOpen) setQuestionBankOpen(false);
-        else if (!isPreviewCollapsed) setPreviewCollapsed(true);
+        else if (workspaceView === 'preview') setWorkspaceView('edit');
     }, [
         isPointDialogOpen,
-        isPreviewCollapsed,
         isQuestionBankOpen,
         isQuestionImportOpen,
         isSettingsOpen,
         isValidationOpen,
-        setPreviewCollapsed,
+        workspaceView,
     ]);
 
     useWorkspaceKeyboardShortcuts({
@@ -318,10 +317,11 @@ const ManualQuizWorkspacePage: React.FC = () => {
         }
     };
 
-    const goToQuestionIssue = (questionId: string, field?: string) => {
+    const focusQuestionEditor = useCallback((questionId: string, field?: string) => {
+        setLastEditedQuestionId(questionId);
         if (!guardTransition()) return;
         selectQuestion(questionId);
-        setNavigatorCollapsed(false);
+        setWorkspaceView('edit');
         setValidationOpen(false);
         window.setTimeout(() => {
             const editor = document.querySelector<HTMLElement>('[aria-label="Trình soạn câu hỏi"]');
@@ -330,6 +330,10 @@ const ManualQuizWorkspacePage: React.FC = () => {
                 : 'textarea, input:not([type="number"])';
             editor?.querySelector<HTMLElement>(fieldSelector)?.focus();
         }, 0);
+    }, [guardTransition, selectQuestion]);
+
+    const goToQuestionIssue = (questionId: string, field?: string) => {
+        focusQuestionEditor(questionId, field);
     };
 
     const applyPointDistribution = (pointsByQuestionId: Record<string, number>) => {
@@ -347,23 +351,86 @@ const ManualQuizWorkspacePage: React.FC = () => {
         setPreviousPoints(null);
     };
 
-    const desktopColumnClass = isNavigatorCollapsed
-        ? isPreviewCollapsed
-            ? 'xl:grid-cols-[minmax(0,1fr)]'
-            : 'xl:grid-cols-[minmax(0,1fr)_380px]'
-        : isPreviewCollapsed
-            ? 'xl:grid-cols-[280px_minmax(0,1fr)]'
-            : 'xl:grid-cols-[280px_minmax(0,1fr)_380px]';
-    const tabletColumnClass = isNavigatorCollapsed
-        ? 'md:grid-cols-[minmax(0,1fr)]'
-        : 'md:grid-cols-[280px_minmax(0,1fr)]';
+    const selectedQuestion = envelope?.quiz.questions.find((question) => question.id === envelope.selectedQuestionId) ?? null;
 
-    const changeMobilePane = (pane: WorkspaceMobilePane) => {
-        if (pane !== mobilePane && !guardTransition()) return;
-        setMobilePane(pane);
-        if (pane === 'list') setNavigatorCollapsed(false);
-        if (pane === 'preview') useManualQuizWorkspaceStore.getState().setPreviewCollapsed(false);
-    };
+    const openQuestionEditor = useCallback((questionId: string) => {
+        if (!guardTransition()) return;
+        setLastEditedQuestionId(questionId);
+        selectQuestion(questionId);
+        if (isReadOnly) {
+            const question = useManualQuizWorkspaceStore.getState().envelope?.quiz.questions.find((item) => item.id === questionId);
+            if (question) setPreviewQuestion(question);
+            setWorkspaceView('preview');
+            return;
+        }
+        setWorkspaceView('edit');
+    }, [guardTransition, isReadOnly, selectQuestion]);
+
+    const handleQuestionAdded = useCallback((questionId: string) => {
+        setLastEditedQuestionId(questionId);
+        selectQuestion(questionId);
+        setWorkspaceView('edit');
+    }, [selectQuestion]);
+
+    const handleBackToOverview = useCallback(() => {
+        if (!guardTransition()) return;
+        setWorkspaceView('overview');
+    }, [guardTransition]);
+
+    const handlePreview = useCallback((question: ManualQuizQuestion) => {
+        if (!guardTransition()) return;
+        setPreviewQuestion(question);
+        setWorkspaceView('preview');
+    }, [guardTransition]);
+
+    const handleBackFromPreview = useCallback(() => {
+        if (!guardTransition()) return;
+        setWorkspaceView(isReadOnly ? 'overview' : 'edit');
+    }, [guardTransition, isReadOnly]);
+
+    const moveQuestion = useCallback((offset: -1 | 1) => {
+        if (!guardTransition()) return;
+        const currentEnvelope = useManualQuizWorkspaceStore.getState().envelope;
+        const currentId = currentEnvelope?.selectedQuestionId;
+        if (!currentEnvelope || !currentId) return;
+        const index = currentEnvelope.quiz.questions.findIndex((question) => question.id === currentId);
+        const next = currentEnvelope.quiz.questions[index + offset];
+        if (!next) return;
+        setLastEditedQuestionId(next.id);
+        selectQuestion(next.id);
+        setWorkspaceView('edit');
+        window.setTimeout(() => {
+            document.querySelector<HTMLElement>('[aria-label="Trình soạn câu hỏi"] [data-testid="question-rich-editor"]')?.focus();
+        }, 0);
+    }, [guardTransition, selectQuestion]);
+
+    const finishQuestionEdit = useCallback(() => {
+        if (!guardTransition()) return;
+        setWorkspaceView('overview');
+    }, [guardTransition]);
+
+    const handleHeaderBack = useCallback(() => {
+        if (workspaceView === 'preview' || workspaceView === 'edit') {
+            handleBackToOverview();
+            return;
+        }
+        if (!guardTransition()) return;
+        navigate(-1);
+    }, [guardTransition, handleBackToOverview, navigate, workspaceView]);
+
+    useEffect(() => {
+        if (workspaceView !== 'overview' || !lastEditedQuestionId) return;
+        const timer = window.setTimeout(() => {
+            const row = document.querySelector<HTMLElement>(`[data-question-id="${lastEditedQuestionId}"]`);
+            if (row && typeof row.scrollIntoView === 'function') {
+                row.scrollIntoView({ block: 'nearest' });
+            }
+            const semanticAction = row?.querySelector<HTMLElement>('button[aria-label^="Sửa câu"], button[aria-label^="Xem câu"]')
+                ?? row?.querySelector<HTMLElement>('button[aria-label^="Chọn câu"]');
+            semanticAction?.focus();
+        }, 0);
+        return () => window.clearTimeout(timer);
+    }, [lastEditedQuestionId, workspaceView]);
 
     const handleCreateVersion = useCallback(async () => {
         if (!quizId || isCreatingVersion) return;
@@ -402,13 +469,15 @@ const ManualQuizWorkspacePage: React.FC = () => {
         publishAfterGuard();
     }, [editability?.requiresPublishedWarning, guardTransition, isReadOnly, publishAfterGuard]);
 
+    const isOverviewView = workspaceView === 'overview';
+
     return (
         <ManualQuizWorkspaceGuard>
             <div
                 data-testid="manual-quiz-workspace"
                 data-mode={quizId ? 'edit' : 'new'}
                 data-quiz-id={quizId || undefined}
-                className="flex h-[100dvh] min-h-[640px] max-w-full flex-col overflow-x-hidden overflow-y-hidden bg-[#FFFDF7] font-['Be_Vietnam_Pro',sans-serif] text-[#172033]"
+                className="flex min-h-[100dvh] max-w-full flex-col overflow-x-clip overflow-y-visible bg-[#FFFDF7] font-['Be_Vietnam_Pro',sans-serif] text-[#172033] lg:h-[100dvh] lg:min-h-[640px] lg:overflow-x-hidden lg:overflow-y-hidden"
             >
                 <h1 className="sr-only">{quizId ? 'Chỉnh sửa đề' : 'Tạo đề mới'} trong Trình soạn đề</h1>
                 {(remoteDraftStatus === 'loading' || editorAccessStatus === 'loading') && (
@@ -429,8 +498,13 @@ const ManualQuizWorkspacePage: React.FC = () => {
                 <WorkspaceHeader
                     onOpenValidation={openValidation}
                     onOpenSettings={() => { runGuarded(() => setSettingsOpen(true)); }}
-                    onTogglePreview={() => { runGuarded(() => setPreviewCollapsed(!isPreviewCollapsed)); }}
-                    onGoBack={() => { runGuarded(() => navigate(-1)); }}
+                    onTogglePreview={() => {
+                        if (!selectedQuestion) return;
+                        const latestQuestion = questionEditorRef.current?.getPreviewQuestion() ?? selectedQuestion;
+                        handlePreview(latestQuestion);
+                    }}
+                    onGoBack={handleHeaderBack}
+                    canPreview={Boolean(selectedQuestion)}
                     readOnly={isReadOnly}
                 />
                 {editability && (
@@ -441,54 +515,61 @@ const ManualQuizWorkspacePage: React.FC = () => {
                         error={editorAccessError}
                     />
                 )}
-                <div
-                    data-testid="workspace-grid"
-                    data-mobile-pane={mobilePane}
-                    aria-disabled={isReadOnly || undefined}
-                    className={`relative grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden ${tabletColumnClass} ${desktopColumnClass} ${isReadOnly ? 'select-none' : ''}`}
-                >
-                    {!isNavigatorCollapsed && (
-                        <div
-                            id="workspace-pane-list"
-                            data-testid="workspace-pane-list"
-                            data-mobile-visible={mobilePane === 'list'}
-                            className={`h-full min-h-0 min-w-0 overflow-hidden ${mobilePane === 'list' ? 'block' : 'hidden'} md:block`}
-                        >
-                            <QuestionNavigator
-                                onOpenQuestionBank={() => setQuestionBankOpen(true)}
-                                onOpenImport={() => setQuestionImportOpen(true)}
-                                onBeforeAction={guardTransition}
-                                readOnly={isReadOnly}
-                                teacherId={username || ''}
-                            />
-                        </div>
-                    )}
+                <div className={`relative min-w-0 ${isOverviewView ? 'flex-none overflow-visible' : 'min-h-0 flex-1 overflow-hidden'} lg:min-h-0 lg:flex-1 lg:overflow-hidden`}>
                     <div
-                        id="workspace-pane-editor"
-                        data-testid="workspace-pane-editor"
-                        data-mobile-visible={mobilePane === 'editor'}
-                        className={`min-h-0 min-w-0 overflow-hidden ${mobilePane === 'editor' ? 'block' : 'hidden'} md:block`}
+                        data-testid="workspace-view-overview"
+                        aria-hidden={workspaceView !== 'overview'}
+                        hidden={workspaceView !== 'overview'}
+                        className={`min-h-0 min-w-0 ${workspaceView === 'overview' ? 'static flex' : 'hidden'} lg:absolute lg:inset-0`}
+                    >
+                        <QuestionNavigator
+                            variant="overview"
+                            onOpenQuestionBank={() => setQuestionBankOpen(true)}
+                            onOpenImport={() => setQuestionImportOpen(true)}
+                            onBeforeAction={guardTransition}
+                            onEditQuestion={openQuestionEditor}
+                            onQuestionAdded={handleQuestionAdded}
+                            issues={validationIssues}
+                            readOnly={isReadOnly}
+                            teacherId={username || ''}
+                        />
+                    </div>
+                    <div
+                        data-testid="workspace-view-edit"
+                        aria-hidden={workspaceView !== 'edit'}
+                        hidden={workspaceView !== 'edit'}
+                        className={`absolute inset-0 min-h-0 min-w-0 ${workspaceView === 'edit' ? 'flex' : 'hidden'}`}
                     >
                         <QuestionEditorPane
                             ref={questionEditorRef}
                             readOnly={isReadOnly}
                             persistLocalNow={autosaveController.persistLocalNow}
                             onBeforeAction={guardTransition}
+                            currentQuestionIndex={selectedQuestion ? envelope?.quiz.questions.findIndex((question) => question.id === selectedQuestion.id) ?? 0 : 0}
+                            totalQuestions={envelope?.quiz.questions.length ?? 0}
+                            onBack={handleBackToOverview}
+                            onPrevious={() => moveQuestion(-1)}
+                            onNext={() => moveQuestion(1)}
+                            onPreview={handlePreview}
+                            onDone={finishQuestionEdit}
+                            keyboardShortcutsEnabled={workspaceView === 'edit'}
                         />
                     </div>
-                    {!isPreviewCollapsed && (
-                        <div
-                            id="workspace-pane-preview"
-                            data-testid="workspace-pane-preview"
-                            data-mobile-visible={mobilePane === 'preview'}
-                            className={`min-h-0 min-w-0 overflow-hidden ${mobilePane === 'preview' ? 'block' : 'hidden'} md:block`}
-                        >
-                            <StudentPreviewPane />
-                        </div>
-                    )}
+                    <div
+                        data-testid="workspace-view-preview"
+                        aria-hidden={workspaceView !== 'preview'}
+                        hidden={workspaceView !== 'preview'}
+                        className={`absolute inset-0 min-h-0 min-w-0 ${workspaceView === 'preview' ? 'flex' : 'hidden'}`}
+                    >
+                        <StudentPreviewPane
+                            question={previewQuestion ?? selectedQuestion}
+                            questionIndex={selectedQuestion ? envelope?.quiz.questions.findIndex((item) => item.id === selectedQuestion.id) ?? 0 : 0}
+                            onBack={handleBackFromPreview}
+                            readOnly={isReadOnly}
+                        />
+                    </div>
                 </div>
                 <WorkspaceStatusBar onOpenValidation={openValidation} readOnly={isReadOnly} />
-                <WorkspaceMobileTabs activePane={mobilePane} onChange={changeMobilePane} />
                 {envelope && (
                     <PublishValidationDrawer
                         open={isValidationOpen}

@@ -72,7 +72,7 @@ const QuestionNavigatorItem: React.FC<QuestionNavigatorItemProps> = ({
                 style={style}
                 data-question-id={question.id}
                 data-new-question={isNew ? 'true' : undefined}
-                className={`grid gap-3 border-b border-slate-200 bg-white px-4 py-3 transition lg:grid-cols-[auto_minmax(0,1fr)_180px_120px_auto] lg:items-center ${
+                className={`grid min-w-0 gap-3 border-b border-slate-200 bg-white px-4 py-3 transition lg:grid-cols-[auto_minmax(0,1fr)_180px_120px_auto] lg:items-center ${
                     isNew
                         ? 'bg-sky-50 ring-1 ring-inset ring-sky-200'
                         : bulkSelected
@@ -114,7 +114,7 @@ const QuestionNavigatorItem: React.FC<QuestionNavigatorItemProps> = ({
                 <button
                     type="button"
                     onClick={selectionMode ? onToggleBulk : onSelect}
-                    aria-label={`${readOnly ? 'Xem' : 'Sửa'} câu ${overviewRow.number}: ${overviewRow.label}`}
+                    aria-label={`Chọn câu ${overviewRow.number}: ${overviewRow.label}`}
                     className="min-w-0 rounded-lg p-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500"
                 >
                     {isNew && <span className="mb-1 inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-sm font-semibold text-sky-700">Mới thêm</span>}
@@ -126,7 +126,7 @@ const QuestionNavigatorItem: React.FC<QuestionNavigatorItemProps> = ({
                     )}
                 </button>
 
-                <span className="text-sm text-slate-600">
+                <span className="min-w-0 text-sm text-slate-600">
                     {overviewRow.type} <span aria-hidden="true">•</span> {overviewRow.points} điểm
                 </span>
 

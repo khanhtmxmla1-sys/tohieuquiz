@@ -88,7 +88,8 @@ describe('ManualQuizWorkspace editor access integration', () => {
     await waitFor(() => expect(screen.getByDisplayValue('Đề Toán đã nộp')).toBeDisabled());
     expect(screen.getByText('Được tạo bằng AI')).toBeInTheDocument();
     expect(screen.getByText('Chỉ đọc – dữ liệu gốc được bảo vệ')).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-grid')).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByTestId('workspace-view-overview')).toBeVisible();
+    expect(screen.getByTestId('workspace-view-edit')).not.toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Mở thiết lập đề' }));
     expect(screen.getByRole('dialog', { name: 'Thiết lập đề' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Lớp áp dụng' })).toBeDisabled();
@@ -152,6 +153,39 @@ describe('ManualQuizWorkspace editor access integration', () => {
       'quiz-a',
       'Đề Toán đã nộp - Bản chỉnh sửa',
     );
+  });
+
+  it('returns a readonly preview to the overview instead of opening an editor', async () => {
+    const question = {
+      id: 'q-readonly-preview', type: QuestionType.MCQ, question: 'Câu xem trước',
+      options: ['A', 'B'], correctAnswer: 'A', difficulty: 1, points: 5,
+    };
+    editorService.getQuizEditorPayload.mockResolvedValue({
+      quiz: { ...quiz, questions: [question] },
+      questions: [question],
+      editability: {
+        mode: 'READONLY', canEditStructure: false, canCreateVersion: true,
+        reason: 'HAS_SUBMISSIONS', requiresPublishedWarning: false,
+        resultCount: 3, activeLiveExamCount: 0, openAssignmentCount: 1,
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/teacher/quizzes/quiz-a/edit']}>
+        <Routes>
+          <Route path="/teacher/quizzes/:quizId/edit" element={<ManualQuizWorkspacePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Xem câu 1' }));
+    expect(screen.getByTestId('workspace-view-preview')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Về danh sách' })).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-view-edit')).not.toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Về danh sách' }));
+    expect(screen.getByTestId('workspace-view-overview')).toBeVisible();
+    expect(screen.getByTestId('workspace-view-edit')).not.toBeVisible();
   });
 
   it('blocks question navigation when the current draft cannot be persisted locally', async () => {

@@ -43,6 +43,10 @@ describe('QuestionEditorPane math composer integration', () => {
         render(<QuestionEditorPane />);
         await screen.findByTestId('question-rich-editor');
 
+        const editorMain = screen.getByRole('main', { name: 'Trình soạn câu hỏi' });
+        expect(editorMain.querySelector('[class*="max-w-"]')).toHaveClass('max-w-[1120px]');
+        expect(editorMain.querySelector('.sticky')).toHaveClass('pb-[calc(0.75rem+env(safe-area-inset-bottom))]');
+
         const toggle = screen.getByRole('button', { name: 'Công thức toán' });
         expect(toggle).toHaveAttribute('aria-expanded', 'false');
         expect(screen.queryByRole('region', { name: 'Bảng chèn công thức toán' })).not.toBeInTheDocument();

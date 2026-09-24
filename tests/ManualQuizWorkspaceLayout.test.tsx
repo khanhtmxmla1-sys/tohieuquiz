@@ -48,26 +48,23 @@ describe('ManualQuizWorkspace desktop shell', () => {
         });
     });
 
-    it('renders sticky header, three independent panes and sticky status bar', async () => {
+    it('renders sticky header, full-width overview and sticky status bar', async () => {
         renderWorkspace();
 
         expect(await screen.findByRole('banner', { name: 'Thanh công cụ Trình soạn đề' })).toHaveClass('sticky');
-        expect(screen.getByRole('navigation', { name: 'Danh sách câu hỏi' })).toHaveAttribute('data-pane-width', '280');
-        expect(screen.getByRole('main', { name: 'Trình soạn câu hỏi' })).toHaveClass(
-            'h-full',
-            'min-h-0',
-            'overflow-y-auto',
-        );
-        expect(screen.getByRole('complementary', { name: 'Xem trước học sinh' })).toHaveAttribute('data-pane-width', '380');
+        expect(screen.getByTestId('workspace-view-overview')).toBeVisible();
+        expect(screen.getByRole('main', { name: 'Tổng quan câu hỏi' })).toHaveAttribute('data-question-navigator-variant', 'overview');
+        expect(screen.getByTestId('workspace-view-edit')).not.toBeVisible();
+        expect(screen.getByTestId('workspace-view-preview')).not.toBeVisible();
         expect(screen.getByRole('status', { name: 'Trạng thái đề kiểm tra' })).toHaveClass('sticky');
         expect(screen.getByDisplayValue('Kiểm tra giữa kỳ – Toán lớp 3')).toBeInTheDocument();
-        expect(screen.getByTestId('workspace-grid')).toHaveClass('min-h-0');
-        expect(screen.getByTestId('workspace-pane-list')).toHaveClass('h-full', 'min-h-0', 'overflow-hidden');
+        expect(screen.queryByRole('navigation', { name: 'Danh sách câu hỏi' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('complementary', { name: 'Xem trước học sinh' })).not.toBeInTheDocument();
     });
 
     it('opens publish validation from the header and status bar', async () => {
         renderWorkspace();
-        await screen.findByRole('main', { name: 'Trình soạn câu hỏi' });
+        await screen.findByRole('main', { name: 'Tổng quan câu hỏi' });
 
         fireEvent.click(screen.getByRole('button', { name: 'Kiểm tra và xuất bản' }));
         expect(screen.getByRole('dialog', { name: 'Kiểm tra trước khi xuất bản' })).toBeInTheDocument();
@@ -96,17 +93,16 @@ describe('ManualQuizWorkspace desktop shell', () => {
         expect(screen.getByRole('status', { name: 'Trạng thái đề kiểm tra' })).toHaveTextContent('45 phút');
     });
 
-    it('collapses navigator and preview without removing the editor', async () => {
+    it('opens the focused editor and returns to the overview without mobile pane tabs', async () => {
         renderWorkspace();
-        await screen.findByRole('main', { name: 'Trình soạn câu hỏi' });
+        await screen.findByRole('main', { name: 'Tổng quan câu hỏi' });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Thu gọn danh sách câu hỏi' }));
-        fireEvent.click(screen.getByRole('button', { name: 'Thu gọn xem trước' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Thêm nhanh Trắc nghiệm' }));
 
-        expect(screen.queryByRole('navigation', { name: 'Danh sách câu hỏi' })).not.toBeInTheDocument();
-        expect(screen.queryByRole('complementary', { name: 'Xem trước học sinh' })).not.toBeInTheDocument();
         expect(screen.getByRole('main', { name: 'Trình soạn câu hỏi' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Mở danh sách câu hỏi' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Mở xem trước' })).toBeInTheDocument();
+        expect(screen.getByTestId('workspace-view-overview')).not.toBeVisible();
+        fireEvent.click(screen.getByRole('button', { name: 'Về danh sách' }));
+        expect(screen.getByTestId('workspace-view-overview')).toBeVisible();
+        expect(screen.queryByRole('navigation', { name: 'Chuyển vùng soạn đề trên di động' })).not.toBeInTheDocument();
     });
 });

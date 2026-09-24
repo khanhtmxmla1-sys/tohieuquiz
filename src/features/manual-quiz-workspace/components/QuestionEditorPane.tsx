@@ -1,5 +1,5 @@
 import React, { useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { Braces, Copy, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Braces, Check, Copy, Eye, Trash2 } from 'lucide-react';
 import { QuestionType } from '../../../types';
 import QuestionEditorForm from '../../quiz-editor/components/QuestionEditorModal/QuestionEditorForm';
 import { createManualQuestionDraft } from '../../../components/TeacherDashboard/quiz-preview/questionTypes';
@@ -21,6 +21,14 @@ export interface QuestionEditorPaneProps {
     readOnly?: boolean;
     persistLocalNow?: (envelope: ManualQuizDraftEnvelope) => void;
     onBeforeAction?: () => boolean;
+    currentQuestionIndex?: number;
+    totalQuestions?: number;
+    onBack?(): void;
+    onPrevious?(): void;
+    onNext?(): void;
+    onPreview?(question: ManualQuizQuestion): void;
+    onDone?(): void;
+    keyboardShortcutsEnabled?: boolean;
 }
 
 export interface QuestionEditorPaneHandle {
@@ -38,10 +46,12 @@ interface InlineQuestionEditorProps {
     readOnly: boolean;
     persistLocalNow?: (envelope: ManualQuizDraftEnvelope) => void;
     onBeforeAction?: () => boolean;
+    onNext?(): void;
+    keyboardShortcutsEnabled?: boolean;
 }
 
 const InlineQuestionEditor = React.forwardRef<InlineQuestionEditorHandle, InlineQuestionEditorProps>(
-    ({ question, readOnly, persistLocalNow, onBeforeAction }, ref) => {
+    ({ question, readOnly, persistLocalNow, onBeforeAction, onNext, keyboardShortcutsEnabled = true }, ref) => {
     const {
         draft,
         error,
@@ -62,13 +72,18 @@ const InlineQuestionEditor = React.forwardRef<InlineQuestionEditorHandle, Inline
         const index = questions.findIndex((item) => item.id === question.id);
         const next = questions[index + 1];
         if (!next) return;
+        if (onNext) {
+            onNext();
+            return;
+        }
         selectQuestion(next.id);
         window.setTimeout(() => {
             document.querySelector<HTMLElement>('[aria-label="Trình soạn câu hỏi"] [data-testid="question-rich-editor"]')?.focus();
         }, 0);
-    }, [question.id, questions, saveQuestion, selectQuestion]);
+    }, [onNext, question.id, questions, saveQuestion, selectQuestion]);
 
     useWorkspaceKeyboardShortcuts({
+        enabled: keyboardShortcutsEnabled,
         onSaveQuestionAndNext: saveQuestionAndNext,
         onMoveQuestion: readOnly ? undefined : (offset) => {
             if (onBeforeAction && !onBeforeAction()) return;
@@ -134,7 +149,19 @@ const InlineQuestionEditor = React.forwardRef<InlineQuestionEditorHandle, Inline
 InlineQuestionEditor.displayName = 'InlineQuestionEditor';
 
 const QuestionEditorPane = React.forwardRef<QuestionEditorPaneHandle, QuestionEditorPaneProps>(
-    ({ readOnly = false, persistLocalNow, onBeforeAction }, ref) => {
+    ({
+        readOnly = false,
+        persistLocalNow,
+        onBeforeAction,
+        currentQuestionIndex = 0,
+        totalQuestions = 0,
+        onBack,
+        onPrevious,
+        onNext,
+        onPreview,
+        onDone,
+        keyboardShortcutsEnabled = true,
+    }, ref) => {
     const [showMathComposer, setShowMathComposer] = useState(false);
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const addQuestion = useManualQuizWorkspaceStore((state) => state.addQuestion);
@@ -188,7 +215,7 @@ const QuestionEditorPane = React.forwardRef<QuestionEditorPaneHandle, QuestionEd
             className="h-full min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-white p-5 lg:p-8"
         >
             <MathComposerProvider>
-                <div className="mx-auto max-w-4xl space-y-4 pb-24">
+                <div className="mx-auto w-full max-w-[1120px] space-y-4 pb-24">
                 {readOnly && (
                     <div
                         role="note"
@@ -265,7 +292,58 @@ const QuestionEditorPane = React.forwardRef<QuestionEditorPaneHandle, QuestionEd
                         readOnly={readOnly}
                         persistLocalNow={persistLocalNow}
                         onBeforeAction={onBeforeAction}
+                        onNext={onNext}
+                        keyboardShortcutsEnabled={keyboardShortcutsEnabled}
                     />
+                </div>
+                <div className="sticky bottom-0 z-10 mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-white/85">
+                    <button
+                        type="button"
+                        onClick={onBack}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-500"
+                    >
+                        <ArrowLeft className="h-4 w-4" /> Về danh sách
+                    </button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={onPrevious}
+                            disabled={!onPrevious || currentQuestionIndex <= 0}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            <ArrowLeft className="h-4 w-4" /> Câu trước
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const latestQuestion = inlineEditorRef.current?.previewQuestion ?? selected;
+                                if (latestQuestion) onPreview?.(latestQuestion);
+                            }}
+                            disabled={!onPreview}
+                            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-sky-200 px-3 text-sm font-semibold text-sky-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            <Eye className="h-4 w-4" /> Xem trước
+                        </button>
+                        {currentQuestionIndex < totalQuestions - 1 ? (
+                            <button
+                                type="button"
+                                onClick={onNext}
+                                disabled={!onNext}
+                                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                            >
+                                Lưu và câu sau <ArrowRight className="h-4 w-4" />
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={onDone}
+                                disabled={!onDone}
+                                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                            >
+                                <Check className="h-4 w-4" /> Xong
+                            </button>
+                        )}
+                    </div>
                 </div>
                 </div>
             </MathComposerProvider>
