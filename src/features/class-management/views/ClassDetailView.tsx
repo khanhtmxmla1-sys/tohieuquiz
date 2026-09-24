@@ -156,7 +156,7 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
         if (archived) showSuccess('Đã lưu trữ học sinh.');
     };
 
-    const handleOpenCoinAwards = ({ studentIds }: { classId: string; studentIds: string[]; selectionMode: 'SELECTED' }) => {
+    const handleOpenCoinAwards = ({ studentIds, selectionMode }: { classId: string; studentIds: string[]; selectionMode: 'STUDENT' | 'SELECTED' }) => {
         if (!isOnline || !coinAwardsEnabled || studentIds.length === 0) return;
         const actorUsername = authStore.username?.trim();
         if (!actorUsername) return;
@@ -166,7 +166,7 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
             actorUsername,
             classId: classroom.id,
             studentIds,
-            selectionMode: 'SELECTED',
+            selectionMode,
         });
         navigate(getTeacherRoute('coin-awards'), { state: { coinAwardPrefillToken: prefillId } });
     };

@@ -18,6 +18,7 @@ const service = vi.hoisted(() => ({
 }));
 const classroomService = vi.hoisted(() => ({
   getClasses: vi.fn(),
+  getStudents: vi.fn(),
 }));
 const router = vi.hoisted(() => ({
   location: { pathname: '/teacher/coin-awards', state: null as unknown },
@@ -87,6 +88,14 @@ describe('CoinAwardsPage', () => {
     classroomService.getClasses.mockResolvedValue([
       { id: 'school-class-1', name: 'Lớp toàn trường' },
     ]);
+    classroomService.getStudents.mockImplementation(async (classId: string) => (
+      classId === 'class-2'
+        ? [{ id: 's-3', fullName: 'Lê Chi', username: 'chi03', classId: 'class-2' }]
+        : [
+            { id: 's-1', fullName: 'Nguyễn An', username: 'an01', classId: 'class-1' },
+            { id: 's-2', fullName: 'Trần Bình', username: 'binh02', classId: 'class-1' },
+          ]
+    ));
     service.getAwardSettings.mockResolvedValue({
       scopeKey: 'school', maxCoinsPerStudent: 100, maxTeacherDailyCoins: 2000,
       reversalWindowMinutes: 15, updatedBy: 'admin', updatedAt: '2026-09-21T00:00:00.000Z',
@@ -99,6 +108,104 @@ describe('CoinAwardsPage', () => {
       teacherClasses: [{ id: 'class-1', name: 'Lớp 4A' }],
     });
     useClassStore.setState({ classes: [], isLoading: false, error: null, lastUpdatedAt: null });
+  });
+
+  it('loads the selected class roster and lets the teacher choose one student by name without entering an id', async () => {
+    render(<CoinAwardsPage initialClassId="class-1" />);
+    await screen.findByLabelText('Lý do');
+
+    await waitFor(() => expect(classroomService.getStudents).toHaveBeenCalledWith('class-1', 'teacher'));
+    expect(screen.queryByLabelText('Mã học sinh')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Một học sinh' })).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.change(screen.getByLabelText('Tìm học sinh'), { target: { value: 'Nguyen' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'Chọn Nguyễn An' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gợi ý: Tích cực phát biểu' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận thưởng xu' }));
+
+    await waitFor(() => expect(service.previewAward).toHaveBeenCalledWith(expect.objectContaining({
+      classId: 'class-1', selectionMode: 'STUDENT', studentIds: ['s-1'],
+    })));
+  });
+
+  it('lets the teacher retry when the class roster cannot be loaded', async () => {
+    classroomService.getStudents
+      .mockRejectedValueOnce(new Error('Mất kết nối'))
+      .mockResolvedValueOnce([
+        { id: 's-1', fullName: 'Nguyễn An', username: 'an01', classId: 'class-1' },
+      ]);
+    render(<CoinAwardsPage initialClassId="class-1" />);
+    await screen.findByLabelText('Lý do');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Mất kết nối');
+    fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+
+    expect(await screen.findByRole('radio', { name: 'Chọn Nguyễn An' })).toBeInTheDocument();
+    expect(classroomService.getStudents).toHaveBeenCalledTimes(2);
+  });
+
+  it('supports selecting multiple students by name and keeps ids internal', async () => {
+    render(<CoinAwardsPage initialClassId="class-1" />);
+    await screen.findByLabelText('Lý do');
+    await waitFor(() => expect(classroomService.getStudents).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nhiều học sinh' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Chọn Nguyễn An' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Chọn Trần Bình' }));
+
+    expect(screen.getByText('Đã chọn 2 học sinh')).toBeInTheDocument();
+    expect(screen.queryByText('s-1')).not.toBeInTheDocument();
+    expect(screen.queryByText('s-2')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Gợi ý: Tích cực phát biểu' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận thưởng xu' }));
+
+    await waitFor(() => expect(service.previewAward).toHaveBeenCalledWith(expect.objectContaining({
+      selectionMode: 'SELECTED', studentIds: ['s-1', 's-2'],
+    })));
+  });
+
+  it('shows the active class size for all-class awards without a student picker', async () => {
+    render(<CoinAwardsPage initialClassId="class-1" />);
+    await screen.findByLabelText('Lý do');
+    await waitFor(() => expect(classroomService.getStudents).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cả lớp' }));
+
+    expect(screen.getByText('Thưởng cho toàn bộ 2 học sinh đang hoạt động của lớp Lớp 4A.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Tìm học sinh')).not.toBeInTheDocument();
+  });
+
+  it('shows a clear empty-class message for all-class awards', async () => {
+    classroomService.getStudents.mockResolvedValueOnce([]);
+    render(<CoinAwardsPage initialClassId="class-1" />);
+    await screen.findByLabelText('Lý do');
+    await waitFor(() => expect(classroomService.getStudents).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cả lớp' }));
+
+    expect(screen.getByText('Lớp này chưa có học sinh.')).toBeInTheDocument();
+  });
+
+  it('clears recipients and loads the new roster when the class changes', async () => {
+    useAuthStore.setState({
+      isAdmin: false,
+      username: 'teacher-a',
+      teacherClasses: [
+        { id: 'class-1', name: 'Lớp 4A' },
+        { id: 'class-2', name: 'Lớp 4B' },
+      ],
+    });
+    render(<CoinAwardsPage initialClassId="class-1" />);
+    await screen.findByLabelText('Lý do');
+    await waitFor(() => expect(classroomService.getStudents).toHaveBeenCalledWith('class-1', 'teacher'));
+    fireEvent.click(screen.getByRole('radio', { name: 'Chọn Nguyễn An' }));
+
+    fireEvent.change(screen.getByLabelText('Lớp học'), { target: { value: 'class-2' } });
+
+    await waitFor(() => expect(classroomService.getStudents).toHaveBeenCalledWith('class-2', 'teacher'));
+    expect(await screen.findByRole('radio', { name: 'Chọn Lê Chi' })).not.toBeChecked();
+    expect(screen.queryByRole('radio', { name: 'Chọn Nguyễn An' })).not.toBeInTheDocument();
+    expect(screen.getByText('0 xu cho 0 học sinh')).toBeInTheDocument();
   });
 
   it('consumes a matching roster prefill exactly once and preserves SELECTED for one student', async () => {
@@ -119,12 +226,13 @@ describe('CoinAwardsPage', () => {
     const { rerender } = render(<React.StrictMode><CoinAwardsPage /></React.StrictMode>);
     await screen.findByLabelText('Lý do');
 
-    expect(screen.getByLabelText('Kiểu người nhận')).toHaveValue('SELECTED');
-    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('s-1');
+    expect(screen.getByRole('button', { name: 'Nhiều học sinh' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('checkbox', { name: 'Chọn Nguyễn An' })).toBeChecked();
+    expect(screen.queryByLabelText('Mã học sinh')).not.toBeInTheDocument();
     expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
 
     rerender(<React.StrictMode><CoinAwardsPage /></React.StrictMode>);
-    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('s-1');
+    expect(screen.getByRole('checkbox', { name: 'Chọn Nguyễn An' })).toBeChecked();
     expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
   });
 
@@ -150,8 +258,8 @@ describe('CoinAwardsPage', () => {
     render(<CoinAwardsPage initialClassId="class-1" initialStudentIds={['legacy-student']} />);
     await screen.findByLabelText('Lý do');
 
-    expect(screen.getByLabelText('Kiểu người nhận')).toHaveValue('SELECTED');
-    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('s-1');
+    expect(screen.getByRole('button', { name: 'Nhiều học sinh' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('checkbox', { name: 'Chọn Nguyễn An' })).toBeChecked();
   });
 
   it('discards a mismatched actor prefill and never exposes its student ids', async () => {
@@ -172,7 +280,8 @@ describe('CoinAwardsPage', () => {
     render(<CoinAwardsPage />);
     await screen.findByLabelText('Lý do');
 
-    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('');
+    expect(await screen.findByRole('radio', { name: 'Chọn Nguyễn An' })).not.toBeChecked();
+    expect(screen.queryByLabelText('Mã học sinh')).not.toBeInTheDocument();
     expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
   });
 
@@ -190,7 +299,8 @@ describe('CoinAwardsPage', () => {
     render(<CoinAwardsPage />);
     await screen.findByLabelText('Lý do');
 
-    expect(screen.getByLabelText('Mã học sinh')).toHaveValue('');
+    expect(await screen.findByRole('radio', { name: 'Chọn Nguyễn An' })).not.toBeChecked();
+    expect(screen.queryByLabelText('Mã học sinh')).not.toBeInTheDocument();
     expect(useCoinAwardsStore.getState().awardPrefill).toBeNull();
   });
 
@@ -222,7 +332,7 @@ describe('CoinAwardsPage', () => {
   it('requires a second confirmation for all-class awards and preserves the key when closed', async () => {
     render(<CoinAwardsPage initialClassId="class-1" initialStudentIds={['s-1', 's-2']} />);
     await screen.findByLabelText('Lý do');
-    fireEvent.change(screen.getByLabelText('Kiểu người nhận'), { target: { value: 'CLASS' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cả lớp' }));
     fireEvent.click(screen.getByRole('button', { name: '+20' }));
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Cả lớp tiến bộ' } });
 
@@ -255,7 +365,7 @@ describe('CoinAwardsPage', () => {
     service.previewAward.mockResolvedValue(null);
     render(<CoinAwardsPage initialClassId="class-1" initialStudentIds={['s-1', 's-2']} />);
     await screen.findByLabelText('Lý do');
-    fireEvent.change(screen.getByLabelText('Kiểu người nhận'), { target: { value: 'CLASS' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cả lớp' }));
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Cả lớp tiến bộ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận thưởng xu' }));
 
@@ -267,7 +377,7 @@ describe('CoinAwardsPage', () => {
   it('freezes the all-class draft and preview details until confirmation', async () => {
     render(<CoinAwardsPage initialClassId="class-1" initialStudentIds={['s-1', 's-2']} />);
     await screen.findByLabelText('Lý do');
-    fireEvent.change(screen.getByLabelText('Kiểu người nhận'), { target: { value: 'CLASS' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cả lớp' }));
     fireEvent.click(screen.getByRole('button', { name: '+20' }));
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Cả lớp tiến bộ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận thưởng xu' }));
@@ -279,7 +389,7 @@ describe('CoinAwardsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận cộng xu' }));
 
     await waitFor(() => expect(service.createAward).toHaveBeenCalledWith(expect.objectContaining({
-      reason: 'Cả lớp tiến bộ', coinsPerStudent: 20, studentIds: ['s-1', 's-2'],
+      reason: 'Cả lớp tiến bộ', coinsPerStudent: 20, studentIds: [],
     })));
   });
 
@@ -611,7 +721,7 @@ describe('CoinAwardsPage', () => {
     service.createAward.mockReturnValue(awardRequest.promise);
     render(<CoinAwardsPage initialClassId="class-1" initialStudentIds={['s-1', 's-2']} />);
     await screen.findByLabelText('Lý do');
-    fireEvent.change(screen.getByLabelText('Kiểu người nhận'), { target: { value: 'CLASS' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cả lớp' }));
     fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Cả lớp tiến bộ' } });
     const trigger = screen.getByRole('button', { name: 'Xác nhận thưởng xu' });
     trigger.focus();

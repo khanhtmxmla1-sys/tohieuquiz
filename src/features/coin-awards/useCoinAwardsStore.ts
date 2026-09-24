@@ -20,7 +20,7 @@ export interface CoinAwardPrefill {
   actorUsername: string;
   classId: string;
   studentIds: string[];
-  selectionMode: 'SELECTED';
+  selectionMode: 'STUDENT' | 'SELECTED';
 }
 
 export interface CoinAwardsState {

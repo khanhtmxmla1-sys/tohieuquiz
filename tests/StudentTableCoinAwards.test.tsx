@@ -73,6 +73,19 @@ const renderControlledStudentTable = (props: Partial<React.ComponentProps<typeof
 };
 
 describe('StudentTable coin-award selection', () => {
+  it('offers a text-only + Xu shortcut for one student', () => {
+    const onOpenCoinAwards = vi.fn();
+    renderStudentTable({ onOpenCoinAwards, selectionEnabled: true });
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Xu cho Nguyễn An' }));
+
+    expect(onOpenCoinAwards).toHaveBeenCalledWith({
+      classId: 'class-1',
+      studentIds: ['s-1'],
+      selectionMode: 'STUDENT',
+    });
+  });
+
   it('selects an individual student with an explicitly labelled native checkbox', () => {
     const onSelectionChange = vi.fn();
     renderControlledStudentTable({ onSelectionChange, selectedStudentIds: [] });
@@ -136,6 +149,29 @@ vi.mock('../src/features/class-management/components/ParentAccessModal', () => (
 vi.mock('../src/features/class-management/components/Modals', () => ({ AddStudentModal: () => null, ResetPasswordModal: () => null }));
 
 describe('ClassDetailView coin-award shortcut', () => {
+  it('stores a single-student prefill when the teacher uses the row + Xu shortcut', () => {
+    rosterStore.students['class-1'] = students;
+    useCoinAwardsStore.setState({ awardPrefill: null });
+    useAuthStore.setState({ username: 'teacher-a' });
+    render(
+      <MemoryRouter initialEntries={['/teacher/classes']}>
+        <ClassDetailView classroom={{ id: 'class-1', name: '4A', teacherUsername: 'teacher-a', createdAt: '2026-09-22' }} onBack={vi.fn()} />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Xu cho Nguyễn An' }));
+
+    expect(useCoinAwardsStore.getState().awardPrefill).toEqual(expect.objectContaining({
+      actorUsername: 'teacher-a',
+      classId: 'class-1',
+      studentIds: ['s-1'],
+      selectionMode: 'STUDENT',
+    }));
+    const token = useCoinAwardsStore.getState().awardPrefill?.token;
+    expect(screen.getByTestId('coin-award-location')).toHaveTextContent(`/teacher/coin-awards|${token}`);
+  });
+
   it('stores one-time selected-student prefill and navigates to the canonical award route without an API call', () => {
     rosterStore.students['class-1'] = students;
     useCoinAwardsStore.setState({ awardPrefill: null });
