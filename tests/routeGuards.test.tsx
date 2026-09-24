@@ -4,6 +4,7 @@ import { MemoryRouter, Outlet, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppRoutes } from '../src/app/AppRoutes';
 import {
+  buildLoginRoleSwitch,
   getQuizEditorRoute,
   getStudentRoute,
   getStudentSectionRoute,
@@ -49,7 +50,13 @@ vi.mock('../src/app/lazyViews', () => ({
 
 const LocationProbe = () => {
   const location = useLocation();
-  return <div data-testid="location">{location.pathname}{location.search}</div>;
+  return (
+    <>
+      <div data-testid="location">{location.pathname}{location.search}</div>
+      <div data-testid="location-pathname">{location.pathname}</div>
+      <div data-testid="location-search">{location.search}</div>
+    </>
+  );
 };
 
 const renderRoutes = (
@@ -100,11 +107,13 @@ describe('URL navigation contracts', () => {
     expect(getTeacherRoute('live-exam')).toBe('/teacher/live-exams');
     expect(getTeacherRoute('gift-shop')).toBe('/teacher/gift-shop');
     expect(getTeacherRoute('system-question-bank')).toBe('/teacher/system-question-bank');
+    expect(getTeacherRoute('coin-awards')).toBe('/teacher/coin-awards');
     expect(getTeacherRoute('feature-rollout')).toBe('/teacher/feature-rollout');
     expect(getTeacherRoute('login-media')).toBe('/teacher/login-media');
     expect(resolveTeacherTabFromLocation('/teacher/system-question-bank', '')).toBe('system-question-bank');
     expect(resolveTeacherTabFromLocation('/teacher/feature-rollout', '')).toBe('feature-rollout');
     expect(resolveTeacherTabFromLocation('/teacher/login-media', '')).toBe('login-media');
+    expect(resolveTeacherTabFromLocation('/teacher/coin-awards', '')).toBe('coin-awards');
     expect(resolveTeacherTabFromLocation('/teacher/quizzes', '?mode=create')).toBe('create');
     expect(resolveTeacherTabFromLocation('/teacher/unknown', '')).toBe('overview');
   });
@@ -130,6 +139,27 @@ describe('URL navigation contracts', () => {
     expect(resolveSafeReturnTo('//evil.example/teacher/results', 'teacher')).toBeNull();
     expect(resolveSafeReturnTo('/student/dashboard', 'teacher')).toBeNull();
     expect(resolveSafeReturnTo('/teacher/overview#token', 'teacher')).toBeNull();
+  });
+
+  it('switches login roles and drops a returnTo owned by the previous role', () => {
+    expect(buildLoginRoleSwitch('student', '?login=teacher&returnTo=%2Fteacher%2Foverview'))
+      .toBe('/?login=student');
+    expect(buildLoginRoleSwitch('teacher', '?login=student&returnTo=%2Fstudent%2Fresults'))
+      .toBe('/?login=teacher');
+  });
+
+  it('preserves a safe returnTo only when it belongs to the selected role', () => {
+    expect(buildLoginRoleSwitch('teacher', '?login=teacher&returnTo=%2Fteacher%2Fresults'))
+      .toBe('/?login=teacher&returnTo=%2Fteacher%2Fresults');
+    expect(buildLoginRoleSwitch('student', '?login=student&returnTo=%2Fstudent%2Fresults'))
+      .toBe('/?login=student&returnTo=%2Fstudent%2Fresults');
+  });
+
+  it('removes external and malformed returnTo values during a role switch', () => {
+    expect(buildLoginRoleSwitch('teacher', '?login=student&returnTo=https%3A%2F%2Fevil.example'))
+      .toBe('/?login=teacher');
+    expect(buildLoginRoleSwitch('student', '?login=teacher&returnTo=%2Fthi%2F%255c%255cevil.example'))
+      .toBe('/?login=student');
   });
 
   it('allows exact Student Competition deep links without loosening open-redirect defenses', () => {
@@ -194,6 +224,32 @@ describe('URL navigation contracts', () => {
     expect(await screen.findByText('student-competition-portal')).toBeInTheDocument();
   });
 
+  it('uses the restored Student session when a stale Teacher login request has an incompatible returnTo', async () => {
+    useClassroomStore.setState({ studentSession });
+
+    renderRoutes('/?login=teacher&returnTo=%2Fteacher%2Fresults');
+
+    await waitFor(() => expect(screen.getByTestId('location-pathname')).toHaveTextContent('/student/dashboard'));
+    expect(screen.getByText('student-dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('teacher-dashboard')).not.toBeInTheDocument();
+  });
+
+  it('uses the restored Teacher session when a stale Student login request has an incompatible returnTo', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'teacher.one',
+      teacherName: 'Giáo viên Một',
+      isAdmin: false,
+    });
+
+    renderRoutes('/?login=student&returnTo=%2Fstudent%2Fdashboard');
+
+    await waitFor(() => expect(screen.getByTestId('location-pathname')).toHaveTextContent('/teacher/overview'));
+    expect(screen.getByText('teacher-dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('student-dashboard')).not.toBeInTheDocument();
+  });
+
   it('waits for session restoration before deciding a protected route', () => {
     renderRoutes('/teacher/results?page=2', false);
 
@@ -235,6 +291,20 @@ describe('URL navigation contracts', () => {
 
     expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent('/teacher/classes');
+  });
+
+  it('renders an authenticated teacher coin-awards deep link through the protected dashboard route', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      isLoggedIn: true,
+      username: 'teacher.one',
+      teacherName: 'Giáo viên Một',
+    });
+
+    renderRoutes('/teacher/coin-awards');
+
+    expect(await screen.findByText('teacher-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/teacher/coin-awards');
   });
 
   it('redirects a non-admin teacher away from the internal design system', async () => {

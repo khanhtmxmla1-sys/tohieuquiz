@@ -12,6 +12,7 @@ interface BulkQuestionActionsProps {
     selectedIds: Set<string>;
     teacherId: string;
     onClear: () => void;
+    onBeforeAction?: () => boolean;
 }
 
 type BulkAction = 'difficulty' | 'points' | 'delete' | 'save-bank';
@@ -48,7 +49,12 @@ const getCorrectAnswerText = (question: ManualQuizQuestion): string => {
     return letters.join(', ');
 };
 
-const BulkQuestionActions: React.FC<BulkQuestionActionsProps> = ({ selectedIds, teacherId, onClear }) => {
+const BulkQuestionActions: React.FC<BulkQuestionActionsProps> = ({
+    selectedIds,
+    teacherId,
+    onClear,
+    onBeforeAction,
+}) => {
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const replaceQuestions = useManualQuizWorkspaceStore((state) => state.replaceQuestions);
     const bulkUpdateQuestions = useManualQuizWorkspaceStore((state) => state.bulkUpdateQuestions);
@@ -84,6 +90,7 @@ const BulkQuestionActions: React.FC<BulkQuestionActionsProps> = ({ selectedIds, 
     if (!envelope || selectedQuestions.length === 0) return null;
 
     const applyPreviewedAction = async () => {
+        if (onBeforeAction && !onBeforeAction()) return;
         const ids = Array.from(selectedIds);
         setMessage(null);
         if (action === 'save-bank') {
@@ -108,6 +115,7 @@ const BulkQuestionActions: React.FC<BulkQuestionActionsProps> = ({ selectedIds, 
     };
 
     const undo = () => {
+        if (onBeforeAction && !onBeforeAction()) return;
         const snapshot = history[history.length - 1];
         if (!snapshot) return;
         replaceQuestions(snapshot.questions, snapshot.selectedQuestionId);
@@ -132,12 +140,14 @@ const BulkQuestionActions: React.FC<BulkQuestionActionsProps> = ({ selectedIds, 
 
     const acceptExplanation = () => {
         if (!pendingExplanation) return;
+        if (onBeforeAction && !onBeforeAction()) return;
         pushSnapshot();
         bulkUpdateQuestions([pendingExplanation.questionId], { explanation: pendingExplanation.text });
         setPendingExplanation(null);
     };
 
     const acceptDistractors = () => {
+        if (onBeforeAction && !onBeforeAction()) return;
         pushSnapshot();
         smartDistractors.acceptPendingDistractors();
     };
@@ -157,7 +167,15 @@ const BulkQuestionActions: React.FC<BulkQuestionActionsProps> = ({ selectedIds, 
                 </select>
                 {action === 'difficulty' && <select aria-label="Độ khó mới" value={difficulty} onChange={(event) => setDifficulty(Number(event.target.value) as 1 | 2 | 3)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"><option value="1">Dễ</option><option value="2">Trung bình</option><option value="3">Khó</option></select>}
                 {action === 'points' && <input aria-label="Điểm mới" type="number" min="0.01" step="0.01" value={points} onChange={(event) => setPoints(Number(event.target.value))} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm" />}
-                <button type="button" onClick={() => setPreviewOpen(true)} aria-label="Xem trước thay đổi" className="min-h-10 w-full rounded-lg bg-sky-600 px-3 text-sm font-semibold text-white">Xem trước thay đổi</button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (onBeforeAction && !onBeforeAction()) return;
+                        setPreviewOpen(true);
+                    }}
+                    aria-label="Xem trước thay đổi"
+                    className="min-h-10 w-full rounded-lg bg-sky-600 px-3 text-sm font-semibold text-white"
+                >Xem trước thay đổi</button>
             </div>
 
             {singleQuestion && (

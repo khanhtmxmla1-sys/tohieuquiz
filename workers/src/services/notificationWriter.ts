@@ -279,3 +279,71 @@ export async function createNotifications(
     delayed,
   };
 }
+
+/**
+ * Prepares a single JSON-backed insert for notifications that are part of a
+ * larger atomic mutation. This explicit path intentionally skips preference
+ * and quiet-hour suppression; callers should use it only for system-mandated
+ * receipts such as coin awards.
+ */
+export function prepareMandatoryNotificationBatch(
+  db: D1Database,
+  inputs: CreateNotificationInput[],
+): D1PreparedStatement {
+  if (inputs.length === 0) throw new Error('At least one notification is required');
+
+  const rows = inputs.map((input) => {
+    const item = normalizeInput(input);
+    if (!item.sourceType || !item.sourceId) {
+      throw new Error('Mandatory notifications require sourceType and sourceId');
+    }
+
+    return {
+      id: item.id,
+      userId: item.userId,
+      userRole: item.userRole,
+      type: item.type,
+      title: item.title,
+      body: item.body,
+      data: item.dataJson,
+      priority: item.priority,
+      severity: item.severity,
+      sourceType: item.sourceType,
+      sourceId: item.sourceId,
+      dedupeKey: [item.userId, item.userRole, item.sourceType, item.sourceId, item.type].join(':'),
+      actionUrl: item.actionUrl,
+      availableAt: item.createdAt,
+      expiresAt: item.expiresAt,
+      sentAt: item.createdAt,
+      createdAt: item.createdAt,
+    };
+  });
+
+  const serializedRows = JSON.stringify(rows);
+  return db.prepare(`
+    INSERT OR IGNORE INTO notifications (
+      id, user_id, user_role, type, title, body, data, priority, severity,
+      source_type, source_id, dedupe_key, action_url, available_at, expires_at,
+      sent_at, created_at
+    )
+    SELECT
+      json_extract(value, '$.id'),
+      json_extract(value, '$.userId'),
+      json_extract(value, '$.userRole'),
+      json_extract(value, '$.type'),
+      json_extract(value, '$.title'),
+      json_extract(value, '$.body'),
+      json_extract(value, '$.data'),
+      json_extract(value, '$.priority'),
+      json_extract(value, '$.severity'),
+      json_extract(value, '$.sourceType'),
+      json_extract(value, '$.sourceId'),
+      json_extract(value, '$.dedupeKey'),
+      json_extract(value, '$.actionUrl'),
+      json_extract(value, '$.availableAt'),
+      json_extract(value, '$.expiresAt'),
+      json_extract(value, '$.sentAt'),
+      json_extract(value, '$.createdAt')
+    FROM json_each(?)
+  `).bind(serializedRows);
+}

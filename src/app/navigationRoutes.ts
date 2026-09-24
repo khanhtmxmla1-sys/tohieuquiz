@@ -22,6 +22,7 @@ const TEACHER_ROUTE_BY_TAB: Record<TeacherDashboardTab, string> = {
   operations: '/teacher/operations',
   'system-question-bank': '/teacher/system-question-bank',
   'personal-settings': '/teacher/settings',
+  'coin-awards': '/teacher/coin-awards',
 };
 
 const TEACHER_TAB_BY_PATH = new Map<string, TeacherDashboardTab>([
@@ -44,6 +45,7 @@ const TEACHER_TAB_BY_PATH = new Map<string, TeacherDashboardTab>([
   ['/teacher/operations', 'operations'],
   ['/teacher/system-question-bank', 'system-question-bank'],
   ['/teacher/settings', 'personal-settings'],
+  ['/teacher/coin-awards', 'coin-awards'],
 ]);
 
 export type StudentRouteName =
@@ -143,4 +145,15 @@ export const buildLoginRedirect = (
   const params = new URLSearchParams({ login: role });
   if (returnTo) params.set('returnTo', returnTo);
   return `/?${params.toString()}`;
+};
+
+export const buildLoginRoleSwitch = (
+  role: 'teacher' | 'student',
+  currentSearch: string,
+): string => {
+  const currentParams = new URLSearchParams(currentSearch);
+  const nextParams = new URLSearchParams({ login: role });
+  const returnTo = resolveSafeReturnTo(currentParams.get('returnTo'), role);
+  if (returnTo) nextParams.set('returnTo', returnTo);
+  return `/?${nextParams.toString()}`;
 };

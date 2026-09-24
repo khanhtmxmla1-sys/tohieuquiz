@@ -140,4 +140,22 @@ describe('student reward ledger atomicity', () => {
     expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM student_reward_ledger`).get()).toEqual({ count: 0 });
     expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM reward_side_effect`).get()).toEqual({ count: 0 });
   });
+
+  it('keeps existing single-reward behavior for manual award source types', async () => {
+    const result = await applyStudentReward(db as any, {
+      studentId: 'student-a',
+      username: 'student-a',
+      sourceType: 'MANUAL_AWARD',
+      sourceKey: 'manual-batch-1',
+      rewardType: 'COINS',
+      coinsDelta: 10,
+      expDelta: 0,
+      payload: { batchId: 'manual-batch-1' },
+    });
+
+    expect(result.alreadyClaimed).toBe(false);
+    expect(result.wallet.coins).toBe(110);
+    expect(sqlite.prepare(`SELECT source_type FROM student_reward_ledger WHERE source_key='manual-batch-1'`).get())
+      .toEqual({ source_type: 'MANUAL_AWARD' });
+  });
 });

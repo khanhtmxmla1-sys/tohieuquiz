@@ -27,7 +27,7 @@ const quiz = {
 
 const studentProfile = (avatar: string) => ({
   studentId: 'student-avatar-fixture',
-  fullName: 'Nguyễn Minh Khang',
+  fullName: 'Hà Minh Khang',
   username: 'student.avatar.fixture',
   classId: 'class-avatar-fixture',
   className: '4A1',
@@ -87,10 +87,12 @@ const assertNoHorizontalOverflow = () => {
 };
 
 const assertAvatar = (expectedPath: string) => {
-  cy.get('img[alt="Ảnh đại diện của Nguyễn Minh Khang"]')
+  cy.get('img[alt="Ảnh đại diện của Hà Minh Khang"]')
     .should('be.visible')
+    .and('have.attr', 'src', expectedPath)
     .and(($image) => {
       const image = $image[0] as HTMLImageElement;
+      expect(image.complete, 'avatar complete').to.eq(true);
       expect(image.naturalWidth, 'avatar natural width').to.be.greaterThan(0);
       expect(new URL(image.currentSrc || image.src, window.location.origin).pathname)
         .to.equal(expectedPath);
@@ -107,12 +109,12 @@ const startQuiz = () => {
 describe('Student quiz avatar', () => {
   it('renders the selected avatar and restores it with the in-progress answer on desktop reload', () => {
     cy.viewport(1280, 720);
-    stubStudentQuizApis('boy_02');
+    stubStudentQuizApis('girl_07');
 
     cy.visit('/', { onBeforeLoad: installStudentQuizState });
     startQuiz();
 
-    assertAvatar('/avatar2.webp');
+    assertAvatar('/avatars/students/girl_07.webp');
     cy.get('[aria-label^="Thời gian còn lại"]')
       .should('be.visible')
       .and('contain.text', ':');
@@ -122,24 +124,38 @@ describe('Student quiz avatar', () => {
 
     cy.reload();
     cy.wait('@studentProfile');
-    assertAvatar('/avatar2.webp');
+    assertAvatar('/avatars/students/girl_07.webp');
     cy.get('[aria-label^="Thời gian còn lại"]').should('be.visible');
     cy.get(`#question-${QUESTION_ID} button[aria-pressed="true"]`).should('exist');
     assertNoHorizontalOverflow();
   });
 
-  it('uses the default avatar when the student profile has no avatar on a 375px viewport', () => {
+  it('renders the selected avatar on a 375px viewport without horizontal overflow', () => {
+    cy.viewport(375, 812);
+    stubStudentQuizApis('girl_07');
+
+    cy.visit('/', { onBeforeLoad: installStudentQuizState });
+    startQuiz();
+
+    assertAvatar('/avatars/students/girl_07.webp');
+    cy.get('[aria-label^="Thời gian còn lại"]')
+      .should('be.visible')
+      .and('contain.text', ':');
+    assertNoHorizontalOverflow();
+    cy.screenshot('quiz-student-avatar-mobile');
+  });
+
+  it('loads the default avatar when the student profile has no avatar on mobile', () => {
     cy.viewport(375, 812);
     stubStudentQuizApis('');
 
     cy.visit('/', { onBeforeLoad: installStudentQuizState });
     startQuiz();
 
-    assertAvatar('/avatar1.webp');
+    assertAvatar('/avatars/students/girl_01.webp');
     cy.get('[aria-label^="Thời gian còn lại"]')
       .should('be.visible')
       .and('contain.text', ':');
     assertNoHorizontalOverflow();
-    cy.screenshot('quiz-student-avatar-mobile-default');
   });
 });

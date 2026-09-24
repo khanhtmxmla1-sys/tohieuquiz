@@ -16,6 +16,7 @@ import { parentRoutes } from './parents';
 import { actionCenterRoutes } from './actionCenter';
 import { competitionRoutes } from './competitions';
 import { competitionPortalRoutes } from './competitionPortal';
+import { coinAwardRoutes } from './coinAwards';
 
 export const routes: RouteRegistry = {
     ...teacherRoutes,
@@ -35,4 +36,5 @@ export const routes: RouteRegistry = {
     ...actionCenterRoutes,
     ...competitionPortalRoutes,
     ...competitionRoutes,
+    ...coinAwardRoutes,
 };

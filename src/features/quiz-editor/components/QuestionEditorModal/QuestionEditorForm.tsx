@@ -27,6 +27,7 @@ export interface QuestionEditorFormProps {
     draft: AnyEditorDraft;
     onDraftChange: (updater: (prev: AnyEditorDraft) => AnyEditorDraft) => void;
     onSave: () => void;
+    onEditorReady?: () => void;
     onCancel?: () => void;
     mode: 'inline' | 'modal';
     isGeneratingDistractors?: boolean;
@@ -45,7 +46,8 @@ const DIFFICULTIES: { value: Difficulty; label: string }[] = [
 const SharedHeaderEditor: React.FC<{
     draft: AnyEditorDraft;
     onDraftChange: (updater: (prev: AnyEditorDraft) => AnyEditorDraft) => void;
-}> = ({ draft, onDraftChange }) => {
+    onEditorReady?: () => void;
+}> = ({ draft, onDraftChange, onEditorReady }) => {
     const questionField = draft.type === QuestionType.TRUE_FALSE ? 'mainQuestion' : 'question';
     const questionValue = draft.type === QuestionType.TRUE_FALSE
         ? (draft as { mainQuestion: string }).mainQuestion
@@ -72,6 +74,7 @@ const SharedHeaderEditor: React.FC<{
                         }) as AnyEditorDraft)}
                         ariaLabel="Nội dung câu hỏi"
                         minHeightClassName="min-h-56"
+                        onEditorReady={() => onEditorReady?.()}
                     />
                 </React.Suspense>
             </FieldRow>
@@ -213,6 +216,7 @@ const QuestionEditorForm: React.FC<QuestionEditorFormProps> = ({
     draft,
     onDraftChange,
     onSave,
+    onEditorReady,
     onCancel,
     mode,
     isGeneratingDistractors = false,
@@ -255,7 +259,11 @@ const QuestionEditorForm: React.FC<QuestionEditorFormProps> = ({
             </div>
 
             <div className={`min-h-0 flex-1 space-y-6 px-5 py-5 lg:px-6 ${isInline ? '' : 'overflow-y-auto'}`}>
-                <SharedHeaderEditor draft={draft} onDraftChange={onDraftChange} />
+                <SharedHeaderEditor
+                    draft={draft}
+                    onDraftChange={onDraftChange}
+                    onEditorReady={onEditorReady}
+                />
                 <div className="border-t border-slate-100" />
                 <TypeEditorDispatcher
                     draft={draft}

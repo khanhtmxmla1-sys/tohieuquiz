@@ -7,6 +7,7 @@ import { getAvatarUrl } from '../src/config/avatars';
 
 const mocks = vi.hoisted(() => ({
   avatar: 'https://assets.example.test/an.png' as string | null,
+  studentName: 'An',
   setShowSubmitConfirm: vi.fn(),
   changePage: vi.fn(),
   useQuizPlayerArgs: vi.fn(),
@@ -29,7 +30,7 @@ vi.mock('../src/features/quiz-player/hooks/useQuizPlayer', () => ({
     mocks.useQuizPlayerArgs(args);
     return ({
     step: 'quiz',
-    studentName: 'An',
+    studentName: mocks.studentName,
     setStudentName: vi.fn(),
     studentClass: '4A1',
     setStudentClass: vi.fn(),
@@ -106,18 +107,29 @@ const quiz = {
 describe('StudentView desktop quiz layout', () => {
   beforeEach(() => {
     mocks.avatar = 'https://assets.example.test/an.png';
+    mocks.studentName = 'An';
     mocks.setShowSubmitConfirm.mockReset();
     mocks.changePage.mockReset();
     mocks.useQuizPlayerArgs.mockReset();
     mocks.questionPolicy.mockReset();
   });
 
-  it.each(['boy_02', null])('renders session avatar %s using dashboard configuration', (avatar) => {
-    mocks.avatar = avatar;
+  it('renders Hà Minh Khang session avatar from the configured girl_07 ID', () => {
+    mocks.avatar = 'girl_07';
+    mocks.studentName = 'Hà Minh Khang';
+    render(<StudentView quiz={quiz} onExit={vi.fn()} onSaveResult={vi.fn()} />);
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của Hà Minh Khang' })).toHaveAttribute(
+      'src',
+      '/avatars/students/girl_07.webp',
+    );
+  });
+
+  it('falls back to the configured default when the session has no avatar', () => {
+    mocks.avatar = null;
     render(<StudentView quiz={quiz} onExit={vi.fn()} onSaveResult={vi.fn()} />);
     expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
       'src',
-      getAvatarUrl(avatar || undefined),
+      getAvatarUrl(),
     );
   });
 

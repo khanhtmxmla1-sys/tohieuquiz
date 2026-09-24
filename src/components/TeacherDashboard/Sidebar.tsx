@@ -4,6 +4,7 @@ import {
   BookText,
   ChevronRight,
   ClipboardList,
+  Coins,
   FileText,
   Gift,
   GraduationCap,
@@ -17,6 +18,7 @@ import {
 import SchoolLogo from '../common/SchoolLogo';
 import { useAuthStore } from '../../../stores/authStore';
 import type { TeacherDashboardTab } from '../../stores/useTeacherDashboardUIStore';
+import { useCoinAwardsFeatureFlag } from '../../features/coin-awards/useCoinAwardsFeatureFlag';
 
 export interface SidebarProps {
   activeTab: TeacherDashboardTab;
@@ -42,6 +44,7 @@ const groupForTab = (tab: TeacherDashboardTab): GroupKey | null => {
   if (['create', 'manage', 'live-exam', 'competition'].includes(tab)) return 'exams';
   if (['assignments', 'homework', 'results'].includes(tab)) return 'teaching';
   if (tab === 'classes') return 'students';
+  if (tab === 'coin-awards') return 'students';
   if (tab === 'gift-shop') return 'utilities';
   if (['certificates', 'admin-templates'].includes(tab)) return 'certificates';
   return null;
@@ -81,6 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   setIsMobileOpen = () => {},
 }) => {
   const authStore = useAuthStore();
+  const coinAwardsFlag = useCoinAwardsFeatureFlag();
   const [openGroups, setOpenGroups] = useState<Set<GroupKey>>(() => getInitialOpenGroups(activeTab));
   const [isDesktopViewport, setIsDesktopViewport] = useState(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
@@ -141,6 +145,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   ];
   const studentItems: NavItem[] = [
     { id: 'classes', label: 'Lớp học', icon: <GraduationCap className="size-5" /> },
+    ...(coinAwardsFlag.ready && coinAwardsFlag.enabled
+      ? [{ id: 'coin-awards' as TeacherDashboardTab, label: 'Thưởng xu', icon: <Coins className="size-5" /> }]
+      : []),
   ];
   const utilityItems = useMemo<NavItem[]>(() => (
     isGiftShopEnabled

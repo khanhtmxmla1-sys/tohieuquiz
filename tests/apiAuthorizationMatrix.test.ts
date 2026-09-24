@@ -58,6 +58,14 @@ const routeSamples = [
   ['/api/school-exams/event-1/exports', 'POST', 'teacher-owned'],
   ['/api/school-exams/event-1/retests/retest-1/grant', 'POST', 'admin-only'],
   ['/api/school-exams/event-1/publish', 'POST', 'admin-only'],
+  ['/api/coin-awards/preview', 'POST', 'teacher-owned'],
+  ['/api/coin-awards/batches', 'POST', 'teacher-owned'],
+  ['/api/coin-awards/history', 'GET', 'teacher-owned'],
+  ['/api/coin-awards/batches/batch-1/reverse', 'POST', 'teacher-owned'],
+  ['/api/coin-awards/batches/batch-1/adjustments', 'POST', 'teacher-owned'],
+  ['/api/coin-awards/settings', 'GET', 'teacher-owned'],
+  ['/api/coin-awards/settings', 'PUT', 'admin-only'],
+  ['/api/student/coin-awards/history', 'GET', 'student-owned'],
 ] as const;
 
 describe('API authorization matrix', () => {
@@ -173,6 +181,20 @@ describe('API authorization matrix', () => {
       id: 'school-exam-retest-grant', match: 'template', methods: ['POST'], authorization: 'admin-only',
     });
     expect(findApiAuthorizationPolicy('/api/school-exams/event-1', 'GET')?.authorization).toBe('teacher-owned');
+  });
+
+  it('locks coin-award routes to their staff and student ownership policies', () => {
+    expect(findApiAuthorizationPolicy('/api/coin-awards/preview', 'POST')).toMatchObject({
+      id: 'coin-awards-write', authorization: 'teacher-owned',
+      ownership: ['session', 'classId', 'studentId', 'route-handler'], methods: ['POST'],
+    });
+    expect(findApiAuthorizationPolicy('/api/coin-awards/settings', 'PUT')).toMatchObject({
+      id: 'coin-awards-settings', authorization: 'admin-only', ownership: ['session', 'route-handler'], methods: ['PUT'],
+    });
+    expect(findApiAuthorizationPolicy('/api/student/coin-awards/history', 'GET')).toMatchObject({
+      id: 'student-coin-award-history', authorization: 'student-owned', ownership: ['session', 'studentId'], methods: ['GET'],
+    });
+    expect(findApiAuthorizationPolicy('/api/student/coin-awards/history', 'POST')).toBeUndefined();
   });
 
   it('fails closed for an unclassified API route', async () => {

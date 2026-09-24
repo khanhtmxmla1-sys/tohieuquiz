@@ -1,4 +1,5 @@
 import { generateId } from '../utils/response';
+import { COIN_AWARD_MAX_RECIPIENTS } from '../../../shared/coin-awards.contract';
 
 export type StudentRewardSourceType =
   | 'QUIZ_RESULT'
@@ -10,7 +11,9 @@ export type StudentRewardSourceType =
   | 'LIVE_EXAM'
   | 'GIFT_PURCHASE'
   | 'GIFT_REFUND'
-  | 'PET_SHOP_PURCHASE';
+  | 'PET_SHOP_PURCHASE'
+  | 'MANUAL_AWARD'
+  | 'MANUAL_AWARD_REVERSAL';
 
 export interface StudentRewardMutation {
   studentId: string;
@@ -49,6 +52,24 @@ export interface StudentRewardApplyResult {
   alreadyClaimed: boolean;
   ledger: StudentRewardLedgerRow;
   wallet: StudentRewardWalletSnapshot;
+}
+
+interface PreparedStudentRewardRow {
+  id: string;
+  studentId: string;
+  username: string;
+  sourceType: StudentRewardSourceType;
+  sourceKey: string;
+  rewardType: string;
+  coinsDelta: number;
+  expDelta: number;
+  payloadJson: string;
+  createdAt: string;
+}
+
+export interface PreparedRewardBatch {
+  rows: ReadonlyArray<PreparedStudentRewardRow>;
+  statements: D1PreparedStatement[];
 }
 
 const normalizeInteger = (value: number): number => {
@@ -219,6 +240,102 @@ export const applyStudentReward = async (
     alreadyClaimed: false,
     ledger: inserted,
     wallet: await loadStudentRewardWallet(db, studentId),
+  };
+};
+
+/**
+ * Builds the two statements required to apply a bounded reward batch. The
+ * caller owns the surrounding transaction (normally one D1 `batch` call), so
+ * the ledger insert and wallet update cannot be observed separately.
+ */
+export const prepareStudentRewardBatch = (
+  db: D1Database,
+  mutations: StudentRewardMutation[],
+): PreparedRewardBatch => {
+  if (mutations.length < 1 || mutations.length > COIN_AWARD_MAX_RECIPIENTS) {
+    throw new Error(`Reward batch must contain between 1 and ${COIN_AWARD_MAX_RECIPIENTS} mutations`);
+  }
+
+  const seen = new Set<string>();
+  const seenStudents = new Set<string>();
+  const createdAt = new Date().toISOString();
+  const rows = mutations.map((mutation) => {
+    const studentId = String(mutation.studentId || '').trim();
+    const username = String(mutation.username || '').trim();
+    const sourceKey = String(mutation.sourceKey || '').trim();
+    const rewardType = String(mutation.rewardType || '').trim();
+    if (!studentId || !username || !sourceKey || !rewardType) {
+      throw new Error('Missing canonical reward identity');
+    }
+    if (!mutation.sourceType) throw new Error('Missing reward source type');
+    if (seenStudents.has(studentId)) throw new Error('Duplicate reward recipient');
+    seenStudents.add(studentId);
+
+    const uniqueKey = [studentId, mutation.sourceType, sourceKey].join(':');
+    if (seen.has(uniqueKey)) throw new Error('Duplicate reward mutation');
+    seen.add(uniqueKey);
+
+    const coinsDelta = normalizeInteger(mutation.coinsDelta);
+    const expDelta = normalizeInteger(mutation.expDelta);
+    if (expDelta < 0) throw new Error('EXP delta cannot be negative');
+
+    let payloadJson: string;
+    try {
+      payloadJson = JSON.stringify(mutation.payload || {});
+    } catch {
+      throw new Error('Reward payload must be JSON serializable');
+    }
+    if (!payloadJson) throw new Error('Reward payload must be JSON serializable');
+
+    return {
+      id: generateId('reward'),
+      studentId,
+      username,
+      sourceType: mutation.sourceType,
+      sourceKey,
+      rewardType,
+      coinsDelta,
+      expDelta,
+      payloadJson,
+      createdAt,
+    } satisfies PreparedStudentRewardRow;
+  });
+
+  const serializedRows = JSON.stringify(rows);
+  const ledgerInsert = db.prepare(`
+    INSERT INTO student_reward_ledger (
+      id, student_id, source_type, source_key, reward_type,
+      coins_delta, exp_delta, payload_json, created_at
+    )
+    SELECT
+      json_extract(value, '$.id'),
+      json_extract(value, '$.studentId'),
+      json_extract(value, '$.sourceType'),
+      json_extract(value, '$.sourceKey'),
+      json_extract(value, '$.rewardType'),
+      CAST(json_extract(value, '$.coinsDelta') AS INTEGER),
+      CAST(json_extract(value, '$.expDelta') AS INTEGER),
+      json_extract(value, '$.payloadJson'),
+      json_extract(value, '$.createdAt')
+    FROM json_each(?)
+  `).bind(serializedRows);
+
+  const walletUpdate = db.prepare(`
+    UPDATE students
+    SET coins = coins + (
+      SELECT COALESCE(SUM(CAST(json_extract(value, '$.coinsDelta') AS INTEGER)), 0)
+      FROM json_each(?)
+      WHERE json_extract(value, '$.studentId') = students.id
+    )
+    WHERE id IN (
+      SELECT json_extract(value, '$.studentId')
+      FROM json_each(?)
+    )
+  `).bind(serializedRows, serializedRows);
+
+  return {
+    rows,
+    statements: [ledgerInsert, walletUpdate],
   };
 };
 

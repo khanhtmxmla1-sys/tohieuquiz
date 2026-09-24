@@ -76,4 +76,26 @@ describe('useDashboardSearch', () => {
     expect(onSelectTab).toHaveBeenCalledWith('create');
     expect(onSelectTab).not.toHaveBeenCalledWith('homework');
   });
+
+  it('hides coin awards search while the feature flag is off', () => {
+    const hook = renderHook(() => useDashboardSearch({
+      onSelectTab: vi.fn(),
+      onCreateQuizManually: vi.fn(),
+      manualQuizWorkspaceEnabled: false,
+      coinAwardsEnabled: false,
+    }));
+
+    expect(hook.result.current.searchOptions.some((item) => item.id === 'coin-awards')).toBe(false);
+  });
+
+  it('exposes coin awards search when the feature flag is on', () => {
+    const hook = renderHook(() => useDashboardSearch({
+      onSelectTab: vi.fn(),
+      onCreateQuizManually: vi.fn(),
+      manualQuizWorkspaceEnabled: false,
+      coinAwardsEnabled: true,
+    }));
+
+    expect(hook.result.current.searchOptions.some((item) => item.id === 'coin-awards')).toBe(true);
+  });
 });

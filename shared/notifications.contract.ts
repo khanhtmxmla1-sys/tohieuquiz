@@ -30,6 +30,7 @@ export const NOTIFICATION_TYPES = [
   'certificate_batch_completed',
   'delivery_failed',
   'gift_delivered',
+  'coin_awarded',
   'system',
 ] as const;
 
@@ -125,6 +126,10 @@ function payloadId(data: Record<string, unknown>, key: string): string | null {
 export function resolveNotificationTarget(
   input: NotificationTargetInput,
 ): NotificationTarget | null {
+  if (input.type === 'coin_awarded') {
+    return { kind: 'url', url: '/student/achievements?view=coin-history' };
+  }
+
   if (input.type === 'assignment_created'
     || input.type === 'assignment_due_soon'
     || input.type === 'assignment_submitted'

@@ -92,6 +92,7 @@ export interface WorkerFetchDependencies {
   handleClientErrorRoute: RouteHandler;
   handleClientTelemetryRoute: RouteHandler;
   handleActionCenterRoutes: RouteHandler;
+  handleCoinAwardRoutes?: RouteHandler;
   handleOperationsRoutes: RouteHandler;
   handlePhieuSubdomain: SimpleRouteHandler;
   handlePublicPhieuApi: (
@@ -154,6 +155,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     handleClientErrorRoute,
     handleClientTelemetryRoute,
     handleActionCenterRoutes,
+    handleCoinAwardRoutes = async () => null,
     handleOperationsRoutes,
     handlePhieuSubdomain,
     handlePublicPhieuApi,
@@ -256,6 +258,8 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
       || path === '/api/announcements'
       || path.startsWith('/api/classes')
       || path.startsWith('/api/gift-shop/catalog')
+      || path === '/api/coin-awards'
+      || path.startsWith('/api/coin-awards/')
     );
     if (isAdminMutation) {
       const rateLimitResponse = await rateLimit(request, env, {
@@ -351,6 +355,13 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
         response = await handleSecurityCenterRoutes(request, env, path, method);
       } else if (path.startsWith('/api/teacher/action-center')) {
         response = await handleActionCenterRoutes(request, env, path, method);
+      } else if (
+        path === '/api/coin-awards'
+        || path.startsWith('/api/coin-awards/')
+        || path === '/api/student/coin-awards'
+        || path.startsWith('/api/student/coin-awards/')
+      ) {
+        response = await handleCoinAwardRoutes(request, env, path, method);
       } else if (
         path.startsWith('/api/teachers')
         || path.startsWith('/api/admin/teachers')

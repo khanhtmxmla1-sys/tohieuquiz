@@ -26,7 +26,7 @@ describe('QuizHeader student avatar', () => {
     );
   });
 
-  it('resolves a configured avatar id to the same image used by the dashboard', () => {
+  it('renders Hà Minh Khang with the exact configured girl_07 avatar', () => {
     render(
       <QuizHeader
         title="Bài kiểm tra"
@@ -35,15 +35,15 @@ describe('QuizHeader student avatar', () => {
         completedCount={0}
         partialCount={0}
         isPractice
-        studentName="An"
-        avatar="boy_02"
+        studentName="Hà Minh Khang"
+        avatar="girl_07"
         showAvatar
       />,
     );
 
-    expect(screen.getByRole('img', { name: 'Ảnh đại diện của An' })).toHaveAttribute(
+    expect(screen.getByRole('img', { name: 'Ảnh đại diện của Hà Minh Khang' })).toHaveAttribute(
       'src',
-      getAvatarUrl('boy_02'),
+      '/avatars/students/girl_07.webp',
     );
   });
 

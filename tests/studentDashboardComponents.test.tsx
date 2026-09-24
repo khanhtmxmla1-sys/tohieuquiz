@@ -14,6 +14,7 @@ import {
 } from '../src/components/HomePage/student-dashboard';
 import { BadgeGallery } from '../src/components/gamification/BadgeGallery';
 import AvatarSelectorModal from '../src/components/common/AvatarSelectorModal';
+import { AVATAR_LIST } from '../src/config/avatars';
 import { StudentHomeworkCard } from '../src/features/homework/components/StudentHomeworkCard';
 import { StudentHomeworkSection } from '../src/features/homework/components/StudentHomeworkSection';
 
@@ -694,5 +695,31 @@ describe('avatar selector modal accessibility', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows every distinct configured student avatar and the exact girl_07 preview', () => {
+    render(
+      <AvatarSelectorModal
+        isOpen
+        onClose={vi.fn()}
+        currentAvatar="girl_07"
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'Avatar đang chọn' })).toHaveAttribute(
+      'src',
+      '/avatars/students/girl_07.webp',
+    );
+
+    const optionGrid = screen.getByLabelText('Danh sách avatar');
+    const optionSources = within(optionGrid)
+      .getAllByRole('img')
+      .map((image) => image.getAttribute('src'))
+      .filter((source): source is string => Boolean(source));
+    const configuredSources = AVATAR_LIST.map((avatar) => avatar.url);
+
+    expect(optionSources).toHaveLength(14);
+    expect(new Set(optionSources).size).toBe(14);
+    expect(optionSources).toEqual(configuredSources);
   });
 });

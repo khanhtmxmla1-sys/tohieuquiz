@@ -4,6 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Sidebar from '../src/components/TeacherDashboard/Sidebar';
 import { useAuthStore } from '../stores/authStore';
 
+const coinAwardsFlag = vi.hoisted(() => ({ enabled: true, ready: true, degraded: false }));
+
+vi.mock('../src/features/coin-awards/useCoinAwardsFeatureFlag', () => ({
+    useCoinAwardsFeatureFlag: () => coinAwardsFlag,
+}));
+
 const renderSidebar = (options: {
     isMobileOpen?: boolean;
     setIsMobileOpen?: (open: boolean) => void;
@@ -22,6 +28,8 @@ describe('Teacher dashboard sidebar accessibility', () => {
     beforeEach(() => {
         localStorage.clear();
         useAuthStore.setState({ isAdmin: false });
+        coinAwardsFlag.enabled = true;
+        coinAwardsFlag.ready = true;
     });
 
     it('removes the closed mobile drawer from keyboard and accessibility navigation', () => {
@@ -94,6 +102,22 @@ describe('Teacher dashboard sidebar accessibility', () => {
 
         expect(screen.getByRole('button', { name: 'Đề thi' }).getAttribute('aria-expanded')).toBe('true');
         expect(screen.getByRole('button', { name: 'Dạy và giao bài' }).getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it('places coin awards under the student group with an accessible label', () => {
+        renderSidebar();
+        fireEvent.click(screen.getByRole('button', { name: 'Học sinh' }));
+
+        expect(screen.getByRole('button', { name: 'Thưởng xu' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Thưởng xu' })).not.toHaveAttribute('aria-current');
+    });
+
+    it('hides coin awards navigation while the feature flag is off', () => {
+        coinAwardsFlag.enabled = false;
+        renderSidebar();
+        fireEvent.click(screen.getByRole('button', { name: 'Học sinh' }));
+
+        expect(screen.queryByRole('button', { name: 'Thưởng xu' })).not.toBeInTheDocument();
     });
 
     it('closes an open mobile drawer when Escape is pressed', () => {
