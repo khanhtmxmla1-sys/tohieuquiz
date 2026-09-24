@@ -33,6 +33,7 @@ export function StudentDashboardHeader({
 }: StudentDashboardHeaderProps) {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
+  const accountMenuRootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isAccountMenuOpen) return undefined;
@@ -43,8 +44,17 @@ export function StudentDashboardHeader({
       accountTriggerRef.current?.focus();
     };
 
+    const handlePointerDown = (event: MouseEvent) => {
+      if (accountMenuRootRef.current?.contains(event.target as Node)) return;
+      setIsAccountMenuOpen(false);
+    };
+
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
   }, [isAccountMenuOpen]);
 
   const runAccountAction = (action: () => void) => {
@@ -171,7 +181,7 @@ export function StudentDashboardHeader({
             )}
           </div>
 
-          <div className="relative">
+          <div ref={accountMenuRootRef} className="relative">
             <button
               ref={accountTriggerRef}
               type="button"

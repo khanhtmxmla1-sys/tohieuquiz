@@ -1,5 +1,5 @@
 import { formatSystemDateTime } from '../../utils/dateTime';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications';
 
@@ -16,7 +16,30 @@ export default function NotificationBell({
 }: NotificationBellProps) {
   const { notifications, isLoading, markAsRead } = useRealtimeNotifications(userId);
   const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const unreadCount = notifications.filter((notification) => !notification.is_read).length;
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    };
+    const handlePointerDown = (event: MouseEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setIsOpen(false);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [isOpen]);
 
   const openNotification = async (notification: typeof notifications[number]) => {
     if (!notification.is_read) await markAsRead(notification.id);
@@ -35,8 +58,9 @@ export default function NotificationBell({
   };
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setIsOpen((current) => !current)}
         className="relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors hover:bg-gray-100"
