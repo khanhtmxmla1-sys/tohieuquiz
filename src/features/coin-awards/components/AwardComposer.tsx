@@ -4,7 +4,10 @@ import type {
   CoinAwardSelectionMode,
   CoinAwardSettings,
 } from '../../../../shared/coin-awards.contract';
+import type { Student } from '../../../types/classroom.types';
+import * as classroomService from '../../../services/classroomService';
 import type { CoinAwardPreview } from '../coinAwardsService';
+import { StudentRecipientPicker } from './StudentRecipientPicker';
 import { useModalFocusTrap } from './useModalFocusTrap';
 
 export type CoinAwardDraft = Omit<CoinAwardCreateInput, 'idempotencyKey'>;
@@ -22,10 +25,19 @@ interface AwardComposerProps {
 
 const PRESETS = [5, 10, 20, 50] as const;
 const SUGGESTED_REASONS = ['Tích cực phát biểu', 'Hoàn thành bài tập', 'Giúp đỡ bạn bè'] as const;
+const SELECTION_OPTIONS: Array<{ value: CoinAwardSelectionMode; label: string }> = [
+  { value: 'STUDENT', label: 'Một học sinh' },
+  { value: 'SELECTED', label: 'Nhiều học sinh' },
+  { value: 'CLASS', label: 'Cả lớp' },
+];
 
-const parseStudentIds = (value: string): string[] => Array.from(new Set(
-  value.split(/[\s,;]+/).map((item) => item.trim()).filter(Boolean),
-));
+const initialModeFor = (
+  initialSelectionMode: CoinAwardSelectionMode | undefined,
+  initialStudentIds: string[],
+): CoinAwardSelectionMode => {
+  if (initialSelectionMode) return initialSelectionMode;
+  return initialStudentIds.length > 1 ? 'SELECTED' : 'STUDENT';
+};
 
 export const AwardComposer = ({
   classes,
@@ -40,9 +52,14 @@ export const AwardComposer = ({
   const fallbackClassId = initialClassId || classes[0]?.id || '';
   const [classId, setClassId] = useState(fallbackClassId);
   const [selectionMode, setSelectionMode] = useState<CoinAwardSelectionMode>(
-    initialSelectionMode ?? (initialStudentIds.length === 1 ? 'STUDENT' : 'SELECTED'),
+    initialModeFor(initialSelectionMode, initialStudentIds),
   );
-  const [studentIdsText, setStudentIdsText] = useState(initialStudentIds.join(', '));
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>(
+    Array.from(new Set(initialStudentIds)),
+  );
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [studentsError, setStudentsError] = useState<string | null>(null);
   const [coinsPerStudent, setCoinsPerStudent] = useState(10);
   const [reason, setReason] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -55,28 +72,66 @@ export const AwardComposer = ({
   const previewingRef = useRef(false);
   const confirmingRef = useRef(false);
   const submittingRef = useRef(false);
+  const rosterRequestRef = useRef(0);
+  const initialStudentKey = initialStudentIds.join('\u0000');
+
+  const loadStudents = useCallback(async (targetClassId: string) => {
+    const requestId = rosterRequestRef.current + 1;
+    rosterRequestRef.current = requestId;
+
+    if (!targetClassId) {
+      setStudents([]);
+      setStudentsError(null);
+      setLoadingStudents(false);
+      return;
+    }
+
+    setLoadingStudents(true);
+    setStudentsError(null);
+    try {
+      const roster = await classroomService.getStudents(targetClassId, 'teacher');
+      if (rosterRequestRef.current !== requestId) return;
+      setStudents(roster);
+      const activeIds = new Set(roster.map((student) => student.id));
+      setSelectedStudentIds((current) => current.filter((studentId) => activeIds.has(studentId)));
+    } catch (error) {
+      if (rosterRequestRef.current !== requestId) return;
+      setStudents([]);
+      setStudentsError(error instanceof Error ? error.message : 'Không thể tải danh sách học sinh.');
+    } finally {
+      if (rosterRequestRef.current === requestId) setLoadingStudents(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (initialClassId) setClassId(initialClassId);
   }, [initialClassId]);
 
   useEffect(() => {
-    if (initialStudentIds.length > 0) setStudentIdsText(initialStudentIds.join(', '));
-  }, [initialStudentIds]);
+    setSelectedStudentIds(Array.from(new Set(initialStudentIds)));
+  }, [initialStudentKey]);
 
   useEffect(() => {
-    if (initialSelectionMode) setSelectionMode(initialSelectionMode);
-  }, [initialSelectionMode]);
+    setSelectionMode(initialModeFor(initialSelectionMode, initialStudentIds));
+  }, [initialSelectionMode, initialStudentKey]);
+
+  useEffect(() => {
+    void loadStudents(classId);
+  }, [classId, loadStudents]);
 
   useEffect(() => {
     submittingRef.current = submitting;
   }, [submitting]);
 
-  const studentIds = useMemo(() => parseStudentIds(studentIdsText), [studentIdsText]);
   const selectedClass = classes.find((item) => item.id === classId);
-  const recipientCount = confirmation?.recipientCount ?? studentIds.length;
+  const recipientCount = confirmation?.recipientCount
+    ?? (selectionMode === 'CLASS' ? students.length : selectedStudentIds.length);
   const totalCoins = confirmation?.totalCoins ?? recipientCount * coinsPerStudent;
   const amountLimit = settings?.maxCoinsPerStudent ?? 100;
+  const selectedStudentNames = useMemo(() => {
+    const selectedIds = new Set(frozenDraft?.studentIds || selectedStudentIds);
+    return students.filter((student) => selectedIds.has(student.id)).map((student) => student.fullName);
+  }, [frozenDraft, selectedStudentIds, students]);
 
   const closeConfirmation = useCallback(() => {
     if (submittingRef.current) return false;
@@ -92,6 +147,25 @@ export const AwardComposer = ({
     onEscape: closeConfirmation,
   });
 
+  const handleClassChange = (nextClassId: string) => {
+    setClassId(nextClassId);
+    setStudents([]);
+    setSelectedStudentIds([]);
+    setValidationError(null);
+  };
+
+  const handleSelectionModeChange = (nextMode: CoinAwardSelectionMode) => {
+    setSelectionMode(nextMode);
+    setValidationError(null);
+    if (nextMode === 'CLASS') {
+      setSelectedStudentIds([]);
+      return;
+    }
+    if (nextMode === 'STUDENT' && selectedStudentIds.length !== 1) {
+      setSelectedStudentIds([]);
+    }
+  };
+
   const createDraft = (): CoinAwardDraft | null => {
     if (!classId) {
       setValidationError('Vui lòng chọn lớp học.');
@@ -105,14 +179,18 @@ export const AwardComposer = ({
       setValidationError('Lý do cộng xu phải dài từ 3 đến 200 ký tự.');
       return null;
     }
-    if (selectionMode !== 'CLASS' && studentIds.length === 0) {
-      setValidationError('Vui lòng nhập ít nhất một mã học sinh.');
+    if (selectionMode === 'STUDENT' && selectedStudentIds.length !== 1) {
+      setValidationError('Vui lòng chọn một học sinh.');
+      return null;
+    }
+    if (selectionMode === 'SELECTED' && selectedStudentIds.length === 0) {
+      setValidationError('Vui lòng chọn ít nhất một học sinh.');
       return null;
     }
     setValidationError(null);
     return {
       classId,
-      studentIds,
+      studentIds: selectionMode === 'CLASS' ? [] : selectedStudentIds,
       selectionMode,
       coinsPerStudent,
       reason: reason.trim(),
@@ -157,30 +235,53 @@ export const AwardComposer = ({
         <p className="mt-1 text-sm text-slate-500">Chọn người nhận, mức xu và ghi rõ lý do để lưu vào lịch sử.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="text-sm font-medium text-slate-700">
-          Lớp học
-          <select aria-label="Lớp học" value={classId} onChange={(event) => setClassId(event.target.value)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
-            <option value="">Chọn lớp học</option>
-            {classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-        </label>
-        <label className="text-sm font-medium text-slate-700">
-          Kiểu người nhận
-          <select aria-label="Kiểu người nhận" value={selectionMode} onChange={(event) => setSelectionMode(event.target.value as CoinAwardSelectionMode)} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
-            <option value="STUDENT">Một học sinh</option>
-            <option value="SELECTED">Học sinh đã chọn</option>
-            <option value="CLASS">Cả lớp</option>
-          </select>
-        </label>
-      </div>
+      <label className="block text-sm font-medium text-slate-700">
+        Lớp học
+        <select
+          aria-label="Lớp học"
+          value={classId}
+          onChange={(event) => handleClassChange(event.target.value)}
+          className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm"
+        >
+          <option value="">Chọn lớp học</option>
+          {classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+        </select>
+      </label>
 
-      {selectionMode !== 'CLASS' && (
-        <label className="mt-4 block text-sm font-medium text-slate-700">
-          Mã học sinh
-          <textarea aria-label="Mã học sinh" value={studentIdsText} onChange={(event) => setStudentIdsText(event.target.value)} rows={2} placeholder="Ví dụ: s-1, s-2" className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-          <span className="mt-1 block text-xs font-normal text-slate-500">Có thể nhập nhiều mã, cách nhau bằng dấu phẩy hoặc xuống dòng.</span>
-        </label>
+      <fieldset className="mt-4">
+        <legend className="text-sm font-medium text-slate-700">Người nhận</legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {SELECTION_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={selectionMode === option.value}
+              onClick={() => handleSelectionModeChange(option.value)}
+              className={`min-h-10 rounded-xl border px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+                selectionMode === option.value
+                  ? 'border-blue-600 bg-blue-50 text-blue-700'
+                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      {classId ? (
+        <StudentRecipientPicker
+          students={students}
+          selectionMode={selectionMode}
+          selectedStudentIds={selectedStudentIds}
+          className={selectedClass?.name || classId}
+          loading={loadingStudents}
+          error={studentsError}
+          onSelectionChange={setSelectedStudentIds}
+          onRetry={() => void loadStudents(classId)}
+        />
+      ) : (
+        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">Chọn lớp học trước khi chọn học sinh.</p>
       )}
 
       <fieldset className="mt-4">
@@ -208,7 +309,7 @@ export const AwardComposer = ({
       </label>
 
       <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700" aria-live="polite">
-        <span className="font-semibold">{totalCoins} xu cho {recipientCount} {recipientCount === 1 ? 'học sinh' : 'học sinh'}</span>
+        <span className="font-semibold">{totalCoins} xu cho {recipientCount} học sinh</span>
         {selectionMode === 'CLASS' && <span className="ml-2 text-slate-500">({selectedClass?.name || 'cả lớp'})</span>}
       </div>
 
@@ -224,6 +325,8 @@ export const AwardComposer = ({
             <h3 id="coin-award-confirm-title" className="text-lg font-semibold text-slate-900">{frozenDraft?.selectionMode === 'CLASS' ? 'Xác nhận thưởng cho cả lớp' : 'Xác nhận thưởng'}</h3>
             <dl className="mt-4 space-y-2 text-sm text-slate-700">
               <div className="flex justify-between gap-4"><dt>Lớp</dt><dd className="font-semibold">{confirmation.className || selectedClass?.name || 'Cả lớp'}</dd></div>
+              {frozenDraft?.selectionMode === 'STUDENT' && selectedStudentNames[0] && <div className="flex justify-between gap-4"><dt>Học sinh</dt><dd className="font-semibold">{selectedStudentNames[0]}</dd></div>}
+              {frozenDraft?.selectionMode === 'SELECTED' && selectedStudentNames.length > 0 && <div className="flex justify-between gap-4"><dt>Học sinh</dt><dd className="max-w-[70%] text-right font-semibold">{selectedStudentNames.slice(0, 3).join(', ')}{selectedStudentNames.length > 3 ? ` và ${selectedStudentNames.length - 3} em khác` : ''}</dd></div>}
               <div className="flex justify-between gap-4"><dt>Số người nhận</dt><dd className="font-semibold">{confirmation.recipientCount} học sinh</dd></div>
               <div className="flex justify-between gap-4"><dt>Xu mỗi người</dt><dd className="font-semibold">{confirmation.coinsPerStudent} xu/người</dd></div>
               <div className="flex justify-between gap-4"><dt>Tổng cộng</dt><dd className="font-semibold">{confirmation.totalCoins} xu</dd></div>

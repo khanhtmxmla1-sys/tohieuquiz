@@ -13,7 +13,7 @@ interface StudentTableProps {
     serverActionsDisabled?: boolean;
     selectedStudentIds?: string[];
     onSelectionChange?: (studentIds: string[]) => void;
-    onOpenCoinAwards?: (input: { classId: string; studentIds: string[]; selectionMode: 'SELECTED' }) => void;
+    onOpenCoinAwards?: (input: { classId: string; studentIds: string[]; selectionMode: 'STUDENT' | 'SELECTED' }) => void;
     allStudentIds?: string[];
     selectionDisabled?: boolean;
     selectionEnabled?: boolean;
@@ -72,6 +72,11 @@ export const StudentTable: React.FC<StudentTableProps> = memo(({
     const openCoinAwards = () => {
         if (selectionIsDisabled || selectedStudentIds.length === 0) return;
         onOpenCoinAwards?.({ classId, studentIds: selectedStudentIds, selectionMode: 'SELECTED' });
+    };
+
+    const openSingleCoinAward = (studentId: string) => {
+        if (selectionIsDisabled) return;
+        onOpenCoinAwards?.({ classId, studentIds: [studentId], selectionMode: 'STUDENT' });
     };
 
     const selectionToolbar = selectionEnabled ? (
@@ -148,6 +153,11 @@ export const StudentTable: React.FC<StudentTableProps> = memo(({
                                         <td className="py-3 px-4 text-sm text-gray-500">{student.parentPhone || '—'}</td>
                                         <td className="py-3 px-4">
                                             <div className="flex items-center justify-end gap-1">
+                                                {selectionEnabled && onOpenCoinAwards && (
+                                                    <button type="button" onClick={() => openSingleCoinAward(student.id)} disabled={selectionIsDisabled} className="min-h-9 rounded-lg border border-orange-200 bg-orange-50 px-2.5 text-xs font-bold text-orange-800 hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50" aria-label={`+ Xu cho ${student.fullName}`}>
+                                                        + Xu
+                                                    </button>
+                                                )}
                                                 <button onClick={() => onParentAccess(student)} disabled={serverActionsDisabled} className="p-1.5 text-indigo-900 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:cursor-not-allowed disabled:opacity-50" title={serverActionsDisabled ? 'Cần kết nối mạng để quản lý quyền phụ huynh.' : 'Quản lý quyền phụ huynh'} aria-label={`Quản lý quyền phụ huynh cho ${student.fullName}`}><QrCode className="w-4 h-4" /></button>
                                                 <button onClick={() => onResetPassword(student.id)} disabled={serverActionsDisabled} className="p-1.5 text-blue-900 hover:text-blue-600 hover:bg-blue-50 rounded-lg disabled:cursor-not-allowed disabled:opacity-50" title={serverActionsDisabled ? 'Cần kết nối mạng để đặt lại mật khẩu.' : 'Đặt lại mật khẩu'} aria-label={`Đặt lại mật khẩu cho ${student.fullName}`}><KeyRound className="w-4 h-4" /></button>
                                                 <button disabled={serverActionsDisabled} onClick={() => showConfirm({ message: `Lưu trữ học sinh "${student.fullName}" khỏi lớp? Tài khoản sẽ ẩn khỏi danh sách nhưng lịch sử học tập vẫn được bảo toàn.`, confirmLabel: 'Lưu trữ', destructive: true, onConfirm: () => onRemoveStudent(student.id, classId) })} className="p-1.5 text-amber-900 hover:text-amber-700 hover:bg-amber-50 rounded-lg disabled:cursor-not-allowed disabled:opacity-50" title={serverActionsDisabled ? 'Cần kết nối mạng để lưu trữ học sinh.' : 'Lưu trữ học sinh'} aria-label={`Lưu trữ học sinh ${student.fullName}`}><Archive className="w-4 h-4" /></button>
@@ -164,7 +174,12 @@ export const StudentTable: React.FC<StudentTableProps> = memo(({
                         {selectionEnabled && <label className="flex min-h-10 items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" aria-label={`Chọn ${student.fullName}`} checked={selected.has(student.id)} onChange={() => toggleStudent(student.id)} disabled={selectionIsDisabled} /> Chọn học sinh</label>}
                         <div className="flex items-start justify-between gap-2">
                             <div><p className="text-xs text-slate-400">#{idx + 1}</p><p className="text-sm font-bold text-slate-800">{student.fullName}</p></div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                                {selectionEnabled && onOpenCoinAwards && (
+                                    <button type="button" onClick={() => openSingleCoinAward(student.id)} disabled={selectionIsDisabled} className="min-h-10 rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-bold text-orange-800 hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50" aria-label={`+ Xu cho ${student.fullName}`}>
+                                        + Xu
+                                    </button>
+                                )}
                                 <button onClick={() => onParentAccess(student)} disabled={serverActionsDisabled} className="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 inline-flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-50" title={serverActionsDisabled ? 'Cần kết nối mạng để quản lý quyền phụ huynh.' : 'Quản lý quyền phụ huynh'} aria-label={`Quản lý quyền phụ huynh cho ${student.fullName}`}><QrCode className="w-4 h-4" /></button>
                                 <button onClick={() => onResetPassword(student.id)} disabled={serverActionsDisabled} className="h-10 w-10 rounded-lg bg-blue-50 text-blue-600 inline-flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-50" title={serverActionsDisabled ? 'Cần kết nối mạng để đặt lại mật khẩu.' : 'Đặt lại mật khẩu'} aria-label={`Đặt lại mật khẩu cho ${student.fullName}`}><KeyRound className="w-4 h-4" /></button>
                                 <button disabled={serverActionsDisabled} onClick={() => showConfirm({ message: `Lưu trữ học sinh "${student.fullName}" khỏi lớp? Tài khoản sẽ ẩn khỏi danh sách nhưng lịch sử học tập vẫn được bảo toàn.`, confirmLabel: 'Lưu trữ', destructive: true, onConfirm: () => onRemoveStudent(student.id, classId) })} className="h-10 w-10 rounded-lg bg-amber-50 text-amber-700 inline-flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-50" title={serverActionsDisabled ? 'Cần kết nối mạng để lưu trữ học sinh.' : 'Lưu trữ học sinh'} aria-label={`Lưu trữ học sinh ${student.fullName}`}><Archive className="w-4 h-4" /></button>
