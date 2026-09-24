@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, CheckCircle2, Eye, List, Settings2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Eye, Settings2, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useManualQuizWorkspaceStore } from '../store/useManualQuizWorkspaceStore';
 
@@ -25,23 +25,25 @@ const SOURCE_TYPE_COPY: Record<string, string> = {
 interface WorkspaceHeaderProps {
     onOpenValidation(): void;
     onOpenSettings(): void;
+    onTogglePreview(): void;
+    onGoBack?(): void;
+    canPreview?: boolean;
     readOnly?: boolean;
 }
 
 const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
     onOpenValidation,
     onOpenSettings,
+    onTogglePreview,
+    onGoBack,
+    canPreview = true,
     readOnly = false,
 }) => {
     const navigate = useNavigate();
     const envelope = useManualQuizWorkspaceStore((state) => state.envelope);
     const saveStatus = useManualQuizWorkspaceStore((state) => state.saveStatus);
     const saveError = useManualQuizWorkspaceStore((state) => state.saveError);
-    const isNavigatorCollapsed = useManualQuizWorkspaceStore((state) => state.isNavigatorCollapsed);
-    const isPreviewCollapsed = useManualQuizWorkspaceStore((state) => state.isPreviewCollapsed);
     const updateQuiz = useManualQuizWorkspaceStore((state) => state.updateQuiz);
-    const setNavigatorCollapsed = useManualQuizWorkspaceStore((state) => state.setNavigatorCollapsed);
-    const setPreviewCollapsed = useManualQuizWorkspaceStore((state) => state.setPreviewCollapsed);
     const sourceLabel = envelope?.quiz.sourceType ? SOURCE_TYPE_COPY[envelope.quiz.sourceType] : undefined;
     const versionNumber = Number(envelope?.quiz.versionNumber || 1);
 
@@ -49,11 +51,11 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
         <header
             role="banner"
             aria-label="Thanh công cụ Trình soạn đề"
-            className="sticky top-0 z-30 flex min-h-[72px] max-w-full items-center gap-2 overflow-hidden border-b border-slate-200 bg-white px-2 sm:gap-3 sm:px-4 lg:px-6"
+            className="sticky top-0 z-30 flex min-h-[72px] max-w-full flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-2 sm:flex-nowrap sm:gap-3 sm:px-4 lg:px-6"
         >
             <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => (onGoBack ? onGoBack() : navigate(-1))}
                 className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-slate-200 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 aria-label="Quay lại trang tạo đề"
             >
@@ -61,7 +63,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                 <span className="hidden xl:inline">Quay lại</span>
             </button>
 
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-[calc(100%-3.5rem)] sm:basis-auto">
                 <p className="flex flex-wrap items-center gap-x-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-sky-700">
                     <span>{envelope?.quizId ? 'Chỉnh sửa đề' : 'Tạo đề mới'}</span>
                     {sourceLabel && <span className="normal-case tracking-normal text-violet-700">{sourceLabel}</span>}
@@ -88,18 +90,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                 </p>
             </div>
 
-            <div className="flex items-center gap-2">
-                {isNavigatorCollapsed && (
-                    <button
-                        type="button"
-                        onClick={() => setNavigatorCollapsed(false)}
-                        className="hidden h-11 items-center gap-2 rounded-[10px] border border-slate-200 px-3 text-sm font-medium md:inline-flex"
-                        aria-label="Mở danh sách câu hỏi"
-                    >
-                        <List className="h-4 w-4" />
-                        <span className="hidden xl:inline">Câu hỏi</span>
-                    </button>
-                )}
+            <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto">
                 <button
                     type="button"
                     onClick={onOpenSettings}
@@ -111,9 +102,10 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
                 </button>
                 <button
                     type="button"
-                    onClick={() => setPreviewCollapsed(!isPreviewCollapsed)}
+                    onClick={onTogglePreview}
+                    disabled={!canPreview}
                     className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-slate-200 px-3 text-sm font-medium"
-                    aria-label={isPreviewCollapsed ? 'Mở xem trước' : 'Thu gọn xem trước'}
+                    aria-label="Mở xem trước"
                 >
                     <Eye className="h-4 w-4" />
                     <span className="hidden xl:inline">Xem trước</span>

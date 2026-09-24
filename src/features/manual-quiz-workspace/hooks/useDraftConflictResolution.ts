@@ -19,6 +19,7 @@ interface UseDraftConflictResolutionOptions {
 export interface DraftConflictResolutionController {
     conflict: ManualQuizDraftRecord | null;
     isResolvingConflict: boolean;
+    serverResolutionVersion: number;
     captureConflict(error: ManualQuizDraftConflictError): void;
     resolveWithLocal(): Promise<void>;
     resolveWithServer(): Promise<void>;
@@ -31,6 +32,7 @@ export const useDraftConflictResolution = ({
 }: UseDraftConflictResolutionOptions): DraftConflictResolutionController => {
     const [conflict, setConflict] = useState<ManualQuizDraftRecord | null>(null);
     const [isResolvingConflict, setIsResolvingConflict] = useState(false);
+    const [serverResolutionVersion, setServerResolutionVersion] = useState(0);
 
     const captureConflict = useCallback((error: ManualQuizDraftConflictError) => {
         if (!error.current) {
@@ -55,6 +57,7 @@ export const useDraftConflictResolution = ({
         setIsResolvingConflict(true);
         try {
             await acceptRemoteRecord(conflict);
+            setServerResolutionVersion((value) => value + 1);
             setConflict(null);
             setSaveStatus('saved');
         } catch (error) {
@@ -96,6 +99,7 @@ export const useDraftConflictResolution = ({
     return {
         conflict,
         isResolvingConflict,
+        serverResolutionVersion,
         captureConflict,
         resolveWithLocal,
         resolveWithServer,

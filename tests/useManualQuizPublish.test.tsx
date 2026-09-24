@@ -103,6 +103,22 @@ describe('useManualQuizPublish', () => {
         expect(quizStoreMocks.createQuiz).not.toHaveBeenCalled();
     });
 
+    it('publishes the latest store envelope after an editor flush in the same turn', async () => {
+        const renderedEnvelope = useManualQuizWorkspaceStore.getState().envelope!;
+        const { result } = renderHook(() => useManualQuizPublish({ envelope: renderedEnvelope }));
+
+        useManualQuizWorkspaceStore.getState().updateQuestion('q-1', (question) => ({
+            ...question,
+            question: 'Nội dung vừa được flush',
+        }));
+
+        await act(async () => { await result.current.publish(); });
+
+        expect(quizStoreMocks.createQuiz).toHaveBeenCalledWith(expect.objectContaining({
+            questions: [expect.objectContaining({ question: 'Nội dung vừa được flush' })],
+        }));
+    });
+
     it('keeps both drafts after canonical save failure and can retry', async () => {
         quizStoreMocks.createQuiz.mockRejectedValueOnce(new Error('D1 tạm thời lỗi'));
         const onSuccess = vi.fn();

@@ -26,7 +26,7 @@ const WorkspaceStatusBar: React.FC<WorkspaceStatusBarProps> = ({ onOpenValidatio
             role="status"
             aria-label="Trạng thái đề kiểm tra"
             aria-live="polite"
-            className="sticky bottom-0 z-20 flex min-h-12 max-w-full items-center justify-between gap-2 overflow-hidden border-t border-slate-200 bg-white px-3 py-2 text-xs sm:px-4 sm:text-sm lg:px-6"
+            className="sticky bottom-0 z-20 flex min-h-12 max-w-full items-center justify-between gap-2 overflow-hidden border-t border-slate-200 bg-white px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] text-xs sm:px-4 sm:text-sm lg:px-6"
         >
             <p className="min-w-0 truncate text-slate-600">
                 <strong className="text-slate-800">{questionCount} câu</strong>

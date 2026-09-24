@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QuestionType } from '../src/types';
 import QuestionNavigator, {
@@ -68,6 +68,73 @@ describe('QuestionNavigator operations', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Di chuyển câu 1 xuống' }));
         expect(questionIds()).toEqual(['q-1', 'q-2', 'q-3']);
+    });
+
+    it('runs the page transition guard before selecting another question', () => {
+        const guard = vi.fn(() => false);
+        useManualQuizWorkspaceStore.getState().selectQuestion('q-1');
+        render(<QuestionNavigator onBeforeAction={guard} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Chọn câu 2: Câu hai' }));
+
+        expect(guard).toHaveBeenCalledTimes(1);
+        expect(useManualQuizWorkspaceStore.getState().envelope?.selectedQuestionId).toBe('q-1');
+    });
+
+    it('renders the full-width overview variant with status filtering and edit callback', () => {
+        const onEditQuestion = vi.fn();
+        render(
+            <QuestionNavigator
+                variant="overview"
+                onEditQuestion={onEditQuestion}
+                issues={[{ code: 'QUESTION_EMPTY', severity: 'error', message: 'Thiếu nội dung', questionId: 'q-2' }]}
+            />,
+        );
+
+        expect(screen.getByRole('main', { name: 'Tổng quan câu hỏi' })).toHaveAttribute('data-question-navigator-variant', 'overview');
+        expect(screen.getByRole('main', { name: 'Tổng quan câu hỏi' })).toHaveClass('h-auto', 'overflow-visible', 'lg:h-full', 'lg:overflow-hidden');
+        expect(screen.getByTestId('question-navigator-scroll')).toHaveClass('flex-none', 'overflow-visible', 'lg:flex-1', 'lg:overflow-y-auto');
+        expect(screen.getByRole('button', { name: 'Cần sửa' })).toBeInTheDocument();
+        const secondRow = screen.getByRole('button', { name: /Chọn câu 2:/ }).closest('article');
+        expect(secondRow).toHaveClass('lg:grid-cols-[auto_minmax(0,1fr)_180px_120px_auto]');
+        expect(secondRow).not.toHaveClass('sm:grid-cols-[auto_minmax(0,1fr)_180px_120px_auto]');
+        const firstRow = screen.getByRole('button', { name: /Chọn câu 1:/ }).closest('article');
+        if (!firstRow) throw new Error('Expected the first overview row.');
+        const summary = firstRow.querySelector('summary');
+        if (!summary) throw new Error('Expected the row overflow menu.');
+        fireEvent.click(summary);
+        expect(within(firstRow).getByRole('button', { name: 'Nhân bản' })).toHaveClass('min-h-11', 'focus-visible:outline');
+        fireEvent.click(screen.getByRole('button', { name: 'Sửa câu 2' }));
+        expect(onEditQuestion).toHaveBeenCalledWith('q-2');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Cần sửa' }));
+        expect(screen.queryByRole('button', { name: /Chọn câu 1:/ })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Chọn câu 2:/ })).toBeInTheDocument();
+    });
+
+    it('keeps bulk selection reachable in the overview variant', () => {
+        render(<QuestionNavigator variant="overview" />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Chọn nhiều câu hỏi' }));
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Chọn hàng loạt câu 1' }));
+
+        expect(screen.getByRole('region', { name: 'Bảng thao tác hàng loạt' })).toHaveTextContent('Đã chọn 1 câu');
+        expect(screen.getByRole('button', { name: 'Thoát chọn nhiều câu hỏi' })).toBeInTheDocument();
+    });
+
+    it('highlights questions added after opening the question bank', async () => {
+        const onOpenQuestionBank = vi.fn();
+        const { container } = render(<QuestionNavigator variant="overview" onOpenQuestionBank={onOpenQuestionBank} />);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Kho câu hỏi' }));
+        expect(onOpenQuestionBank).toHaveBeenCalledTimes(1);
+        act(() => addQuestion('q-4', 'Câu mới từ kho'));
+
+        expect(screen.getByText('Mới thêm')).toBeInTheDocument();
+        expect(container.querySelector('[data-question-id="q-4"]')).toHaveAttribute('data-new-question', 'true');
+
+        act(() => addQuestion('q-5', 'Câu thêm thường'));
+        expect(container.querySelector('[data-question-id="q-5"]')).not.toHaveAttribute('data-new-question', 'true');
     });
 
     it('duplicates with a new stable id and selects the copy', () => {

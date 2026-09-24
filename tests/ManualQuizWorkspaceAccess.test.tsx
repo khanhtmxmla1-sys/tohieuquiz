@@ -1,9 +1,10 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../stores/authStore';
 import { useQuizStore } from '../stores/quizStore';
+import { QuestionType } from '../src/types';
 import { useManualQuizWorkspaceStore } from '../src/features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 import { saveLocalDraft } from '../src/features/manual-quiz-workspace/draft/manualQuizDraftRepository';
 import { useClassStore } from '../src/stores/useClassStore';
@@ -28,6 +29,10 @@ const quiz = {
 };
 
 describe('ManualQuizWorkspace editor access integration', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
@@ -83,7 +88,8 @@ describe('ManualQuizWorkspace editor access integration', () => {
     await waitFor(() => expect(screen.getByDisplayValue('Đề Toán đã nộp')).toBeDisabled());
     expect(screen.getByText('Được tạo bằng AI')).toBeInTheDocument();
     expect(screen.getByText('Chỉ đọc – dữ liệu gốc được bảo vệ')).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-grid')).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByTestId('workspace-view-overview')).toBeVisible();
+    expect(screen.getByTestId('workspace-view-edit')).not.toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Mở thiết lập đề' }));
     expect(screen.getByRole('dialog', { name: 'Thiết lập đề' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Lớp áp dụng' })).toBeDisabled();
@@ -147,5 +153,79 @@ describe('ManualQuizWorkspace editor access integration', () => {
       'quiz-a',
       'Đề Toán đã nộp - Bản chỉnh sửa',
     );
+  });
+
+  it('returns a readonly preview to the overview instead of opening an editor', async () => {
+    const question = {
+      id: 'q-readonly-preview', type: QuestionType.MCQ, question: 'Câu xem trước',
+      options: ['A', 'B'], correctAnswer: 'A', difficulty: 1, points: 5,
+    };
+    editorService.getQuizEditorPayload.mockResolvedValue({
+      quiz: { ...quiz, questions: [question] },
+      questions: [question],
+      editability: {
+        mode: 'READONLY', canEditStructure: false, canCreateVersion: true,
+        reason: 'HAS_SUBMISSIONS', requiresPublishedWarning: false,
+        resultCount: 3, activeLiveExamCount: 0, openAssignmentCount: 1,
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/teacher/quizzes/quiz-a/edit']}>
+        <Routes>
+          <Route path="/teacher/quizzes/:quizId/edit" element={<ManualQuizWorkspacePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Xem câu 1' }));
+    expect(screen.getByTestId('workspace-view-preview')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Về danh sách' })).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-view-edit')).not.toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Về danh sách' }));
+    expect(screen.getByTestId('workspace-view-overview')).toBeVisible();
+    expect(screen.getByTestId('workspace-view-edit')).not.toBeVisible();
+  });
+
+  it('blocks question navigation when the current draft cannot be persisted locally', async () => {
+    const questions = [
+      {
+        id: 'q-access-1', type: QuestionType.MCQ, question: 'Câu một',
+        options: ['A', 'B'], correctAnswer: 'A', difficulty: 1, points: 5,
+      },
+      {
+        id: 'q-access-2', type: QuestionType.MCQ, question: 'Câu hai',
+        options: ['A', 'B'], correctAnswer: 'B', difficulty: 1, points: 5,
+      },
+    ];
+    editorService.getQuizEditorPayload.mockResolvedValue({
+      quiz: { ...quiz, questions: [] },
+      questions,
+      editability: {
+        mode: 'EDIT', canEditStructure: true, canCreateVersion: true,
+        reason: null, requiresPublishedWarning: false,
+        resultCount: 0, activeLiveExamCount: 0, openAssignmentCount: 0,
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/teacher/quizzes/quiz-a/edit']}>
+        <Routes>
+          <Route path="/teacher/quizzes/:quizId/edit" element={<ManualQuizWorkspacePage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const secondQuestion = await screen.findByRole('button', { name: 'Chọn câu 2: Câu hai' });
+    await waitFor(() => expect(useManualQuizWorkspaceStore.getState().envelope?.selectedQuestionId).toBe('q-access-1'));
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError');
+    });
+
+    fireEvent.click(secondQuestion);
+
+    expect(useManualQuizWorkspaceStore.getState().envelope?.selectedQuestionId).toBe('q-access-1');
+    expect(await screen.findByText(/chưa thể lưu bản nháp/i)).toBeInTheDocument();
   });
 });

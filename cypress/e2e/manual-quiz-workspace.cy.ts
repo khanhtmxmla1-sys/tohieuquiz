@@ -64,6 +64,52 @@ const longDraft = () => {
     return draft;
 };
 
+const RESPONSIVE_DRAFT_TITLE = 'Đề kiểm tra responsive với tiêu đề dài cần giữ gọn trên mọi kích thước màn hình';
+
+const responsiveDraft = () => {
+    const draft = validDraft();
+    draft.draftId = 'manual-e2e-responsive-draft';
+    draft.quiz.title = RESPONSIVE_DRAFT_TITLE;
+    draft.quiz.questions[0].question = [
+        'Đây là một câu hỏi có nội dung rất dài để kiểm tra cách bố trí hàng tổng quan, vùng nội dung và nút chỉnh sửa trên các màn hình hẹp.',
+        'Nội dung này cần được xuống dòng tự nhiên, không làm tràn ngang trang hoặc đẩy thao tác chính ra ngoài vùng nhìn thấy của giáo viên.',
+    ].join(' ');
+    return draft;
+};
+
+const twoQuestionDraft = () => {
+    const draft = validDraft();
+    draft.draftId = 'manual-e2e-two-question-draft';
+    draft.selectedQuestionId = 'manual-e2e-question-1';
+    draft.quiz.questions = [
+        {
+            ...draft.quiz.questions[0],
+            id: 'manual-e2e-question-1',
+            question: 'Câu hỏi số một',
+        },
+        {
+            ...draft.quiz.questions[0],
+            id: 'manual-e2e-question-2',
+            question: 'Câu hỏi số hai',
+            correctAnswer: 'A',
+        },
+    ];
+    draft.quiz.questions[0].points = 5;
+    draft.quiz.questions[1].points = 5;
+    return draft;
+};
+
+const invalidTwoQuestionDraft = () => {
+    const draft = twoQuestionDraft();
+    draft.quiz.questions[1] = {
+        ...draft.quiz.questions[1],
+        question: 'Câu hỏi lỗi thứ hai',
+        options: [],
+        correctAnswer: '',
+    };
+    return draft;
+};
+
 const installAuth = (win: Window) => {
     win.localStorage.setItem('auth-storage', authStorageValue);
 };
@@ -172,6 +218,71 @@ const assertNoHorizontalOverflow = () => {
         const documentElement = win.document.documentElement;
         expect(documentElement.scrollWidth, 'document scroll width')
             .to.be.lte(documentElement.clientWidth + 1);
+        expect(win.document.body.scrollWidth, 'body scroll width')
+            .to.be.lte(win.document.body.clientWidth + 1);
+        const overflowingElements = Array.from(win.document.querySelectorAll<HTMLElement>('[data-testid="manual-quiz-workspace"], [data-testid="manual-quiz-workspace"] *'))
+            .filter((element) => {
+                const style = win.getComputedStyle(element);
+                return element.scrollWidth > element.clientWidth + 1
+                    && element.getClientRects().length > 0
+                    && !element.classList.contains('sr-only')
+                    && element.tagName !== 'INPUT'
+                    && ['auto', 'scroll'].includes(style.overflowX);
+            })
+            .map((element) => ({
+                tag: element.tagName,
+                testId: element.dataset.testid,
+                className: element.className,
+                scrollWidth: element.scrollWidth,
+                clientWidth: element.clientWidth,
+            }));
+        expect(overflowingElements, 'workspace descendants with horizontal overflow').to.deep.eq([]);
+    });
+};
+
+const assertResponsiveBounds = () => {
+    cy.window().then((win) => {
+        const viewportWidth = win.innerWidth;
+        const header = win.document.querySelector('header[aria-label="Thanh công cụ Trình soạn đề"]');
+        expect(header, 'workspace header').to.exist;
+        const headerRect = header!.getBoundingClientRect();
+        expect(headerRect.left, 'header left').to.be.at.least(-1);
+        expect(headerRect.right, 'header right').to.be.at.most(viewportWidth + 1);
+        const titleInput = win.document.querySelector<HTMLElement>('#manual-quiz-title');
+        expect(titleInput, 'title input').to.exist;
+        const titleRect = titleInput!.getBoundingClientRect();
+        const minimumTitleWidth = viewportWidth <= 320 ? 160 : viewportWidth <= 768 ? 240 : 320;
+        expect(titleRect.width, 'title input usable width').to.be.at.least(minimumTitleWidth);
+
+        [
+            'button[aria-label="Quay lại trang tạo đề"]',
+            'button[aria-label="Mở thiết lập đề"]',
+            'button[aria-label="Mở xem trước"]',
+            'button[aria-label="Kiểm tra và xuất bản"]',
+        ].forEach((selector) => {
+            const element = win.document.querySelector<HTMLElement>(selector);
+            expect(element, `${selector} exists`).to.exist;
+            const rect = element!.getBoundingClientRect();
+            expect(rect.left, `${selector} left`).to.be.at.least(-1);
+            expect(rect.right, `${selector} right`).to.be.at.most(viewportWidth + 1);
+            expect(rect.width, `${selector} width`).to.be.greaterThan(0);
+        });
+
+        const row = win.document.querySelector<HTMLElement>('[data-testid="workspace-view-overview"] [data-question-id]');
+        const editButton = win.document.querySelector<HTMLElement>('[data-testid="workspace-view-overview"] button[aria-label="Sửa câu 1"]');
+        const scrollRegion = win.document.querySelector<HTMLElement>('[data-testid="question-navigator-scroll"]');
+        expect(row, 'overview question row').to.exist;
+        expect(editButton, 'overview edit action').to.exist;
+        expect(scrollRegion, 'overview scroll region').to.exist;
+        const rowRect = row!.getBoundingClientRect();
+        const editRect = editButton!.getBoundingClientRect();
+        const scrollRect = scrollRegion!.getBoundingClientRect();
+        expect(rowRect.left, 'row left').to.be.at.least(-1);
+        expect(rowRect.right, 'row right').to.be.at.most(viewportWidth + 1);
+        expect(editRect.left, 'edit action left').to.be.at.least(-1);
+        expect(editRect.right, 'edit action right').to.be.at.most(viewportWidth + 1);
+        expect(editRect.top, 'edit action visible below scroll region').to.be.at.least(scrollRect.top - 1);
+        expect(editRect.bottom, 'edit action visible above scroll region').to.be.at.most(scrollRect.bottom + 1);
     });
 };
 
@@ -209,6 +320,7 @@ describe('Manual quiz workspace end-to-end', () => {
         cy.reload();
         cy.wait('@accountProfile', { timeout: 15_000 });
         continueRecoveredDraft('Đề đang tự động lưu');
+        cy.get('button[aria-label="Sửa câu 1"]').click();
         cy.get('[data-testid="question-rich-editor"]', { timeout: 15_000 })
             .should('contain.text', '1 + 1 bằng bao nhiêu?');
 
@@ -249,9 +361,160 @@ describe('Manual quiz workspace end-to-end', () => {
         cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Câu hỏi số 30');
     });
 
+    it('opens a recovered quiz in the full-width question overview', () => {
+        visitManualWorkspace(validDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.get('[data-testid="workspace-view-overview"]').should('be.visible');
+        cy.get('[data-testid="workspace-view-edit"]').should('not.be.visible');
+    });
+
+    it('enters the focused editor after adding the first question to a new quiz', () => {
+        visitManualWorkspace();
+        cy.wait('@accountProfile', { timeout: 15_000 });
+        cy.get('[data-testid="manual-quiz-workspace"]', { timeout: 15_000 }).should('be.visible');
+
+        cy.get('[data-testid="workspace-view-overview"]').should('be.visible');
+        cy.get('[data-testid="workspace-view-overview"]').contains('button', 'Thêm câu').click();
+        cy.get('[role="dialog"][aria-label="Chọn dạng câu hỏi"]')
+            .should('be.visible')
+            .find('button[aria-label="Thêm dạng Trắc nghiệm một đáp án"]')
+            .click();
+
+        cy.get('[data-testid="workspace-view-edit"]').should('be.visible');
+        cy.get('[data-testid="workspace-view-overview"]').should('not.be.visible');
+        cy.get('[data-testid="question-rich-editor"]').should('be.visible');
+    });
+
+    it('keeps the latest draft when switching from focused editing to preview and back', () => {
+        visitManualWorkspace(validDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.get('[data-testid="workspace-view-overview"]').should('be.visible');
+        cy.get('button[aria-label="Sửa câu 1"]').click();
+
+        cy.get('[data-testid="question-rich-editor"]')
+            .click()
+            .type('{ctrl}a')
+            .type('{backspace}')
+            .type('Nội dung xem trước', { delay: 0 })
+            .should('contain.text', 'Nội dung xem trước');
+        cy.contains('button', 'Xem trước').click();
+
+        cy.get('[data-testid="workspace-view-preview"]')
+            .should('be.visible')
+            .and('contain.text', 'Nội dung xem trước');
+        cy.get('[data-testid="workspace-view-edit"]').should('not.be.visible');
+        cy.contains('button', 'Quay lại sửa').click();
+        cy.get('[data-testid="workspace-view-edit"]').should('be.visible');
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Nội dung xem trước');
+    });
+
+    it('blocks next and overview navigation when local persistence fails', () => {
+        visitManualWorkspace(twoQuestionDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.get('[data-testid="workspace-view-overview"]').should('be.visible');
+        cy.get('button[aria-label="Sửa câu 1"]').click();
+        cy.get('[data-testid="workspace-view-edit"]').should('be.visible');
+
+        cy.window().then((win) => {
+            const originalSetItem = win.localStorage.setItem.bind(win.localStorage);
+            cy.stub(win.Storage.prototype, 'setItem').callsFake((key, value) => {
+                if (String(key).includes('tohieuquiz:manual-draft:')) {
+                    throw new DOMException('Quota exceeded', 'QuotaExceededError');
+                }
+                originalSetItem(key, value);
+            });
+        });
+
+        cy.get('[data-testid="question-rich-editor"]')
+            .click()
+            .type('{ctrl}a')
+            .type('{backspace}')
+            .type('Nội dung chưa lưu', { delay: 0 })
+            .should('contain.text', 'Nội dung chưa lưu');
+        cy.contains('button', 'Lưu và câu sau').click();
+        cy.get('[data-testid="workspace-view-edit"]').should('be.visible');
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Nội dung chưa lưu');
+        cy.contains(/chưa thể lưu bản nháp|bộ nhớ trình duyệt đã đầy/i).should('be.visible');
+
+        cy.contains('button', 'Về danh sách').click();
+        cy.get('[data-testid="workspace-view-edit"]').should('be.visible');
+        cy.get('[data-testid="workspace-view-overview"]').should('not.be.visible');
+    });
+
+    it('opens the correct focused editor when a validation issue targets a question', () => {
+        visitManualWorkspace(invalidTwoQuestionDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+
+        cy.get('[data-testid="workspace-view-overview"]').should('be.visible');
+        cy.contains('button', 'Kiểm tra và xuất bản').click();
+        cy.get('[role="dialog"][aria-label="Kiểm tra trước khi xuất bản"]').should('be.visible');
+        cy.contains('[role="dialog"] button', 'Đi đến câu').first().click();
+
+        cy.get('[data-testid="workspace-view-edit"]').should('be.visible');
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Câu hỏi lỗi thứ hai');
+    });
+
+    it('flushes a just-typed question before switching navigator rows', () => {
+        visitManualWorkspace(twoQuestionDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+        cy.get('button[aria-label="Sửa câu 1"]').click();
+
+        cy.get('[data-testid="question-rich-editor"]')
+            .click()
+            .type('{ctrl}a{backspace}')
+            .type('Noi dung vua go');
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Noi dung vua go');
+        cy.window().then((win) => {
+            const raw = win.localStorage.getItem(
+                `tohieuquiz:manual-draft:v1:${TEACHER}:manual-e2e-two-question-draft`,
+            );
+            expect(JSON.parse(raw!).quiz.questions[0].question).to.eq('Câu hỏi số một');
+        });
+        cy.contains('button', 'Về danh sách').click();
+        cy.get('[data-testid="workspace-view-overview"]').should('be.visible');
+        cy.get('button[aria-label="Chọn câu 2: Câu hỏi số hai"]').click();
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Câu hỏi số hai');
+        cy.window().then((win) => {
+            const raw = win.localStorage.getItem(
+                `tohieuquiz:manual-draft:v1:${TEACHER}:manual-e2e-two-question-draft`,
+            );
+            expect(raw).to.be.a('string');
+            expect(JSON.parse(raw!).quiz.questions[0].question).to.eq('Noi dung vua go');
+        });
+    });
+
+    it('keeps the current question selected when immediate local persistence fails', () => {
+        visitManualWorkspace(twoQuestionDraft());
+        continueRecoveredDraft('Đề kiểm tra E2E');
+        cy.get('button[aria-label="Sửa câu 1"]').click();
+
+        cy.window().then((win) => {
+            const originalSetItem = win.localStorage.setItem.bind(win.localStorage);
+            cy.stub(win.Storage.prototype, 'setItem').callsFake((key, value) => {
+                if (String(key).includes('tohieuquiz:manual-draft:')) {
+                    throw new DOMException('Quota exceeded', 'QuotaExceededError');
+                }
+                originalSetItem(key, value);
+            });
+        });
+        cy.get('[data-testid="question-rich-editor"]')
+            .click()
+            .type('{ctrl}a{backspace}')
+            .type('Noi dung chua luu');
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Noi dung chua luu');
+        cy.contains('button', 'Lưu và câu sau').click();
+
+        cy.get('[data-testid="question-rich-editor"]').should('contain.text', 'Noi dung chua luu');
+        cy.contains(/Bộ nhớ trình duyệt đã đầy|chưa thể lưu bản nháp/i).should('be.visible');
+    });
+
     it('preserves Enter formatting through draft save, reload and publish', () => {
         visitManualWorkspace(validDraft());
         continueRecoveredDraft('Đề kiểm tra E2E');
+        cy.get('button[aria-label="Sửa câu 1"]').click();
 
         cy.get('[data-testid="question-rich-editor"]')
             .click()
@@ -276,6 +539,7 @@ describe('Manual quiz workspace end-to-end', () => {
         cy.reload();
         cy.wait('@accountProfile', { timeout: 15_000 });
         continueRecoveredDraft('Đề kiểm tra E2E');
+        cy.get('button[aria-label="Sửa câu 1"]').click();
         cy.get('[data-testid="question-rich-editor"] strong').should('contain.text', 'Dòng thứ nhất');
         cy.get('[data-testid="question-rich-editor"] p').eq(1).should('have.attr', 'style').and('contain', 'text-align: center');
 
@@ -290,6 +554,7 @@ describe('Manual quiz workspace end-to-end', () => {
     it('serializes Shift+Enter as a hard break while keeping the plain newline fallback', () => {
         visitManualWorkspace(validDraft());
         continueRecoveredDraft('Đề kiểm tra E2E');
+        cy.get('button[aria-label="Sửa câu 1"]').click();
 
         cy.get('[data-testid="question-rich-editor"]')
             .click()
@@ -382,16 +647,39 @@ describe('Manual quiz workspace end-to-end', () => {
         { width: 320, height: 800, label: 'mobile-320' },
         { width: 768, height: 1024, label: 'tablet-768' },
         { width: 1024, height: 768, label: 'tablet-1024' },
+        { width: 1280, height: 800, label: 'desktop-1280' },
         { width: 1440, height: 900, label: 'desktop-1440' },
+        { width: 1920, height: 1080, label: 'desktop-1920' },
     ].forEach(({ width, height, label }) => {
         it(`has no horizontal overflow and captures ${label}`, () => {
             cy.viewport(width, height);
-            visitManualWorkspace(validDraft());
-            continueRecoveredDraft('Đề kiểm tra E2E');
+            visitManualWorkspace(responsiveDraft());
+            continueRecoveredDraft(RESPONSIVE_DRAFT_TITLE);
             cy.get('button[aria-label="Thêm ảnh đính kèm"]')
                 .should('have.attr', 'aria-expanded', 'false');
             cy.contains('Chọn, kéo thả hoặc dán ảnh').should('not.exist');
             assertNoHorizontalOverflow();
+            assertResponsiveBounds();
+            if (width <= 768) {
+                cy.get('[data-testid="workspace-view-overview"] button[aria-label="Sửa câu 1"]')
+                    .scrollIntoView()
+                    .should('be.visible');
+                cy.window().then((win) => {
+                    cy.get('header[aria-label="Thanh công cụ Trình soạn đề"]').should(($header) => {
+                        const headerRect = $header[0].getBoundingClientRect();
+                        expect(headerRect.top, 'sticky header top').to.be.at.least(-1);
+                        expect(headerRect.bottom, 'sticky header remains in viewport').to.be.at.most(win.innerHeight + 1);
+                    });
+                });
+                cy.get('[data-testid="workspace-view-overview"] button[aria-label="Sửa câu 1"]').then(($button) => {
+                    const buttonRect = $button[0].getBoundingClientRect();
+                    cy.get('header[aria-label="Thanh công cụ Trình soạn đề"]').then(($header) => {
+                        expect(buttonRect.top, 'question action below sticky header').to.be.at.least(
+                            $header[0].getBoundingClientRect().bottom - 1,
+                        );
+                    });
+                });
+            }
             cy.screenshot(`manual-quiz-workspace/${label}`, { capture: 'viewport' });
         });
     });

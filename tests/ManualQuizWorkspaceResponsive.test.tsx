@@ -33,60 +33,36 @@ describe('ManualQuizWorkspace responsive layout', () => {
         });
     });
 
-    it('declares mobile, tablet and desktop layout constraints without horizontal overflow', async () => {
+    it('starts a new quiz in the full-width question overview', async () => {
         renderWorkspace();
         const workspace = await screen.findByTestId('manual-quiz-workspace');
-        const grid = screen.getByTestId('workspace-grid');
-        const navigator = screen.getByRole('navigation', { name: 'Danh sách câu hỏi' });
-        const preview = screen.getByRole('complementary', { name: 'Xem trước học sinh' });
 
-        expect(workspace).toHaveClass('max-w-full', 'overflow-x-hidden', 'h-[100dvh]');
-        expect(grid).toHaveClass(
-            'grid-cols-1',
-            'md:grid-cols-[280px_minmax(0,1fr)]',
-            'xl:grid-cols-[280px_minmax(0,1fr)_380px]',
-        );
-        expect(navigator).toHaveClass('w-full', 'md:w-[280px]', 'min-w-0');
-        expect(preview).toHaveClass(
-            'w-full',
-            'md:fixed',
-            'md:w-[380px]',
-            'xl:static',
-            'xl:w-[380px]',
-        );
-        expect(screen.getByRole('navigation', { name: 'Chuyển vùng soạn đề trên di động' })).toHaveClass('md:hidden');
-        expect(screen.getByRole('button', { name: 'Mở thiết lập đề' })).toHaveClass('inline-flex');
+        expect(workspace).toHaveClass('max-w-full', 'overflow-x-clip', 'min-h-[100dvh]', 'overflow-y-visible');
+        expect(screen.getByTestId('workspace-view-overview')).toBeVisible();
+        expect(screen.getByTestId('workspace-view-edit')).not.toBeVisible();
+        expect(screen.queryByRole('navigation', { name: 'Chuyển vùng soạn đề trên di động' })).not.toBeInTheDocument();
     });
 
-    it('switches the three mobile panes while tablet panes remain breakpoint-controlled', async () => {
+    it('enters the focused editor after a quick-add action', async () => {
         renderWorkspace();
-        await screen.findByTestId('workspace-grid');
+        await screen.findByTestId('workspace-view-overview');
 
-        expect(screen.getByRole('tab', { name: 'Soạn' })).toHaveAttribute('aria-selected', 'true');
-        expect(screen.getByTestId('workspace-pane-editor')).toHaveAttribute('data-mobile-visible', 'true');
-        expect(screen.getByTestId('workspace-pane-list')).toHaveClass('hidden', 'md:block');
-
-        fireEvent.click(screen.getByRole('tab', { name: 'Danh sách' }));
-        expect(screen.getByRole('tab', { name: 'Danh sách' })).toHaveAttribute('aria-selected', 'true');
-        expect(screen.getByTestId('workspace-pane-list')).toHaveAttribute('data-mobile-visible', 'true');
-        expect(screen.getByTestId('workspace-pane-editor')).toHaveClass('hidden', 'md:block');
-
-        fireEvent.click(screen.getByRole('tab', { name: 'Xem trước' }));
-        expect(screen.getByRole('tab', { name: 'Xem trước' })).toHaveAttribute('aria-selected', 'true');
-        expect(screen.getByTestId('workspace-pane-preview')).toHaveAttribute('data-mobile-visible', 'true');
+        fireEvent.click(screen.getByRole('button', { name: 'Thêm nhanh Trắc nghiệm' }));
+        expect(screen.getByTestId('workspace-view-edit')).toBeVisible();
+        expect(screen.getByTestId('workspace-view-overview')).not.toBeVisible();
     });
 
-    it('keeps bottom actions inside safe-area and uses preview as a tablet drawer', async () => {
+    it('uses a separate preview mode instead of a permanent side pane', async () => {
         renderWorkspace();
-        await screen.findByRole('main', { name: 'Trình soạn câu hỏi' });
-        const tabs = screen.getByRole('navigation', { name: 'Chuyển vùng soạn đề trên di động' });
-        expect(tabs.className).toContain('safe-area-inset-bottom');
+        await screen.findByTestId('workspace-view-overview');
+        fireEvent.click(screen.getByRole('button', { name: 'Thêm nhanh Trắc nghiệm' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Xem trước' }));
 
-        const preview = screen.getByRole('complementary', { name: 'Xem trước học sinh' });
-        expect(preview).toHaveClass('md:fixed', 'md:top-[72px]', 'md:bottom-12', 'md:shadow-2xl');
-        fireEvent.click(screen.getByRole('button', { name: 'Đóng khung xem trước' }));
+        expect(screen.getByTestId('workspace-view-preview')).toBeVisible();
+        expect(screen.getByTestId('workspace-view-edit')).not.toBeVisible();
         expect(screen.queryByRole('complementary', { name: 'Xem trước học sinh' })).not.toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Mở xem trước' }));
-        expect(screen.getByRole('complementary', { name: 'Xem trước học sinh' })).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Quay lại sửa' }));
+        expect(screen.getByTestId('workspace-view-edit')).toBeVisible();
     });
 });
