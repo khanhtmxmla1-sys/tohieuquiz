@@ -187,7 +187,7 @@ const QuestionEditorPane = React.forwardRef<QuestionEditorPaneHandle, QuestionEd
 
     if (!selected) {
         return (
-            <main aria-label="Trình soạn câu hỏi" className="h-full min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-white p-6 lg:p-8">
+            <main aria-label="Trình soạn câu hỏi" className="h-full min-h-0 min-w-0 w-full flex-1 overflow-y-auto overscroll-contain bg-white p-6 lg:p-8">
                 <div className="mx-auto flex min-h-[520px] max-w-2xl flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-[#FFFDF7] p-8 text-center">
                     <div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-sky-50 text-sky-600">1</div>
                     <h2 className="text-xl font-semibold">Bắt đầu với câu hỏi đầu tiên</h2>
@@ -216,7 +216,7 @@ const QuestionEditorPane = React.forwardRef<QuestionEditorPaneHandle, QuestionEd
             aria-label="Trình soạn câu hỏi"
             aria-readonly={readOnly || undefined}
             data-read-only={readOnly || undefined}
-            className="h-full min-h-0 min-w-0 overflow-y-auto overscroll-contain bg-white p-5 lg:p-8"
+            className="h-full min-h-0 min-w-0 w-full flex-1 overflow-y-auto overscroll-contain bg-white p-5 lg:p-8"
         >
             <MathComposerProvider>
                 <div className="mx-auto w-full max-w-[1120px] space-y-4 pb-24">

@@ -7,6 +7,11 @@ import QuestionNavigator, {
 } from '../src/features/manual-quiz-workspace/components/QuestionNavigator';
 import { useManualQuizWorkspaceStore } from '../src/features/manual-quiz-workspace/store/useManualQuizWorkspaceStore';
 
+vi.mock('better-react-mathjax', () => ({
+    MathJax: ({ children }: { children: React.ReactNode }) => <span data-testid="mathjax">{children}</span>,
+    MathJaxContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 const seed = {
     title: 'Đề Toán lớp 4', classLevel: '4A', category: 'toan', timeLimit: 20,
     tags: [], requireCode: false, showOnHome: true,
@@ -110,6 +115,18 @@ describe('QuestionNavigator operations', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Cần sửa' }));
         expect(screen.queryByRole('button', { name: /Chọn câu 1:/ })).not.toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Chọn câu 2:/ })).toBeInTheDocument();
+    });
+
+    it('renders LaTeX summaries through the shared math renderer in overview rows', () => {
+        useManualQuizWorkspaceStore.getState().updateQuestion('q-1', (question) => ({
+            ...question,
+            question: 'Mẹ cắt $\\frac{1}{4}$ tấm vải',
+        }));
+
+        render(<QuestionNavigator variant="overview" />);
+
+        const firstRowButton = screen.getByRole('button', { name: /Chọn câu 1:/ });
+        expect(within(firstRowButton).getByTestId('mathjax')).toHaveTextContent('$\\frac{1}{4}$');
     });
 
     it('keeps bulk selection reachable in the overview variant', () => {
