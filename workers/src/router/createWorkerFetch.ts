@@ -58,6 +58,7 @@ export interface WorkerFetchDependencies {
   logger?: StructuredLogSink;
   now?: () => number;
   handleTeacherRoutes: RouteHandler;
+  handleAiCredentialRoutes?: RouteHandler;
   handleSecurityCenterRoutes: RouteHandler;
   handlePasskeyRoutes: RouteHandler;
   handleLogoutRoute: SimpleRouteHandler;
@@ -121,6 +122,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     logger = console,
     now = Date.now,
     handleTeacherRoutes,
+    handleAiCredentialRoutes = async () => null,
     handleSecurityCenterRoutes,
     handlePasskeyRoutes,
     handleLogoutRoute,
@@ -353,6 +355,8 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
         || path === '/api/account/security-events'
         || path === '/api/account/logout-all') {
         response = await handleSecurityCenterRoutes(request, env, path, method);
+      } else if (path.startsWith('/api/account/ai-credentials')) {
+        response = await handleAiCredentialRoutes(request, env, path, method);
       } else if (path.startsWith('/api/teacher/action-center')) {
         response = await handleActionCenterRoutes(request, env, path, method);
       } else if (

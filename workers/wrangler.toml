@@ -16,7 +16,7 @@ binding = "AI_GATEWAY"
 service = "tohieuquiz-ai-gateway"
 
 [secrets]
-required = ["JWT_SECRET", "CLIPROXY_TOKEN", "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"]
+required = ["JWT_SECRET", "CLIPROXY_TOKEN", "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET", "AI_CREDENTIAL_KEYRING"]
 
 [[d1_databases]]
 binding = "DB"

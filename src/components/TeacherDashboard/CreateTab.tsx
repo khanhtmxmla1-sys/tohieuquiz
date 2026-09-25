@@ -174,6 +174,8 @@ const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdate
                     aiProvider={logic.aiProvider}
                     setAiProvider={logic.setAiProvider}
                     isAdmin={logic.authStore.isAdmin}
+                    aiCredentials={logic.aiCredentials}
+                    isGenerating={logic.isGenerating}
                     isOpen={logic.expandedSections.advanced}
                     onToggle={logic.toggleSection}
                 />

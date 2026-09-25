@@ -39,6 +39,7 @@ const expectedPublicKeys = [
     'addTagToState',
     'aiDetectedCategory',
     'aiDetectedLesson',
+    'aiCredentials',
     'aiProvider',
     'aiSvgDiagramsEnabled',
     'aiSuggestedTags',

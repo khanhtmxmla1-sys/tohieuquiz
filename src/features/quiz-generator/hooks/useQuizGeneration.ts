@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import type { QuizAiSource } from '../../../../shared/teacher-ai-credentials.contract';
 import type { Quiz, Question } from '../../../types';
 import { QuestionType } from '../../../types';
 import {
@@ -26,6 +27,7 @@ import type { GenerationStep, QuizMode } from '../domain/quizCreation.types';
 import type { useQuizFormState } from './useQuizFormState';
 import { createAiAction, type ClientAiAction } from '../../../services/ai/aiAction';
 import { useTeacherAiQuota } from './useTeacherAiQuota';
+import type { AiCredentialsController } from './useAiCredentials';
 
 interface UseQuizGenerationOptions {
     form: ReturnType<typeof useQuizFormState>;
@@ -36,6 +38,7 @@ interface UseQuizGenerationOptions {
     aiQuizV2Enabled: boolean;
     aiBlueprintV3Enabled: boolean;
     aiSvgDiagramsEnabled: boolean;
+    aiCredentials?: AiCredentialsController;
 }
 
 type GenerationRequestKind = 'full' | 'trial';
@@ -49,6 +52,20 @@ interface ActiveGeneration {
 
 const fileKey = (file: File): string => `${file.name}:${file.size}:${file.lastModified}`;
 
+const sourceForProvider = (provider: AIProvider): QuizAiSource => {
+    if (provider === 'gemini-personal') return 'gemini-personal';
+    if (provider === 'deepseek-personal') return 'deepseek-personal';
+    return 'system';
+};
+
+const credentialProviderFor = (
+    source: QuizAiSource,
+): 'gemini' | 'deepseek' | null => {
+    if (source === 'gemini-personal') return 'gemini';
+    if (source === 'deepseek-personal') return 'deepseek';
+    return null;
+};
+
 export const useQuizGeneration = ({
     form,
     editingQuiz,
@@ -58,11 +75,40 @@ export const useQuizGeneration = ({
     aiQuizV2Enabled,
     aiBlueprintV3Enabled,
     aiSvgDiagramsEnabled,
+    aiCredentials,
 }: UseQuizGenerationOptions) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generationStep, setGenerationStep] = useState<GenerationStep>('idle');
     const activeGenerationRef = useRef<ActiveGeneration | null>(null);
     const quota = useTeacherAiQuota({ isTeacherAccount, username });
+
+    const personalAvailabilityError = (
+        source: QuizAiSource,
+        options: {
+            pdfOrFile?: boolean;
+            hasImages?: boolean;
+            usesExternalSearch?: boolean;
+        } = {},
+    ): string | null => {
+        const credentialProvider = credentialProviderFor(source);
+        if (!credentialProvider) return null;
+        if (!aiCredentials?.enabled) {
+            return 'Nguồn AI cá nhân hiện chưa được bật cho tài khoản này.';
+        }
+        if (!aiCredentials.summaries[credentialProvider].configured) {
+            return `Bạn chưa lưu API key ${credentialProvider === 'gemini' ? 'Gemini' : 'DeepSeek'}.`;
+        }
+        if (options.pdfOrFile) {
+            return 'Nguồn AI cá nhân V1 chưa hỗ trợ PDF hoặc tệp đính kèm. Hãy dùng chủ đề/văn bản hoặc chuyển sang AI TôHiệuQuiz.';
+        }
+        if (options.hasImages) {
+            return 'Nguồn AI cá nhân V1 chưa hỗ trợ đầu vào hoặc tạo câu hỏi hình ảnh. Hãy chuyển sang AI TôHiệuQuiz.';
+        }
+        if (options.usesExternalSearch) {
+            return 'Nguồn AI cá nhân V1 chưa hỗ trợ tìm kiếm web. Hãy chuyển sang AI TôHiệuQuiz.';
+        }
+        return null;
+    };
 
     const createQuizFromResult = (
         result: Record<string, unknown>,
@@ -107,7 +153,7 @@ export const useQuizGeneration = ({
 
     const prepareOcrPreview = async (file: File): Promise<OcrDocument | null> => {
         activeGenerationRef.current?.controller.abort();
-        const action = createAiAction('QUIZ_CREATE');
+        const action = createAiAction('QUIZ_CREATE', 'system');
         const controller = new AbortController();
         const sourceFileKey = fileKey(file);
         activeGenerationRef.current = { action, controller, phase: 'ocr', sourceFileKey };
@@ -159,6 +205,21 @@ export const useQuizGeneration = ({
     ) => {
         const activeQuizMode = modeOverride ?? form.quizMode;
         const isPdfMode = activeQuizMode === 'pdf';
+        const aiSource = sourceForProvider(form.aiProvider);
+        const personalError = personalAvailabilityError(aiSource, {
+            pdfOrFile: isPdfMode || Boolean(form.uploadedFile),
+            hasImages: Boolean(form.imageLibrary?.length)
+                || Boolean(form.selectedTypes[QuestionType.IMAGE_QUESTION]),
+            usesExternalSearch: form.category === 'trang-nguyen',
+        });
+        if (personalError) {
+            showError(personalError);
+            return;
+        }
+        if (isTeacherAccount && !quota.hasAiQuota) {
+            showError('Bạn đã hết hạn mức AI trong ngày.');
+            return;
+        }
         form.setQuizMode(activeQuizMode);
         if (activeQuizMode === 'exam') form.setQuizIntent('EXAM');
         if (activeQuizMode === 'practice') form.setQuizIntent('PRACTICE');
@@ -206,7 +267,7 @@ export const useQuizGeneration = ({
         const pendingAction = activeGenerationRef.current?.phase === 'generate'
             ? activeGenerationRef.current
             : null;
-        const action = pendingAction?.action ?? createAiAction('QUIZ_CREATE');
+        const action = pendingAction?.action ?? createAiAction('QUIZ_CREATE', aiSource);
         const controller = pendingAction?.controller ?? new AbortController();
         activeGenerationRef.current = {
             action,
@@ -383,7 +444,20 @@ export const useQuizGeneration = ({
     };
 
     const handleRegenerateSingle = async (question: Question): Promise<Question | null> => {
-        const action = createAiAction('QUESTION_REGENERATE');
+        if (isTeacherAccount && !quota.hasAiQuota) {
+            showError('Bạn đã hết hạn mức AI trong ngày.');
+            return null;
+        }
+        const aiSource = sourceForProvider(form.aiProvider);
+        const personalError = personalAvailabilityError(aiSource, {
+            hasImages: Boolean(form.imageLibrary?.length)
+                || question.type === QuestionType.IMAGE_QUESTION,
+        });
+        if (personalError) {
+            showError(personalError);
+            return null;
+        }
+        const action = createAiAction('QUESTION_REGENERATE', aiSource);
         const controller = new AbortController();
         try {
             const topic = form.topic || form.generatedQuiz?.title || 'T?ng h?p';

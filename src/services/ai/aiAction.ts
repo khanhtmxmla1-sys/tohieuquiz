@@ -1,9 +1,12 @@
+import type { QuizAiSource } from '../../../shared/teacher-ai-credentials.contract';
+
 export type AiWorkflow = 'QUIZ_CREATE' | 'QUESTION_REGENERATE' | 'GENERIC';
 export type AiStage = 'OCR' | 'GENERATE' | 'REVIEW' | 'REPAIR' | 'REGENERATE' | 'GENERIC';
 
 export interface ClientAiAction {
   actionId: string;
   workflow: AiWorkflow;
+  source?: QuizAiSource;
 }
 
 export interface AiRequestDiagnostics {
@@ -32,9 +35,13 @@ export interface AiActionOptions {
 
 export const createAiActionId = (): string => `ai-${crypto.randomUUID()}`;
 
-export const createAiAction = (workflow: AiWorkflow): ClientAiAction => ({
+export const createAiAction = (
+  workflow: AiWorkflow,
+  source: QuizAiSource = 'system',
+): ClientAiAction => ({
   actionId: createAiActionId(),
   workflow,
+  ...(source === 'system' ? {} : { source }),
 });
 
 const workflowForStage = (stage: AiStage): AiWorkflow => {

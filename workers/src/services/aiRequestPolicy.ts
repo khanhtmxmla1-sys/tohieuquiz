@@ -1,4 +1,4 @@
-import type { AiWorkflow } from './teacherAiQuotaLedger';
+import type { AiActionBinding, AiWorkflow } from './teacherAiQuotaLedger';
 
 export type AiStage = 'OCR' | 'GENERATE' | 'REVIEW' | 'REPAIR' | 'REGENERATE' | 'GENERIC';
 
@@ -23,6 +23,10 @@ interface AiActionPolicyRow {
   generate_calls: number;
   review_calls: number;
   repair_calls: number;
+  source?: string | null;
+  credential_version?: number | null;
+  ai_model?: string | null;
+  active_stage?: AiStage | null;
 }
 
 const ACTION_ID = /^ai-[a-z0-9-]{20,80}$/i;
@@ -125,7 +129,11 @@ const readAction = async (
     ocr_calls,
     generate_calls,
     review_calls,
-    repair_calls
+    repair_calls,
+    source,
+    credential_version,
+    ai_model,
+    active_stage
   FROM ai_generation_actions
   WHERE action_id = ?
     AND username = ?
@@ -195,4 +203,137 @@ export async function recordAiStageSuccess(
   if (!updated) {
     throw new AiRequestPolicyError('AI_STAGE_CONFLICT');
   }
+}
+
+
+function assertPersonalBinding(
+  action: AiActionPolicyRow | null,
+  meta: AiRequestMeta,
+  binding: AiActionBinding,
+): asserts action is AiActionPolicyRow {
+  assertActionCanRun(action, meta);
+  if (
+    binding.source === 'system'
+    || action.source !== binding.source
+    || Number(action.credential_version ?? 0) !== binding.credentialVersion
+    || String(action.ai_model ?? '') !== binding.model
+  ) {
+    throw new AiRequestPolicyError('AI_STAGE_CONFLICT');
+  }
+}
+
+export async function reserveAiStage(
+  db: D1Database,
+  username: string,
+  meta: AiRequestMeta,
+  binding: AiActionBinding,
+  now = new Date(),
+): Promise<void> {
+  const action = await readAction(db, username, meta.actionId);
+  assertPersonalBinding(action, meta, binding);
+
+  const column = STAGE_COLUMNS[meta.stage];
+  const reserved = await db.prepare(`
+    UPDATE ai_generation_actions
+    SET active_stage = ?,
+        active_stage_started_at = ?,
+        updated_at = ?
+    WHERE workflow = ?
+      AND source = ?
+      AND credential_version = ?
+      AND ai_model = ?
+      AND active_stage IS NULL
+      AND ${column} < 1
+      ${stageOrderCondition(meta.stage)}
+      AND status IN ('RESERVED', 'SUCCEEDED')
+      AND action_id = ?
+      AND username = ?
+    RETURNING action_id
+  `).bind(
+    meta.stage,
+    now.toISOString(),
+    now.toISOString(),
+    meta.workflow,
+    binding.source,
+    binding.credentialVersion,
+    binding.model,
+    meta.actionId,
+    username,
+  ).first<{ action_id: string }>();
+
+  if (!reserved) {
+    throw new AiRequestPolicyError('AI_STAGE_CONFLICT');
+  }
+}
+
+export async function recordReservedAiStageSuccess(
+  db: D1Database,
+  username: string,
+  meta: AiRequestMeta,
+  binding: AiActionBinding,
+  now = new Date(),
+): Promise<void> {
+  const column = STAGE_COLUMNS[meta.stage];
+  const updated = await db.prepare(`
+    UPDATE ai_generation_actions
+    SET ${column} = ${column} + 1,
+        upstream_calls = upstream_calls + 1,
+        active_stage = NULL,
+        active_stage_started_at = NULL,
+        updated_at = ?
+    WHERE workflow = ?
+      AND source = ?
+      AND credential_version = ?
+      AND ai_model = ?
+      AND active_stage = ?
+      AND ${column} < 1
+      AND status IN ('RESERVED', 'SUCCEEDED')
+      AND action_id = ?
+      AND username = ?
+    RETURNING action_id
+  `).bind(
+    now.toISOString(),
+    meta.workflow,
+    binding.source,
+    binding.credentialVersion,
+    binding.model,
+    meta.stage,
+    meta.actionId,
+    username,
+  ).first<{ action_id: string }>();
+
+  if (!updated) {
+    throw new AiRequestPolicyError('AI_STAGE_CONFLICT');
+  }
+}
+
+export async function releaseAiStage(
+  db: D1Database,
+  username: string,
+  meta: AiRequestMeta,
+  binding: AiActionBinding,
+  now = new Date(),
+): Promise<void> {
+  await db.prepare(`
+    UPDATE ai_generation_actions
+    SET active_stage = NULL,
+        active_stage_started_at = NULL,
+        updated_at = ?
+    WHERE action_id = ?
+      AND username = ?
+      AND workflow = ?
+      AND source = ?
+      AND credential_version = ?
+      AND ai_model = ?
+      AND active_stage = ?
+  `).bind(
+    now.toISOString(),
+    meta.actionId,
+    username,
+    meta.workflow,
+    binding.source,
+    binding.credentialVersion,
+    binding.model,
+    meta.stage,
+  ).run();
 }

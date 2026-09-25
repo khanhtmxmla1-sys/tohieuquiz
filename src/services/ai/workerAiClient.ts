@@ -1,3 +1,4 @@
+import type { QuizAiSource } from '../../../shared/teacher-ai-credentials.contract';
 import { getWorkersApiBaseUrl } from '../api/config';
 import { type AiActionOptions, resolveAiActionMeta } from './aiAction';
 import { AI_CHAT_API_PATH } from './endpointConfig';
@@ -14,6 +15,7 @@ export interface WorkerAiResult {
 }
 
 export interface WorkerAiRequestOptions extends AiActionOptions {
+  source?: QuizAiSource;
   timeoutMs?: number;
   signal?: AbortSignal;
 }
@@ -73,6 +75,7 @@ export const requestWorkerAi = async (
   const path = AI_CHAT_API_PATH;
   const controller = new AbortController();
   const actionMeta = resolveAiActionMeta(options);
+  const source = options.source ?? options.action?.source ?? 'system';
   let timedOut = false;
 
   const abortFromCaller = () => controller.abort(options.signal?.reason);
@@ -96,6 +99,7 @@ export const requestWorkerAi = async (
       },
       body: JSON.stringify({
         ...requestBody,
+        ...(source === 'system' ? {} : { source }),
         _meta: actionMeta,
       }),
       signal: controller.signal,

@@ -66,6 +66,10 @@ const routeSamples = [
   ['/api/coin-awards/settings', 'GET', 'teacher-owned'],
   ['/api/coin-awards/settings', 'PUT', 'admin-only'],
   ['/api/student/coin-awards/history', 'GET', 'student-owned'],
+  ['/api/account/ai-credentials', 'GET', 'teacher-owned'],
+  ['/api/account/ai-credentials/gemini', 'PUT', 'teacher-owned'],
+  ['/api/account/ai-credentials/deepseek/test', 'POST', 'teacher-owned'],
+  ['/api/account/ai-credentials/gemini', 'DELETE', 'teacher-owned'],
 ] as const;
 
 describe('API authorization matrix', () => {

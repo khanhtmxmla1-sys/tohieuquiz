@@ -54,7 +54,7 @@ import type {
 import { mapGeneratedQuizV3ToDomain } from './ai/quizDomainAdapter';
 import { processGeneratedQuizSvg } from './ai/svgDiagramProcessing';
 
-export type AIProvider = 'gemini' | 'perplexity' | 'openai' | 'llm-mux' | 'localhost' | 'native-ocr';
+export type AIProvider = 'gemini' | 'perplexity' | 'openai' | 'llm-mux' | 'localhost' | 'native-ocr' | 'gemini-personal' | 'deepseek-personal';
 export type LearnerPromptMode = 'default' | 'gifted' | 'remedial';
 export type QuizGenerationStep = 'generating' | 'reviewing' | 'repairing' | 'completed';
 
@@ -87,6 +87,7 @@ export interface QuizGenerationOptions {
 }
 
 const toWorkerOptions = (execution?: QuizAiExecutionContext) => execution ? {
+  ...(execution.action.source ? { source: execution.action.source } : {}),
   action: {
     ...execution.action,
     stage: execution.stage,
@@ -347,10 +348,13 @@ const runV3QualityPipeline = async (
 const getProviderCapabilities = (provider: AIProvider) => ({
   provider,
   supportsRetrievalContext: provider === 'perplexity',
-  supportsImages: provider !== 'perplexity' && provider !== 'native-ocr',
+  supportsImages: !['perplexity', 'native-ocr', 'gemini-personal', 'deepseek-personal'].includes(provider),
 });
 
-const resolveGeneratedImages = async (result: unknown): Promise<unknown> => {
+const resolveGeneratedImages = async (
+  result: unknown,
+  source: 'system' | 'gemini-personal' | 'deepseek-personal' = 'system',
+): Promise<unknown> => {
   if (!result || typeof result !== 'object') return result;
   const resultObject = result as Record<string, unknown>;
   if (!Array.isArray(resultObject.questions)) return result;
@@ -362,6 +366,9 @@ const resolveGeneratedImages = async (result: unknown): Promise<unknown> => {
   );
 
   if (imageQuestions.length === 0) return resultObject;
+  if (source !== 'system') {
+    throw new Error('Nguồn AI cá nhân V1 chưa hỗ trợ tạo hình ảnh. Hãy chuyển sang AI TôHiệuQuiz.');
+  }
   const imageServiceAvailable = await checkImageServiceAvailability();
   for (const question of resultObject.questions as Record<string, unknown>[]) {
     if (question.type !== 'IMAGE_QUESTION'
@@ -424,6 +431,27 @@ export const generateQuiz = async (
 
   if (provider === 'perplexity') {
     result = await generateWithPerplexity(promptText, '', requestExecution, systemInstruction);
+  } else if (provider === 'gemini-personal') {
+    result = await generateWithGemini(
+      promptText,
+      '',
+      undefined,
+      undefined,
+      onStepChange,
+      requestExecution,
+      systemInstruction,
+    );
+  } else if (provider === 'deepseek-personal') {
+    result = await generateWithOpenAIResilient(
+      promptText,
+      '',
+      undefined,
+      undefined,
+      'mux',
+      onStepChange,
+      requestExecution,
+      systemInstruction,
+    );
   } else if (provider === 'openai') {
     result = await generateWithOpenAIResilient(
       promptText,
@@ -481,7 +509,10 @@ export const generateQuiz = async (
     }
   }
 
-  result = await resolveGeneratedImages(result);
+  result = await resolveGeneratedImages(
+    result,
+    requestExecution?.action.source ?? 'system',
+  );
   onStepChange?.('completed');
   return result;
 };
