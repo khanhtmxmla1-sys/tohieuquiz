@@ -32,7 +32,7 @@ describe('D1 migration layout', () => {
     expect(new Set(registered).size).toBe(registered.length);
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
-    expect(migrations.at(-1)).toBe('0082_student_coin_awards.sql');
+    expect(migrations.at(-1)).toBe('0083_teacher_ai_credentials.sql');
     expect(EXPECTED_LATEST_MIGRATION).toBe(migrations.at(-1));
   });
 
@@ -79,6 +79,18 @@ describe('D1 migration layout', () => {
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS teacher_ai_daily_usage');
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS ai_generation_actions');
     expect(sql).toContain("CHECK(status IN ('RESERVED', 'SUCCEEDED', 'FAILED', 'EXPIRED'))");
+  });
+
+  it('stores encrypted teacher AI credentials and BYOK rollout state in migration 0083', () => {
+    const sql = fs.readFileSync(
+      path.join(migrationsDir, '0083_teacher_ai_credentials.sql'),
+      'utf8',
+    );
+
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS teacher_ai_credentials');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS teacher_ai_credential_audit');
+    expect(sql).toContain("ADD COLUMN source TEXT NOT NULL DEFAULT 'system'");
+    expect(sql).toContain("teacher_ai_byok_v1");
   });
 
   it('stores immutable student coin award governance in migration 0082', () => {

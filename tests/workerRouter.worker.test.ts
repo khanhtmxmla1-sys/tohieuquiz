@@ -13,6 +13,7 @@ const verifyTokenMock = vi.fn(() => unauthorized());
 
 const routeMocks = {
   handleTeacherRoutes: vi.fn(async () => null as Response | null),
+  handleAiCredentialRoutes: vi.fn(async () => null as Response | null),
   handleSecurityCenterRoutes: vi.fn(async () => null as Response | null),
   handlePasskeyRoutes: vi.fn(async () => null as Response | null),
   handleLogoutRoute: vi.fn(async () => null as Response | null),
@@ -175,6 +176,19 @@ describe('Worker root route dispatch', () => {
     expect(routeMocks.handleQuizRoutes).toHaveBeenCalledWith(
       expect.any(Request), env, '/api/quizzes/access-verification/quiz-1', 'POST',
     );
+  });
+
+  it('routes teacher AI credentials before the broader account handler', async () => {
+    verifyTokenMock.mockReturnValue(null);
+    routeMocks.handleAiCredentialRoutes.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/account/ai-credentials'), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handleAiCredentialRoutes).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/account/ai-credentials', 'GET',
+    );
+    expect(routeMocks.handleTeacherRoutes).not.toHaveBeenCalled();
   });
 
   it('accepts sampled client telemetry before shared authentication with a fail-closed limiter', async () => {

@@ -13,6 +13,7 @@ import { useQuizGeneration } from './useQuizGeneration';
 import { useQuizPersistence } from './useQuizPersistence';
 import { useQuizShareState } from './useQuizShareState';
 import { useQuestionQualityReview } from './useQuestionQualityReview';
+import { useAiCredentials } from './useAiCredentials';
 
 export const useCreateQuizLogic = ({
     editingQuiz,
@@ -37,6 +38,7 @@ export const useCreateQuizLogic = ({
         lockedClass,
         teacherName: authStore.teacherName,
     });
+    const aiCredentials = useAiCredentials(authStore.username);
     const share = useQuizShareState();
     const quality = useQuestionQualityReview({
         quiz: form.generatedQuiz,
@@ -51,6 +53,7 @@ export const useCreateQuizLogic = ({
         aiQuizV2Enabled,
         aiBlueprintV3Enabled,
         aiSvgDiagramsEnabled,
+        aiCredentials,
     });
     const persistence = useQuizPersistence({
         form,
@@ -122,6 +125,7 @@ export const useCreateQuizLogic = ({
         setQuestionBlueprint: form.setQuestionBlueprint,
         aiProvider: form.aiProvider,
         setAiProvider: form.setAiProvider,
+        aiCredentials,
         selectedTypes: form.selectedTypes,
         setSelectedTypes: form.setSelectedTypes,
         questionTypeAllocations: form.questionTypeAllocations,

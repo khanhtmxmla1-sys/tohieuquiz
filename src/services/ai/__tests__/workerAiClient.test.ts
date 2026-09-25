@@ -59,6 +59,33 @@ describe('requestWorkerAiText', () => {
     });
   });
 
+  it('sends a personal source at the top level while keeping it out of internal metadata', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: 'Đề cá nhân' } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    await requestWorkerAiText(
+      { model: 'gemini-2.5-flash', messages: [{}] },
+      {
+        source: 'gemini-personal',
+        action: {
+          actionId: 'ai-1234567890abcdefghij',
+          workflow: 'QUIZ_CREATE',
+          stage: 'GENERATE',
+          source: 'gemini-personal',
+        },
+      },
+    );
+
+    const body = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+    expect(body.source).toBe('gemini-personal');
+    expect(body._meta).toEqual({
+      actionId: 'ai-1234567890abcdefghij',
+      workflow: 'QUIZ_CREATE',
+      stage: 'GENERATE',
+    });
+  });
+
   it('forwards safe V3 diagnostics inside internal metadata only', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
       choices: [{ message: { content: 'Đề V3' } }],

@@ -2,7 +2,9 @@ import React from 'react';
 import { Settings, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { AIProviderSelector } from '../../../components/teacher/QuizCreator';
-import { AIProvider } from '../../../services/geminiService';
+import type { AIProvider } from '../../../services/geminiService';
+import AiCredentialSettings from './AiCredentialSettings';
+import type { AiCredentialsController } from '../hooks/useAiCredentials';
 
 interface AdvancedSettingsSectionProps {
     requireCode: boolean;
@@ -15,6 +17,8 @@ interface AdvancedSettingsSectionProps {
     aiProvider: AIProvider;
     setAiProvider: (v: AIProvider) => void;
     isAdmin: boolean;
+    aiCredentials: AiCredentialsController;
+    isGenerating: boolean;
     isOpen: boolean;
     onToggle: (id: string) => void;
 }
@@ -22,7 +26,7 @@ interface AdvancedSettingsSectionProps {
 const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = ({
     requireCode, setRequireCode, accessCode, setAccessCode, generateRandomCode,
     showOnHome, setShowOnHome, aiProvider, setAiProvider, isAdmin,
-    isOpen, onToggle
+    aiCredentials, isGenerating, isOpen, onToggle
 }) => {
     return (
         <CollapsibleSection
@@ -96,7 +100,14 @@ const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = ({
                         value={aiProvider}
                         onChange={setAiProvider}
                         isAdmin={isAdmin}
+                        disabled={isGenerating}
                     />
+                    {aiProvider === 'gemini-personal' && (
+                        <AiCredentialSettings provider="gemini" controller={aiCredentials} />
+                    )}
+                    {aiProvider === 'deepseek-personal' && (
+                        <AiCredentialSettings provider="deepseek" controller={aiCredentials} />
+                    )}
                 </div>
             </div>
         </CollapsibleSection>

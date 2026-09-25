@@ -1,3 +1,4 @@
+import type { QuizAiSource } from '../../../shared/teacher-ai-credentials.contract';
 import { getSystemDateKey } from '../utils/systemTime';
 export type AiWorkflow = 'QUIZ_CREATE' | 'QUESTION_REGENERATE' | 'GENERIC';
 export type AiActionStatus = 'RESERVED' | 'SUCCEEDED' | 'FAILED' | 'EXPIRED';
@@ -17,6 +18,15 @@ interface AiActionRow {
   workflow: AiWorkflow;
   status: AiActionStatus;
   usage_date: string;
+  source?: QuizAiSource | null;
+  credential_version?: number | null;
+  ai_model?: string | null;
+}
+
+export interface AiActionBinding {
+  source: QuizAiSource;
+  credentialVersion: number | null;
+  model: string | null;
 }
 
 interface UsageDateRow {
@@ -42,7 +52,9 @@ const getChanges = (result: D1Result<unknown>): number => {
 
 const findAction = async (db: D1Database, actionId: string): Promise<AiActionRow | null> => {
   return db.prepare(`
-    SELECT action_id, username, workflow, status, usage_date
+    SELECT
+      action_id, username, workflow, status, usage_date,
+      source, credential_version, ai_model
     FROM ai_generation_actions
     WHERE action_id = ?
     LIMIT 1
@@ -104,8 +116,26 @@ const validateExistingAction = (
   action: AiActionRow,
   username: string,
   workflow: AiWorkflow,
+  binding?: AiActionBinding,
 ): void => {
   if (action.username !== username || action.workflow !== workflow) {
+    throw new AiQuotaError('AI_ACTION_CONFLICT');
+  }
+
+  const storedSource = action.source ?? 'system';
+  const requestedSource = binding?.source ?? 'system';
+  if (storedSource !== requestedSource) {
+    throw new AiQuotaError('AI_ACTION_CONFLICT');
+  }
+
+  if (
+    binding
+    && requestedSource !== 'system'
+    && (
+      Number(action.credential_version ?? 0) !== binding.credentialVersion
+      || String(action.ai_model ?? '') !== binding.model
+    )
+  ) {
     throw new AiQuotaError('AI_ACTION_CONFLICT');
   }
 };
@@ -124,11 +154,59 @@ const toReservation = async (
   wasCreated,
 });
 
+const insertAiAction = async (
+  db: D1Database,
+  input: {
+    actionId: string;
+    username: string;
+    workflow: AiWorkflow;
+    usageDate: string;
+    nowIso: string;
+    binding?: AiActionBinding;
+  },
+): Promise<D1Result<unknown>> => {
+  if (!input.binding) {
+    return db.prepare(`
+      INSERT INTO ai_generation_actions (
+        action_id, username, workflow, status, usage_date, created_at, updated_at
+      ) VALUES (?, ?, ?, 'RESERVED', ?, ?, ?)
+      ON CONFLICT(action_id) DO NOTHING
+    `).bind(
+      input.actionId,
+      input.username,
+      input.workflow,
+      input.usageDate,
+      input.nowIso,
+      input.nowIso,
+    ).run();
+  }
+
+  return db.prepare(`
+    INSERT INTO ai_generation_actions (
+      action_id, username, workflow, status, usage_date,
+      source, credential_version, ai_model,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, 'RESERVED', ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(action_id) DO NOTHING
+  `).bind(
+    input.actionId,
+    input.username,
+    input.workflow,
+    input.usageDate,
+    input.binding.source,
+    input.binding.credentialVersion,
+    input.binding.model,
+    input.nowIso,
+    input.nowIso,
+  ).run();
+};
+
 const reactivateAiAction = async (
   db: D1Database,
   action: AiActionRow,
   role: 'teacher' | 'admin',
   now: Date,
+  binding?: AiActionBinding,
 ): Promise<AiActionReservation> => {
   const nowIso = now.toISOString();
   const usageDate = getSystemDateKey(now);
@@ -170,7 +248,7 @@ const reactivateAiAction = async (
   if (!racedAction) {
     throw new AiQuotaError('AI_ACTION_CONFLICT');
   }
-  validateExistingAction(racedAction, action.username, action.workflow);
+  validateExistingAction(racedAction, action.username, action.workflow, binding);
   if (racedAction.status !== 'RESERVED' && racedAction.status !== 'SUCCEEDED') {
     throw new AiQuotaError('AI_ACTION_CONFLICT');
   }
@@ -221,6 +299,7 @@ export async function reserveAiAction(
     username: string;
     role: 'teacher' | 'admin';
     workflow: AiWorkflow;
+    binding?: AiActionBinding;
     now?: Date;
   },
 ): Promise<AiActionReservation> {
@@ -232,32 +311,27 @@ export async function reserveAiAction(
 
   const existing = await findAction(db, input.actionId);
   if (existing) {
-    validateExistingAction(existing, input.username, input.workflow);
+    validateExistingAction(existing, input.username, input.workflow, input.binding);
     if (existing.status === 'FAILED' || existing.status === 'EXPIRED') {
-      return reactivateAiAction(db, existing, input.role, now);
+      return reactivateAiAction(db, existing, input.role, now, input.binding);
     }
     return toReservation(db, existing, input.role, false);
   }
 
   if (input.role === 'admin') {
-    const inserted = await db.prepare(`
-      INSERT INTO ai_generation_actions (
-        action_id, username, workflow, status, usage_date, created_at, updated_at
-      ) VALUES (?, ?, ?, 'RESERVED', ?, ?, ?)
-      ON CONFLICT(action_id) DO NOTHING
-    `).bind(
-      input.actionId,
-      input.username,
-      input.workflow,
+    const inserted = await insertAiAction(db, {
+      actionId: input.actionId,
+      username: input.username,
+      workflow: input.workflow,
       usageDate,
       nowIso,
-      nowIso,
-    ).run();
+      binding: input.binding,
+    });
 
     if (getChanges(inserted) === 0) {
       const racedAction = await findAction(db, input.actionId);
       if (!racedAction) throw new AiQuotaError('AI_ACTION_CONFLICT');
-      validateExistingAction(racedAction, input.username, input.workflow);
+      validateExistingAction(racedAction, input.username, input.workflow, input.binding);
       return toReservation(db, racedAction, input.role, false);
     }
 
@@ -275,19 +349,14 @@ export async function reserveAiAction(
 
   let inserted: D1Result<unknown>;
   try {
-    inserted = await db.prepare(`
-      INSERT INTO ai_generation_actions (
-        action_id, username, workflow, status, usage_date, created_at, updated_at
-      ) VALUES (?, ?, ?, 'RESERVED', ?, ?, ?)
-      ON CONFLICT(action_id) DO NOTHING
-    `).bind(
-      input.actionId,
-      input.username,
-      input.workflow,
+    inserted = await insertAiAction(db, {
+      actionId: input.actionId,
+      username: input.username,
+      workflow: input.workflow,
       usageDate,
       nowIso,
-      nowIso,
-    ).run();
+      binding: input.binding,
+    });
   } catch (error) {
     await releaseUsageSlot(db, input.username, usageDate, nowIso);
     throw error;
@@ -297,7 +366,7 @@ export async function reserveAiAction(
     await releaseUsageSlot(db, input.username, usageDate, nowIso);
     const racedAction = await findAction(db, input.actionId);
     if (!racedAction) throw new AiQuotaError('AI_ACTION_CONFLICT');
-    validateExistingAction(racedAction, input.username, input.workflow);
+    validateExistingAction(racedAction, input.username, input.workflow, input.binding);
     return toReservation(db, racedAction, input.role, false);
   }
 

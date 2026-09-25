@@ -58,6 +58,7 @@ const ROLLBACK_REQUIRED = [
     '0080',
     '0081',
     '0082',
+    '0083',
 ];
 
 function rollbackFiles(): string[] {
@@ -94,6 +95,7 @@ describe('D1 rollback coverage', () => {
             '0042_drop_unified_notifications.sql',
             '0049_drop_gift_shop_governance.sql',
             '0050_drop_notification_preferences.sql',
+            '0083_drop_teacher_ai_credentials.sql',
         ];
 
         for (const script of retainingScripts) {

@@ -1,19 +1,34 @@
 /**
- * AI Provider Selector Component
- * 
- * Select which AI provider to use for quiz generation.
- * Perplexity is only shown for admin users.
+ * Select the AI source used for quiz generation.
+ * Personal sources use server-stored encrypted credentials.
  */
 
 import React from 'react';
-import { AIProvider } from '../../../services/geminiService';
 import { Bot } from 'lucide-react';
+import type { AIProvider } from '../../../services/geminiService';
 
-const AI_PROVIDERS = [
+const AI_PROVIDERS: Array<{
+    id: AIProvider;
+    name: string;
+    description: string;
+    adminOnly: boolean;
+}> = [
     {
         id: 'llm-mux',
         name: 'AI TôHiệuQuiz',
-        description: 'Kết nối an toàn qua API TôHiệuQuiz; không cần nhập API key.',
+        description: 'Kết nối qua nguồn AI của TôHiệuQuiz; không cần API key cá nhân.',
+        adminOnly: false,
+    },
+    {
+        id: 'gemini-personal',
+        name: 'Gemini cá nhân',
+        description: 'Dùng API key Gemini của bạn đã lưu mã hóa trên server TôHiệuQuiz.',
+        adminOnly: false,
+    },
+    {
+        id: 'deepseek-personal',
+        name: 'DeepSeek cá nhân',
+        description: 'Dùng API key DeepSeek của bạn đã lưu mã hóa trên server TôHiệuQuiz.',
         adminOnly: false,
     },
 ];
@@ -21,49 +36,59 @@ const AI_PROVIDERS = [
 interface AIProviderSelectorProps {
     value: AIProvider;
     onChange: (provider: AIProvider) => void;
-    isAdmin?: boolean; // Only show Perplexity for admin
+    isAdmin?: boolean;
+    disabled?: boolean;
 }
 
 export const AIProviderSelector: React.FC<AIProviderSelectorProps> = ({
     value,
     onChange,
     isAdmin = false,
+    disabled = false,
 }) => {
-    // All browser requests use the authenticated TôHiệuQuiz Worker proxy.
-    const availableProviders = AI_PROVIDERS.filter((provider) => !provider.adminOnly || isAdmin);
+    const availableProviders = React.useMemo(
+        () => AI_PROVIDERS.filter((provider) => !provider.adminOnly || isAdmin),
+        [isAdmin],
+    );
 
-    // If current value is not available, switch to first available
     React.useEffect(() => {
-        if (!availableProviders.find(p => p.id === value)) {
-            const preferredProvider = availableProviders.find(p => p.id === 'llm-mux');
-            onChange((preferredProvider?.id || availableProviders[0]?.id) as AIProvider || 'llm-mux');
+        if (!availableProviders.find((provider) => provider.id === value)) {
+            onChange(availableProviders[0]?.id || 'llm-mux');
         }
-    }, [isAdmin, value, onChange, availableProviders]);
+    }, [availableProviders, onChange, value]);
 
     return (
-        <div className="bg-orange-50 p-4 rounded-xl border border-orange-200">
-            <label className="block text-sm font-bold text-orange-800 mb-3 flex items-center">
-                <Bot className="w-4 h-4 mr-2" />
-                Chọn AI Provider:
+        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+            <label className="mb-3 flex items-center text-sm font-bold text-orange-800">
+                <Bot className="mr-2 h-4 w-4" />
+                Nguồn AI:
             </label>
             <div className="flex flex-wrap gap-2">
                 {availableProviders.map((provider) => (
                     <button
                         key={provider.id}
                         type="button"
-                        onClick={() => onChange(provider.id as AIProvider)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${value === provider.id
-                            ? 'bg-orange-600 text-white shadow-md'
-                            : 'bg-white border border-gray-200 text-gray-700 hover:border-orange-300'
-                            }`}
+                        onClick={() => onChange(provider.id)}
+                        disabled={disabled}
+                        aria-pressed={value === provider.id}
+                        className={`rounded-lg px-4 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                            value === provider.id
+                                ? 'bg-orange-600 text-white shadow-md'
+                                : 'border border-gray-200 bg-white text-gray-700 hover:border-orange-300'
+                        }`}
                     >
                         {provider.name}
                     </button>
                 ))}
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-                {availableProviders.find((p) => p.id === value)?.description}
+            <p className="mt-2 text-xs text-gray-600">
+                {availableProviders.find((provider) => provider.id === value)?.description}
             </p>
+            {disabled && (
+                <p className="mt-2 text-xs font-medium text-amber-700">
+                    Không thể đổi nguồn AI khi một thao tác AI đang chạy.
+                </p>
+            )}
         </div>
     );
 };

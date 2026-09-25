@@ -10,6 +10,7 @@ export interface Env {
     CLIPROXY_API: string;
     CLIPROXY_TOKEN: string;
     JWT_SECRET: string;
+    AI_CREDENTIAL_KEYRING?: string;
     AUTH_SESSION_MODE?: 'compat' | 'enforce';
     WEBAUTHN_ALLOWED_ORIGINS?: string;
     ENVIRONMENT?: 'production' | 'development' | 'test';

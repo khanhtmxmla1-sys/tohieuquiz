@@ -35,6 +35,7 @@ const resolveImageLibrary = (
 };
 
 const toWorkerOptions = (execution?: QuizAiExecutionContext) => execution ? {
+  ...(execution.action.source ? { source: execution.action.source } : {}),
   action: {
     ...execution.action,
     stage: execution.stage,
