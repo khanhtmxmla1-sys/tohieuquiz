@@ -144,8 +144,12 @@ const serviceError = (error: unknown): Response | null => {
   if (error instanceof AiCredentialProviderError) {
     const status = error.code === 'AI_KEY_INVALID'
       ? 400
+      : error.code === 'AI_PROVIDER_ACCOUNT_REQUIRED'
+        ? 402
       : error.code === 'AI_PROVIDER_QUOTA'
         ? 429
+        : error.code === 'AI_PROVIDER_REQUEST_REJECTED'
+          ? 502
         : error.code === 'AI_PROVIDER_TIMEOUT'
           ? 504
           : 503;
