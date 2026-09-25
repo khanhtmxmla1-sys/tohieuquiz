@@ -146,7 +146,7 @@ describe('TestBankModal system question bank', () => {
     render(<TestBankModal isOpen teacherId="teacher-a" onClose={vi.fn()} onAddQuestion={vi.fn()} />);
 
     expect(await screen.findByRole('dialog', { name: 'Ngân hàng câu hỏi cá nhân' })).toBeInTheDocument();
-    expect(mocks.legacyList).toHaveBeenCalledWith('teacher-a');
+    await waitFor(() => expect(mocks.legacyList).toHaveBeenCalledWith('teacher-a'));
     expect(mocks.list).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { PersonalAiProvider } from '../../../../shared/teacher-ai-credentials.contract';
+import { formatSystemDateTime } from '../../../utils/dateTime';
 import type { AiCredentialsController } from '../hooks/useAiCredentials';
 
 interface AiCredentialSettingsProps {
@@ -101,7 +102,7 @@ const AiCredentialSettings: React.FC<AiCredentialSettingsProps> = ({
           </p>
           {summary.verifiedAt && (
             <p className="text-xs text-slate-500">
-              Kiểm tra gần nhất: {new Date(summary.verifiedAt).toLocaleString('vi-VN')}
+              Kiểm tra gần nhất: {formatSystemDateTime(summary.verifiedAt, 'Không rõ thời gian')}
             </p>
           )}
           <div className="flex flex-wrap gap-2">
