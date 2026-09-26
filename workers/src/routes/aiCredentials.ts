@@ -8,6 +8,7 @@ import {
   getAiCredentialState,
   isTeacherAiByokEnabled,
   saveAiCredential,
+  setAiDefaultSource,
   testStoredAiCredential,
 } from '../services/aiCredentials/service';
 import { AiCredentialProviderError } from '../services/aiCredentials/providerClient';
@@ -24,6 +25,10 @@ const saveSchema = z.object({
     .max(4096)
     .refine((value) => !/[\s\u0000-\u001F\u007F]/u.test(value), 'invalid key'),
   expectedVersion: z.number().int().min(0),
+}).strict();
+
+const preferenceSchema = z.object({
+  defaultSource: z.enum(['system', 'gemini-personal', 'deepseek-personal']),
 }).strict();
 
 const noStore = (response: Response): Response => {
@@ -84,6 +89,21 @@ const readSaveBody = async (request: Request): Promise<z.infer<typeof saveSchema
     throw new BodyReadError('AI_REQUEST_INVALID');
   }
   const result = saveSchema.safeParse(parsed);
+  if (!result.success) throw new BodyReadError('AI_REQUEST_INVALID');
+  return result.data;
+};
+
+const readPreferenceBody = async (
+  request: Request,
+): Promise<z.infer<typeof preferenceSchema>> => {
+  const text = await readBoundedText(request);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new BodyReadError('AI_REQUEST_INVALID');
+  }
+  const result = preferenceSchema.safeParse(parsed);
   if (!result.success) throw new BodyReadError('AI_REQUEST_INVALID');
   return result.data;
 };
@@ -197,6 +217,19 @@ export async function handleAiCredentialRoutes(
         return coded('AI_REQUEST_INVALID', 'Phương thức không hợp lệ.', 405);
       }
       return success(await getAiCredentialState(env, owner, role));
+    }
+
+    if (path === `${BASE_PATH}/preferences`) {
+      if (method !== 'PUT') {
+        return coded('AI_REQUEST_INVALID', 'Phương thức không hợp lệ.', 405);
+      }
+      const body = await readPreferenceBody(request);
+      const defaultSource = await setAiDefaultSource(env, {
+        owner,
+        role,
+        source: body.defaultSource,
+      });
+      return success({ defaultSource });
     }
 
     const parsed = parseProvider(path);

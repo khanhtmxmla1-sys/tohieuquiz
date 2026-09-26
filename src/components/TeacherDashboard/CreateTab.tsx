@@ -18,16 +18,26 @@ import AssignmentSection from '../../features/quiz-generator/components/Assignme
 import GenerationProgressPanel from '../../features/quiz-generator/components/GenerationProgressPanel';
 import SuccessModal from '../../features/quiz-generator/components/SuccessModal';
 import GenerationReadinessSummary from '../../features/quiz-generator/components/GenerationReadinessSummary';
+import type { AiCredentialsController } from '../../features/quiz-generator/hooks/useAiCredentials';
 
 interface CreateTabProps {
     editingQuiz: Quiz | null;
     onSaveQuiz: (quiz: Quiz) => Promise<void>;
     onUpdateQuiz: (quiz: Quiz) => Promise<void>;
     onSuccess: () => void;
+    aiCredentials: AiCredentialsController;
+    onOpenAiSettings: () => void;
 }
 
-const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdateQuiz, onSuccess }) => {
-    const logic = useCreateQuizLogic({ editingQuiz, onSaveQuiz, onUpdateQuiz, onSuccess });
+const CreateTab: React.FC<CreateTabProps> = ({
+    editingQuiz,
+    onSaveQuiz,
+    onUpdateQuiz,
+    onSuccess,
+    aiCredentials,
+    onOpenAiSettings,
+}) => {
+    const logic = useCreateQuizLogic({ editingQuiz, onSaveQuiz, onUpdateQuiz, onSuccess, aiCredentials });
     const manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled();
 
     const startLegacyInlineManualQuiz = () => {
@@ -175,6 +185,7 @@ const CreateTab: React.FC<CreateTabProps> = ({ editingQuiz, onSaveQuiz, onUpdate
                     setAiProvider={logic.setAiProvider}
                     isAdmin={logic.authStore.isAdmin}
                     aiCredentials={logic.aiCredentials}
+                    onOpenAiSettings={onOpenAiSettings}
                     isGenerating={logic.isGenerating}
                     isOpen={logic.expandedSections.advanced}
                     onToggle={logic.toggleSection}

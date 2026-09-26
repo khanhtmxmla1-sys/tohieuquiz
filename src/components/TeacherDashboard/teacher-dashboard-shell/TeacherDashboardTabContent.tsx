@@ -7,6 +7,7 @@ import type { Quiz, StudentResult } from '../../../types';
 import type { ResultsLoadState } from './types';
 import { TeacherDashboardCoreTabs } from './TeacherDashboardCoreTabs';
 import { TeacherDashboardFeatureTabs } from './TeacherDashboardFeatureTabs';
+import type { AiCredentialsController } from '../../../features/quiz-generator/hooks/useAiCredentials';
 
 interface TeacherDashboardTabContentProps {
   activeTab: TeacherDashboardTab;
@@ -33,6 +34,8 @@ interface TeacherDashboardTabContentProps {
   giftShopEnabled: boolean;
   competitionEnabled: boolean;
   username?: string | null;
+  aiCredentials: AiCredentialsController;
+  onOpenAiSettings: () => void;
 }
 
 export const TeacherDashboardTabContent = (props: TeacherDashboardTabContentProps) => (

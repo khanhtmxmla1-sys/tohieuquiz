@@ -3,6 +3,7 @@ import type { ResultDashboardSummary } from '../../../../shared/result-summary.c
 import type { Quiz, StudentResult } from '../../../types';
 import type { TeacherDashboardTab } from '../../../stores/useTeacherDashboardUIStore';
 import type { DashboardSearchDestination } from './dashboardConfig';
+import type { AiCredentialsController } from '../../../features/quiz-generator/hooks/useAiCredentials';
 
 export type ResultsLoadState = 'loading' | 'success' | 'error';
 
@@ -17,6 +18,10 @@ export interface TeacherDashboardLayoutProps {
   manualQuizWorkspaceEnabled: boolean;
   onCreateQuizWithAi: () => void;
   onCreateQuizManually: () => void;
+  aiCredentials: AiCredentialsController;
+  isAiSettingsOpen: boolean;
+  openAiSettings: () => void;
+  closeAiSettings: () => void;
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: Dispatch<SetStateAction<boolean>>;
   giftShopEnabled: boolean;

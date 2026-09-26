@@ -18,6 +18,10 @@ export interface SaveAiCredentialInput {
   expectedVersion: number;
 }
 
+export interface SaveAiPreferenceInput {
+  defaultSource: QuizAiSource;
+}
+
 export interface AiCredentialCipher {
   formatVersion: 1;
   keyId: string;

@@ -76,9 +76,7 @@ export const useQuizFormState = ({
     const [autoGenerateSvg, setAutoGenerateSvg] = useState(false);
     const [quizMode, setQuizMode] = useState<QuizMode>('practice');
     const [quizIntent, setQuizIntent] = useState<QuizIntent>('PRACTICE');
-    const [aiProvider, setAiProvider] = useState<AIProvider>(() =>
-        (localStorage.getItem('ai_provider') as AIProvider) || 'llm-mux'
-    );
+    const [aiProvider, setAiProvider] = useState<AIProvider>('llm-mux');
     const [selectedTypes, setSelectedTypesState] = useState<Record<string, boolean>>(
         createDefaultSelectedTypes,
     );
@@ -329,10 +327,6 @@ export const useQuizFormState = ({
     useEffect(() => {
         localStorage.setItem('quiz_image_library', JSON.stringify(imageLibrary));
     }, [imageLibrary]);
-
-    useEffect(() => {
-        localStorage.setItem('ai_provider', aiProvider);
-    }, [aiProvider]);
 
     useGeneratedQuizSync({
         generatedQuiz,

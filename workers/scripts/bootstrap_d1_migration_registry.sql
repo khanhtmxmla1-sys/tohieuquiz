@@ -89,4 +89,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0080_competition_public_portal.sql'),
   ('0081_competition_school_exam_admissions.sql'),
   ('0082_student_coin_awards.sql'),
-  ('0083_teacher_ai_credentials.sql');
+  ('0083_teacher_ai_credentials.sql'),
+  ('0084_teacher_ai_preferences.sql');

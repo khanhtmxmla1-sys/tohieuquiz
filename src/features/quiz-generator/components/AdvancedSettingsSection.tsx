@@ -3,7 +3,6 @@ import { Settings, Lock, Unlock, Eye, EyeOff } from 'lucide-react';
 import CollapsibleSection from './CollapsibleSection';
 import { AIProviderSelector } from '../../../components/teacher/QuizCreator';
 import type { AIProvider } from '../../../services/geminiService';
-import AiCredentialSettings from './AiCredentialSettings';
 import type { AiCredentialsController } from '../hooks/useAiCredentials';
 
 interface AdvancedSettingsSectionProps {
@@ -18,6 +17,7 @@ interface AdvancedSettingsSectionProps {
     setAiProvider: (v: AIProvider) => void;
     isAdmin: boolean;
     aiCredentials: AiCredentialsController;
+    onOpenAiSettings: () => void;
     isGenerating: boolean;
     isOpen: boolean;
     onToggle: (id: string) => void;
@@ -26,8 +26,18 @@ interface AdvancedSettingsSectionProps {
 const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = ({
     requireCode, setRequireCode, accessCode, setAccessCode, generateRandomCode,
     showOnHome, setShowOnHome, aiProvider, setAiProvider, isAdmin,
-    aiCredentials, isGenerating, isOpen, onToggle
+    aiCredentials, onOpenAiSettings, isGenerating, isOpen, onToggle
 }) => {
+    const selectedPersonalProvider = aiProvider === 'gemini-personal'
+        ? 'gemini'
+        : aiProvider === 'deepseek-personal'
+            ? 'deepseek'
+            : null;
+    const selectedPersonalLabel = selectedPersonalProvider === 'gemini' ? 'Gemini' : 'DeepSeek';
+    const selectedSummary = selectedPersonalProvider
+        ? aiCredentials.summaries[selectedPersonalProvider]
+        : null;
+
     return (
         <CollapsibleSection
             id="advanced"
@@ -102,12 +112,41 @@ const AdvancedSettingsSection: React.FC<AdvancedSettingsSectionProps> = ({
                         isAdmin={isAdmin}
                         disabled={isGenerating}
                     />
-                    {aiProvider === 'gemini-personal' && (
-                        <AiCredentialSettings provider="gemini" controller={aiCredentials} />
-                    )}
-                    {aiProvider === 'deepseek-personal' && (
-                        <AiCredentialSettings provider="deepseek" controller={aiCredentials} />
-                    )}
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0 text-sm">
+                                {!selectedPersonalProvider ? (
+                                    <p className="font-medium text-slate-700">
+                                        Nguồn hệ thống không cần API key cá nhân.
+                                    </p>
+                                ) : aiCredentials.loading ? (
+                                    <p className="font-medium text-slate-600">Đang kiểm tra API key {selectedPersonalLabel}...</p>
+                                ) : !aiCredentials.enabled ? (
+                                    <p className="font-medium text-amber-800">
+                                        Nguồn AI cá nhân chưa được bật cho tài khoản này.
+                                    </p>
+                                ) : selectedSummary?.configured ? (
+                                    <p className="font-medium text-emerald-700">
+                                        Đã lưu API key {selectedPersonalLabel} ••••{selectedSummary.last4}
+                                    </p>
+                                ) : (
+                                    <p className="font-medium text-amber-800">
+                                        Bạn chưa lưu API key {selectedPersonalLabel}. Tạo đề sẽ bị chặn cho đến khi cấu hình xong.
+                                    </p>
+                                )}
+                                <p className="mt-1 text-xs leading-5 text-slate-500">
+                                    Thêm, thay, kiểm tra hoặc xóa key trong Cài đặt AI của tài khoản.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={onOpenAiSettings}
+                                className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+                            >
+                                Mở cài đặt AI
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </CollapsibleSection>

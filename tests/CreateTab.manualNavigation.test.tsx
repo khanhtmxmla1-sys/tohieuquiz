@@ -78,6 +78,8 @@ describe('CreateTab manual workspace navigation', () => {
                     onSaveQuiz={vi.fn(async () => undefined)}
                     onUpdateQuiz={vi.fn(async () => undefined)}
                     onSuccess={vi.fn()}
+                    aiCredentials={{} as never}
+                    onOpenAiSettings={vi.fn()}
                 />
                 <RouteStateProbe />
             </MemoryRouter>,

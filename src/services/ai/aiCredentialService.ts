@@ -1,7 +1,9 @@
 import type {
   AiCredentialSummary,
   PersonalAiProvider,
+  QuizAiSource,
   SaveAiCredentialInput,
+  SaveAiPreferenceInput,
 } from '../../../shared/teacher-ai-credentials.contract';
 import { getWorkersApiBaseUrl } from '../api/config';
 
@@ -16,8 +18,13 @@ export interface AiCredentialCapabilities {
 
 export interface AiCredentialState {
   enabled: boolean;
+  defaultSource: QuizAiSource;
   capabilities: AiCredentialCapabilities;
   credentials: AiCredentialSummary[];
+}
+
+export interface AiPreferenceState {
+  defaultSource: QuizAiSource;
 }
 
 export class AiCredentialClientError extends Error {
@@ -134,3 +141,15 @@ export const deleteAiCredential = async (
     signal,
   );
 };
+
+export const saveAiPreference = (
+  input: SaveAiPreferenceInput,
+  signal?: AbortSignal,
+): Promise<AiPreferenceState> => request<AiPreferenceState>(
+  '/api/account/ai-credentials/preferences',
+  {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  },
+  signal,
+);

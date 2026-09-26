@@ -95,7 +95,9 @@ const hasAnyToken = (tokens: Set<string>, expected: readonly string[]): boolean 
   expected.some((token) => tokens.has(token))
 );
 
-const mapProviderError = async (response: Response): Promise<AiCredentialProviderCode> => {
+export const classifyProviderErrorResponse = async (
+  response: Response,
+): Promise<AiCredentialProviderCode> => {
   const { status } = response;
   const tokens = await readProviderErrorTokens(response);
 
@@ -167,7 +169,7 @@ export async function testProviderCredential(
       throw new AiCredentialProviderError('AI_PROVIDER_REQUEST_REJECTED');
     }
     if (!response.ok) {
-      throw new AiCredentialProviderError(await mapProviderError(response));
+      throw new AiCredentialProviderError(await classifyProviderErrorResponse(response));
     }
     try { await response.body?.cancel(); } catch { /* no-op */ }
   } catch (error) {

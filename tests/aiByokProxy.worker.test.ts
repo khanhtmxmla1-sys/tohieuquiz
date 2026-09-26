@@ -404,4 +404,41 @@ describe('/api/ai/chat personal BYOK dispatch', () => {
     const first = await firstPromise;
     expect(first?.status).toBe(200);
   });
+
+  it('records only allowlisted provider diagnostics and releases the failed action', async () => {
+    const apiKey = 'gemini-personal-secret-never-log';
+    const providerSecret = 'provider-response-secret-never-log';
+    await seedCredential('gemini', apiKey);
+    const body = personalBody('gemini-personal');
+    const actionId = (body._meta as any).actionId;
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({
+      error: {
+        code: 400,
+        status: 'INVALID_ARGUMENT',
+        message: providerSecret,
+      },
+    }), { status: 400, headers: { 'Content-Type': 'application/json' } }));
+
+    const response = await handleAiProxy(request(body), env, '/api/ai/chat', 'POST');
+
+    expect(response?.status).toBe(502);
+    await expect(response?.json()).resolves.toMatchObject({
+      code: 'AI_PROVIDER_REQUEST_REJECTED',
+    });
+    expect(sqlite.prepare(`
+      SELECT status, failure_code FROM ai_generation_actions WHERE action_id = ?
+    `).get(actionId)).toEqual({
+      status: 'FAILED',
+      failure_code: 'AI_PROVIDER_REQUEST_REJECTED',
+    });
+    const logs = JSON.stringify(warnSpy.mock.calls);
+    expect(logs).toContain('personal_ai_provider_failure');
+    expect(logs).toContain('AI_PROVIDER_REQUEST_REJECTED');
+    expect(logs).toContain('provider=gemini');
+    expect(logs).toContain('phase=upstream');
+    expect(logs).toContain('status=400');
+    expect(logs).not.toContain(apiKey);
+    expect(logs).not.toContain(providerSecret);
+  });
 });

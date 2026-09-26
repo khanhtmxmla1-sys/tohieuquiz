@@ -30,6 +30,7 @@ import { useDashboardSearch } from './useDashboardSearch';
 import { useTeacherAccountGate } from './useTeacherAccountGate';
 import { useTeacherDashboardBootstrap } from './useTeacherDashboardBootstrap';
 import { useTeacherLogout } from './useTeacherLogout';
+import { useAiCredentials } from '../../../features/quiz-generator/hooks/useAiCredentials';
 
 const TeacherDashboard = () => {
   const authStore = useAuthStore();
@@ -41,6 +42,8 @@ const TeacherDashboard = () => {
   const clearAssignmentComposerDraft = useTeacherDashboardUIStore(state => state.clearAssignmentComposerDraft);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
+  const [isAiSettingsOpen, setIsAiSettingsOpen] = useState(false);
+  const aiCredentials = useAiCredentials(authStore.username ?? null);
   const giftShopEnabled = isGiftShopFeatureEnabled();
   const manualQuizWorkspaceEnabled = isManualQuizWorkspaceEnabled();
   const competitionFlag = useCompetitionV1FeatureFlag();
@@ -125,6 +128,10 @@ const TeacherDashboard = () => {
       manualQuizWorkspaceEnabled={manualQuizWorkspaceEnabled}
       onCreateQuizWithAi={openAiQuizCreator}
       onCreateQuizManually={openManualQuizCreator}
+      aiCredentials={aiCredentials}
+      isAiSettingsOpen={isAiSettingsOpen}
+      openAiSettings={() => setIsAiSettingsOpen(true)}
+      closeAiSettings={() => setIsAiSettingsOpen(false)}
       isMobileMenuOpen={isMobileMenuOpen}
       setIsMobileMenuOpen={setIsMobileMenuOpen}
       giftShopEnabled={giftShopEnabled}

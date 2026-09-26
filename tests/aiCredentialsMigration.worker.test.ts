@@ -5,11 +5,14 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createSqliteD1 } from './helpers/sqliteD1';
 import {
   deleteCredential,
+  getAiDefaultSource,
   listCredentialSummaries,
+  saveAiDefaultSource,
   saveCredential,
 } from '../workers/src/services/aiCredentials/repository';
 
 const migrationPath = 'workers/migrations/0083_teacher_ai_credentials.sql';
+const preferenceMigrationPath = 'workers/migrations/0084_teacher_ai_preferences.sql';
 let sqlite: DatabaseSync | null = null;
 
 const setup = () => {
@@ -66,6 +69,7 @@ const setup = () => {
       ('teacher-b', 'x', 'Teacher B', 'teacher');
   `);
   sqlite.exec(readFileSync(migrationPath, 'utf8'));
+  sqlite.exec(readFileSync(preferenceMigrationPath, 'utf8'));
   return { sqlite, db: createSqliteD1(sqlite) };
 };
 
@@ -136,5 +140,24 @@ describe('teacher AI credentials migration and repository', () => {
       .rejects.toThrow('AI_KEY_VERSION_CONFLICT');
     await expect(deleteCredential(db, 'teacher-a', 'gemini', 2)).resolves.toBe(true);
     expect(await listCredentialSummaries(db, 'teacher-a')).toEqual([]);
+  });
+
+  it('stores an isolated default source and cascades preferences with the owner', async () => {
+    const { sqlite: raw, db } = setup();
+
+    await expect(getAiDefaultSource(db, 'teacher-a')).resolves.toBe('system');
+    await expect(saveAiDefaultSource(db, 'teacher-a', 'gemini-personal'))
+      .resolves.toBe('gemini-personal');
+    await expect(getAiDefaultSource(db, 'teacher-a')).resolves.toBe('gemini-personal');
+    await expect(getAiDefaultSource(db, 'teacher-b')).resolves.toBe('system');
+
+    expect(() => raw.prepare(`
+      INSERT INTO teacher_ai_preferences (username, default_source, updated_at)
+      VALUES ('teacher-b', 'openai-personal', datetime('now'))
+    `).run()).toThrow();
+
+    raw.prepare("DELETE FROM teachers WHERE username = 'teacher-a'").run();
+    expect(raw.prepare("SELECT * FROM teacher_ai_preferences WHERE username = 'teacher-a'").all())
+      .toEqual([]);
   });
 });

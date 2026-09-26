@@ -20,6 +20,7 @@ const quizStorageValue = JSON.stringify({
 
 const emptyCredentialState = {
   enabled: true,
+  defaultSource: 'system',
   capabilities: {
     text: true,
     documents: false,
@@ -132,17 +133,16 @@ describe('Teacher personal AI keys', () => {
     cy.get('h2', { timeout: 15_000 }).contains('Tạo đề bằng AI').should('be.visible');
     cy.wait('@credentialState');
 
-    cy.contains('button', 'Tùy chọn nâng cao').click();
-    cy.contains('button', 'Gemini cá nhân').click().should('have.attr', 'aria-pressed', 'true');
-
-    cy.contains('label', 'API key Gemini').find('input')
+    cy.get('button[aria-label="Cài đặt AI"]').click();
+    cy.get('[role="dialog"]').should('contain', 'Cài đặt AI');
+    cy.get('[role="dialog"]').contains('label', 'API key Gemini').find('input')
       .should('have.attr', 'type', 'password')
       .type(CANARY);
-    cy.contains('button', 'Kiểm tra và lưu').click();
+    cy.get('[role="dialog"]').contains('button', 'Kiểm tra và lưu').click();
     cy.wait('@saveGemini');
 
-    cy.contains('label', 'API key Gemini').should('not.exist');
-    cy.contains('Gemini cá nhân — Đã lưu ••••6789').should('be.visible');
+    cy.get('[role="dialog"]').contains('label', 'API key Gemini').should('not.exist');
+    cy.get('[role="dialog"]').contains('Gemini cá nhân — Đã lưu ••••6789').should('be.visible');
     cy.window().then((win) => {
       Object.keys(win.localStorage).forEach((key) => {
         expect(win.localStorage.getItem(key) || '').not.to.contain(CANARY);
@@ -151,6 +151,11 @@ describe('Teacher personal AI keys', () => {
         expect(win.sessionStorage.getItem(key) || '').not.to.contain(CANARY);
       });
     });
+
+    cy.get('[role="dialog"]').find('button[aria-label="Đóng cài đặt AI"]').click();
+    cy.contains('button', 'Tùy chọn nâng cao').click();
+    cy.contains('button', 'Gemini cá nhân').click().should('have.attr', 'aria-pressed', 'true');
+    cy.contains('Đã lưu API key Gemini ••••6789').should('be.visible');
 
     cy.get('input[placeholder*="Động vật rừng xanh"]').clear().type('Phân số lớp 4');
     cy.contains('button', '📚 Ra đề ÔN TẬP').should('be.enabled').click();
@@ -177,13 +182,12 @@ describe('Teacher personal AI keys', () => {
     cy.visit('/teacher/quizzes?mode=create', { onBeforeLoad: installSession });
     cy.get('h2', { timeout: 15_000 }).contains('Tạo đề bằng AI').should('be.visible');
     cy.wait('@credentialState');
-    cy.contains('button', 'Tùy chọn nâng cao').click();
-    cy.contains('button', 'Gemini cá nhân').click();
+    cy.get('button[aria-label="Cài đặt AI"]').click();
 
-    cy.contains('Gemini cá nhân — Đã lưu ••••a1B2').should('be.visible');
-    cy.contains('button', 'Kiểm tra lại').should('be.visible');
-    cy.contains('button', 'Thay key').should('be.visible');
-    cy.contains('button', 'Xóa khỏi TôHiệuQuiz').should('be.visible');
+    cy.get('[role="dialog"]').contains('Gemini cá nhân — Đã lưu ••••a1B2').should('be.visible');
+    cy.get('[role="dialog"]').contains('button', 'Kiểm tra lại').should('be.visible');
+    cy.get('[role="dialog"]').contains('button', 'Thay key').should('be.visible');
+    cy.get('[role="dialog"]').contains('button', 'Xóa khỏi TôHiệuQuiz').should('be.visible');
     cy.get('body').should('not.contain', CANARY);
   });
 });

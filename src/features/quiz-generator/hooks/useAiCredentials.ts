@@ -2,11 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AiCredentialSummary,
   PersonalAiProvider,
+  QuizAiSource,
 } from '../../../../shared/teacher-ai-credentials.contract';
 import {
   deleteAiCredential,
   fetchAiCredentialState,
   saveAiCredential,
+  saveAiPreference,
   testAiCredential,
   type AiCredentialCapabilities,
 } from '../../../services/ai/aiCredentialService';
@@ -33,11 +35,13 @@ export interface AiCredentialsController {
   enabled: boolean;
   capabilities: AiCredentialCapabilities;
   summaries: Record<PersonalAiProvider, AiCredentialSummary>;
+  defaultSource: QuizAiSource;
   loading: boolean;
   error: string | null;
   save: (provider: PersonalAiProvider, apiKey: string) => Promise<void>;
   test: (provider: PersonalAiProvider) => Promise<void>;
   remove: (provider: PersonalAiProvider) => Promise<void>;
+  setDefaultSource: (source: QuizAiSource) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -48,6 +52,7 @@ export const useAiCredentials = (username: string | null): AiCredentialsControll
     gemini: emptySummary('gemini'),
     deepseek: emptySummary('deepseek'),
   });
+  const [defaultSource, setDefaultSourceState] = useState<QuizAiSource>('system');
   const [loading, setLoading] = useState(Boolean(username));
   const [error, setError] = useState<string | null>(null);
   const accountRef = useRef(username);
@@ -62,6 +67,7 @@ export const useAiCredentials = (username: string | null): AiCredentialsControll
       gemini: emptySummary('gemini'),
       deepseek: emptySummary('deepseek'),
     });
+    setDefaultSourceState('system');
     setError(null);
   }, []);
 
@@ -90,6 +96,7 @@ export const useAiCredentials = (username: string | null): AiCredentialsControll
       };
       for (const summary of state.credentials) next[summary.provider] = summary;
       setEnabled(state.enabled);
+      setDefaultSourceState(state.defaultSource);
       setCapabilities(state.capabilities);
       setSummaries(next);
     } catch (loadError) {
@@ -155,23 +162,46 @@ export const useAiCredentials = (username: string | null): AiCredentialsControll
     });
   }, [runForCurrentAccount, summaries]);
 
+  const setDefaultSource = useCallback(async (source: QuizAiSource): Promise<void> => {
+    const account = username;
+    if (!account) throw new Error('Phiên đăng nhập không còn hợp lệ.');
+    const controller = new AbortController();
+    setError(null);
+    try {
+      const result = await saveAiPreference({ defaultSource: source }, controller.signal);
+      if (accountRef.current !== account) return;
+      setDefaultSourceState(result.defaultSource);
+    } catch (operationError) {
+      if (accountRef.current !== account) return;
+      const message = operationError instanceof Error
+        ? operationError.message
+        : 'Không thể lưu nguồn AI mặc định.';
+      setError(message);
+      throw operationError;
+    }
+  }, [username]);
+
   return useMemo(() => ({
     enabled,
     capabilities,
     summaries,
+    defaultSource,
     loading,
     error,
     save,
     test,
     remove,
+    setDefaultSource,
     refetch: load,
   }), [
     capabilities,
     enabled,
     error,
+    defaultSource,
     load,
     loading,
     remove,
+    setDefaultSource,
     save,
     summaries,
     test,

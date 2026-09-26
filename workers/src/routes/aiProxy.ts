@@ -104,9 +104,12 @@ const personalServiceErrorResponse = (error: AiCredentialServiceError): Response
 const personalDispatchErrorResponse = (error: AiPersonalDispatchError): Response => {
     const statuses: Record<AiPersonalDispatchError['code'], number> = {
         AI_KEY_INVALID: 400,
+        AI_PROVIDER_ACCOUNT_REQUIRED: 402,
         AI_PROVIDER_QUOTA: 429,
+        AI_PROVIDER_REQUEST_REJECTED: 502,
         AI_PROVIDER_UNAVAILABLE: 503,
         AI_PROVIDER_TIMEOUT: 504,
+        AI_PROVIDER_RESPONSE_INVALID: 502,
         AI_CAPABILITY_UNSUPPORTED: 400,
     };
     return codedErrorResponse(error.code, error.message, statuses[error.code]);
@@ -456,6 +459,21 @@ export async function handleAiProxy(
             signal: request.signal,
         });
     } catch (error) {
+        if (error instanceof AiPersonalDispatchError) {
+            const context = [
+                `provider=${credential.provider}`,
+                `model=${credential.model}`,
+                `phase=${error.phase || 'unknown'}`,
+                error.upstreamStatus ? `status=${error.upstreamStatus}` : '',
+                error.finishReason ? `finish=${error.finishReason}` : '',
+            ].filter(Boolean).join(';');
+            logStructured('warn', {
+                event: 'personal_ai_provider_failure',
+                requestId: meta.actionId,
+                errorCode: error.code,
+                context,
+            });
+        }
         try {
             await releaseAiStage(env.DB, authResult.user.username, meta, binding);
             await releaseFailedAction(

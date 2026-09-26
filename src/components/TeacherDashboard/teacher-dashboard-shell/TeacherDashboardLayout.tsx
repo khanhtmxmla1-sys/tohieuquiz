@@ -9,6 +9,7 @@ import { TeacherDashboardHeader } from './TeacherDashboardHeader';
 import { TeacherDashboardTabContent } from './TeacherDashboardTabContent';
 import TeacherMobileBottomNav from './TeacherMobileBottomNav';
 import type { TeacherDashboardLayoutProps } from './types';
+import AiAccountSettingsDialog from './AiAccountSettingsDialog';
 
 export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
   const notificationFlag = useUnifiedNotificationsFeatureFlag();
@@ -36,6 +37,7 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
           setActiveTab={props.setActiveTab}
           manualQuizWorkspaceEnabled={props.manualQuizWorkspaceEnabled}
           onOpenMenu={() => props.setIsMobileMenuOpen(true)}
+          onOpenAiSettings={props.openAiSettings}
           searchQuery={props.searchQuery}
           setSearchQuery={props.setSearchQuery}
           onSearchSubmit={props.onSearchSubmit}
@@ -91,6 +93,8 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
             giftShopEnabled={props.giftShopEnabled}
             competitionEnabled={props.competitionEnabled}
             username={props.username}
+            aiCredentials={props.aiCredentials}
+            onOpenAiSettings={props.openAiSettings}
           />
         </main>
         <div className="hidden lg:block">
@@ -108,6 +112,11 @@ export const TeacherDashboardLayout = (props: TeacherDashboardLayoutProps) => {
         setNewAccessCode={props.setNewAccessCode}
         onClose={props.closeAccessCodeEditor}
         onSave={props.updateAccessCode}
+      />
+      <AiAccountSettingsDialog
+        open={props.isAiSettingsOpen}
+        onClose={props.closeAiSettings}
+        controller={props.aiCredentials}
       />
     </div>
   );

@@ -1,27 +1,60 @@
 import type { PersonalAiProvider } from '../../../../shared/teacher-ai-credentials.contract';
 import {
+  classifyProviderErrorResponse,
   PERSONAL_AI_PROVIDER_ENDPOINTS,
   PERSONAL_AI_PROVIDER_MODELS,
 } from './providerClient';
 
 export type AiPersonalDispatchCode =
   | 'AI_KEY_INVALID'
+  | 'AI_PROVIDER_ACCOUNT_REQUIRED'
   | 'AI_PROVIDER_QUOTA'
+  | 'AI_PROVIDER_REQUEST_REJECTED'
   | 'AI_PROVIDER_UNAVAILABLE'
   | 'AI_PROVIDER_TIMEOUT'
+  | 'AI_PROVIDER_RESPONSE_INVALID'
   | 'AI_CAPABILITY_UNSUPPORTED';
 
+export type AiPersonalDispatchPhase =
+  | 'validation'
+  | 'redirect'
+  | 'upstream'
+  | 'network'
+  | 'timeout'
+  | 'response-size'
+  | 'response-json'
+  | 'response-content';
+
+interface AiPersonalDispatchDiagnostic {
+  phase?: AiPersonalDispatchPhase;
+  upstreamStatus?: number;
+  finishReason?: string;
+}
+
 export class AiPersonalDispatchError extends Error {
-  constructor(public readonly code: AiPersonalDispatchCode) {
+  readonly phase?: AiPersonalDispatchPhase;
+  readonly upstreamStatus?: number;
+  readonly finishReason?: string;
+
+  constructor(
+    public readonly code: AiPersonalDispatchCode,
+    diagnostic: AiPersonalDispatchDiagnostic = {},
+  ) {
     const messages: Record<AiPersonalDispatchCode, string> = {
       AI_KEY_INVALID: 'API key không hợp lệ.',
+      AI_PROVIDER_ACCOUNT_REQUIRED: 'Tài khoản hoặc dự án AI chưa đủ quyền, chưa bật thanh toán, hoặc không còn số dư.',
       AI_PROVIDER_QUOTA: 'Nhà cung cấp AI đang giới hạn hoặc đã hết hạn mức.',
+      AI_PROVIDER_REQUEST_REJECTED: 'Nhà cung cấp AI từ chối yêu cầu tạo đề.',
       AI_PROVIDER_UNAVAILABLE: 'Nhà cung cấp AI tạm thời không khả dụng.',
       AI_PROVIDER_TIMEOUT: 'Nhà cung cấp AI phản hồi quá thời gian.',
+      AI_PROVIDER_RESPONSE_INVALID: 'Nhà cung cấp AI trả về kết quả không hợp lệ hoặc không có nội dung.',
       AI_CAPABILITY_UNSUPPORTED: 'Nguồn AI cá nhân V1 chỉ hỗ trợ yêu cầu văn bản tương thích.',
     };
     super(messages[code]);
     this.name = 'AiPersonalDispatchError';
+    this.phase = diagnostic.phase;
+    this.upstreamStatus = diagnostic.upstreamStatus;
+    this.finishReason = diagnostic.finishReason;
   }
 }
 
@@ -34,11 +67,22 @@ type TextMessage = {
   content: string;
 };
 
-const mapStatus = (status: number): AiPersonalDispatchCode => {
-  if (status === 401) return 'AI_KEY_INVALID';
-  if (status === 429) return 'AI_PROVIDER_QUOTA';
-  if (status === 408 || status === 504) return 'AI_PROVIDER_TIMEOUT';
-  return 'AI_PROVIDER_UNAVAILABLE';
+const ALLOWED_FINISH_REASONS = new Set([
+  'stop',
+  'length',
+  'content_filter',
+  'tool_calls',
+  'function_call',
+  'safety',
+  'recitation',
+  'max_tokens',
+  'other',
+]);
+
+const allowlistedFinishReason = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim().toLowerCase();
+  return ALLOWED_FINISH_REASONS.has(normalized) ? normalized : undefined;
 };
 
 const normalizeMessages = (messages: unknown): TextMessage[] => {
@@ -104,7 +148,9 @@ const readBoundedText = async (response: Response): Promise<string> => {
     total += value.byteLength;
     if (total > MAX_RESPONSE_BYTES) {
       try { await reader.cancel(); } catch { /* no-op */ }
-      throw new AiPersonalDispatchError('AI_PROVIDER_UNAVAILABLE');
+      throw new AiPersonalDispatchError('AI_PROVIDER_RESPONSE_INVALID', {
+        phase: 'response-size',
+      });
     }
     text += decoder.decode(value, { stream: true });
   }
@@ -189,9 +235,19 @@ export async function dispatchPersonalAi(input: {
       signal: controller.signal,
     });
 
-    if (!response.ok) {
+    if (response.status >= 300 && response.status < 400) {
       try { await response.body?.cancel(); } catch { /* no-op */ }
-      throw new AiPersonalDispatchError(mapStatus(response.status));
+      throw new AiPersonalDispatchError('AI_PROVIDER_REQUEST_REJECTED', {
+        phase: 'redirect',
+        upstreamStatus: response.status,
+      });
+    }
+    if (!response.ok) {
+      const code = await classifyProviderErrorResponse(response);
+      throw new AiPersonalDispatchError(code, {
+        phase: 'upstream',
+        upstreamStatus: response.status,
+      });
     }
 
     const raw = await readBoundedText(response);
@@ -199,7 +255,9 @@ export async function dispatchPersonalAi(input: {
     try {
       payload = JSON.parse(raw);
     } catch {
-      throw new AiPersonalDispatchError('AI_PROVIDER_UNAVAILABLE');
+      throw new AiPersonalDispatchError('AI_PROVIDER_RESPONSE_INVALID', {
+        phase: 'response-json',
+      });
     }
     const choices = (
       payload
@@ -208,16 +266,23 @@ export async function dispatchPersonalAi(input: {
       && Array.isArray((payload as Record<string, unknown>).choices)
     ) ? (payload as { choices: unknown[] }).choices : [];
     const first = choices[0];
-    const message = (
+    const choice = (
       first
       && typeof first === 'object'
       && !Array.isArray(first)
-      && (first as Record<string, unknown>).message
-      && typeof (first as Record<string, unknown>).message === 'object'
-      && !Array.isArray((first as Record<string, unknown>).message)
-    ) ? (first as { message: Record<string, unknown> }).message : null;
+    ) ? first as Record<string, unknown> : null;
+    const message = (
+      choice?.message
+      && typeof choice.message === 'object'
+      && !Array.isArray(choice.message)
+    ) ? choice.message as Record<string, unknown> : null;
     const text = typeof message?.content === 'string' ? message.content : '';
-    if (!text) throw new AiPersonalDispatchError('AI_PROVIDER_UNAVAILABLE');
+    if (!text) {
+      throw new AiPersonalDispatchError('AI_PROVIDER_RESPONSE_INVALID', {
+        phase: 'response-content',
+        finishReason: allowlistedFinishReason(choice?.finish_reason),
+      });
+    }
     return { text };
   } catch (error) {
     if (error instanceof AiPersonalDispatchError) throw error;
@@ -225,9 +290,12 @@ export async function dispatchPersonalAi(input: {
       ? String((error as { name?: unknown }).name)
       : '';
     if (name === 'AbortError') {
-      throw new AiPersonalDispatchError(timedOut ? 'AI_PROVIDER_TIMEOUT' : 'AI_PROVIDER_UNAVAILABLE');
+      throw new AiPersonalDispatchError(
+        timedOut ? 'AI_PROVIDER_TIMEOUT' : 'AI_PROVIDER_UNAVAILABLE',
+        { phase: timedOut ? 'timeout' : 'network' },
+      );
     }
-    throw new AiPersonalDispatchError('AI_PROVIDER_UNAVAILABLE');
+    throw new AiPersonalDispatchError('AI_PROVIDER_UNAVAILABLE', { phase: 'network' });
   } finally {
     clearTimeout(timeoutId);
     input.signal?.removeEventListener('abort', abortFromCaller);
