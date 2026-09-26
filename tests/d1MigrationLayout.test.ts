@@ -32,7 +32,7 @@ describe('D1 migration layout', () => {
     expect(new Set(registered).size).toBe(registered.length);
     const numericPrefixes = migrations.map((name) => name.slice(0, 4));
     expect(new Set(numericPrefixes).size).toBe(numericPrefixes.length);
-    expect(migrations.at(-1)).toBe('0083_teacher_ai_credentials.sql');
+    expect(migrations.at(-1)).toBe('0084_teacher_ai_preferences.sql');
     expect(EXPECTED_LATEST_MIGRATION).toBe(migrations.at(-1));
   });
 
