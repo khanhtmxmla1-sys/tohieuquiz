@@ -355,6 +355,53 @@ describe('teacher AI credential routes', () => {
     `).get()).toEqual({ last4: '9012', version: 1 });
   });
 
+  it.each([
+    ['gemini', 400, {
+      error: {
+        code: 400,
+        status: 'FAILED_PRECONDITION',
+        message: 'Billing setup is required.',
+      },
+    }, 402, 'AI_PROVIDER_ACCOUNT_REQUIRED'],
+    ['deepseek', 400, {
+      error: {
+        code: 'invalid_request',
+        message: 'The server-controlled request was rejected.',
+      },
+    }, 502, 'AI_PROVIDER_REQUEST_REJECTED'],
+  ] as const)(
+    'returns a stable actionable error for %s without persisting the submitted key',
+    async (provider, upstreamStatus, upstreamBody, expectedStatus, expectedCode) => {
+      enableByok();
+      const canary = `${provider}-diagnostic-key-never-persist`;
+      fetchSpy.mockResolvedValueOnce(new Response(
+        JSON.stringify(upstreamBody),
+        { status: upstreamStatus, headers: { 'Content-Type': 'application/json' } },
+      ));
+
+      const response = await handleAiCredentialRoutes(
+        request(`/api/account/ai-credentials/${provider}`, 'PUT', {
+          apiKey: canary,
+          expectedVersion: 0,
+        }),
+        env,
+        `/api/account/ai-credentials/${provider}`,
+        'PUT',
+      );
+
+      expect(response?.status).toBe(expectedStatus);
+      const text = await response!.text();
+      expect(JSON.parse(text)).toMatchObject({ code: expectedCode });
+      expect(text).not.toContain(canary);
+      expect(sqlite.prepare('SELECT COUNT(*) AS count FROM teacher_ai_credentials').get())
+        .toEqual({ count: 0 });
+      expect(sqlite.prepare(`
+        SELECT result_code FROM teacher_ai_credential_audit
+        ORDER BY created_at DESC LIMIT 1
+      `).get()).toEqual({ result_code: expectedCode });
+    },
+  );
+
   it('uses the stored server-side key for retest and supports conditional delete even when flag is later disabled', async () => {
     enableByok();
     await handleAiCredentialRoutes(
