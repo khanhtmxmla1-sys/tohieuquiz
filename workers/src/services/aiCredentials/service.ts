@@ -9,11 +9,13 @@ import { decryptCredential, encryptCredential } from './crypto';
 import {
   AiCredentialRepositoryError,
   deleteCredential,
+  getAiDefaultSource,
   getStoredCredential,
   insertCredentialAudit,
   listCredentialSummaries,
   markCredentialVerified,
   saveCredential,
+  saveAiDefaultSource,
   type CredentialAuditRecord,
 } from './repository';
 import {
@@ -112,13 +114,16 @@ export async function getAiCredentialState(
   enabled: boolean;
   capabilities: typeof AI_CREDENTIAL_CAPABILITIES;
   credentials: AiCredentialSummary[];
+  defaultSource: QuizAiSource;
 }> {
-  const [enabled, summaries] = await Promise.all([
+  const [enabled, summaries, defaultSource] = await Promise.all([
     isTeacherAiByokEnabled(env, owner, role),
     listCredentialSummaries(env.DB, owner),
+    getAiDefaultSource(env.DB, owner),
   ]);
   return {
     enabled,
+    defaultSource,
     capabilities: AI_CREDENTIAL_CAPABILITIES,
     credentials: [
       summaryFor(summaries, 'gemini'),
@@ -307,6 +312,28 @@ const providerForSource = (source: QuizAiSource): PersonalAiProvider | null => {
   if (source === 'deepseek-personal') return 'deepseek';
   return null;
 };
+
+export async function setAiDefaultSource(
+  env: Env,
+  input: {
+    owner: string;
+    role: StaffRole;
+    source: QuizAiSource;
+  },
+): Promise<QuizAiSource> {
+  if (input.source !== 'system') {
+    await assertEnabled(env, input.owner, input.role);
+    const provider = providerForSource(input.source);
+    if (!provider || !(await getStoredCredential(env.DB, input.owner, provider))) {
+      throw new AiCredentialServiceError('AI_KEY_MISSING');
+    }
+  }
+  try {
+    return await saveAiDefaultSource(env.DB, input.owner, input.source);
+  } catch (error) {
+    return mapRepositoryError(error);
+  }
+}
 
 export async function resolvePersonalAiCredential(
   env: Env,

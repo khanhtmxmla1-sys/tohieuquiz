@@ -69,6 +69,8 @@ describe('CreateTab AI-only entry', () => {
                     onSaveQuiz={vi.fn(async () => undefined)}
                     onUpdateQuiz={vi.fn(async () => undefined)}
                     onSuccess={vi.fn()}
+                    aiCredentials={{} as never}
+                    onOpenAiSettings={vi.fn()}
                 />
             </MemoryRouter>,
         );

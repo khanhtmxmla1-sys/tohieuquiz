@@ -9,12 +9,14 @@ const serviceMocks = vi.hoisted(() => ({
   saveAiCredential: vi.fn(),
   testAiCredential: vi.fn(),
   deleteAiCredential: vi.fn(),
+  saveAiPreference: vi.fn(),
 }));
 
 vi.mock('../src/services/ai/aiCredentialService', () => serviceMocks);
 
 const emptyState = {
   enabled: true,
+  defaultSource: 'system' as const,
   capabilities: {
     text: true,
     documents: false,
@@ -50,6 +52,7 @@ beforeEach(() => {
     verifiedAt: '2026-09-25T05:00:00.000Z',
     updatedAt: '2026-09-25T05:00:00.000Z',
   });
+  serviceMocks.saveAiPreference.mockResolvedValue({ defaultSource: 'gemini-personal' });
 });
 
 describe('useAiCredentials', () => {
@@ -109,6 +112,28 @@ describe('useAiCredentials', () => {
     });
     expect(storageSpy.mock.calls.some((call) => JSON.stringify(call).includes(canary))).toBe(false);
   });
+
+  it('loads and updates the account default source through the server', async () => {
+    const storageSpy = vi.spyOn(Storage.prototype, 'setItem');
+    serviceMocks.fetchAiCredentialState.mockResolvedValue({
+      ...emptyState,
+      defaultSource: 'deepseek-personal',
+    });
+    const { result } = renderHook(() => useAiCredentials('teacher-a'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.defaultSource).toBe('deepseek-personal');
+    await act(async () => {
+      await result.current.setDefaultSource('gemini-personal');
+    });
+
+    expect(serviceMocks.saveAiPreference).toHaveBeenCalledWith(
+      { defaultSource: 'gemini-personal' },
+      expect.anything(),
+    );
+    expect(result.current.defaultSource).toBe('gemini-personal');
+    expect(storageSpy).not.toHaveBeenCalledWith('ai_provider', expect.anything());
+  });
 });
 
 describe('AiCredentialSettings', () => {
@@ -132,6 +157,7 @@ describe('AiCredentialSettings', () => {
     render(<AiCredentialSettings provider="gemini" controller={controller as never} />);
 
     const input = screen.getByLabelText('API key Gemini') as HTMLInputElement;
+    expect(input.closest('form')).not.toBeNull();
     expect(input.type).toBe('password');
     fireEvent.click(screen.getByRole('button', { name: 'Hiện API key' }));
     expect(input.type).toBe('text');

@@ -123,7 +123,11 @@ describe('teacher AI credentials security contract', () => {
       key: 'security-canary-key-123456789',
       model: 'deepseek-flash',
       messages: [{ role: 'user', content: 'hello' }],
-    })).rejects.toMatchObject({ code: 'AI_PROVIDER_UNAVAILABLE' });
+    })).rejects.toMatchObject({
+      code: 'AI_PROVIDER_REQUEST_REJECTED',
+      phase: 'redirect',
+      upstreamStatus: 307,
+    });
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
@@ -142,6 +146,79 @@ describe('teacher AI credentials security contract', () => {
       key: 'security-canary-key-123456789',
       model: 'gemini-3.8-flash',
       messages: [{ role: 'user', content: 'hello' }],
-    })).rejects.toMatchObject({ code: 'AI_PROVIDER_UNAVAILABLE' });
+    })).rejects.toMatchObject({
+      code: 'AI_PROVIDER_RESPONSE_INVALID',
+      phase: 'response-size',
+    });
+  });
+
+  it.each([
+    [400, 'AI_PROVIDER_REQUEST_REJECTED'],
+    [403, 'AI_PROVIDER_ACCOUNT_REQUIRED'],
+    [429, 'AI_PROVIDER_QUOTA'],
+    [503, 'AI_PROVIDER_UNAVAILABLE'],
+  ] as const)('maps dispatch upstream %s to %s without reflecting provider text', async (status, code) => {
+    const canary = 'provider-body-secret-never-reflect';
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      error: {
+        code: status,
+        status: status === 403 ? 'PERMISSION_DENIED' : 'INVALID_ARGUMENT',
+        message: `provider echoed ${canary}`,
+      },
+    }), { status, headers: { 'Content-Type': 'application/json' } }));
+
+    const error = await dispatchPersonalAi({
+      provider: 'gemini',
+      key: 'security-canary-key-123456789',
+      model: 'gemini-3.8-flash',
+      messages: [{ role: 'user', content: 'return JSON' }],
+      responseFormat: { type: 'json_object' },
+    }).catch((value) => value);
+
+    expect(error).toBeInstanceOf(AiPersonalDispatchError);
+    expect(error).toMatchObject({ code, phase: 'upstream', upstreamStatus: status });
+    expect(JSON.stringify(error)).not.toContain(canary);
+    expect(String(error.message)).not.toContain(canary);
+  });
+
+  it('distinguishes network failures from malformed provider responses', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    fetchSpy.mockRejectedValueOnce(new TypeError('connect failed'));
+
+    await expect(dispatchPersonalAi({
+      provider: 'deepseek',
+      key: 'security-canary-key-123456789',
+      model: 'deepseek-flash',
+      messages: [{ role: 'user', content: 'return JSON' }],
+    })).rejects.toMatchObject({ code: 'AI_PROVIDER_UNAVAILABLE', phase: 'network' });
+
+    fetchSpy.mockResolvedValueOnce(new Response('not-json', {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    await expect(dispatchPersonalAi({
+      provider: 'deepseek',
+      key: 'security-canary-key-123456789',
+      model: 'deepseek-flash',
+      messages: [{ role: 'user', content: 'return JSON' }],
+    })).rejects.toMatchObject({ code: 'AI_PROVIDER_RESPONSE_INVALID', phase: 'response-json' });
+  });
+
+  it('records an allowlisted finish reason when the provider returns no content', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ finish_reason: 'content_filter', message: { content: '' } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    await expect(dispatchPersonalAi({
+      provider: 'gemini',
+      key: 'security-canary-key-123456789',
+      model: 'gemini-3.8-flash',
+      messages: [{ role: 'user', content: 'return JSON' }],
+    })).rejects.toMatchObject({
+      code: 'AI_PROVIDER_RESPONSE_INVALID',
+      phase: 'response-content',
+      finishReason: 'content_filter',
+    });
   });
 });

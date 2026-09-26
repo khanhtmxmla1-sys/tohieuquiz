@@ -100,6 +100,15 @@ const setupDatabase = () => {
       ('teacher-b', 'Teacher B');
   `);
   sqlite.exec(readFileSync(migrationPath, 'utf8'));
+  sqlite.exec(`
+    CREATE TABLE teacher_ai_preferences (
+      username TEXT PRIMARY KEY,
+      default_source TEXT NOT NULL DEFAULT 'system'
+        CHECK (default_source IN ('system', 'gemini-personal', 'deepseek-personal')),
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (username) REFERENCES teachers(username) ON DELETE CASCADE
+    );
+  `);
 
   env = {
     DB: createSqliteD1(sqlite),
@@ -148,6 +157,127 @@ afterEach(() => {
 });
 
 describe('teacher AI credential routes', () => {
+  it('returns a server-backed system default for an account without a preference', async () => {
+    const response = await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials', 'GET'),
+      env,
+      '/api/account/ai-credentials',
+      'GET',
+    );
+
+    expect(response?.status).toBe(200);
+    await expect(response?.json()).resolves.toMatchObject({ defaultSource: 'system' });
+  });
+
+  it('stores a personal default only after that owner has configured the provider', async () => {
+    enableByok();
+
+    const missing = await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials/preferences', 'PUT', {
+        defaultSource: 'gemini-personal',
+      }),
+      env,
+      '/api/account/ai-credentials/preferences',
+      'PUT',
+    );
+    expect(missing?.status).toBe(404);
+    await expect(missing?.json()).resolves.toMatchObject({ code: 'AI_KEY_MISSING' });
+
+    const saved = await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials/gemini', 'PUT', {
+        apiKey: 'gemini-preference-key-123456789',
+        expectedVersion: 0,
+      }),
+      env,
+      '/api/account/ai-credentials/gemini',
+      'PUT',
+    );
+    expect(saved?.status).toBe(200);
+
+    const updated = await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials/preferences', 'PUT', {
+        defaultSource: 'gemini-personal',
+      }),
+      env,
+      '/api/account/ai-credentials/preferences',
+      'PUT',
+    );
+    expect(updated?.status).toBe(200);
+    await expect(updated?.json()).resolves.toEqual({ defaultSource: 'gemini-personal' });
+
+    const state = await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials', 'GET'),
+      env,
+      '/api/account/ai-credentials',
+      'GET',
+    );
+    await expect(state?.json()).resolves.toMatchObject({ defaultSource: 'gemini-personal' });
+
+    authState.result = { user: { username: 'teacher-b', role: 'teacher', tokenVersion: 1 } };
+    const otherTeacher = await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials', 'GET'),
+      env,
+      '/api/account/ai-credentials',
+      'GET',
+    );
+    await expect(otherTeacher?.json()).resolves.toMatchObject({ defaultSource: 'system' });
+  });
+
+  it('validates preference payloads and preserves an explicit personal default after key deletion', async () => {
+    enableByok();
+    await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials/deepseek', 'PUT', {
+        apiKey: 'deepseek-preference-key-123456789',
+        expectedVersion: 0,
+      }),
+      env,
+      '/api/account/ai-credentials/deepseek',
+      'PUT',
+    );
+    await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials/preferences', 'PUT', {
+        defaultSource: 'deepseek-personal',
+      }),
+      env,
+      '/api/account/ai-credentials/preferences',
+      'PUT',
+    );
+
+    for (const body of [
+      { defaultSource: 'openai-personal' },
+      { defaultSource: 'system', username: 'teacher-b' },
+    ]) {
+      const invalid = await handleAiCredentialRoutes(
+        request('/api/account/ai-credentials/preferences', 'PUT', body),
+        env,
+        '/api/account/ai-credentials/preferences',
+        'PUT',
+      );
+      expect(invalid?.status).toBe(400);
+    }
+
+    const deleted = await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials/deepseek', 'DELETE', undefined, { 'If-Match': '1' }),
+      env,
+      '/api/account/ai-credentials/deepseek',
+      'DELETE',
+    );
+    expect(deleted?.status).toBe(200);
+
+    const state = await handleAiCredentialRoutes(
+      request('/api/account/ai-credentials', 'GET'),
+      env,
+      '/api/account/ai-credentials',
+      'GET',
+    );
+    await expect(state?.json()).resolves.toMatchObject({
+      defaultSource: 'deepseek-personal',
+      credentials: expect.arrayContaining([
+        expect.objectContaining({ provider: 'deepseek', configured: false }),
+      ]),
+    });
+  });
+
   it('returns only metadata for both providers while BYOK is disabled', async () => {
     const response = await handleAiCredentialRoutes(
       request('/api/account/ai-credentials', 'GET'),

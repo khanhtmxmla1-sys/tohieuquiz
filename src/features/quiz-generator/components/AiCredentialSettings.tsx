@@ -36,7 +36,8 @@ const AiCredentialSettings: React.FC<AiCredentialSettingsProps> = ({
     setEditing(!summary.configured);
   }, [provider, summary.configured]);
 
-  const save = async () => {
+  const save = async (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     const key = apiKey.trim();
     if (!key) {
       setLocalError('Vui lòng nhập API key.');
@@ -152,12 +153,13 @@ const AiCredentialSettings: React.FC<AiCredentialSettingsProps> = ({
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <form className="space-y-3" onSubmit={save}>
           <label className="block text-sm font-semibold text-slate-800">
             API key {label}
             <div className="mt-1 flex gap-2">
               <input
                 aria-label={`API key ${label}`}
+                name={`${provider}-api-key`}
                 type={showKey ? 'text' : 'password'}
                 autoComplete="off"
                 value={apiKey}
@@ -178,8 +180,7 @@ const AiCredentialSettings: React.FC<AiCredentialSettingsProps> = ({
           </label>
           <div className="flex flex-wrap gap-2">
             <button
-              type="button"
-              onClick={save}
+              type="submit"
               disabled={busy || !controller.enabled || !apiKey.trim()}
               className="rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
@@ -203,7 +204,7 @@ const AiCredentialSettings: React.FC<AiCredentialSettingsProps> = ({
             Key được gửi tới server TôHiệuQuiz và lưu dưới dạng mã hóa. Hệ thống dùng key này để gọi {label} thay bạn.
             Phí API do bạn chi trả. Thao tác kiểm tra có thể phát sinh một lượng sử dụng API nhỏ.
           </p>
-        </div>
+        </form>
       )}
 
       {(localError || controller.error) && (

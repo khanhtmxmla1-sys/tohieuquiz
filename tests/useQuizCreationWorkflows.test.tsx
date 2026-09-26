@@ -33,6 +33,23 @@ vi.mock('../src/utils/toast', () => ({
 
 import { useCreateQuizLogic } from '../src/features/quiz-generator/hooks/useCreateQuizLogic';
 
+const aiCredentials = {
+    enabled: true,
+    capabilities: { text: true, documents: false, images: false, ocr: false, webSearch: false, imageGeneration: false },
+    summaries: {
+        gemini: { provider: 'gemini', configured: false, last4: null, version: 0, verifiedAt: null, updatedAt: null },
+        deepseek: { provider: 'deepseek', configured: false, last4: null, version: 0, verifiedAt: null, updatedAt: null },
+    },
+    defaultSource: 'system',
+    loading: false,
+    error: null,
+    save: vi.fn(async () => undefined),
+    test: vi.fn(async () => undefined),
+    remove: vi.fn(async () => undefined),
+    setDefaultSource: vi.fn(async () => undefined),
+    refetch: vi.fn(async () => undefined),
+} as const;
+
 const mockedGetQuota = vi.mocked(getTeacherAiQuota);
 const mockedGenerateQuiz = vi.mocked(generateQuiz);
 const mockedShowError = vi.mocked(showError);
@@ -103,6 +120,7 @@ function renderCreationHook(overrides: Partial<{
         onSaveQuiz: vi.fn(async () => undefined),
         onUpdateQuiz: vi.fn(async () => undefined),
         onSuccess: vi.fn(),
+        aiCredentials,
         ...overrides,
     };
 

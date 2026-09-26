@@ -28,6 +28,34 @@ vi.mock('../src/utils/toast', () => ({
 }));
 
 import { useCreateQuizLogic } from '../src/features/quiz-generator/hooks/useCreateQuizLogic';
+import type { AiCredentialsController } from '../src/features/quiz-generator/hooks/useAiCredentials';
+
+const createAiCredentials = (
+    overrides: Partial<AiCredentialsController> = {},
+): AiCredentialsController => ({
+    enabled: true,
+    capabilities: {
+        text: true,
+        documents: false,
+        images: false,
+        ocr: false,
+        webSearch: false,
+        imageGeneration: false,
+    },
+    summaries: {
+        gemini: { provider: 'gemini', configured: false, last4: null, version: 0, verifiedAt: null, updatedAt: null },
+        deepseek: { provider: 'deepseek', configured: false, last4: null, version: 0, verifiedAt: null, updatedAt: null },
+    },
+    defaultSource: 'system',
+    loading: false,
+    error: null,
+    save: vi.fn(async () => undefined),
+    test: vi.fn(async () => undefined),
+    remove: vi.fn(async () => undefined),
+    setDefaultSource: vi.fn(async () => undefined),
+    refetch: vi.fn(async () => undefined),
+    ...overrides,
+});
 
 const expectedPublicKeys = [
     'accessCode',
@@ -196,6 +224,7 @@ describe('useCreateQuizLogic public contract', () => {
             onSaveQuiz: vi.fn(async () => undefined),
             onUpdateQuiz: vi.fn(async () => undefined),
             onSuccess: vi.fn(),
+            aiCredentials: createAiCredentials(),
         }));
 
         await waitFor(() => expect(result.current.dailyAiLimit).toBe(5));
@@ -208,6 +237,7 @@ describe('useCreateQuizLogic public contract', () => {
             onSaveQuiz: vi.fn(async () => undefined),
             onUpdateQuiz: vi.fn(async () => undefined),
             onSuccess: vi.fn(),
+            aiCredentials: createAiCredentials(),
         }));
 
         expect(result.current.autoGenerateSvg).toBe(false);
@@ -222,6 +252,7 @@ describe('useCreateQuizLogic public contract', () => {
             onSaveQuiz: vi.fn(async () => undefined),
             onUpdateQuiz: vi.fn(async () => undefined),
             onSuccess: vi.fn(),
+            aiCredentials: createAiCredentials(),
         }));
 
         return waitFor(() => {
@@ -238,10 +269,39 @@ describe('useCreateQuizLogic public contract', () => {
             onSaveQuiz: vi.fn(async () => undefined),
             onUpdateQuiz: vi.fn(async () => undefined),
             onSuccess: vi.fn(),
+            aiCredentials: createAiCredentials(),
         }));
 
         expect(result.current.generatedQuiz).toBeNull();
         expect('handleStartManual' in result.current).toBe(false);
         await waitFor(() => expect(result.current.dailyAiLimit).toBe(5));
+    });
+
+    it('applies the server default once without persisting the provider in browser storage', async () => {
+        localStorage.setItem('ai_provider', 'deepseek-personal');
+        const storageSpy = vi.spyOn(Storage.prototype, 'setItem');
+        storageSpy.mockClear();
+        const aiCredentials = createAiCredentials({
+            defaultSource: 'gemini-personal',
+            summaries: {
+                gemini: { provider: 'gemini', configured: true, last4: '1234', version: 1, verifiedAt: null, updatedAt: null },
+                deepseek: { provider: 'deepseek', configured: true, last4: '5678', version: 1, verifiedAt: null, updatedAt: null },
+            },
+        });
+
+        const { result } = renderHook(() => useCreateQuizLogic({
+            editingQuiz: null,
+            onSaveQuiz: vi.fn(async () => undefined),
+            onUpdateQuiz: vi.fn(async () => undefined),
+            onSuccess: vi.fn(),
+            aiCredentials,
+        }));
+
+        await waitFor(() => expect(result.current.aiProvider).toBe('gemini-personal'));
+        expect(storageSpy).not.toHaveBeenCalledWith('ai_provider', expect.anything());
+
+        act(() => result.current.setAiProvider('deepseek-personal'));
+        expect(result.current.aiProvider).toBe('deepseek-personal');
+        expect(aiCredentials.setDefaultSource).not.toHaveBeenCalled();
     });
 });

@@ -2,6 +2,7 @@ import type {
   AiCredentialCipher,
   AiCredentialSummary,
   PersonalAiProvider,
+  QuizAiSource,
 } from '../../../../shared/teacher-ai-credentials.contract';
 
 export interface StoredAiCredential {
@@ -106,6 +107,38 @@ export async function listCredentialSummaries(
     ORDER BY provider
   `).bind(owner).all<CredentialRow>();
   return (rows.results || []).map(summaryFromRow);
+}
+
+export async function getAiDefaultSource(
+  db: D1Database,
+  owner: string,
+): Promise<QuizAiSource> {
+  const row = await db.prepare(`
+    SELECT default_source
+    FROM teacher_ai_preferences
+    WHERE username = ?
+    LIMIT 1
+  `).bind(owner).first<{ default_source: QuizAiSource }>();
+  return row?.default_source ?? 'system';
+}
+
+export async function saveAiDefaultSource(
+  db: D1Database,
+  owner: string,
+  source: QuizAiSource,
+  now = new Date(),
+): Promise<QuizAiSource> {
+  const result = await db.prepare(`
+    INSERT INTO teacher_ai_preferences (username, default_source, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(username) DO UPDATE SET
+      default_source = excluded.default_source,
+      updated_at = excluded.updated_at
+  `).bind(owner, source, now.toISOString()).run();
+  if (changesFrom(result) !== 1) {
+    throw new AiCredentialRepositoryError('AI_VAULT_UNAVAILABLE');
+  }
+  return source;
 }
 
 const changesFrom = (result: D1Result<unknown>): number => (

@@ -1,4 +1,4 @@
-import { Megaphone, Menu } from 'lucide-react';
+import { Megaphone, Menu, Settings } from 'lucide-react';
 import type React from 'react';
 import type { NotificationTarget } from '../../../../shared/notifications.contract';
 import { NotificationCenter } from '../../../features/notifications/components';
@@ -14,6 +14,7 @@ interface TeacherDashboardHeaderProps {
   setActiveTab: (tab: TeacherDashboardTab) => void;
   manualQuizWorkspaceEnabled: boolean;
   onOpenMenu: () => void;
+  onOpenAiSettings: () => void;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   onSearchSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -103,6 +104,15 @@ export const TeacherDashboardHeader = (props: TeacherDashboardHeaderProps) => {
               options={props.searchOptions}
             />
           </div>
+          <button
+            type="button"
+            aria-label="Cài đặt AI"
+            title="Cài đặt AI"
+            onClick={props.onOpenAiSettings}
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          >
+            <Settings aria-hidden="true" className="size-5" />
+          </button>
           {notificationControl}
           {props.isAdmin && (
             <button

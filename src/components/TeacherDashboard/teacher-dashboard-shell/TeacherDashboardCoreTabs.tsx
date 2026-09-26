@@ -6,6 +6,7 @@ import type { Quiz, StudentResult } from '../../../types';
 import { CreateTab, ManageTab, OverviewTab, ResultsTab } from './dashboardLazyTabs';
 import type { ResultsLoadState } from './types';
 import { getQuizEditorRoute } from '../../../app/navigationRoutes';
+import type { AiCredentialsController } from '../../../features/quiz-generator/hooks/useAiCredentials';
 
 interface TeacherDashboardCoreTabsProps {
   activeTab: TeacherDashboardTab;
@@ -28,6 +29,8 @@ interface TeacherDashboardCoreTabsProps {
   removeQuiz: any;
   createQuiz: any;
   modifyQuiz: any;
+  aiCredentials: AiCredentialsController;
+  onOpenAiSettings: () => void;
 }
 
 export const TeacherDashboardCoreTabs = (props: TeacherDashboardCoreTabsProps) => {
@@ -73,6 +76,8 @@ export const TeacherDashboardCoreTabs = (props: TeacherDashboardCoreTabsProps) =
           editingQuiz={props.editingQuiz}
           onSaveQuiz={props.createQuiz}
           onUpdateQuiz={props.modifyQuiz}
+          aiCredentials={props.aiCredentials}
+          onOpenAiSettings={props.onOpenAiSettings}
           onSuccess={() => {
             props.setEditingQuiz(null);
             props.setActiveTab('manage');

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../../../stores/authStore';
 import { useAssignmentStore } from '../../../stores/useAssignmentStore';
 import {
@@ -13,14 +13,24 @@ import { useQuizGeneration } from './useQuizGeneration';
 import { useQuizPersistence } from './useQuizPersistence';
 import { useQuizShareState } from './useQuizShareState';
 import { useQuestionQualityReview } from './useQuestionQualityReview';
-import { useAiCredentials } from './useAiCredentials';
+import type { AiCredentialsController } from './useAiCredentials';
+import type { AIProvider } from '../../../services/geminiService';
+
+const providerForDefaultSource = (
+    source: AiCredentialsController['defaultSource'],
+): AIProvider => {
+    if (source === 'gemini-personal') return 'gemini-personal';
+    if (source === 'deepseek-personal') return 'deepseek-personal';
+    return 'llm-mux';
+};
 
 export const useCreateQuizLogic = ({
     editingQuiz,
     onSaveQuiz,
     onUpdateQuiz,
     onSuccess,
-}: UseCreateQuizLogicProps) => {
+    aiCredentials,
+}: UseCreateQuizLogicProps & { aiCredentials: AiCredentialsController }) => {
     const authStore = useAuthStore();
     const classStore = useClassStore();
     const assignmentStore = useAssignmentStore();
@@ -38,7 +48,13 @@ export const useCreateQuizLogic = ({
         lockedClass,
         teacherName: authStore.teacherName,
     });
-    const aiCredentials = useAiCredentials(authStore.username);
+    const defaultAppliedForAccountRef = useRef<string | null>(null);
+    const manuallySelectedForAccountRef = useRef<string | null>(null);
+    const accountKey = authStore.username ?? null;
+    const setAiProvider = useCallback((provider: AIProvider) => {
+        manuallySelectedForAccountRef.current = accountKey;
+        form.setAiProvider(provider);
+    }, [accountKey, form.setAiProvider]);
     const share = useQuizShareState();
     const quality = useQuestionQualityReview({
         quiz: form.generatedQuiz,
@@ -74,6 +90,14 @@ export const useCreateQuizLogic = ({
             classStore.fetchClasses(authStore.username);
         }
     }, [authStore.username]);
+
+    useEffect(() => {
+        if (!accountKey || aiCredentials.loading) return;
+        if (defaultAppliedForAccountRef.current === accountKey) return;
+        if (manuallySelectedForAccountRef.current === accountKey) return;
+        form.setAiProvider(providerForDefaultSource(aiCredentials.defaultSource));
+        defaultAppliedForAccountRef.current = accountKey;
+    }, [accountKey, aiCredentials.defaultSource, aiCredentials.loading, form.setAiProvider]);
 
     return {
         topic: form.topic,
@@ -124,7 +148,7 @@ export const useCreateQuizLogic = ({
         isBlueprintValid: form.isBlueprintValid,
         setQuestionBlueprint: form.setQuestionBlueprint,
         aiProvider: form.aiProvider,
-        setAiProvider: form.setAiProvider,
+        setAiProvider,
         aiCredentials,
         selectedTypes: form.selectedTypes,
         setSelectedTypes: form.setSelectedTypes,
