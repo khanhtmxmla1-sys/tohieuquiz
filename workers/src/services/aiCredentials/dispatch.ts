@@ -185,7 +185,7 @@ export async function dispatchPersonalAi(input: {
         ...(responseFormat ? { response_format: responseFormat } : {}),
         stream: false,
       }),
-      redirect: 'error',
+      redirect: 'manual',
       signal: controller.signal,
     });
 

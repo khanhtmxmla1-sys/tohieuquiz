@@ -31,7 +31,21 @@ describe('teacher AI credential provider client', () => {
       max_tokens: 16,
       stream: false,
     });
-    expect(init?.redirect).toBe('error');
+    expect(init?.redirect).toBe('manual');
+  });
+
+  it('rejects provider redirects without following them or forwarding the key again', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, {
+      status: 302,
+      headers: { Location: 'https://attacker.invalid/collect' },
+    }));
+
+    const error = await testProviderCredential('gemini', 'canary-provider-key-1234567890')
+      .catch((value) => value);
+
+    expect(error).toBeInstanceOf(AiCredentialProviderError);
+    expect(error.code).toBe('AI_PROVIDER_REQUEST_REJECTED');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
   it.each([

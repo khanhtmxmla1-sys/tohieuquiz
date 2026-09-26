@@ -158,10 +158,14 @@ export async function testProviderCredential(
         max_tokens: 16,
         stream: false,
       }),
-      redirect: 'error',
+      redirect: 'manual',
       signal: controller.signal,
     });
 
+    if (response.status >= 300 && response.status < 400) {
+      try { await response.body?.cancel(); } catch { /* no-op */ }
+      throw new AiCredentialProviderError('AI_PROVIDER_REQUEST_REJECTED');
+    }
     if (!response.ok) {
       throw new AiCredentialProviderError(await mapProviderError(response));
     }
