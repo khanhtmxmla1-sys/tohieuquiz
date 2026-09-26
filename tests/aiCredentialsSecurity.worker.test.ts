@@ -104,12 +104,28 @@ describe('teacher AI credentials security contract', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [url, init] = fetchSpy.mock.calls[0];
     expect(String(url)).toBe('https://api.deepseek.com/chat/completions');
-    expect(init?.redirect).toBe('error');
+    expect(init?.redirect).toBe('manual');
     expect(JSON.stringify([
       ...infoSpy.mock.calls,
       ...warnSpy.mock.calls,
       ...errorSpy.mock.calls,
     ])).not.toContain(canary);
+  });
+
+  it('rejects dispatch redirects without following them or forwarding the key again', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, {
+      status: 307,
+      headers: { Location: 'https://attacker.invalid/collect' },
+    }));
+
+    await expect(dispatchPersonalAi({
+      provider: 'deepseek',
+      key: 'security-canary-key-123456789',
+      model: 'deepseek-flash',
+      messages: [{ role: 'user', content: 'hello' }],
+    })).rejects.toMatchObject({ code: 'AI_PROVIDER_UNAVAILABLE' });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
   it('caps oversized provider responses without returning provider content', async () => {
