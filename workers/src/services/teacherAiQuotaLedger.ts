@@ -422,3 +422,161 @@ export async function failAiAction(
   if (!transitioned) return;
   await releaseUsageSlot(db, username, transitioned.usage_date, nowIso);
 }
+
+export interface ServerQuizActionDiagnostics {
+  providerAttempts: number;
+  lastProviderErrorCode?: string;
+  lastProviderStatus?: number;
+  lastProviderPhase?: (
+    | 'validation'
+    | 'redirect'
+    | 'upstream'
+    | 'network'
+    | 'timeout'
+    | 'response-size'
+    | 'response-json'
+    | 'response-content'
+  );
+}
+
+const normalizeServerQuizDiagnostics = (
+  diagnostics: ServerQuizActionDiagnostics,
+): {
+  attempts: number;
+  errorCode: string | null;
+  status: number | null;
+  phase: ServerQuizActionDiagnostics['lastProviderPhase'] | null;
+} => {
+  const attempts = Number.isInteger(diagnostics.providerAttempts)
+    ? Math.max(0, Math.min(99, diagnostics.providerAttempts))
+    : 0;
+  const errorCode = diagnostics.lastProviderErrorCode
+    ? String(diagnostics.lastProviderErrorCode).replace(/[^A-Z0-9_]/g, '').slice(0, 80) || null
+    : null;
+  const status = Number.isInteger(diagnostics.lastProviderStatus)
+    && Number(diagnostics.lastProviderStatus) >= 100
+    && Number(diagnostics.lastProviderStatus) <= 599
+    ? Number(diagnostics.lastProviderStatus)
+    : null;
+  return {
+    attempts,
+    errorCode,
+    status,
+    phase: diagnostics.lastProviderPhase ?? null,
+  };
+};
+
+export async function claimServerQuizAction(
+  db: D1Database,
+  actionId: string,
+  username: string,
+  now = new Date(),
+): Promise<void> {
+  const nowIso = now.toISOString();
+  const claimed = await db.prepare(`
+    UPDATE ai_generation_actions
+    SET active_stage = 'GENERATE',
+        active_stage_started_at = ?,
+        orchestrator_version = 'server-quiz-v1',
+        updated_at = ?
+    WHERE action_id = ?
+      AND username = ?
+      AND status = 'RESERVED'
+      AND active_stage IS NULL
+    RETURNING usage_date
+  `).bind(nowIso, nowIso, actionId, username).first<UsageDateRow>();
+
+  if (!claimed) {
+    throw new AiQuotaError('AI_ACTION_CONFLICT');
+  }
+}
+
+export async function succeedServerQuizAction(
+  db: D1Database,
+  actionId: string,
+  username: string,
+  diagnostics: ServerQuizActionDiagnostics,
+  now = new Date(),
+): Promise<void> {
+  const nowIso = now.toISOString();
+  const safe = normalizeServerQuizDiagnostics(diagnostics);
+  const transitioned = await db.prepare(`
+    UPDATE ai_generation_actions
+    SET status = 'SUCCEEDED',
+        active_stage = NULL,
+        active_stage_started_at = NULL,
+        orchestrator_version = 'server-quiz-v1',
+        provider_attempts = ?,
+        last_provider_error_code = ?,
+        last_provider_status = ?,
+        last_provider_phase = ?,
+        failure_code = NULL,
+        updated_at = ?,
+        completed_at = ?
+    WHERE action_id = ?
+      AND username = ?
+      AND status = 'RESERVED'
+      AND active_stage = 'GENERATE'
+    RETURNING usage_date
+  `).bind(
+    safe.attempts,
+    safe.errorCode,
+    safe.status,
+    safe.phase,
+    nowIso,
+    nowIso,
+    actionId,
+    username,
+  ).first<UsageDateRow>();
+
+  if (!transitioned) {
+    throw new AiQuotaError('AI_ACTION_CONFLICT');
+  }
+}
+
+export async function failServerQuizAction(
+  db: D1Database,
+  actionId: string,
+  username: string,
+  failureCode: string,
+  diagnostics: ServerQuizActionDiagnostics,
+  now = new Date(),
+): Promise<void> {
+  const nowIso = now.toISOString();
+  const safe = normalizeServerQuizDiagnostics(diagnostics);
+  const safeFailureCode = String(failureCode || 'QUIZ_GENERATION_INVALID')
+    .replace(/[^A-Z0-9_]/g, '')
+    .slice(0, 80) || 'QUIZ_GENERATION_INVALID';
+  const transitioned = await db.prepare(`
+    UPDATE ai_generation_actions
+    SET status = 'FAILED',
+        active_stage = NULL,
+        active_stage_started_at = NULL,
+        orchestrator_version = 'server-quiz-v1',
+        provider_attempts = ?,
+        last_provider_error_code = ?,
+        last_provider_status = ?,
+        last_provider_phase = ?,
+        failure_code = ?,
+        updated_at = ?,
+        completed_at = ?
+    WHERE action_id = ?
+      AND username = ?
+      AND status = 'RESERVED'
+      AND active_stage = 'GENERATE'
+    RETURNING usage_date
+  `).bind(
+    safe.attempts,
+    safe.errorCode,
+    safe.status,
+    safe.phase,
+    safeFailureCode,
+    nowIso,
+    nowIso,
+    actionId,
+    username,
+  ).first<UsageDateRow>();
+
+  if (!transitioned) return;
+  await releaseUsageSlot(db, username, transitioned.usage_date, nowIso);
+}

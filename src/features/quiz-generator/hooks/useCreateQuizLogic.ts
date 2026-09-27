@@ -10,6 +10,7 @@ import { useClassStore } from '../../../stores/useClassStore';
 import type { UseCreateQuizLogicProps } from '../domain/quizCreation.types';
 import { useQuizFormState } from './useQuizFormState';
 import { useQuizGeneration } from './useQuizGeneration';
+import { useServerQuizGenerationFeatureFlag } from './useServerQuizGenerationFeatureFlag';
 import { useQuizPersistence } from './useQuizPersistence';
 import { useQuizShareState } from './useQuizShareState';
 import { useQuestionQualityReview } from './useQuestionQualityReview';
@@ -37,6 +38,9 @@ export const useCreateQuizLogic = ({
     const aiQuizV2Enabled = isAiQuizV2Enabled();
     const aiBlueprintV3Enabled = aiQuizV2Enabled && isAiBlueprintV3Enabled();
     const aiSvgDiagramsEnabled = aiQuizV2Enabled && isAiSvgDiagramsEnabled();
+    const serverQuizGenerationFlag = useServerQuizGenerationFeatureFlag();
+    const serverQuizGenerationEnabled = serverQuizGenerationFlag.ready
+        && serverQuizGenerationFlag.enabled;
 
     const isTeacherAccount = !authStore.isAdmin;
     const isClassLocked = !authStore.isAdmin && !!authStore.teacherClass;
@@ -69,6 +73,7 @@ export const useCreateQuizLogic = ({
         aiQuizV2Enabled,
         aiBlueprintV3Enabled,
         aiSvgDiagramsEnabled,
+        serverQuizGenerationEnabled,
         aiCredentials,
     });
     const persistence = useQuizPersistence({

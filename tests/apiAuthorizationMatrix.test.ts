@@ -70,9 +70,22 @@ const routeSamples = [
   ['/api/account/ai-credentials/gemini', 'PUT', 'teacher-owned'],
   ['/api/account/ai-credentials/deepseek/test', 'POST', 'teacher-owned'],
   ['/api/account/ai-credentials/gemini', 'DELETE', 'teacher-owned'],
+  ['/api/ai/quiz/generate', 'POST', 'teacher-owned'],
 ] as const;
 
 describe('API authorization matrix', () => {
+  it('uses an exact POST-only policy for server quiz generation before the generic AI proxy policy', () => {
+    expect(findApiAuthorizationPolicy('/api/ai/quiz/generate', 'POST')).toMatchObject({
+      id: 'server-quiz-generation',
+      path: '/api/ai/quiz/generate',
+      match: 'exact',
+      methods: ['POST'],
+      authorization: 'teacher-owned',
+      ownership: ['session', 'route-handler'],
+    });
+    expect(findApiAuthorizationPolicy('/api/ai/quiz/generate', 'GET')?.id).toBe('ai-proxy');
+  });
+
   it('uses every required authorization class', () => {
     expect(new Set(apiAuthorizationPolicies.map((policy) => policy.authorization))).toEqual(
       new Set(expectedClasses),

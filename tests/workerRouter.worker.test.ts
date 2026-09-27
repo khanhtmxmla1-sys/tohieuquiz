@@ -14,6 +14,7 @@ const verifyTokenMock = vi.fn(() => unauthorized());
 const routeMocks = {
   handleTeacherRoutes: vi.fn(async () => null as Response | null),
   handleAiCredentialRoutes: vi.fn(async () => null as Response | null),
+  handleQuizGenerationRoute: vi.fn(async () => null as Response | null),
   handleSecurityCenterRoutes: vi.fn(async () => null as Response | null),
   handlePasskeyRoutes: vi.fn(async () => null as Response | null),
   handleLogoutRoute: vi.fn(async () => null as Response | null),
@@ -189,6 +190,19 @@ describe('Worker root route dispatch', () => {
       expect.any(Request), env, '/api/account/ai-credentials', 'GET',
     );
     expect(routeMocks.handleTeacherRoutes).not.toHaveBeenCalled();
+  });
+
+  it('routes server quiz generation before the generic AI chat proxy', async () => {
+    verifyTokenMock.mockReturnValue(null);
+    routeMocks.handleQuizGenerationRoute.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    const response = await workerFetch(request('/api/ai/quiz/generate', 'POST'), env);
+
+    expect(response.status).toBe(200);
+    expect(routeMocks.handleQuizGenerationRoute).toHaveBeenCalledWith(
+      expect.any(Request), env, '/api/ai/quiz/generate', 'POST',
+    );
+    expect(routeMocks.handleAiProxy).not.toHaveBeenCalled();
   });
 
   it('accepts sampled client telemetry before shared authentication with a fail-closed limiter', async () => {
