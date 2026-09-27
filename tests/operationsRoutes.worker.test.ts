@@ -17,7 +17,7 @@ class Statement {
   bind() { return this; }
   async first<T>() {
     if (this.sql.includes('SELECT 1 AS count')) return { count: 1 } as T;
-    if (this.sql.includes('FROM d1_migrations')) return { count: 83, latest: '0084_teacher_ai_preferences.sql' } as T;
+    if (this.sql.includes('FROM d1_migrations')) return { count: 84, latest: '0085_server_quiz_generation.sql' } as T;
     if (this.sql.includes('FROM certificate_batches')) return {
       pending_count: 0, processing_count: 0, failed_count: 0, stale_processing_count: 0,
     } as T;
@@ -68,7 +68,7 @@ describe('admin operations route', () => {
     expect(payload.data.components.find((item: any) => item.id === 'migrations')).toMatchObject({
       status: 'healthy',
       metrics: [
-        { key: 'appliedCount', value: 83 },
+        { key: 'appliedCount', value: 84 },
         { key: 'latestIsExpected', value: true },
       ],
     });

@@ -13,6 +13,7 @@ import { internalErrorResponse } from './utils/internalError';
 import { handleTeacherRoutes } from './routes/teachers';
 import { handleSecurityCenterRoutes } from './routes/securityCenter';
 import { handleAiCredentialRoutes } from './routes/aiCredentials';
+import { handleQuizGenerationRoute } from './routes/quizGeneration';
 import { handlePasskeyRoutes } from './routes/passkeys';
 import { handleQuizRoutes } from './routes/quizzes';
 import { handleQuizDraftRoutes } from './routes/quizDrafts';
@@ -79,6 +80,7 @@ const fetch = createWorkerFetch({
     rateLimit,
     handleTeacherRoutes,
     handleAiCredentialRoutes,
+    handleQuizGenerationRoute,
     handleSecurityCenterRoutes,
     handlePasskeyRoutes,
     handleLogoutRoute,

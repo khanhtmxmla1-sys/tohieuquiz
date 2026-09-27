@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { QuizAiSource } from '../../../../shared/teacher-ai-credentials.contract';
+import type { ServerQuizGenerationRequest } from '../../../../shared/quiz-generation.contract';
 import type { Quiz, Question } from '../../../types';
 import { QuestionType } from '../../../types';
 import {
@@ -13,6 +14,7 @@ import {
 } from '../../../services/ai/schemas/ocrDocumentSchema';
 import { generateTrangNguyenQuiz } from '../../../services/trangNguyenGeminiService';
 import { showError } from '../../../utils/toast';
+import { requestServerQuizGeneration } from '../../../services/ai/serverQuizGenerationClient';
 import { getQuizGenerationUserMessage } from '../../../services/ai/quizGenerationErrors';
 import { normalizeAiCategory, normalizeTags } from '../utils/quizNormalizers';
 import {
@@ -38,6 +40,7 @@ interface UseQuizGenerationOptions {
     aiQuizV2Enabled: boolean;
     aiBlueprintV3Enabled: boolean;
     aiSvgDiagramsEnabled: boolean;
+    serverQuizGenerationEnabled: boolean;
     aiCredentials?: AiCredentialsController;
 }
 
@@ -75,6 +78,7 @@ export const useQuizGeneration = ({
     aiQuizV2Enabled,
     aiBlueprintV3Enabled,
     aiSvgDiagramsEnabled,
+    serverQuizGenerationEnabled,
     aiCredentials,
 }: UseQuizGenerationOptions) => {
     const [isGenerating, setIsGenerating] = useState(false);
@@ -359,6 +363,79 @@ export const useQuizGeneration = ({
                     .join('\n\n');
                 generationTopic = form.topic || form.uploadedFile.name.replace(/\.[^/.]+$/, '');
                 generationFile = undefined;
+            }
+
+            const useServerQuizGeneration = serverQuizGenerationEnabled
+                && aiBlueprintV3Enabled
+                && requestKind === 'full';
+            if (useServerQuizGeneration) {
+                const serverTypeAllocations = form.questionTypeAllocations
+                    .filter(({ count }) => count > 0)
+                    .map(({ type, count }) => ({
+                        type: String(type) as ServerQuizGenerationRequest['typeAllocations'][number]['type'],
+                        count,
+                    }));
+                const unsupportedType = serverTypeAllocations.find(
+                    ({ type }) => !isAiSelectableQuestionType(type as QuestionType),
+                );
+                if (unsupportedType) {
+                    throw new Error('Dạng câu đã chọn chưa được hỗ trợ bởi tạo đề máy chủ.');
+                }
+
+                const serverTitle = form.quizTitle || `${titlePrefix}: ${
+                    form.topic
+                    || form.uploadedFile?.name?.replace(/\.[^/.]+$/, '')
+                    || 'Bài kiểm tra'
+                }`;
+                const serverRequest: ServerQuizGenerationRequest = {
+                    actionId: action.actionId,
+                    source: aiSource,
+                    title: serverTitle,
+                    topic: generationTopic,
+                    classLevel: form.classLevel,
+                    content: generationContent,
+                    intent: activeQuizMode === 'exam'
+                        ? 'EXAM'
+                        : activeQuizMode === 'practice'
+                            ? 'PRACTICE'
+                            : form.quizIntent,
+                    sourceMode: isPdfMode ? 'DOCUMENT_TEXT' : 'TOPIC',
+                    questionCount: validation.questionCount,
+                    typeAllocations: serverTypeAllocations,
+                    difficultyLevels: form.difficultyLevels,
+                    promptProfile: form.promptProfile,
+                    customPrompt: form.customPrompt.trim() || undefined,
+                    sourceRefs: isPdfMode
+                        ? (legacyOcrDocument
+                            ? legacyOcrDocument.pages.map((page) => `page-${page.pageNumber}`)
+                            : form.selectedOcrPageNumbers.map((pageNumber) => `page-${pageNumber}`))
+                        : undefined,
+                    diagramMode: aiSvgDiagramsEnabled && form.autoGenerateSvg ? 'auto' : 'off',
+                };
+
+                const serverResponse = await requestServerQuizGeneration(serverRequest, {
+                    signal: controller.signal,
+                });
+                const result = serverResponse.quiz as unknown as Record<string, unknown>;
+                const detectedCategory = normalizeAiCategory(result.detectedCategory);
+                const detectedLesson = typeof result.detectedLesson === 'string'
+                    ? result.detectedLesson.trim()
+                    : '';
+                const suggestedTags = normalizeTags(result.suggestedTags);
+
+                form.setAiDetectedCategory(detectedCategory);
+                form.setAiDetectedLesson(detectedLesson);
+                form.setAiSuggestedTags(suggestedTags);
+                form.setGeneratedQuiz(createQuizFromResult(
+                    result,
+                    serverRequest.title,
+                    detectedCategory,
+                    detectedLesson,
+                    suggestedTags,
+                    requestKind,
+                ));
+                setGenerationStep('completed');
+                return;
             }
 
             const fullOptions = buildQuizGenerationOptions({

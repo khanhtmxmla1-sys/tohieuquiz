@@ -59,6 +59,7 @@ export interface WorkerFetchDependencies {
   now?: () => number;
   handleTeacherRoutes: RouteHandler;
   handleAiCredentialRoutes?: RouteHandler;
+  handleQuizGenerationRoute?: RouteHandler;
   handleSecurityCenterRoutes: RouteHandler;
   handlePasskeyRoutes: RouteHandler;
   handleLogoutRoute: SimpleRouteHandler;
@@ -123,6 +124,7 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
     now = Date.now,
     handleTeacherRoutes,
     handleAiCredentialRoutes = async () => null,
+    handleQuizGenerationRoute = async () => null,
     handleSecurityCenterRoutes,
     handlePasskeyRoutes,
     handleLogoutRoute,
@@ -401,6 +403,8 @@ export function createWorkerFetch(dependencies: WorkerFetchDependencies) {
         || path.startsWith('/api/admin/announcements')
       ) {
         response = await handleAnnouncementRoutes(request, env, path, method);
+      } else if (path === '/api/ai/quiz/generate') {
+        response = await handleQuizGenerationRoute(request, env, path, method);
       } else if (path.startsWith('/api/ai-tutor')) {
         const rateLimitResponse = await rateLimit(request, env, {
           windowMs: 60 * 1000,

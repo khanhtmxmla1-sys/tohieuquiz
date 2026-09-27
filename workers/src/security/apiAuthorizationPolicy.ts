@@ -168,6 +168,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('announcement-write', '/api/announcements', 'admin-only', ['route-handler'], 'announcement requireAdmin checks'),
   policy('settings-write', '/api/system-settings', 'admin-only', ['route-handler'], 'settings requireAdmin checks'),
   policy('ai-tutor', '/api/ai-tutor', 'student-owned', ['session', 'resultId'], 'AI Tutor result ownership'),
+  policy('server-quiz-generation', '/api/ai/quiz/generate', 'teacher-owned', ['session', 'route-handler'], 'authenticated teacher/admin server-owned quiz generation', { match: 'exact', methods: ['POST'] }),
   policy('ai-proxy', '/api/ai/', 'teacher-owned', ['session', 'route-handler'], 'AI proxy role checks'),
   policy('help', '/api/help', 'authenticated', ['session'], 'help JWT checks'),
   policy('teacher-ai-quota', '/api/teacher-ai-quota', 'teacher-owned', ['session'], 'teacher quota role checks'),
