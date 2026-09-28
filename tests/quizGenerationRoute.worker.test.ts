@@ -273,4 +273,26 @@ describe('server quiz generation route', () => {
     expect(text).toContain('AI_PROVIDER_UNAVAILABLE');
     expect(text).not.toContain(internalSecret);
   });
+
+  it('maps explicit output truncation to a stable actionable response', async () => {
+    const deps = makeDeps({
+      generateQuiz: vi.fn(async () => {
+        throw new ServerQuizOrchestratorError('AI_PROVIDER_OUTPUT_TRUNCATED', 'private provider detail');
+      }),
+    });
+
+    const response = await handleQuizGenerationRoute(
+      await request(),
+      env,
+      '/api/ai/quiz/generate',
+      'POST',
+      deps,
+    );
+
+    expect(response?.status).toBe(502);
+    await expect(response?.json()).resolves.toMatchObject({
+      code: 'AI_PROVIDER_OUTPUT_TRUNCATED',
+      message: 'Phản hồi AI bị cắt do giới hạn đầu ra. Hãy thử tạo ít câu hơn trong một lần.',
+    });
+  });
 });

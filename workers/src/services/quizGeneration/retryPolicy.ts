@@ -5,6 +5,7 @@ export type QuizProviderStageCode =
   | 'AI_PROVIDER_REQUEST_REJECTED'
   | 'AI_PROVIDER_UNAVAILABLE'
   | 'AI_PROVIDER_TIMEOUT'
+  | 'AI_PROVIDER_OUTPUT_TRUNCATED'
   | 'AI_PROVIDER_RESPONSE_INVALID'
   | 'AI_CAPABILITY_UNSUPPORTED';
 
@@ -32,6 +33,7 @@ const ERROR_MESSAGES: Record<QuizProviderStageCode, string> = {
   AI_PROVIDER_REQUEST_REJECTED: 'Nhà cung cấp AI từ chối yêu cầu tạo đề.',
   AI_PROVIDER_UNAVAILABLE: 'Nhà cung cấp AI tạm thời không khả dụng.',
   AI_PROVIDER_TIMEOUT: 'Nhà cung cấp AI phản hồi quá thời gian.',
+  AI_PROVIDER_OUTPUT_TRUNCATED: 'Phản hồi AI bị cắt do giới hạn đầu ra. Hãy thử tạo ít câu hơn trong một lần.',
   AI_PROVIDER_RESPONSE_INVALID: 'Nhà cung cấp AI trả về kết quả không hợp lệ.',
   AI_CAPABILITY_UNSUPPORTED: 'Nguồn AI không hỗ trợ yêu cầu này.',
 };

@@ -37,6 +37,8 @@ vi.mock('../src/services/imageGenerationService', () => ({
 }));
 
 import { generateQuiz } from '../src/services/geminiService';
+import { GeneratedQuizSchemaError } from '../src/services/ai/quizGenerationErrors';
+import { QuizGenerationValidationError } from '../src/services/ai/quizRepair';
 
 const blueprint = makeBlueprintV3Fixture();
 const validQuiz = makeGeneratedQuizV3Fixture(blueprint);
@@ -133,6 +135,106 @@ describe('quiz generation V3 quality pipeline', () => {
     expect(result.questions[0].skillCode).toBe('phan_so');
     expect((result.questions[0] as any).slotId).toBeUndefined();
     expect(result.questions.every((question) => !('explanation' in question))).toBe(true);
+  });
+
+  it('repairs one initially schema-invalid V3 draft before auditing slots', async () => {
+    const malformed = structuredClone(validQuiz) as unknown as Record<string, unknown>;
+    delete ((malformed.questions as Array<Record<string, unknown>>)[0]).question;
+    mocks.generateWithOpenAIResilient.mockResolvedValue(malformed);
+    mocks.requestWorkerAiText.mockImplementation(async (_body, requestOptions) => {
+      const stage = requestOptions?.action?.stage;
+      if (stage === 'REPAIR') return JSON.stringify(validQuiz);
+      if (stage === 'REVIEW') return JSON.stringify(validQuiz);
+      throw new Error(`Unexpected stage ${String(stage)}`);
+    });
+
+    const result = await generateQuiz(
+      blueprint.topic,
+      blueprint.classLevel,
+      '',
+      undefined,
+      options,
+      undefined,
+      'openai',
+      undefined,
+      execution,
+    );
+
+    expect(result.questions).toHaveLength(blueprint.totalQuestions);
+    expect(mocks.requestWorkerAiText.mock.calls.map((call) => call[1]?.action?.stage)).toEqual([
+      'REPAIR',
+      'REVIEW',
+    ]);
+  });
+
+  it('stops after one attempt when the schema repair is still invalid', async () => {
+    const malformed = structuredClone(validQuiz) as unknown as Record<string, unknown>;
+    delete ((malformed.questions as Array<Record<string, unknown>>)[0]).question;
+    mocks.generateWithOpenAIResilient.mockResolvedValue(malformed);
+    mocks.requestWorkerAiText.mockResolvedValue(JSON.stringify(malformed));
+
+    await expect(generateQuiz(
+      blueprint.topic,
+      blueprint.classLevel,
+      '',
+      undefined,
+      options,
+      undefined,
+      'openai',
+      undefined,
+      execution,
+    )).rejects.toBeInstanceOf(GeneratedQuizSchemaError);
+
+    expect(mocks.requestWorkerAiText.mock.calls.filter(
+      (call) => call[1]?.action?.stage === 'REPAIR',
+    )).toHaveLength(1);
+  });
+
+  it('does not spend a second repair when schema recovery leaves a slot mismatch', async () => {
+    const malformed = structuredClone(validQuiz) as unknown as Record<string, unknown>;
+    delete ((malformed.questions as Array<Record<string, unknown>>)[0]).question;
+    mocks.generateWithOpenAIResilient.mockResolvedValue(malformed);
+    mocks.requestWorkerAiText.mockResolvedValue(JSON.stringify(quizWithOneWrongSlot));
+
+    await expect(generateQuiz(
+      blueprint.topic,
+      blueprint.classLevel,
+      '',
+      undefined,
+      options,
+      undefined,
+      'openai',
+      undefined,
+      execution,
+    )).rejects.toBeInstanceOf(QuizGenerationValidationError);
+
+    expect(mocks.requestWorkerAiText.mock.calls.filter(
+      (call) => call[1]?.action?.stage === 'REPAIR',
+    )).toHaveLength(1);
+  });
+
+  it('propagates cancellation from the optional review stage', async () => {
+    const controller = new AbortController();
+    mocks.generateWithOpenAIResilient.mockResolvedValue(validQuiz);
+    mocks.requestWorkerAiText.mockImplementation(async (_body, requestOptions) => {
+      if (requestOptions?.action?.stage === 'REVIEW') {
+        controller.abort();
+        throw new DOMException('Aborted', 'AbortError');
+      }
+      throw new Error(`Unexpected stage ${String(requestOptions?.action?.stage)}`);
+    });
+
+    await expect(generateQuiz(
+      blueprint.topic,
+      blueprint.classLevel,
+      '',
+      undefined,
+      options,
+      undefined,
+      'openai',
+      undefined,
+      { ...execution, signal: controller.signal },
+    )).rejects.toMatchObject({ name: 'AbortError' });
   });
 
   it('passes the capability-aware V3 system instruction to the provider', async () => {

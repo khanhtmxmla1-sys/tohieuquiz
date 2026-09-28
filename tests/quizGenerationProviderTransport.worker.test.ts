@@ -81,6 +81,24 @@ describe('server quiz provider transport', () => {
     expect(JSON.stringify(result)).not.toContain(secret);
   });
 
+  it('classifies explicit system output truncation without retrying it', async () => {
+    const gatewayFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ finish_reason: 'length', message: { content: '{"questions":[' } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    await expect(executeQuizAiStage(
+      makeEnv(gatewayFetch),
+      { username: 'teacher-a', role: 'teacher' },
+      baseInput,
+      { sleep: async () => undefined },
+    )).rejects.toMatchObject({
+      code: 'AI_PROVIDER_OUTPUT_TRUNCATED',
+      phase: 'response-content',
+    });
+
+    expect(gatewayFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('uses the stored personal credential resolver but never returns the plaintext key', async () => {
     const key = 'personal-key-never-return';
     const resolvePersonalCredential = vi.fn(async () => ({

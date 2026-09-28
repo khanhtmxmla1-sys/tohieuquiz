@@ -221,4 +221,21 @@ describe('teacher AI credentials security contract', () => {
       finishReason: 'content_filter',
     });
   });
+
+  it('classifies explicit length truncation even when provider content is nonempty', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ finish_reason: 'length', message: { content: '{"questions":[' } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    await expect(dispatchPersonalAi({
+      provider: 'deepseek',
+      key: 'security-canary-key-123456789',
+      model: 'deepseek-flash',
+      messages: [{ role: 'user', content: 'return JSON' }],
+    })).rejects.toMatchObject({
+      code: 'AI_PROVIDER_OUTPUT_TRUNCATED',
+      phase: 'response-content',
+      finishReason: 'length',
+    });
+  });
 });

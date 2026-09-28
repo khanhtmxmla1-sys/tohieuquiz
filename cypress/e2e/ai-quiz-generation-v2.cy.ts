@@ -158,7 +158,7 @@ const warningTenQuestionQuiz = {
 };
 
 const SCHEMA_ERROR_MESSAGE =
-  'AI tạo một số câu chưa đúng cấu trúc. Vui lòng thử tạo lại đề hoặc giảm số dạng câu trong một lần.';
+  'AI tạo một số câu chưa đúng cấu trúc. Câu 1: phần phương án trả lời chưa đúng cấu trúc. Đã thử sửa nhưng chưa thành công.';
 
 type AiMode =
   | 'success'

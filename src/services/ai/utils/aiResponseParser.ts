@@ -82,6 +82,43 @@ export const extractAIContent = (data: unknown): string => {
   return '';
 };
 
+export const AI_RESPONSE_TRUNCATED_USER_MESSAGE =
+  'Phản hồi AI bị cắt do giới hạn đầu ra. Hãy thử tạo ít câu hơn trong một lần.';
+
+export class AiResponseTruncatedError extends Error {
+  readonly code = 'AI_PROVIDER_OUTPUT_TRUNCATED';
+
+  constructor() {
+    super(AI_RESPONSE_TRUNCATED_USER_MESSAGE);
+    this.name = 'AiResponseTruncatedError';
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/** Detect only explicit provider completion metadata; never infer truncation from content. */
+export const isAIResponseTruncated = (data: unknown, depth = 0): boolean => {
+  if (!data || typeof data !== 'object' || depth > 4) return false;
+  const obj = data as Record<string, unknown>;
+
+  if (Array.isArray(obj.choices)) {
+    const truncated = (obj.choices as unknown[]).some((choice) => {
+      if (!choice || typeof choice !== 'object' || Array.isArray(choice)) return false;
+      return String((choice as Record<string, unknown>).finish_reason || '').trim().toLowerCase() === 'length';
+    });
+    if (truncated) return true;
+  }
+
+  if (Array.isArray(obj.candidates)) {
+    const truncated = (obj.candidates as unknown[]).some((candidate) => {
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return false;
+      return String((candidate as Record<string, unknown>).finishReason || '').trim().toUpperCase() === 'MAX_TOKENS';
+    });
+    if (truncated) return true;
+  }
+
+  return obj.data ? isAIResponseTruncated(obj.data, depth + 1) : false;
+};
+
 /** Extract a human-readable error message from an AI error response. */
 export const extractAIErrorMessage = (data: unknown): string => {
   if (!data || typeof data !== 'object') return '';

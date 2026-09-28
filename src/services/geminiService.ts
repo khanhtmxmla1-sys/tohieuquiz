@@ -4,6 +4,7 @@
  */
 
 import { REVIEWER_INSTRUCTION } from '../config/constants';
+import { z } from 'zod';
 import { generateImage, checkImageServiceAvailability } from './imageGenerationService';
 import { QuestionType } from '../types';
 import { parseAndRepairJSON, validateAndFixQuiz } from './ai/utils/jsonRepair';
@@ -270,19 +271,74 @@ const runV3QualityPipeline = async (
   const diagramMode: DiagramGenerationMode = blueprint.slots.some((slot) => slot.diagramPolicy !== 'forbidden')
     ? 'auto'
     : 'off';
-  let finalQuiz = parseGeneratedQuizV3Compatibility(processGeneratedQuizSvg(
+  const canUseAuxiliaryStages = execution?.action.workflow === 'QUIZ_CREATE';
+  const normalizedDraft = processGeneratedQuizSvg(
     result,
     { diagramMode, blueprintV3: blueprint },
-  ).quiz);
+  ).quiz;
+  let repairUsed = false;
+  let finalQuiz: GeneratedQuizV3;
+
+  try {
+    finalQuiz = parseGeneratedQuizV3Compatibility(normalizedDraft);
+  } catch (error) {
+    if (!(error instanceof z.ZodError)) throw error;
+
+    const initialIssues = toGeneratedQuizSchemaIssues(error.issues);
+    if (!canUseAuxiliaryStages) {
+      throw new GeneratedQuizSchemaError(initialIssues);
+    }
+
+    repairUsed = true;
+    onStepChange?.('repairing');
+    const repairedText = await requestWorkerAiText({
+      model: 'gemini-2.5-flash',
+      messages: [
+        {
+          role: 'system',
+          content: 'Bạn sửa cấu trúc JSON đề V3. Chỉ trả về một JSON object V3 hoàn chỉnh và hợp lệ.',
+        },
+        {
+          role: 'user',
+          content: [
+            buildQuizSchemaRepairPrompt({ quiz: normalizedDraft, issues: initialIssues }),
+            '[BLUEPRINT V3 BẮT BUỘC]',
+            JSON.stringify(blueprint),
+            'Kết quả phải chứa đầy đủ đúng các slot trong blueprint, giữ nguyên slotId, type, difficulty và diagramPolicy.',
+          ].join('\n'),
+        },
+      ],
+      temperature: 0.1,
+      response_format: { type: 'json_object' },
+    }, toWorkerOptions({ ...execution, stage: 'REPAIR' }));
+
+    const repairedDraft = processGeneratedQuizSvg(
+      parseAndRepairJSON(repairedText),
+      { diagramMode, blueprintV3: blueprint },
+    ).quiz;
+    try {
+      finalQuiz = parseGeneratedQuizV3Compatibility(repairedDraft);
+    } catch (repairError) {
+      if (repairError instanceof z.ZodError) {
+        throw new GeneratedQuizSchemaError(
+          toGeneratedQuizSchemaIssues(repairError.issues),
+        );
+      }
+      throw repairError;
+    }
+  }
+
   let issues = auditGeneratedQuizV3(finalQuiz, blueprint);
 
   if (issues.some((issue) => !issue.repairable)) {
     throw new QuizGenerationValidationError(issues);
   }
 
-  const canUseAuxiliaryStages = execution?.action.workflow === 'QUIZ_CREATE';
   if (issues.length > 0) {
     if (!canUseAuxiliaryStages) {
+      throw new QuizGenerationValidationError(issues);
+    }
+    if (repairUsed) {
       throw new QuizGenerationValidationError(issues);
     }
 
@@ -338,6 +394,10 @@ const runV3QualityPipeline = async (
         finalQuiz = reviewedQuiz;
       }
     } catch (error) {
+      const errorName = error && typeof error === 'object' && 'name' in error
+        ? String(error.name)
+        : '';
+      if (execution?.signal?.aborted || errorName === 'AbortError') throw error;
       console.warn('[AI Validation Chain V3] Reviewer output was ignored.', error);
     }
   }

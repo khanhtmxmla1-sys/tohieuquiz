@@ -4,7 +4,7 @@ import { QuestionType, type Question } from '../src/types';
 import { useQuizGeneration } from '../src/features/quiz-generator/hooks/useQuizGeneration';
 import type { OcrDocument } from '../src/services/ai/schemas/ocrDocumentSchema';
 import { GeneratedQuizSchema } from '../src/services/ai/schemas/quizGenerationSchema';
-import { GENERATED_QUIZ_SCHEMA_USER_MESSAGE } from '../src/services/ai/quizGenerationErrors';
+import { getQuizGenerationUserMessage } from '../src/services/ai/quizGenerationErrors';
 import { showError } from '../src/utils/toast';
 
 const aiMocks = vi.hoisted(() => ({
@@ -234,7 +234,9 @@ describe('quiz AI workflow', () => {
       await result.current.handleGenerate('exam');
     });
 
-    expect(showErrorMock).toHaveBeenCalledWith(GENERATED_QUIZ_SCHEMA_USER_MESSAGE);
+    expect(showErrorMock).toHaveBeenCalledWith(
+      getQuizGenerationUserMessage(schemaResult.error),
+    );
     expect(String(showErrorMock.mock.calls[0][0])).not.toContain('too_small');
     expect(String(showErrorMock.mock.calls[0][0])).not.toContain('questions');
     expect(String(showErrorMock.mock.calls[0][0])).not.toMatch(/^\s*\[/);
