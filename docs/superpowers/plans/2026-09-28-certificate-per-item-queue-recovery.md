@@ -25,7 +25,7 @@
 
 ## Root-cause evidence đã xác nhận
 
-Batch production `batch-582d7ae9-1394-435d-a2c6-3c0e1d500821` tạo 18 chứng nhận. Lần chạy đầu hoàn thành 5 chứng nhận rồi Worker dừng mà không ghi `error_message`. Sau lease 10 phút, lần claim thứ hai chuyển 13 item còn lại sang `processing` nhưng không có item nào hoàn thành. Đây là cùng lớp lỗi với incident cũ 3/21: hard termination có thể bỏ qua `catch`, trong khi trạng thái batch/item đã được chuyển sang `processing`.
+Batch production `batch-582d7ae9-1394-435d-a2c6-3c0e1d500861` tạo 18 chứng nhận. Lần chạy đầu hoàn thành 5 chứng nhận rồi Worker dừng mà không ghi `error_message`. Sau lease 10 phút, lần claim thứ hai chuyển 13 item còn lại sang `processing` nhưng không có item nào hoàn thành. Đây là cùng lớp lỗi với incident cũ 3/21: hard termination có thể bỏ qua `catch`, trong khi trạng thái batch/item đã được chuyển sang `processing`.
 
 Bản sửa trước đã giảm `CERTIFICATE_RENDER_CONCURRENCY` từ 4 xuống 1 nhưng vẫn render toàn bộ batch trong một invocation. Vì vậy một invocation bị terminate vẫn có thể làm nhiều item mắc chung trong trạng thái `processing`.
 
@@ -33,7 +33,7 @@ Bản sửa trước đã giảm `CERTIFICATE_RENDER_CONCURRENCY` từ 4 xuống
 
 ## File map dự kiến
 
-- Create: `workers/migrations/0082_certificate_item_queue_recovery.sql`
+- Create: `workers/migrations/0086_certificate_item_queue_recovery.sql`
 - Create: `workers/src/services/certificateQueueMessages.ts`
 - Create: `workers/src/services/certificateRecoveryService.ts`
 - Create: `workers/src/services/certificateBatchState.ts`
@@ -124,7 +124,7 @@ git commit -m "test: cover per-certificate queue recovery"
 ### Task 2: Thêm lease và enqueue state ở cấp certificate
 
 **Files:**
-- Create: `workers/migrations/0082_certificate_item_queue_recovery.sql`
+- Create: `workers/migrations/0086_certificate_item_queue_recovery.sql`
 - Modify: `workers/schema.sql`
 - Modify: `workers/src/services/operationsService.ts`
 - Test: `tests/operationsService.test.ts`
@@ -161,7 +161,7 @@ và thêm index giống migration.
 - [ ] **Step 3: Cập nhật expected migration**
 
 ```ts
-export const EXPECTED_LATEST_MIGRATION = '0082_certificate_item_queue_recovery.sql';
+export const EXPECTED_LATEST_MIGRATION = '0086_certificate_item_queue_recovery.sql';
 ```
 
 - [ ] **Step 4: Đổi health probe sang kiểm tra item-level stale**
@@ -193,12 +193,12 @@ npm run typecheck:workers
 node workers/scripts/apply-d1-migrations-safe.cjs
 ```
 
-Expected: PASS; dry-run nhận migration 0082 và không ghi production.
+Expected: PASS; dry-run nhận migration 0086 và không ghi production.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add workers/migrations/0082_certificate_item_queue_recovery.sql workers/schema.sql workers/src/services/operationsService.ts tests/operationsService.test.ts
+git add workers/migrations/0086_certificate_item_queue_recovery.sql workers/schema.sql workers/src/services/operationsService.ts tests/operationsService.test.ts
 git commit -m "feat: add per-certificate queue lease state"
 ```
 
@@ -716,7 +716,7 @@ Expected: PASS.
 npm run d1:migrations:safe
 ```
 
-Expected: migration 0082 được nhận diện, không mutation.
+Expected: migration 0086 được nhận diện, không mutation.
 
 - [ ] **Step 5: Consumer deploy dry-run**
 
@@ -741,14 +741,14 @@ Không gom unrelated changes.
 Snapshot batch:
 
 ```text
-batch-582d7ae9-1394-435d-a2c6-3c0e1d500821
+batch-582d7ae9-1394-435d-a2c6-3c0e1d500861
 ```
 
 Ghi count theo status, attempt_count, timestamps, R2 keys. Không xuất tên học sinh.
 
-- [ ] **Step 2: Apply migration 0082**
+- [ ] **Step 2: Apply migration 0086**
 
-Dùng migration safe wrapper. Verify `d1_migrations` latest là `0082_certificate_item_queue_recovery.sql`.
+Dùng migration safe wrapper. Verify `d1_migrations` latest là `0086_certificate_item_queue_recovery.sql`.
 
 - [ ] **Step 3: Deploy API**
 
@@ -809,7 +809,7 @@ Operations Center không có `staleProcessing`; tạo thêm ít nhất một bat
 
 - Rollback consumer về version đã record trước rollout.
 - Rollback API về release trước.
-- Migration 0082 chỉ thêm nullable columns/index, không xóa dữ liệu nên không cần destructive rollback.
+- Migration 0086 chỉ thêm nullable columns/index, không xóa dữ liệu nên không cần destructive rollback.
 - Nếu consumer mới gặp lỗi, dừng replay mới; không reset `sent` rows.
 - Giữ snapshot production trước recovery cho đến khi xác minh xong.
 
