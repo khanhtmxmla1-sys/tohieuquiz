@@ -221,6 +221,34 @@ describe('certificate worker authorization and integrity', () => {
     expect(env.CERTIFICATE_QUEUE.send).toHaveBeenCalledWith({ kind: 'dispatch_batch', batchId: payload.data.batch_id });
   });
 
+  it('preserves the persisted batch but returns 503 when queue delivery fails', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => {
+      if (sql.includes('FROM classes')) {
+        return { id: 'class-1', name: '5A', teacher_username: 'teacher-1' };
+      }
+      if (sql.includes('FROM certificate_templates')) {
+        return { id: 'template-1', school_id: null, created_by: 'admin', is_active: 1 };
+      }
+      return null;
+    };
+    db.all = (sql) => sql.includes('FROM students')
+      ? [{ id: 'student-1', full_name: 'Nguyễn Văn A' }]
+      : [];
+    const env = createEnv(db);
+    env.CERTIFICATE_QUEUE.send.mockRejectedValueOnce(new Error('queue transport down'));
+
+    const response = await handleCreateBatch(requestBody(), env);
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      error: { code: 'CERTIFICATE_QUEUE_UNAVAILABLE' },
+    });
+    expect(db.batches).toHaveLength(1);
+    expect(db.runs.some((statement) =>
+      statement.sql.includes("error_message = 'CERTIFICATE_DISPATCH_ENQUEUE_FAILED'"),
+    )).toBe(true);
+  });
   it('returns the existing batch for a repeated request_id', async () => {
     const db = new FakeDB();
     db.first = (sql) => sql.includes('FROM certificate_batches')

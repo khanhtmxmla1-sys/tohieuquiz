@@ -68,6 +68,11 @@ export async function persistCertificateBatch(
       SET error_message = 'CERTIFICATE_DISPATCH_ENQUEUE_FAILED', updated_at = ?
       WHERE id = ? AND status = 'pending'
     `).bind(enqueueFailedAt, batchId).run();
+    return certificateError(
+      'CERTIFICATE_QUEUE_UNAVAILABLE',
+      'Certificate queue delivery failed',
+      503,
+    );
   }
   return certificateSuccess<CreateCertificateBatchResult>({
     batch_id: batchId,
