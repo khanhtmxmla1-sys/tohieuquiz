@@ -39,6 +39,12 @@ describe('QuestionEditorPane math composer integration', () => {
         });
     });
 
+    it('reports the selected question id when the rich editor becomes ready', async () => {
+        const onEditorReady = vi.fn();
+        render(<QuestionEditorPane onEditorReady={onEditorReady} />);
+
+        await waitFor(() => expect(onEditorReady).toHaveBeenCalledWith('q-1'));
+    });
     it('fills the focused workspace width instead of leaving unused flex space', async () => {
         render(<QuestionEditorPane />);
         await screen.findByTestId('question-rich-editor');

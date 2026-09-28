@@ -21,7 +21,7 @@ export interface QuestionEditorPaneProps {
     readOnly?: boolean;
     persistLocalNow?: (envelope: ManualQuizDraftEnvelope) => void;
     editorResetToken?: number;
-    onEditorReady?: () => void;
+    onEditorReady?: (questionId: string) => void;
     onBeforeAction?: () => boolean;
     currentQuestionIndex?: number;
     totalQuestions?: number;
@@ -48,7 +48,7 @@ interface InlineQuestionEditorProps {
     readOnly: boolean;
     persistLocalNow?: (envelope: ManualQuizDraftEnvelope) => void;
     editorResetToken?: number;
-    onEditorReady?: () => void;
+    onEditorReady?: (questionId: string) => void;
     onBeforeAction?: () => boolean;
     onNext?(): void;
     keyboardShortcutsEnabled?: boolean;
@@ -70,6 +70,9 @@ const InlineQuestionEditor = React.forwardRef<InlineQuestionEditorHandle, Inline
     const mathValidation = useMathFieldValidation(draft);
 
     const saveQuestion = useCallback(() => flush(), [flush]);
+    const handleEditorReady = useCallback(() => {
+        onEditorReady?.(question.id);
+    }, [onEditorReady, question.id]);
 
     const saveQuestionAndNext = useCallback(() => {
         if (onNext) {
@@ -141,7 +144,7 @@ const InlineQuestionEditor = React.forwardRef<InlineQuestionEditorHandle, Inline
             draft={draft}
             onDraftChange={onDraftChange}
             onSave={saveQuestion}
-            onEditorReady={onEditorReady}
+            onEditorReady={handleEditorReady}
             mode="inline"
             />
         </div>
