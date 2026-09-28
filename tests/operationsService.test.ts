@@ -8,7 +8,7 @@ class Statement {
   async first<T>() {
     if (this.sql.includes('SELECT 1 AS count')) return { count: 1 } as T;
     if (this.sql.includes('FROM d1_migrations')) return { count: 84, latest: '0085_server_quiz_generation.sql' } as T;
-    if (this.sql.includes('FROM certificate_batches')) {
+    if (this.sql.includes('FROM certificates')) {
       if (this.failCertificates) throw new Error('sensitive database failure');
       return { pending_count: 1, processing_count: 0, failed_count: 0, stale_processing_count: 0 } as T;
     }
