@@ -5,11 +5,18 @@ import { expectConsoleError, expectConsoleMessage } from './helpers/expectedCons
 import { createSqliteD1 } from './helpers/sqliteD1';
 
 const processBatchMock = vi.hoisted(() => vi.fn());
+const processCertificateMock = vi.hoisted(() => vi.fn());
+const reconcileBatchMock = vi.hoisted(() => vi.fn());
 const finalizeBatchMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../workers/src/services/certificateBatchProcessor', () => ({
   processBatch: processBatchMock,
+  processCertificate: processCertificateMock,
   finalizeCertificateBatch: finalizeBatchMock,
+}));
+
+vi.mock('../workers/src/services/certificateBatchState', () => ({
+  reconcileCertificateBatch: reconcileBatchMock,
 }));
 
 import certificateQueue from '../workers/src/queues/certificateQueue';
@@ -101,21 +108,29 @@ class QueueDB {
   }
 }
 
-function queueMessage(attempts = 1) {
+function queueMessage(
+  attempts = 1,
+  body: Record<string, unknown> = { batchId: 'batch-1' },
+) {
   return {
-    body: { batchId: 'batch-1' },
+    body,
     attempts,
     ack: vi.fn(),
     retry: vi.fn(),
   };
 }
 
-async function dispatch(db: QueueDB, message: ReturnType<typeof queueMessage>) {
+async function dispatch(
+  db: QueueDB | D1Database,
+  message: ReturnType<typeof queueMessage>,
+  queueSend = vi.fn().mockResolvedValue(undefined),
+) {
   await certificateQueue.queue(
     { messages: [message] } as any,
-    { DB: db } as any,
+    { DB: db, CERTIFICATE_QUEUE: { send: queueSend } } as any,
     {} as ExecutionContext,
   );
+  return queueSend;
 }
 
 function createSqliteQueueDb({
@@ -214,8 +229,68 @@ describe('certificate queue delivery semantics', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-14T00:00:00.000Z'));
     finalizeBatchMock.mockReset().mockResolvedValue(undefined);
-    processBatchMock.mockReset();
-    processBatchMock.mockResolvedValue(undefined);
+    processBatchMock.mockReset().mockResolvedValue(undefined);
+    processCertificateMock.mockReset().mockResolvedValue('sent');
+    reconcileBatchMock.mockReset().mockResolvedValue('processing');
+  });
+
+  it('dispatches a batch into one render message per certificate instead of rendering the batch', async () => {
+    const db = new QueueDB();
+    db.certificateRows = [
+      db.certificateRows[0],
+      { ...db.certificateRows[0], certificate_id: 'cert-2', student_id: 'student-2' },
+      { ...db.certificateRows[0], certificate_id: 'cert-3', student_id: 'student-3' },
+    ];
+    const message = queueMessage(1, { kind: 'dispatch_batch', batchId: 'batch-1' });
+    const send = await dispatch(db, message);
+
+    expect(processBatchMock).not.toHaveBeenCalled();
+    expect(processCertificateMock).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledTimes(3);
+    expect(send).toHaveBeenNthCalledWith(1, {
+      kind: 'render_certificate', batchId: 'batch-1', certificateId: 'cert-1',
+    });
+    expect(send).toHaveBeenNthCalledWith(2, {
+      kind: 'render_certificate', batchId: 'batch-1', certificateId: 'cert-2',
+    });
+    expect(send).toHaveBeenNthCalledWith(3, {
+      kind: 'render_certificate', batchId: 'batch-1', certificateId: 'cert-3',
+    });
+    expect(message.ack).toHaveBeenCalledOnce();
+  });
+
+  it('renders exactly the addressed certificate for a render message', async () => {
+    const db = new QueueDB();
+    db.certificateRows = [
+      db.certificateRows[0],
+      { ...db.certificateRows[0], certificate_id: 'cert-2', student_id: 'student-2' },
+      { ...db.certificateRows[0], certificate_id: 'cert-3', student_id: 'student-3' },
+    ];
+    const message = queueMessage(1, {
+      kind: 'render_certificate', batchId: 'batch-1', certificateId: 'cert-2',
+    });
+
+    await dispatch(db, message);
+
+    expect(processBatchMock).not.toHaveBeenCalled();
+    expect(processCertificateMock).toHaveBeenCalledTimes(1);
+    expect(processCertificateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ batchId: 'batch-1', certificateId: 'cert-2' }),
+    );
+    expect(message.ack).toHaveBeenCalledOnce();
+  });
+
+  it('keeps legacy batch messages compatible by treating them as dispatch requests', async () => {
+    const db = new QueueDB();
+    const message = queueMessage(1, { batchId: 'batch-1' });
+    const send = await dispatch(db, message);
+
+    expect(processBatchMock).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledWith({
+      kind: 'render_certificate', batchId: 'batch-1', certificateId: 'cert-1',
+    });
+    expect(message.ack).toHaveBeenCalledOnce();
   });
 
   it('acknowledges an already completed duplicate message', async () => {
