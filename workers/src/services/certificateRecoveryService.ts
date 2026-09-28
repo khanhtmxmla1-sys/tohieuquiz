@@ -139,6 +139,25 @@ export async function recoverStaleCertificateWork(
     }
   }
 
+  const terminalCandidates = await env.DB.prepare(`
+    SELECT cb.id
+    FROM certificate_batches cb
+    WHERE cb.status IN ('pending', 'processing')
+      AND cb.updated_at < ?
+      AND NOT EXISTS (
+        SELECT 1
+        FROM certificates c
+        WHERE c.batch_id = cb.id
+          AND c.status IN ('pending', 'processing')
+      )
+    ORDER BY cb.updated_at, cb.id
+    LIMIT ?
+  `).bind(staleBefore, RECOVERY_LIMIT).all<{ id: string }>();
+
+  for (const candidate of terminalCandidates.results) {
+    reconciledBatchIds.add(candidate.id);
+  }
+
   for (const batchId of reconciledBatchIds) {
     await reconcileCertificateBatch(env, batchId);
   }

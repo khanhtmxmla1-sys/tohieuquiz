@@ -13,6 +13,13 @@ import { recoverStaleCertificateWork } from '../workers/src/services/certificate
 function createRecoveryDb() {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec(`
+    CREATE TABLE certificate_batches (
+      id TEXT PRIMARY KEY,
+      status TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    INSERT INTO certificate_batches (id, status, updated_at)
+      VALUES ('batch-1', 'processing', '2026-09-28T00:00:00.000Z');
     CREATE TABLE certificates (
       id TEXT PRIMARY KEY,
       batch_id TEXT NOT NULL,
@@ -139,6 +146,24 @@ describe('certificate recovery service', () => {
 
       expect(result).toEqual({ requeued: 0, failed: 0, reconciledBatches: 0 });
       expect(send).not.toHaveBeenCalled();
+    } finally {
+      sqlite.close();
+    }
+  });
+
+  it('reconciles a stale batch after the last certificate was sent before batch finalization', async () => {
+    const { sqlite, db } = createRecoveryDb();
+    insertCertificate(sqlite, { id: 'cert-sent', status: 'sent' });
+    const send = vi.fn(async () => undefined);
+    try {
+      const result = await recoverStaleCertificateWork(
+        { DB: db, CERTIFICATE_QUEUE: { send } } as any,
+        new Date('2026-09-28T01:00:00.000Z'),
+      );
+
+      expect(result).toEqual({ requeued: 0, failed: 0, reconciledBatches: 1 });
+      expect(send).not.toHaveBeenCalled();
+      expect(reconcileBatchMock).toHaveBeenCalledWith(expect.anything(), 'batch-1');
     } finally {
       sqlite.close();
     }
