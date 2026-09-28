@@ -1,0 +1,21 @@
+{
+  "promptVersion": "ai-blueprint-v3",
+  "blueprintVersion": 3,
+  "title": "Đề V3 mười câu sáu dạng",
+  "detectedCategory": "toan",
+  "detectedLesson": "Ôn tập tổng hợp lớp 4",
+  "suggestedTags": ["blueprint_v3", "sau_dang", "lop_4"],
+  "timeLimit": 20,
+  "questions": [
+    { "slotId": "slot-1", "type": "MCQ", "difficulty": 1, "diagramPolicy": "forbidden", "question": "Kết quả của 5 cộng 4 là bao nhiêu?", "options": ["9", "8", "10", "11"], "correctAnswer": "A" },
+    { "slotId": "slot-2", "type": "TRUE_FALSE", "difficulty": 1, "diagramPolicy": "forbidden", "mainQuestion": "Xác định đúng sai về số tự nhiên.", "items": [{ "statement": "Số 8 là số chẵn.", "isCorrect": true }, { "statement": "Số 9 là số chẵn.", "isCorrect": false }] },
+    { "slotId": "slot-3", "type": "SHORT_ANSWER", "difficulty": 1, "diagramPolicy": "forbidden", "question": "Số liền sau của 29 là số nào?", "correctAnswer": "30" },
+    { "slotId": "slot-4", "type": "MATCHING", "difficulty": 2, "diagramPolicy": "forbidden", "question": "Nối phép tính với kết quả đúng.", "pairs": [{ "left": "2 + 2", "right": "4" }, { "left": "3 + 2", "right": "5" }, { "left": "4 + 2", "right": "6" }] },
+    { "slotId": "slot-5", "type": "DRAG_DROP", "difficulty": 2, "diagramPolicy": "forbidden", "question": "Kéo số thích hợp vào chỗ trống.", "text": "Mười chia hai bằng [1].", "blanks": ["5"], "distractors": ["2", "10"] },
+    { "slotId": "slot-6", "type": "CATEGORIZATION", "difficulty": 2, "diagramPolicy": "forbidden", "question": "Phân loại các số chẵn và số lẻ.", "categories": [{ "id": "chan", "name": "Số chẵn" }, { "id": "le", "name": "Số lẻ" }], "items": [{ "id": "i-1", "content": "2", "categoryId": "chan" }, { "id": "i-2", "content": "4", "categoryId": "chan" }, { "id": "i-3", "content": "3", "categoryId": "le" }, { "id": "i-4", "content": "5", "categoryId": "le" }] },
+    { "slotId": "slot-7", "type": "MCQ", "difficulty": 2, "diagramPolicy": "forbidden", "question": "Loài vật nào sống dưới nước?", "options": ["Cá chép", "Con mèo", "Con gà", "Con voi"], "correctAnswer": "A" },
+    { "slotId": "slot-8", "type": "TRUE_FALSE", "difficulty": 2, "diagramPolicy": "forbidden", "mainQuestion": "Xác định đúng sai về cây xanh.", "items": [{ "statement": "Cây cần ánh sáng để phát triển.", "isCorrect": true }, { "statement": "Cây không cần nước.", "isCorrect": false }] },
+    { "slotId": "slot-9", "type": "SHORT_ANSWER", "difficulty": 3, "diagramPolicy": "forbidden", "question": "Từ nào trái nghĩa với từ chăm chỉ?", "correctAnswer": "lười biếng" },
+    { "slotId": "slot-10", "type": "MATCHING", "difficulty": 3, "diagramPolicy": "forbidden", "question": "Nối ngày trong tuần với thứ tự phù hợp.", "pairs": [{ "left": "Thứ Hai", "right": "Đầu tuần học" }, { "left": "Thứ Tư", "right": "Giữa tuần học" }, { "left": "Chủ nhật", "right": "Ngày nghỉ cuối tuần" }] }
+  ]
+}

@@ -109,6 +109,7 @@ const personalDispatchErrorResponse = (error: AiPersonalDispatchError): Response
         AI_PROVIDER_REQUEST_REJECTED: 502,
         AI_PROVIDER_UNAVAILABLE: 503,
         AI_PROVIDER_TIMEOUT: 504,
+        AI_PROVIDER_OUTPUT_TRUNCATED: 502,
         AI_PROVIDER_RESPONSE_INVALID: 502,
         AI_CAPABILITY_UNSUPPORTED: 400,
     };

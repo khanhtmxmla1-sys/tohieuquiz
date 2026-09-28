@@ -85,6 +85,18 @@ const extractOpenAiText = (payload: unknown): string => {
   return typeof content === 'string' ? content : '';
 };
 
+const hasOpenAiLengthFinishReason = (payload: unknown): boolean => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
+  const choices = (payload as Record<string, unknown>).choices;
+  if (!Array.isArray(choices)) return false;
+  return choices.some((choice) => (
+    Boolean(choice)
+    && typeof choice === 'object'
+    && !Array.isArray(choice)
+    && String((choice as Record<string, unknown>).finish_reason || '').trim().toLowerCase() === 'length'
+  ));
+};
+
 const systemCodeForStatus = (status: number): QuizProviderStageError['code'] => {
   if (status === 429) return 'AI_PROVIDER_QUOTA';
   if (status === 408 || status === 504) return 'AI_PROVIDER_TIMEOUT';
@@ -157,6 +169,13 @@ const executeSystemGatewayOnce = async (
     throw new QuizProviderStageError('AI_PROVIDER_RESPONSE_INVALID', {
       provider: 'system-gateway',
       phase: 'response-json',
+    });
+  }
+
+  if (hasOpenAiLengthFinishReason(payload)) {
+    throw new QuizProviderStageError('AI_PROVIDER_OUTPUT_TRUNCATED', {
+      provider: 'system-gateway',
+      phase: 'response-content',
     });
   }
 

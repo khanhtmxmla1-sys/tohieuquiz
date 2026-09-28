@@ -2,7 +2,12 @@ import type { QuizAiSource } from '../../../shared/teacher-ai-credentials.contra
 import { getWorkersApiBaseUrl } from '../api/config';
 import { type AiActionOptions, resolveAiActionMeta } from './aiAction';
 import { AI_CHAT_API_PATH } from './endpointConfig';
-import { extractAIContent, extractAIErrorMessage } from './utils/aiResponseParser';
+import {
+  AiResponseTruncatedError,
+  extractAIContent,
+  extractAIErrorMessage,
+  isAIResponseTruncated,
+} from './utils/aiResponseParser';
 
 export interface WorkerAiRequest extends Record<string, unknown> {
   model: string;
@@ -65,6 +70,9 @@ const parseSseResponse = async (response: Response): Promise<WorkerAiResult> => 
   }
 
   if (buffer) processLine(buffer);
+  if (payloads.some((payload) => isAIResponseTruncated(payload))) {
+    throw new AiResponseTruncatedError();
+  }
   return { text: text.trim(), payloads };
 };
 
@@ -119,6 +127,7 @@ export const requestWorkerAi = async (
     const payload = await response.json();
     const aiError = extractAIErrorMessage(payload);
     if (aiError) throw new Error(aiError);
+    if (isAIResponseTruncated(payload)) throw new AiResponseTruncatedError();
     return { text: extractAIContent(payload).trim(), payloads: [payload] };
   } catch (error: unknown) {
     const errorName = typeof error === 'object' && error !== null && 'name' in error

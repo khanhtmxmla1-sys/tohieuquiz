@@ -159,6 +159,18 @@ const clickGenerate = () => {
   cy.contains('button', '📚 Ra đề ÔN TẬP').should('be.enabled').click();
 };
 
+const configureTenQuestionsSixTypes = () => {
+  for (const label of ['Kéo thả điền khuyết', 'Phân loại vào nhóm']) {
+    cy.contains('label', label).find('input[type="checkbox"]').check({ force: true });
+  }
+  cy.contains('10 câu · 6 dạng · Dễ 3, Trung bình 5, Khó 2').should('be.visible');
+  cy.get('input[aria-label^="Số câu "]').should('have.length', 6).then(($inputs) => {
+    const counts = [...$inputs].map((input) => Number((input as HTMLInputElement).value));
+    expect(counts).to.deep.equal([2, 2, 2, 2, 1, 1]);
+  });
+  cy.get('input[placeholder*="Động vật rừng xanh"]').clear().type('Ôn tập sáu dạng lớp 4');
+};
+
 describe('AI Question Blueprint V3', () => {
   it('creates a representative three-question trial and blocks saving it', () => {
     cy.intercept('POST', '**/api/ai/chat', (request) => {
@@ -282,6 +294,38 @@ describe('AI Question Blueprint V3', () => {
       cy.contains('button', 'Hoàn tác lần sinh lại này').click();
       cy.contains('Kết quả của 6 cộng 4', { timeout: 10_000 }).should('be.visible');
       cy.contains('AI đã thay đổi một câu hỏi').should('not.exist');
+    });
+  });
+
+  it('repairs one schema-invalid question in a ten-question six-type blueprint', () => {
+    cy.fixture('ai-blueprint-v3-10-six-types.json').then((validQuiz: any) => {
+      const malformed = structuredClone(validQuiz);
+      delete malformed.questions[0].question;
+      const stages: string[] = [];
+
+      cy.intercept('POST', '**/api/ai/chat', (request) => {
+        const meta = request.body?._meta;
+        stages.push(meta.stage);
+        expect(meta.promptVersion).to.equal('ai-blueprint-v3');
+        expect(meta.blueprintVersion).to.equal(3);
+        expect(meta.slotCount).to.equal(10);
+        request.reply({
+          statusCode: 200,
+          body: aiResponse(meta.stage === 'GENERATE' ? malformed : validQuiz),
+        });
+      }).as('aiTenSix');
+
+      visitCreateTab();
+      configureTenQuestionsSixTypes();
+      clickGenerate();
+
+      cy.wait('@aiTenSix').its('request.body._meta.stage').should('equal', 'GENERATE');
+      cy.wait('@aiTenSix').its('request.body._meta.stage').should('equal', 'REPAIR');
+      cy.wait('@aiTenSix').its('request.body._meta.stage').should('equal', 'REVIEW');
+      cy.contains('Kết quả của 5 cộng 4', { timeout: 20_000 }).should('exist');
+      cy.contains('Phân loại các số chẵn và số lẻ').should('exist');
+      cy.contains('button', 'Lưu đề').should('be.enabled');
+      cy.then(() => expect(stages).to.deep.equal(['GENERATE', 'REPAIR', 'REVIEW']));
     });
   });
 });

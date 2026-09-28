@@ -12,6 +12,7 @@ export type AiPersonalDispatchCode =
   | 'AI_PROVIDER_REQUEST_REJECTED'
   | 'AI_PROVIDER_UNAVAILABLE'
   | 'AI_PROVIDER_TIMEOUT'
+  | 'AI_PROVIDER_OUTPUT_TRUNCATED'
   | 'AI_PROVIDER_RESPONSE_INVALID'
   | 'AI_CAPABILITY_UNSUPPORTED';
 
@@ -47,6 +48,7 @@ export class AiPersonalDispatchError extends Error {
       AI_PROVIDER_REQUEST_REJECTED: 'Nhà cung cấp AI từ chối yêu cầu tạo đề.',
       AI_PROVIDER_UNAVAILABLE: 'Nhà cung cấp AI tạm thời không khả dụng.',
       AI_PROVIDER_TIMEOUT: 'Nhà cung cấp AI phản hồi quá thời gian.',
+      AI_PROVIDER_OUTPUT_TRUNCATED: 'Phản hồi AI bị cắt do giới hạn đầu ra. Hãy thử tạo ít câu hơn trong một lần.',
       AI_PROVIDER_RESPONSE_INVALID: 'Nhà cung cấp AI trả về kết quả không hợp lệ hoặc không có nội dung.',
       AI_CAPABILITY_UNSUPPORTED: 'Nguồn AI cá nhân V1 chỉ hỗ trợ yêu cầu văn bản tương thích.',
     };
@@ -277,10 +279,17 @@ export async function dispatchPersonalAi(input: {
       && !Array.isArray(choice.message)
     ) ? choice.message as Record<string, unknown> : null;
     const text = typeof message?.content === 'string' ? message.content : '';
+    const finishReason = allowlistedFinishReason(choice?.finish_reason);
+    if (finishReason === 'length' || finishReason === 'max_tokens') {
+      throw new AiPersonalDispatchError('AI_PROVIDER_OUTPUT_TRUNCATED', {
+        phase: 'response-content',
+        finishReason,
+      });
+    }
     if (!text) {
       throw new AiPersonalDispatchError('AI_PROVIDER_RESPONSE_INVALID', {
         phase: 'response-content',
-        finishReason: allowlistedFinishReason(choice?.finish_reason),
+        finishReason,
       });
     }
     return { text };

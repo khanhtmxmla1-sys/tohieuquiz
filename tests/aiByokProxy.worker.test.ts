@@ -441,4 +441,28 @@ describe('/api/ai/chat personal BYOK dispatch', () => {
     expect(logs).not.toContain(apiKey);
     expect(logs).not.toContain(providerSecret);
   });
+
+  it('returns a stable truncation error and releases the personal action', async () => {
+    await seedCredential('gemini', 'gemini-personal-secret-123456789');
+    const body = personalBody('gemini-personal');
+    const actionId = (body._meta as any).actionId;
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({
+      choices: [{ finish_reason: 'length', message: { content: '{"questions":[' } }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const response = await handleAiProxy(request(body), env, '/api/ai/chat', 'POST');
+
+    expect(response?.status).toBe(502);
+    await expect(response?.json()).resolves.toMatchObject({
+      code: 'AI_PROVIDER_OUTPUT_TRUNCATED',
+      message: 'Phản hồi AI bị cắt do giới hạn đầu ra. Hãy thử tạo ít câu hơn trong một lần.',
+    });
+    expect(sqlite.prepare(`
+      SELECT status, failure_code FROM ai_generation_actions WHERE action_id = ?
+    `).get(actionId)).toEqual({
+      status: 'FAILED',
+      failure_code: 'AI_PROVIDER_OUTPUT_TRUNCATED',
+    });
+  });
 });
