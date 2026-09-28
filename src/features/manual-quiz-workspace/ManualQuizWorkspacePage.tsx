@@ -365,9 +365,10 @@ const ManualQuizWorkspacePage: React.FC = () => {
         pendingEditorFocusRef.current = null;
     }, []);
 
-    const handleQuestionEditorReady = useCallback(() => {
+    const handleQuestionEditorReady = useCallback((readyQuestionId: string) => {
         const pending = pendingEditorFocusRef.current;
         if (!pending) return;
+        if (readyQuestionId !== pending.questionId) return;
         const currentEnvelope = useManualQuizWorkspaceStore.getState().envelope;
         if (workspaceView !== 'edit' || currentEnvelope?.selectedQuestionId !== pending.questionId) {
             if (pending.activated) pendingEditorFocusRef.current = null;
