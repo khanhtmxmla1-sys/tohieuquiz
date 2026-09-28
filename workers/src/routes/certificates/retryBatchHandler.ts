@@ -28,17 +28,19 @@ export async function handleRetryBatch(request: Request, env: Env, batchId: stri
 
   await env.DB.prepare(`
     UPDATE certificate_batches
-    SET status = 'pending', error_message = NULL, updated_at = ?
+    SET status = 'pending', processing_started_at = NULL, error_message = NULL, updated_at = ?
     WHERE id = ?
   `).bind(new Date().toISOString(), batchId).run();
 
   await env.DB.prepare(`
     UPDATE certificates
-    SET status = 'pending', error_message = NULL, updated_at = ?
+    SET status = 'pending', attempt_count = 0,
+        processing_started_at = NULL, processing_token = NULL, enqueued_at = NULL,
+        error_message = NULL, updated_at = ?
     WHERE batch_id = ? AND status = 'failed'
   `).bind(new Date().toISOString(), batchId).run();
 
-  await env.CERTIFICATE_QUEUE.send({ batchId });
+  await env.CERTIFICATE_QUEUE.send({ kind: 'dispatch_batch', batchId });
 
   return certificateSuccess({ batch_id: batchId, status: 'pending' as const });
 }

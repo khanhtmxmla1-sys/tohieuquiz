@@ -68,6 +68,7 @@ import { createParentEmailProvider } from './parentPortal/emailProvider';
 import { runWeeklyParentDigests } from './parentPortal/digestService';
 import { purgeExpiredAuthSecurityData } from './services/authSessionService';
 import { purgeExpiredWebAuthnChallenges } from './services/webauthnService';
+import { recoverStaleCertificateWork } from './services/certificateRecoveryService';
 
 const fetch = createWorkerFetch({
     handleCors,
@@ -158,6 +159,17 @@ export default {
             event.cron !== SYSTEM_CRON.LIVE_EXAM_SWEEP
             && event.cron !== SYSTEM_CRON.WEEKLY_LEADERBOARD
         ) return;
+
+        if (event.cron === SYSTEM_CRON.LIVE_EXAM_SWEEP) {
+            try {
+                const recovery = await recoverStaleCertificateWork(env, new Date());
+                if (recovery.requeued > 0 || recovery.failed > 0) {
+                    console.log('[Cron] Certificate recovery', recovery);
+                }
+            } catch (error) {
+                console.error('[Cron] Certificate recovery failed:', error);
+            }
+        }
 
         try {
             await checkAndAutoCloseExpiredExams(env.DB);

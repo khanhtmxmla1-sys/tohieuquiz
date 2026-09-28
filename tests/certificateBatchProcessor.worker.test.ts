@@ -12,7 +12,8 @@ vi.mock('../workers/src/services/certificateRenderer', () => ({
   renderCertificate: renderCertificateMock,
 }));
 
-import { finalizeCertificateBatch, processBatch } from '../workers/src/services/certificateBatchProcessor';
+import { finalizeCertificateBatch, processBatch, processCertificate } from '../workers/src/services/certificateBatchProcessor';
+import { reconcileCertificateBatch } from '../workers/src/services/certificateBatchState';
 
 class ProcessorStatement {
   bindings: unknown[] = [];
@@ -63,16 +64,20 @@ function createSqliteProcessorDb() {
       canvas_width INTEGER NOT NULL, canvas_height INTEGER NOT NULL, is_active INTEGER NOT NULL
     );
     CREATE TABLE certificate_batches (
-      id TEXT PRIMARY KEY, teacher_id TEXT NOT NULL, status TEXT NOT NULL,
-      processing_started_at TEXT, attempt_count INTEGER NOT NULL DEFAULT 0,
+      id TEXT PRIMARY KEY, teacher_id TEXT NOT NULL,
+      template_id TEXT NOT NULL DEFAULT 'template-1', title TEXT NOT NULL DEFAULT 'Hoàn thành xuất sắc',
+      message TEXT, achievement_prefix TEXT, date_line TEXT, student_name_font TEXT,
+      status TEXT NOT NULL, processing_started_at TEXT, attempt_count INTEGER NOT NULL DEFAULT 0,
       error_message TEXT, sent_at TEXT, updated_at TEXT NOT NULL
     );
     CREATE TABLE certificates (
       id TEXT PRIMARY KEY, batch_id TEXT NOT NULL, student_id TEXT NOT NULL,
       student_name TEXT NOT NULL, student_score REAL, quiz_title TEXT,
       image_url TEXT, png_r2_key TEXT, status TEXT NOT NULL, attempt_count INTEGER NOT NULL DEFAULT 0,
+      processing_started_at TEXT, processing_token TEXT, enqueued_at TEXT,
       error_message TEXT, issued_at TEXT NOT NULL, sent_at TEXT, updated_at TEXT NOT NULL
     );
+    CREATE TABLE teachers (username TEXT PRIMARY KEY, full_name TEXT NOT NULL);
     CREATE TABLE notifications (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, user_role TEXT NOT NULL,
       type TEXT NOT NULL, title TEXT NOT NULL, body TEXT, data TEXT NOT NULL,
@@ -108,6 +113,7 @@ function createSqliteProcessorDb() {
     INSERT INTO certificate_batches (
       id, teacher_id, status, processing_started_at, updated_at
     ) VALUES ('batch-1', 'teacher-1', 'processing', '2026-09-14T00:00:00.000Z', '2026-09-14T00:00:00.000Z');
+    INSERT INTO teachers (username, full_name) VALUES ('teacher-1', 'Cô Nguyễn');
   `);
   const insert = sqlite.prepare(`
     INSERT INTO certificates (
@@ -138,6 +144,69 @@ describe('certificate batch processor', () => {
   });
 
   beforeEach(() => { renderCertificateMock.mockReset(); });
+
+  it('renders one claimed certificate and publishes only with its processing token', async () => {
+    const { db, sqlite } = createSqliteProcessorDb();
+    sqlite.prepare(`UPDATE certificates
+      SET processing_token = ?, processing_started_at = ?, enqueued_at = ?
+      WHERE id = 'cert-4'`).run('lease-4', '2026-09-14T00:00:00.000Z', '2026-09-14T00:00:00.000Z');
+    renderCertificateMock.mockResolvedValue(new Uint8Array([137, 80, 78, 71]));
+    const put = vi.fn(async () => undefined);
+    const env = { DB: db, CERT_IMAGES: {
+      get: vi.fn(async () => ({ arrayBuffer: async () => new ArrayBuffer(8) })),
+      put,
+    } } as any;
+
+    try {
+      await expect(processCertificate(env, {
+        batchId: 'batch-1', certificateId: 'cert-4', processingToken: 'lease-4',
+      })).resolves.toBe('sent');
+
+      expect(renderCertificateMock).toHaveBeenCalledTimes(1);
+      expect(renderCertificateMock.mock.calls[0][0].data.student_name).toBe('Học sinh 4');
+      expect(put).toHaveBeenCalledWith(
+        `certs/cert-4/${encodeURIComponent('lease-4')}.png`,
+        expect.any(Uint8Array),
+        expect.any(Object),
+      );
+      expect(sqlite.prepare(`SELECT status, processing_token, processing_started_at, enqueued_at
+        FROM certificates WHERE id = 'cert-4'`).get()).toEqual({
+          status: 'sent', processing_token: null, processing_started_at: null, enqueued_at: null,
+        });
+      expect(sqlite.prepare(`SELECT COUNT(*) AS count FROM certificates WHERE status = 'sent'`).get())
+        .toEqual({ count: 4 });
+    } finally { sqlite.close(); }
+  });
+
+  it('refuses a stale processing token before rendering', async () => {
+    const { db, sqlite } = createSqliteProcessorDb();
+    sqlite.prepare(`UPDATE certificates SET processing_token = ? WHERE id = 'cert-4'`).run('current-lease');
+    const env = { DB: db, CERT_IMAGES: { get: vi.fn(), put: vi.fn() } } as any;
+
+    try {
+      await expect(processCertificate(env, {
+        batchId: 'batch-1', certificateId: 'cert-4', processingToken: 'stale-lease',
+      })).rejects.toThrow('CERTIFICATE_LEASE_LOST');
+      expect(renderCertificateMock).not.toHaveBeenCalled();
+      expect(sqlite.prepare(`SELECT status, processing_token FROM certificates WHERE id = 'cert-4'`).get())
+        .toEqual({ status: 'processing', processing_token: 'current-lease' });
+    } finally { sqlite.close(); }
+  });
+
+  it('reconciles active and terminal batch state from certificate rows', async () => {
+    const { db, sqlite } = createSqliteProcessorDb();
+    const env = { DB: db } as any;
+    try {
+      await expect(reconcileCertificateBatch(env, 'batch-1')).resolves.toBe('processing');
+      sqlite.exec(`UPDATE certificates SET status = 'sent', sent_at = '2026-09-14T00:01:00.000Z',
+        processing_started_at = NULL, processing_token = NULL WHERE status = 'processing'`);
+      await expect(reconcileCertificateBatch(env, 'batch-1')).resolves.toBe('sent');
+      expect(sqlite.prepare(`SELECT status FROM certificate_batches WHERE id = 'batch-1'`).get())
+        .toEqual({ status: 'sent' });
+      expect(sqlite.prepare(`SELECT id FROM notifications WHERE type = 'certificate_batch_completed'`).get())
+        .toEqual({ id: 'ntf-certificate-batch-batch-1' });
+    } finally { sqlite.close(); }
+  });
 
   it('preserves Vietnamese and score zero, produces partial, and notifies successes only', async () => {
     const errorSpy = expectConsoleError();

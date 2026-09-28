@@ -91,4 +91,5 @@ INSERT OR IGNORE INTO d1_migrations (name) VALUES
   ('0082_student_coin_awards.sql'),
   ('0083_teacher_ai_credentials.sql'),
   ('0084_teacher_ai_preferences.sql'),
-  ('0085_server_quiz_generation.sql');
+  ('0085_server_quiz_generation.sql'),
+  ('0086_certificate_item_queue_recovery.sql');

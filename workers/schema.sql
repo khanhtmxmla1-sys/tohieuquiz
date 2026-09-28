@@ -1675,6 +1675,9 @@ CREATE TABLE IF NOT EXISTS certificates (
   status TEXT NOT NULL DEFAULT 'pending'
     CHECK(status IN ('pending', 'processing', 'sent', 'failed', 'revoked')),
   attempt_count INTEGER NOT NULL DEFAULT 0,
+  processing_started_at TEXT,
+  processing_token TEXT,
+  enqueued_at TEXT,
   error_message TEXT,
   issued_at TEXT NOT NULL DEFAULT (datetime('now')),
   sent_at TEXT,
@@ -1691,6 +1694,7 @@ CREATE INDEX IF NOT EXISTS idx_batches_status ON certificate_batches(status);
 CREATE INDEX IF NOT EXISTS idx_certs_student ON certificates(student_id);
 CREATE INDEX IF NOT EXISTS idx_certs_batch ON certificates(batch_id);
 CREATE INDEX IF NOT EXISTS idx_certs_status ON certificates(status);
+CREATE INDEX IF NOT EXISTS idx_certs_queue_recovery ON certificates(status, processing_started_at, enqueued_at, updated_at);
 
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
