@@ -62,6 +62,7 @@ export async function finalizeCertificateBatch(
   try {
     if (batch?.teacher_id) {
       await createNotification(env.DB, {
+        id: `ntf-certificate-batch-${batchId}`,
         userId: batch.teacher_id,
         userRole: 'teacher',
         type: 'certificate_batch_completed',
@@ -89,6 +90,7 @@ export async function finalizeCertificateBatch(
 
   try {
     await createNotifications(env.DB, sentCertificates.results.map((certificate) => ({
+      id: `ntf-certificate-${certificate.certificate_id}`,
       userId: certificate.student_id,
       userRole: 'student' as const,
       type: 'certificate_issued' as const,
@@ -145,6 +147,145 @@ async function runWithConcurrency<T>(
     },
   );
   await Promise.all(runners);
+}
+
+interface CertificateWorkRow {
+  certificate_id: string;
+  student_id: string;
+  student_name: string;
+  student_score: number | null;
+  quiz_title: string | null;
+  template_id: string;
+  batch_title: string;
+  message: string | null;
+  achievement_prefix: string | null;
+  date_line: string | null;
+  student_name_font: CertificateNameFont | null;
+  teacher_name: string | null;
+  bg_image_r2_key: string;
+  fields_config: string;
+  canvas_width: number;
+  canvas_height: number;
+}
+
+function renderFields(
+  fieldsConfig: FieldConfig[],
+  studentNameFont: CertificateNameFont | null,
+  achievementPrefix: string | null,
+  dateLine: string | null,
+): FieldConfig[] {
+  return fieldsConfig.map((field) => {
+    if (field.key === 'student_name' && studentNameFont !== null) {
+      return { ...field, fontFamily: studentNameFont };
+    }
+    if (field.key === 'quiz_title' && achievementPrefix !== null) {
+      return { ...field, prefix: achievementPrefix ? `${achievementPrefix} ` : '' };
+    }
+    if (field.key === 'date' && dateLine !== null) {
+      return {
+        ...field,
+        fontSize: (field.fontSize ?? 32) + 1,
+        fontStyle: 'italic' as const,
+        prefix: '',
+        format: undefined,
+      };
+    }
+    return field;
+  });
+}
+
+export async function processCertificate(
+  env: Env,
+  input: { batchId: string; certificateId: string; processingToken: string },
+): Promise<'sent'> {
+  const work = await env.DB.prepare(`
+    SELECT
+      c.id AS certificate_id,
+      c.student_id,
+      c.student_name,
+      c.student_score,
+      c.quiz_title,
+      cb.template_id,
+      cb.title AS batch_title,
+      cb.message,
+      cb.achievement_prefix,
+      cb.date_line,
+      cb.student_name_font,
+      t.full_name AS teacher_name,
+      ct.bg_image_r2_key,
+      ct.fields_config,
+      ct.canvas_width,
+      ct.canvas_height
+    FROM certificates c
+    JOIN certificate_batches cb ON cb.id = c.batch_id
+    JOIN certificate_templates ct ON ct.id = cb.template_id AND ct.is_active = 1
+    LEFT JOIN teachers t ON t.username = cb.teacher_id
+    WHERE c.id = ? AND c.batch_id = ?
+      AND c.status = 'processing'
+      AND c.processing_token = ?
+  `).bind(input.certificateId, input.batchId, input.processingToken).first<CertificateWorkRow>();
+
+  if (!work) throw new Error('CERTIFICATE_LEASE_LOST');
+
+  const bgObject = await env.CERT_IMAGES.get(work.bg_image_r2_key);
+  if (!bgObject) throw new Error(`Certificate background not found: ${work.bg_image_r2_key}`);
+  const bgBuffer = await bgObject.arrayBuffer();
+
+  let fieldsConfig: FieldConfig[];
+  try {
+    fieldsConfig = JSON.parse(work.fields_config || '[]') as FieldConfig[];
+  } catch {
+    throw new Error(`Invalid fields_config for template ${work.template_id}`);
+  }
+
+  const pngBuffer = await renderCertificate({
+    env,
+    bgImageArrayBuffer: bgBuffer,
+    fieldsConfig: renderFields(
+      fieldsConfig,
+      work.student_name_font,
+      work.achievement_prefix,
+      work.date_line,
+    ),
+    width: work.canvas_width,
+    height: work.canvas_height,
+    data: {
+      student_name: work.student_name,
+      score: work.student_score !== null ? `${work.student_score}/10` : '',
+      quiz_title: work.quiz_title || '',
+      date: work.date_line !== null ? work.date_line : formatSystemDate(new Date()),
+      teacher_name: work.teacher_name || 'Giáo viên',
+      custom_note: work.message || '',
+    },
+  });
+
+  const r2Key = `certs/${work.certificate_id}/${encodeURIComponent(input.processingToken)}.png`;
+  await env.CERT_IMAGES.put(r2Key, pngBuffer, {
+    httpMetadata: { contentType: 'image/png' },
+    customMetadata: { certificateId: work.certificate_id, batchId: input.batchId },
+  });
+
+  const now = new Date().toISOString();
+  const update = await env.DB.prepare(`
+    UPDATE certificates
+    SET image_url = ?, png_r2_key = ?, status = 'sent', sent_at = ?,
+        processing_started_at = NULL, processing_token = NULL, enqueued_at = NULL,
+        error_message = NULL, updated_at = ?
+    WHERE id = ? AND batch_id = ?
+      AND status = 'processing'
+      AND processing_token = ?
+  `).bind(
+    `/api/certificates/${work.certificate_id}/image`,
+    r2Key,
+    now,
+    now,
+    work.certificate_id,
+    input.batchId,
+    input.processingToken,
+  ).run();
+
+  if (Number(update.meta?.changes ?? 0) === 0) throw new Error('CERTIFICATE_LEASE_LOST');
+  return 'sent';
 }
 
 export async function processBatch(
