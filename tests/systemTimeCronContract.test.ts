@@ -39,6 +39,8 @@ describe('Hanoi system cron contract', () => {
     expect(source).toContain('SYSTEM_CRON.DAILY_SECURITY_AND_REMINDERS');
     expect(source).toContain('SYSTEM_CRON.PARENT_DIGEST');
     expect(source).toContain('SYSTEM_CRON.WEEKLY_LEADERBOARD');
+    expect(source).toContain('recoverStaleCertificateWork');
+    expect(source).toContain('event.cron === SYSTEM_CRON.LIVE_EXAM_SWEEP');
     expect(source).not.toMatch(/event\.cron\s*===\s*['"]/);
   });
 });

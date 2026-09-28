@@ -9,7 +9,7 @@ import type { Env } from '../types';
 
 export const EXPECTED_LATEST_MIGRATION = '0085_server_quiz_generation.sql';
 const DEFAULT_TIMEOUT_MS = 1_000;
-const STALE_CERTIFICATE_MS = 10 * 60 * 1_000;
+const STALE_CERTIFICATE_MS = 2 * 60 * 1_000;
 const BACKUP_STALE_MS = 26 * 60 * 60 * 1_000;
 const RESTORE_DRILL_STALE_MS = 100 * 24 * 60 * 60 * 1_000;
 
@@ -159,9 +159,13 @@ const loadCertificateHealth = async (env: Env, now: Date): Promise<CertificateHe
       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
       SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) AS processing_count,
       SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
-      SUM(CASE WHEN status = 'processing' AND processing_started_at < ? THEN 1 ELSE 0 END) AS stale_processing_count
-    FROM certificate_batches
-    WHERE created_at >= datetime('now', '-7 days')
+      SUM(CASE
+            WHEN status = 'processing'
+             AND (processing_started_at IS NULL OR processing_started_at < ?)
+            THEN 1 ELSE 0
+          END) AS stale_processing_count
+    FROM certificates
+    WHERE issued_at >= datetime('now', '-7 days')
   `).bind(staleBefore).first<CertificateHealthRow>();
   return {
     pending_count: numeric(row?.pending_count),
