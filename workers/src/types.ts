@@ -1,4 +1,5 @@
 import type { QuestionRichTextEnvelopeV1 } from '../../shared/question-rich-text.contract';
+import type { CertificateQueueMessage } from './services/certificateQueueMessages';
 
 export interface AiGatewayBinding {
     fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
@@ -36,7 +37,7 @@ export interface Env {
     OG_IMAGES: R2Bucket;
     R2_PUBLIC_URL: string;
     // Task 1.4: Cloudflare Queues binding
-    CERTIFICATE_QUEUE: Queue<{ batchId: string }>;
+    CERTIFICATE_QUEUE: Queue<CertificateQueueMessage>;
     CERTIFICATE_DLQ?: Queue;
     CERT_IMAGES: R2Bucket;
     COMPETITION_EXPORT_QUEUE: Queue<{ exportId: string }>;

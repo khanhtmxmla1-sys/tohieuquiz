@@ -218,7 +218,7 @@ describe('certificate worker authorization and integrity', () => {
     expect(db.batches[0][0].bindings).toContain('TôHiệuQuiz, ngày 20 tháng 7 năm 2026');
     expect(db.batches[0][0].bindings).toContain('Dancing Script');
     expect(db.batches[0][1].bindings).toContain('Nguyễn Văn A');
-    expect(env.CERTIFICATE_QUEUE.send).toHaveBeenCalledWith({ batchId: payload.data.batch_id });
+    expect(env.CERTIFICATE_QUEUE.send).toHaveBeenCalledWith({ kind: 'dispatch_batch', batchId: payload.data.batch_id });
   });
 
   it('returns the existing batch for a repeated request_id', async () => {
@@ -461,6 +461,27 @@ describe('certificate worker authorization and integrity', () => {
     });
     expect(db.runs).toHaveLength(0);
   });
+  it('resets failed certificate leases before retrying a batch', async () => {
+    const db = new FakeDB();
+    db.first = (sql) => sql.includes('FROM certificate_batches') ? { id: 'batch-1' } : null;
+    const env = createEnv(db);
+
+    const response = await handleRetryBatch(
+      new Request('https://example.test/api/certificate-batches/batch-1/retry', { method: 'POST' }),
+      env,
+      'batch-1',
+    );
+
+    expect(response.status).toBe(200);
+    expect(db.runs).toHaveLength(2);
+    expect(db.runs[0].sql).toContain('processing_started_at = NULL');
+    expect(db.runs[1].sql).toContain('attempt_count = 0');
+    expect(db.runs[1].sql).toContain('processing_started_at = NULL');
+    expect(db.runs[1].sql).toContain('processing_token = NULL');
+    expect(db.runs[1].sql).toContain('enqueued_at = NULL');
+    expect(env.CERTIFICATE_QUEUE.send).toHaveBeenCalledWith({ kind: 'dispatch_batch', batchId: 'batch-1' });
+  });
+
   it('returns an explicit preview DTO without internal storage fields', async () => {
     const db = new FakeDB();
     db.first = (sql) => sql.includes('FROM certificates c') ? {

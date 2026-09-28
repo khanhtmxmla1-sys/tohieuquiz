@@ -59,7 +59,16 @@ export async function persistCertificateBatch(
     }
     throw error;
   }
-  await env.CERTIFICATE_QUEUE.send({ batchId });
+  try {
+    await env.CERTIFICATE_QUEUE.send({ kind: 'dispatch_batch', batchId });
+  } catch {
+    const enqueueFailedAt = new Date().toISOString();
+    await env.DB.prepare(`
+      UPDATE certificate_batches
+      SET error_message = 'CERTIFICATE_DISPATCH_ENQUEUE_FAILED', updated_at = ?
+      WHERE id = ? AND status = 'pending'
+    `).bind(enqueueFailedAt, batchId).run();
+  }
   return certificateSuccess<CreateCertificateBatchResult>({
     batch_id: batchId,
     status: 'pending',
