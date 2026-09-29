@@ -41,6 +41,7 @@ vi.mock('../src/app/lazyViews', () => ({
   ManualQuizWorkspacePage: () => <div>manual-workspace</div>,
   PhieuPublicPage: () => <div>phieu-public-page</div>,
   PrivacyPolicy: () => <div>privacy-page</div>,
+  SchoolProfilePage: () => <div>school-profile-page</div>,
   StudentDashboardUI: () => <div>student-dashboard</div>,
   StudentCompetitionPage: () => <div>student-competition-portal</div>,
   TeacherDashboard: () => <div>teacher-dashboard</div>,
