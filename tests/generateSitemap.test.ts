@@ -77,6 +77,47 @@ describe('generate sitemap public quiz policy', () => {
   });
 });
 
+describe('generate sitemap brand SEO policy', () => {
+  it('includes the school brand page and never emits quiz-id URLs', async () => {
+    const fetchImpl = async (url: string) => {
+      if (url.endsWith('/api/quizzes')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            data: [
+              { id: 'public-looking-quiz', category: 'toan', showOnHome: true, requireCode: false },
+            ],
+          }),
+          text: async () => '',
+        };
+      }
+      if (url.endsWith('/api/public/competitions')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ data: [] }),
+          text: async () => '',
+        };
+      }
+      throw new Error(`Unexpected URL ${url}`);
+    };
+
+    const entries = await buildSitemapEntries({
+      siteUrl: 'https://www.example.test',
+      apiUrl: 'https://api.example.test',
+      today: '2026-09-29',
+      fetchImpl,
+    });
+    const locations = entries.map((entry) => entry.loc);
+
+    expect(locations).toContain(
+      'https://www.example.test/truong-tieu-hoc-to-hieu-son-la',
+    );
+    expect(locations.some((location) => location.includes('quizId='))).toBe(false);
+  });
+});
+
 describe('generate sitemap public competition policy', () => {
   it('adds only published public campaign and article URLs, never student routes', async () => {
     const calls: string[] = [];

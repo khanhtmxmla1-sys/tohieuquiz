@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import SchoolLogo from '../common/SchoolLogo';
 
-type PublicPage = 'about' | 'contact' | 'privacy' | 'tos';
+type PublicPage = 'school' | 'about' | 'contact' | 'privacy' | 'tos';
 
 interface PublicPageHeaderProps {
     activePage: PublicPage;
@@ -12,6 +12,7 @@ interface PublicPageHeaderProps {
 
 const navItems = [
     { label: 'Trang chủ', path: '/', key: 'home' },
+    { label: 'Nhà trường', path: '/truong-tieu-hoc-to-hieu-son-la', key: 'school' },
     { label: 'Cổng liên lạc phụ huynh', path: 'https://phuhuynh.thtohieu.com/', key: 'parent-portal', external: true },
     { label: 'Giới thiệu', path: '/about', key: 'about' },
     { label: 'Liên hệ', path: '/contact', key: 'contact' },

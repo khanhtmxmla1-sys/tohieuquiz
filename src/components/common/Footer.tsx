@@ -2,9 +2,10 @@ import { getSystemDateParts } from '../../utils/dateTime';
 import React from 'react';
 import { ArrowUpRight, Globe, Mail, ShieldCheck } from 'lucide-react';
 import { PRODUCT_NAME } from '../../config/constants';
+import { BRAND_RELATIONSHIP_LINE, SCHOOL_LOCATION_LABEL } from '../../config/schoolIdentity';
 import SchoolLogo from './SchoolLogo';
 
-export type FooterRoutePath = '/' | '/about' | '/contact' | '/privacy' | '/tos';
+export type FooterRoutePath = '/' | '/truong-tieu-hoc-to-hieu-son-la' | '/about' | '/contact' | '/privacy' | '/tos';
 
 interface Props {
     onNavigate: (path: FooterRoutePath) => void;
@@ -13,6 +14,7 @@ interface Props {
 
 const publicLinks: Array<{ name: string; path: FooterRoutePath }> = [
     { name: 'Trang chủ', path: '/' },
+    { name: 'Nhà trường', path: '/truong-tieu-hoc-to-hieu-son-la' },
     { name: 'Giới thiệu', path: '/about' },
     { name: 'Liên hệ', path: '/contact' },
 ];
@@ -80,7 +82,7 @@ const Footer: React.FC<Props> = ({ onNavigate, showPublicLinks = true }) => {
                             </span>
                         </button>
                         <p className="mt-5 max-w-sm text-sm font-medium leading-7 text-slate-600">
-                            Nền tảng luyện tập dành cho tiểu học, giúp giáo viên dạy nhẹ nhàng hơn và học sinh tiến bộ tích cực mỗi ngày.
+                            {BRAND_RELATIONSHIP_LINE}. {SCHOOL_LOCATION_LABEL}.
                         </p>
                         <div className="mt-6 flex gap-3">
                             <a
