@@ -4,11 +4,11 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const migration = readFileSync(
-  new URL('../workers/migrations/0082_class_attendance_question_bank.sql', import.meta.url),
+  new URL('../workers/migrations/0087_class_attendance_question_bank.sql', import.meta.url),
   'utf8',
 );
 const rollback = readFileSync(
-  new URL('../workers/migrations/rollback/0082_class_attendance_question_bank.rollback.sql', import.meta.url),
+  new URL('../workers/migrations/rollback/0087_class_attendance_question_bank.rollback.sql', import.meta.url),
   'utf8',
 );
 
