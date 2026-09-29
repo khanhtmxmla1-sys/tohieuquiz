@@ -1,9 +1,22 @@
 import { useEffect } from 'react';
 import { Quiz } from '../types';
+import {
+    BRAND_RELATIONSHIP_LINE,
+    SCHOOL_IDENTIFIER,
+    SCHOOL_LOCALITY,
+    SCHOOL_LOCATION_LABEL,
+    SCHOOL_NAME,
+    SCHOOL_OFFICIAL_EMAIL,
+    SCHOOL_PROFILE_PATH,
+    SCHOOL_REGION,
+    SITE_URL,
+} from '../config/schoolIdentity';
 
-const DEFAULT_TITLE = 'TôHiệuQuiz - Nền tảng kiểm tra và học tập tiểu học';
-const DEFAULT_DESCRIPTION = 'TôHiệuQuiz giúp giáo viên tạo đề trắc nghiệm nhanh, hỗ trợ học sinh ôn thi chương trình GDPT 2018.';
-const DEFAULT_KEYWORDS = 'TôHiệuQuiz, kiểm tra tiểu học, giao bài trực tuyến, tạo đề AI, học tập trực tuyến';
+const DEFAULT_TITLE = `${SCHOOL_NAME} ${SCHOOL_REGION} | TôHiệuQuiz`;
+const DEFAULT_DESCRIPTION =
+    `TôHiệuQuiz là nền tảng học tập trực tuyến gắn với ${SCHOOL_NAME}, ${SCHOOL_LOCATION_LABEL}.`;
+const DEFAULT_KEYWORDS =
+    `${SCHOOL_NAME}, Tiểu học Tô Hiệu Sơn La, Tô Hiệu Sơn La, TôHiệuQuiz`;
 const SEO_CATEGORY_WHITELIST = new Set(['all', 'vioedu', 'trang-nguyen', 'on-tap', 'toan', 'tieng-viet']);
 
 // SEO Utility Functions
@@ -70,11 +83,19 @@ const getCanonicalUrl = (pathname: string, view: string, selectedQuiz: Quiz | nu
 };
 
 const buildStructuredData = (canonicalUrl: string, title: string, description: string, selectedQuiz: Quiz | null) => {
-    const organization = {
+    const school = {
         '@type': 'EducationalOrganization',
-        name: 'TôHiệuQuiz',
-        alternateName: 'TôHiệuQuiz',
-        url: 'https://www.thtohieu.com',
+        '@id': `${SITE_URL}/#school`,
+        name: SCHOOL_NAME,
+        identifier: SCHOOL_IDENTIFIER,
+        email: SCHOOL_OFFICIAL_EMAIL,
+        address: {
+            '@type': 'PostalAddress',
+            addressLocality: SCHOOL_LOCALITY,
+            addressRegion: SCHOOL_REGION,
+            addressCountry: 'VN',
+        },
+        url: `${SITE_URL}${SCHOOL_PROFILE_PATH}`,
     };
 
     if (selectedQuiz) {
@@ -89,7 +110,6 @@ const buildStructuredData = (canonicalUrl: string, title: string, description: s
             inLanguage: 'vi',
             isAccessibleForFree: true,
             numberOfQuestions: selectedQuiz.questions?.length || 0,
-            publisher: organization,
         };
     }
 
@@ -99,16 +119,25 @@ const buildStructuredData = (canonicalUrl: string, title: string, description: s
             {
                 '@type': 'WebSite',
                 name: 'TôHiệuQuiz',
-                url: 'https://www.thtohieu.com/',
+                url: 'https://www.thtohieu.com',
                 inLanguage: 'vi',
                 description,
             },
-            organization,
+            school,
             {
                 '@type': 'WebPage',
                 name: title,
                 url: canonicalUrl,
                 description,
+            },
+            {
+                '@type': 'SoftwareApplication',
+                name: 'TôHiệuQuiz',
+                applicationCategory: 'EducationalApplication',
+                operatingSystem: 'Web',
+                url: SITE_URL,
+                description: BRAND_RELATIONSHIP_LINE,
+                provider: { '@id': `${SITE_URL}/#school` },
             },
         ],
     };
@@ -129,14 +158,22 @@ export const useSeo = (
         let keywords = DEFAULT_KEYWORDS;
         let robots = 'index, follow';
 
-        if (pathname === '/about') {
-            title = 'Giới thiệu TôHiệuQuiz';
-            description = 'Thông tin giới thiệu TôHiệuQuiz, quá trình phát triển và hoạt động nổi bật.';
-            keywords = 'giới thiệu TôHiệuQuiz, nền tảng giáo dục tiểu học';
+        if (pathname === SCHOOL_PROFILE_PATH) {
+            title = `${SCHOOL_NAME} ${SCHOOL_REGION} | Giới thiệu chính thức`;
+            description =
+                `Thông tin nhận diện ${SCHOOL_NAME}, ${SCHOOL_LOCATION_LABEL} và nền tảng học tập TôHiệuQuiz.`;
+            keywords =
+                `${SCHOOL_NAME} ${SCHOOL_REGION}, Tiểu học Tô Hiệu, Tô Hiệu Sơn La, TôHiệuQuiz`;
+        } else if (pathname === '/about') {
+            title = `Giới thiệu ${SCHOOL_NAME} ${SCHOOL_REGION} | TôHiệuQuiz`;
+            description =
+                `Giới thiệu hoạt động giáo dục và nền tảng học tập TôHiệuQuiz của ${SCHOOL_NAME}, ${SCHOOL_REGION}.`;
+            keywords = `giới thiệu ${SCHOOL_NAME}, nền tảng giáo dục tiểu học`;
         } else if (pathname === '/contact') {
-            title = 'Liên hệ TôHiệuQuiz';
-            description = 'Kênh liên hệ TôHiệuQuiz: địa chỉ, hotline, fanpage và bản đồ.';
-            keywords = 'liên hệ TôHiệuQuiz, hỗ trợ TôHiệuQuiz';
+            title = `Liên hệ ${SCHOOL_NAME} ${SCHOOL_REGION} | TôHiệuQuiz`;
+            description =
+                `Thông tin liên hệ và các kênh hỗ trợ liên quan đến ${SCHOOL_NAME}, ${SCHOOL_REGION} và TôHiệuQuiz.`;
+            keywords = `liên hệ ${SCHOOL_NAME}, hỗ trợ TôHiệuQuiz`;
         } else if (pathname === '/privacy') {
             title = 'Chính sách bảo mật - TôHiệuQuiz';
         } else if (pathname === '/tos') {
@@ -147,6 +184,7 @@ export const useSeo = (
         } else if (view === 'student' && selectedQuiz) {
             title = `${selectedQuiz.title} - TôHiệuQuiz`;
             description = `Luyện tập bài thi ${selectedQuiz.title} trên hệ thống TôHiệuQuiz.`;
+            robots = 'noindex, nofollow, noarchive';
             keywords = [
                 selectedQuiz.title,
                 `Lớp ${selectedQuiz.classLevel || 'Tiểu học'}`,
