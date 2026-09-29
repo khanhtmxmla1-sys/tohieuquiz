@@ -7,6 +7,22 @@ vi.mock('../src/services/apiAdapter', () => ({ callApi: mocks.callApi }));
 
 import { useAttendanceStatus } from '../src/features/student-dashboard/hooks/useAttendanceStatus';
 
+const statusData = (overrides: Record<string, unknown> = {}) => ({
+  enabled: true,
+  available: true,
+  questionCount: 6,
+  claimedToday: false,
+  claimDates: [],
+  streakDays: 0,
+  attendanceDayNumber: 1,
+  nextRewardExp: 10,
+  nextRewardCoins: 5,
+  todayDateKey: '2026-08-15',
+  weekStartDateKey: '2026-08-10',
+  attempt: null,
+  ...overrides,
+});
+
 describe('useAttendanceStatus day rollover', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -15,11 +31,11 @@ describe('useAttendanceStatus day rollover', () => {
     mocks.callApi
       .mockResolvedValueOnce({
         status: 'success',
-        data: { claimedToday: true, claimDates: ['2026-08-15'] },
+        data: statusData({ claimedToday: true, claimDates: ['2026-08-15'] }),
       })
       .mockResolvedValueOnce({
         status: 'success',
-        data: { claimedToday: false, claimDates: ['2026-08-15'] },
+        data: statusData({ claimedToday: false, claimDates: ['2026-08-15'], todayDateKey: '2026-08-16' }),
       });
   });
 
@@ -37,22 +53,24 @@ describe('useAttendanceStatus day rollover', () => {
     });
 
     expect(result.current.statusAvailable).toBe(false);
+    expect(result.current.enabled).toBe(false);
+    expect(result.current.available).toBe(false);
     expect(result.current.claimedToday).toBe(false);
   });
 
-  it('keeps the server-owned reward preview from attendance status', async () => {
+  it('keeps enablement and the fixed server-owned reward preview from attendance status', async () => {
     mocks.callApi.mockReset().mockResolvedValueOnce({
       status: 'success',
-      data: {
-        claimedToday: false,
-        claimDates: ['2026-08-15'],
-        streakDays: 1,
+      data: statusData({
         attendanceDayNumber: 5,
-        nextRewardExp: 375,
-        nextRewardCoins: 275,
-        todayDateKey: '2026-08-16',
-        weekStartDateKey: '2026-08-10',
-      },
+        attempt: {
+          attemptId: 'attempt-1',
+          status: 'IN_PROGRESS',
+          answeredCount: 1,
+          correctCount: 0,
+          totalQuestions: 2,
+        },
+      }),
     });
     const { result } = renderHook(() => useAttendanceStatus('student-a'));
 
@@ -62,10 +80,14 @@ describe('useAttendanceStatus day rollover', () => {
     });
 
     expect(result.current.statusAvailable).toBe(true);
+    expect(result.current.enabled).toBe(true);
+    expect(result.current.available).toBe(true);
+    expect(result.current.questionCount).toBe(6);
+    expect(result.current.attempt?.answeredCount).toBe(1);
     expect(result.current.rewardPreview).toEqual({
       attendanceDayNumber: 5,
-      nextRewardExp: 375,
-      nextRewardCoins: 275,
+      nextRewardExp: 10,
+      nextRewardCoins: 5,
     });
   });
 

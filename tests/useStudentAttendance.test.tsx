@@ -5,40 +5,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   callApi: vi.fn(),
   fetchPetData: vi.fn(),
+  showError: vi.fn(),
+  showInfo: vi.fn(),
   status: {
     claimedToday: false,
     claimDates: [] as string[],
     statusAvailable: true,
+    enabled: true,
+    available: true,
+    questionCount: 4,
+    attempt: null as any,
     rewardPreview: {
       attendanceDayNumber: 2,
-      nextRewardExp: 50,
-      nextRewardCoins: 50,
+      nextRewardExp: 10,
+      nextRewardCoins: 5,
     },
     setClaimedToday: vi.fn(),
     setClaimDates: vi.fn(),
-  },
-  modal: {
-    isOpen: true,
-    question: {
-      id: 'quiz-1-question-1',
-      quizId: 'quiz-1',
-      questionId: 'question-1',
-      quizTitle: 'Toán',
-      question: '1 + 1 = ?',
-      options: ['A. 1', 'B. 2'],
-      correctLabel: 'B',
-    },
-    selectedAnswer: 'B' as string | null,
-    result: null as 'correct' | 'wrong' | 'info' | null,
-    message: '',
-    isSubmitting: false,
-    hasQuestions: true,
-    open: vi.fn(),
-    close: vi.fn(),
-    selectAnswer: vi.fn(),
-    setResult: vi.fn(),
-    setMessage: vi.fn(),
-    setIsSubmitting: vi.fn(),
+    setAttempt: vi.fn(),
   },
 }));
 
@@ -46,91 +30,172 @@ vi.mock('../src/services/apiAdapter', () => ({ callApi: mocks.callApi }));
 vi.mock('../src/stores/useGamificationStore', () => ({
   useGamificationStore: { getState: () => ({ fetchPetData: mocks.fetchPetData }) },
 }));
+vi.mock('../src/utils/toast', () => ({
+  showError: mocks.showError,
+  showInfo: mocks.showInfo,
+}));
 vi.mock('../src/features/student-dashboard/hooks/useAttendanceStatus', () => ({
   useAttendanceStatus: () => mocks.status,
-}));
-vi.mock('../src/features/student-dashboard/hooks/useAttendanceModalState', () => ({
-  useAttendanceModalState: () => mocks.modal,
 }));
 
 import { useStudentAttendance } from '../src/features/student-dashboard/hooks/useStudentAttendance';
 
-const claimData = (overrides: Record<string, unknown> = {}) => ({
-  claimed: true,
-  alreadyClaimed: false,
-  claimDates: ['2026-08-16'],
-  streakDays: 1,
-  attendanceDayNumber: 1,
-  multiplier: 1,
-  awardedExp: 50,
-  awardedCoins: 50,
+const item = (id: string, position: number, answered = false) => ({
+  id,
+  questionId: `q-${position}`,
+  position,
+  question: `Câu ${position}?`,
+  options: ['1', '2', '3', '4'],
+  selectedAnswer: answered ? 'B' : null,
+  isAnswered: answered,
+});
+
+const attempt = (overrides: Record<string, unknown> = {}) => ({
+  attemptId: 'attempt-1',
+  status: 'IN_PROGRESS',
+  completed: false,
+  correctCount: 0,
+  totalQuestions: 2,
+  answeredCount: 0,
+  items: [item('item-1', 1), item('item-2', 2)],
   ...overrides,
 });
 
-describe('useStudentAttendance integrity', () => {
+describe('useStudentAttendance two-question flow', () => {
   beforeEach(() => {
     mocks.callApi.mockReset();
     mocks.fetchPetData.mockReset();
+    mocks.showError.mockReset();
+    mocks.showInfo.mockReset();
     mocks.status.claimedToday = false;
-    mocks.status.claimDates = [];
     mocks.status.statusAvailable = true;
+    mocks.status.enabled = true;
+    mocks.status.available = true;
+    mocks.status.questionCount = 4;
+    mocks.status.attempt = null;
     mocks.status.rewardPreview = {
       attendanceDayNumber: 2,
-      nextRewardExp: 50,
-      nextRewardCoins: 50,
+      nextRewardExp: 10,
+      nextRewardCoins: 5,
     };
     mocks.status.setClaimedToday.mockReset();
     mocks.status.setClaimDates.mockReset();
-    mocks.modal.selectedAnswer = 'B';
-    mocks.modal.result = null;
-    mocks.modal.setResult.mockReset();
-    mocks.modal.setMessage.mockReset();
-    mocks.modal.setIsSubmitting.mockReset();
+    mocks.status.setAttempt.mockReset();
   });
 
-  it('sends the canonical question identity and selected answer to the server', async () => {
-    mocks.callApi.mockResolvedValueOnce({ status: 'success', data: claimData() });
-    const { result } = renderHook(() => useStudentAttendance('student-a', []));
+  it('starts a server-owned attempt and sends the attempt item identity with the selected answer', async () => {
+    mocks.callApi
+      .mockResolvedValueOnce({ status: 'success', data: attempt() })
+      .mockResolvedValueOnce({
+        status: 'success',
+        data: attempt({
+          answeredCount: 1,
+          items: [item('item-1', 1, true), item('item-2', 2)],
+        }),
+      });
 
+    const { result } = renderHook(() => useStudentAttendance('student-a'));
+
+    await act(async () => { await result.current.open(); });
+    expect(mocks.callApi).toHaveBeenNthCalledWith(1, 'start_daily_attendance', {
+      username: 'student-a',
+    });
+    expect(result.current.currentItem?.id).toBe('item-1');
+
+    act(() => result.current.selectAnswer('B'));
     await act(async () => { await result.current.submit(); });
 
-    expect(mocks.callApi).toHaveBeenCalledWith('claim_daily_attendance', {
+    expect(mocks.callApi).toHaveBeenNthCalledWith(2, 'answer_daily_attendance', {
       username: 'student-a',
-      quizId: 'quiz-1',
-      questionId: 'question-1',
+      attemptId: 'attempt-1',
+      itemId: 'item-1',
       selectedAnswer: 'B',
     });
+    expect(result.current.currentItem?.id).toBe('item-2');
+    expect(result.current.currentNumber).toBe(2);
   });
 
-  it('fails closed when the attendance status endpoint is unavailable', () => {
-    mocks.status.statusAvailable = false;
-    const { result } = renderHook(() => useStudentAttendance('student-a', []));
+  it('marks attendance claimed and refreshes rewards after the second answer even if score is zero', async () => {
+    mocks.callApi
+      .mockResolvedValueOnce({
+        status: 'success',
+        data: attempt({
+          answeredCount: 1,
+          items: [item('item-1', 1, true), item('item-2', 2)],
+        }),
+      })
+      .mockResolvedValueOnce({
+        status: 'success',
+        data: attempt({
+          status: 'COMPLETED',
+          completed: true,
+          answeredCount: 2,
+          correctCount: 0,
+          awardedCoins: 5,
+          awardedExp: 10,
+          items: [item('item-1', 1, true), item('item-2', 2, true)],
+        }),
+      });
 
-    expect(result.current.isAvailable).toBe(false);
-  });
+    const { result } = renderHook(() => useStudentAttendance('student-a'));
+    await act(async () => { await result.current.open(); });
+    expect(result.current.currentNumber).toBe(2);
 
-  it('uses an informational result for an already-claimed response', async () => {
-    mocks.callApi.mockResolvedValueOnce({
-      status: 'success',
-      data: claimData({ claimed: false, alreadyClaimed: true, message: 'Đã điểm danh.' }),
-    });
-    const { result } = renderHook(() => useStudentAttendance('student-a', []));
-
+    act(() => result.current.selectAnswer('A'));
     await act(async () => { await result.current.submit(); });
 
     expect(mocks.status.setClaimedToday).toHaveBeenCalledWith(true);
-    expect(mocks.modal.setResult).toHaveBeenCalledWith('info');
-    expect(mocks.modal.setResult).not.toHaveBeenCalledWith('wrong');
+    expect(mocks.fetchPetData).toHaveBeenCalledWith('student-a');
+    expect(result.current.completed).toBe(true);
+    expect(result.current.attempt?.awardedCoins).toBe(5);
+    expect(result.current.attempt?.awardedExp).toBe(10);
   });
 
-  it('renders the badge from the server-owned reward preview', () => {
-    mocks.status.rewardPreview = {
-      attendanceDayNumber: 6,
-      nextRewardExp: 777,
-      nextRewardCoins: 888,
-    };
-    const { result } = renderHook(() => useStudentAttendance('student-a', []));
+  it('fails closed when the attendance status endpoint is unavailable or the teacher turned it off before starting', () => {
+    mocks.status.statusAvailable = false;
+    let rendered = renderHook(() => useStudentAttendance('student-a'));
+    expect(rendered.result.current.isVisible).toBe(false);
+    expect(rendered.result.current.isAvailable).toBe(false);
+    rendered.unmount();
 
-    expect(result.current.badgeText).toBe('Điểm danh ngày 6: +888 Xu +777 EXP');
+    mocks.status.statusAvailable = true;
+    mocks.status.enabled = false;
+    mocks.status.available = false;
+    rendered = renderHook(() => useStudentAttendance('student-a'));
+    expect(rendered.result.current.isVisible).toBe(false);
+    expect(rendered.result.current.isAvailable).toBe(false);
+  });
+
+  it('keeps an in-progress attempt visible and resumable after the teacher turns attendance off', async () => {
+    mocks.status.enabled = false;
+    mocks.status.available = false;
+    mocks.status.attempt = {
+      attemptId: 'attempt-1',
+      status: 'IN_PROGRESS',
+      answeredCount: 1,
+      correctCount: 0,
+      totalQuestions: 2,
+    };
+    mocks.callApi.mockResolvedValueOnce({
+      status: 'success',
+      data: attempt({
+        answeredCount: 1,
+        items: [item('item-1', 1, true), item('item-2', 2)],
+      }),
+    });
+
+    const { result } = renderHook(() => useStudentAttendance('student-a'));
+    expect(result.current.isVisible).toBe(true);
+    expect(result.current.isAvailable).toBe(true);
+    expect(result.current.badgeText).toBe('Tiếp tục điểm danh · còn 1 câu');
+
+    await act(async () => { await result.current.open(); });
+    expect(mocks.callApi).toHaveBeenCalledWith('start_daily_attendance', { username: 'student-a' });
+    expect(result.current.currentItem?.id).toBe('item-2');
+  });
+
+  it('renders the fixed server-owned reward preview in the attendance label', () => {
+    const { result } = renderHook(() => useStudentAttendance('student-a'));
+    expect(result.current.badgeText).toBe('Điểm danh hôm nay · 2 câu · +5 Xu +10 EXP');
   });
 });

@@ -34,6 +34,40 @@ export const classroomRoutes: RouteRegistry = {
         path: ({ classId }) => `/api/classes/${encodeURIComponent(classId)}/archive`,
         body: (_action, payload) => ({ archived: false, ...payload }),
     },
+    get_class_attendance: {
+        method: 'GET',
+        auth: 'session',
+        path: ({ classId }) => `/api/classes/${encodeURIComponent(classId)}/attendance`,
+    },
+    set_class_attendance: {
+        method: 'PATCH',
+        auth: 'session',
+        path: ({ classId }) => `/api/classes/${encodeURIComponent(classId)}/attendance`,
+        body: (_action, payload) => ({ enabled: Boolean(payload.enabled) }),
+    },
+    create_class_attendance_question: {
+        method: 'POST',
+        auth: 'session',
+        path: ({ classId }) => `/api/classes/${encodeURIComponent(classId)}/attendance/questions`,
+        body: (_action, payload) => {
+            const { classId: _classId, ...body } = payload;
+            return body;
+        },
+    },
+    update_class_attendance_question: {
+        method: 'PATCH',
+        auth: 'session',
+        path: ({ classId, questionId }) => `/api/classes/${encodeURIComponent(classId)}/attendance/questions/${encodeURIComponent(questionId)}`,
+        body: (_action, payload) => {
+            const { classId: _classId, questionId: _questionId, ...body } = payload;
+            return body;
+        },
+    },
+    delete_class_attendance_question: {
+        method: 'DELETE',
+        auth: 'session',
+        path: ({ classId, questionId }) => `/api/classes/${encodeURIComponent(classId)}/attendance/questions/${encodeURIComponent(questionId)}`,
+    },
 
     // Students
     get_students: {

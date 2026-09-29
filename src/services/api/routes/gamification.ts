@@ -29,6 +29,17 @@ export const gamificationRoutes: RouteRegistry = {
             return q;
         },
     },
+    start_daily_attendance: {
+        method: 'POST',
+        auth: 'session',
+        path: () => '/api/game-state/attendance-start',
+    },
+    answer_daily_attendance: {
+        method: 'POST',
+        auth: 'session',
+        path: () => '/api/game-state/attendance-answer',
+    },
+    // Kept only for compatibility while old clients age out; Worker returns 410.
     claim_daily_attendance: {
         method: 'POST',
         auth: 'session',

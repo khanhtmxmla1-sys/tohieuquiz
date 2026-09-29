@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 
 let currentUser: JWTPayload | null = null;
@@ -24,7 +24,10 @@ class Database {
   prepare(sql: string) { return new Statement(sql, this); }
   first(sql: string, _bindings: unknown[]) {
     if (sql.includes('FROM user_pets')) return { pet_id: 'cat_01', pet_name: 'Mèo', level: 1, exp: 0, exp_to_next: 100, mood: 'happy', items: '[]' };
-    if (sql.includes('FROM students')) return { coins: 100 };
+    if (sql.includes('COUNT(*) AS count') && sql.includes('class_attendance_questions')) return { count: 0 };
+    if (sql.includes('FROM class_attendance_settings')) return { is_enabled: 0 };
+    if (sql.includes('FROM attendance_attempts')) return null;
+    if (sql.includes('FROM students')) return { id: 'student-a', username: 'student-a', class_id: 'class-a', coins: 100 };
     return null;
   }
   all(sql: string) {

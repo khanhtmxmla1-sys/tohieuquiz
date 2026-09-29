@@ -1,11 +1,13 @@
 import type { ClassroomRouteContext } from '../../classroom/types';
 import { handleClassArchiveRoute } from './classArchiveRoute';
+import { handleClassAttendanceRoute } from './classAttendanceRoute';
 import { handleClassCreateRoute } from './classCreateRoute';
 import { handleClassDeleteRoute } from './classDeleteRoute';
 import { handleClassListRoute } from './classListRoute';
 import { handleClassTeacherRoute } from './classTeacherRoute';
 
 const handlers = [
+    handleClassAttendanceRoute,
     handleClassListRoute, handleClassCreateRoute, handleClassTeacherRoute,
     handleClassArchiveRoute, handleClassDeleteRoute,
 ];

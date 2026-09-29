@@ -17,6 +17,7 @@ export const StudentDashboardBody = ({
       hasReadyAssignment={assignments.hasReadyAssignment}
       attendanceClaimed={attendance.claimedToday}
       attendanceLabel={attendance.badgeText}
+      attendanceVisible={attendance.isVisible}
       attendanceAvailable={attendance.isAvailable && isOnline}
       onPrimaryAction={onOpenPrimaryLearning}
       onAttendance={attendance.open}
