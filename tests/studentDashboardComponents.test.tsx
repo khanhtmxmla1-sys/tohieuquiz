@@ -116,8 +116,9 @@ const renderHero = (hasReadyAssignment: boolean, onPrimaryAction = vi.fn()) =>
       hasReadyAssignment={hasReadyAssignment}
       attendanceClaimed={false}
       attendanceLabel="Điểm danh nhận thưởng"
-      attendanceAvailable
-      onPrimaryAction={onPrimaryAction}
+        attendanceVisible
+        attendanceAvailable
+        onPrimaryAction={onPrimaryAction}
       onAttendance={vi.fn()}
     />,
   );
@@ -231,6 +232,7 @@ describe('student dashboard hero and assigned work', () => {
         hasReadyAssignment={false}
         attendanceClaimed={false}
         attendanceLabel="Điểm danh nhận thưởng"
+        attendanceVisible
         attendanceAvailable
         onPrimaryAction={primaryAction}
         onAttendance={vi.fn()}
@@ -245,6 +247,23 @@ describe('student dashboard hero and assigned work', () => {
     const attendance = screen.getByRole('button', { name: 'Điểm danh nhận thưởng' });
     expect(attendance.className).not.toContain('animate-pulse');
     expect(attendance.className).toContain('min-h-11');
+  });
+
+  it('hides the attendance action when the teacher turns attendance off', () => {
+    render(
+      <StudentDashboardHero
+        firstName="An"
+        hasReadyAssignment={false}
+        attendanceClaimed={false}
+        attendanceLabel="Điểm danh hôm nay"
+        attendanceVisible={false}
+        attendanceAvailable={false}
+        onPrimaryAction={vi.fn()}
+        onAttendance={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId('attendance-check-in')).not.toBeInTheDocument();
   });
 
   it('renders assignment loading and the approved empty copy', () => {

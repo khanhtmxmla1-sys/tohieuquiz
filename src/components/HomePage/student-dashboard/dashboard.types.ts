@@ -35,6 +35,7 @@ export interface StudentDashboardHeroProps {
   hasReadyAssignment: boolean;
   attendanceClaimed: boolean;
   attendanceLabel: string;
+  attendanceVisible: boolean;
   attendanceAvailable: boolean;
   onPrimaryAction: () => void;
   onAttendance: () => void;

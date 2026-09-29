@@ -7,7 +7,7 @@ class Statement {
   bind(...values: unknown[]) { this.bindings = values; return this; }
   async first<T>() {
     if (this.sql.includes('SELECT 1 AS count')) return { count: 1 } as T;
-    if (this.sql.includes('FROM d1_migrations')) return { count: 85, latest: '0086_certificate_item_queue_recovery.sql' } as T;
+    if (this.sql.includes('FROM d1_migrations')) return { count: 86, latest: '0087_class_attendance_question_bank.sql' } as T;
     if (this.sql.includes('FROM certificates')) {
       if (this.failCertificates) throw new Error('sensitive database failure');
       return { pending_count: 1, processing_count: 0, failed_count: 0, stale_processing_count: 0 } as T;
@@ -63,7 +63,7 @@ describe('operations snapshot service', () => {
     expect(snapshot.components.find((item) => item.id === 'migrations')).toMatchObject({
       status: 'healthy',
       metrics: [
-        { key: 'appliedCount', value: 85 },
+        { key: 'appliedCount', value: 86 },
         { key: 'latestIsExpected', value: true },
       ],
     });

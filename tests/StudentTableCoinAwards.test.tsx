@@ -18,7 +18,12 @@ vi.mock('../src/components/common', () => ({
     ? <div>{items.map((item, index) => <div key={item.id}>{renderMobileCard(item, index)}</div>)}</div>
     : <>{renderDesktop()}</>,
 }));
-vi.mock('../src/utils/toast', () => ({ showConfirm: vi.fn() }));
+vi.mock('../src/utils/toast', () => ({
+  showConfirm: vi.fn(),
+  showError: vi.fn(),
+  showInfo: vi.fn(),
+  showSuccess: vi.fn(),
+}));
 vi.mock('../src/features/coin-awards/useCoinAwardsFeatureFlag', () => ({
   useCoinAwardsFeatureFlag: () => flag,
 }));

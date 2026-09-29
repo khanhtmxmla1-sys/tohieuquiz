@@ -9,7 +9,6 @@ import {
 import { useClassroomStore } from '@/src/stores/useClassroomStore';
 import { useHomeworkStore } from '@/src/features/homework/stores/useHomeworkStore';
 import type { HomeworkAssignment } from '@/src/features/homework/types';
-import { useQuizStore } from '@/stores/quizStore';
 import type { StudentDashboardSection } from '../components/content.types';
 import { useStudentAccount } from './useStudentAccount';
 import { useStudentAssignments } from './useStudentAssignments';
@@ -25,7 +24,6 @@ export const useStudentDashboardController = (liveExamSessionId?: string) => {
   const [searchParams] = useSearchParams();
   const studentSession = useClassroomStore((state) => state.studentSession);
   const homeworkSubmissions = useHomeworkStore((state) => state.submissions);
-  const quizzes = useQuizStore((state) => state.quizzes);
   const activeSection = resolveStudentSectionFromLocation(location.pathname);
   const selectedResultReportId = activeSection === 'resultReports'
     ? searchParams.get('report')
@@ -38,7 +36,7 @@ export const useStudentDashboardController = (liveExamSessionId?: string) => {
     .toLowerCase() === 'true';
   const practice = useStudentPracticeCatalog();
   const assignments = useStudentAssignments(studentSession?.studentId);
-  const attendance = useStudentAttendance(studentSession?.username, quizzes);
+  const attendance = useStudentAttendance(studentSession?.username);
   const rewards = useStudentRewards(studentSession?.username);
   const account = useStudentAccount(studentSession);
   const liveExam = useStudentLiveExam({

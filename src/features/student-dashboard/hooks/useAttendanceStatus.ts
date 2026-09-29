@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { callApi } from '@/src/services/apiAdapter';
 import { systemDateTimeLocalToIso } from '@/src/utils/dateTime';
 import {
-  getLocalDateKey, type AttendanceRewardPreview, type AttendanceStatusData,
+  getLocalDateKey, type AttendanceAttemptSummary, type AttendanceRewardPreview,
+  type AttendanceStatusData,
 } from '../model';
 
 const getDelayUntilNextSystemDay = () => {
@@ -17,6 +18,10 @@ export const useAttendanceStatus = (username?: string) => {
   const [claimedToday, setClaimedToday] = useState(false);
   const [claimDates, setClaimDates] = useState<string[]>([]);
   const [statusAvailable, setStatusAvailable] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  const [available, setAvailable] = useState(false);
+  const [questionCount, setQuestionCount] = useState(0);
+  const [attempt, setAttempt] = useState<AttendanceAttemptSummary | null>(null);
   const [rewardPreview, setRewardPreview] = useState<AttendanceRewardPreview | null>(null);
   const [todayKey, setTodayKey] = useState(() => getLocalDateKey());
   const [refreshVersion, setRefreshVersion] = useState(0);
@@ -52,14 +57,20 @@ export const useAttendanceStatus = (username?: string) => {
 
   useEffect(() => {
     let cancelled = false;
+    const reset = () => {
+      setClaimedToday(false);
+      setClaimDates([]);
+      setEnabled(false);
+      setAvailable(false);
+      setQuestionCount(0);
+      setAttempt(null);
+      setRewardPreview(null);
+      setStatusAvailable(false);
+    };
+
     const load = async () => {
       if (!username) {
-        if (!cancelled) {
-          setClaimedToday(false);
-          setClaimDates([]);
-          setRewardPreview(null);
-          setStatusAvailable(false);
-        }
+        if (!cancelled) reset();
         return;
       }
       if (!cancelled) setStatusAvailable(false);
@@ -73,6 +84,10 @@ export const useAttendanceStatus = (username?: string) => {
               .map((date) => String(date || '').trim()).filter(Boolean))) : [];
           setClaimDates(dates);
           setClaimedToday(Boolean(response.data.claimedToday));
+          setEnabled(Boolean(response.data.enabled));
+          setAvailable(Boolean(response.data.available));
+          setQuestionCount(Math.max(0, Number(response.data.questionCount) || 0));
+          setAttempt(response.data.attempt ?? null);
           setRewardPreview({
             attendanceDayNumber: Number(response.data.attendanceDayNumber) || 1,
             nextRewardExp: Math.max(0, Number(response.data.nextRewardExp) || 0),
@@ -84,19 +99,14 @@ export const useAttendanceStatus = (username?: string) => {
       } catch (error) {
         console.error('Failed to load attendance status:', error);
       }
-      if (!cancelled) {
-        setClaimedToday(false);
-        setClaimDates([]);
-        setRewardPreview(null);
-        setStatusAvailable(false);
-      }
+      if (!cancelled) reset();
     };
     void load();
     return () => { cancelled = true; };
   }, [refreshVersion, todayKey, username]);
 
   return {
-    claimedToday, claimDates, statusAvailable, rewardPreview,
-    setClaimedToday, setClaimDates,
+    claimedToday, claimDates, statusAvailable, enabled, available, questionCount, attempt,
+    rewardPreview, setClaimedToday, setClaimDates, setAttempt,
   };
 };

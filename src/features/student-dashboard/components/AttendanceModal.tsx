@@ -1,8 +1,9 @@
 import { useId, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import MathSpan from '@/src/components/common/MathSpan';
+import QuestionRichTextRenderer from '@/src/components/common/QuestionRichTextRenderer';
+import SafeRasterImage from '@/src/components/common/SafeRasterImage';
 import { useDialogFocus } from '@/src/hooks/useDialogFocus';
-import { cleanOptionText } from '../model';
 import type { StudentAttendanceController } from '../hooks/useStudentAttendance';
 
 export const AttendanceModal = ({ attendance }: { attendance: StudentAttendanceController }) => {
@@ -15,91 +16,158 @@ export const AttendanceModal = ({ attendance }: { attendance: StudentAttendanceC
   };
 
   useDialogFocus({
-    isOpen: attendance.isOpen && Boolean(attendance.question),
+    isOpen: attendance.isOpen,
     dialogRef,
     initialFocusRef: closeRef,
     onClose: close,
   });
 
   return (
-  <AnimatePresence>
-    {attendance.isOpen && attendance.question && (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm p-0 md:p-4 flex items-end md:items-center justify-center"
-        onClick={close}>
-        <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={descriptionId}
-          tabIndex={-1}
-          onClick={(event) => event.stopPropagation()}
-          className="w-full h-dvh md:h-auto md:max-w-2xl bg-white rounded-none md:rounded-3xl p-4 md:p-8 shadow-2xl overflow-y-auto">
-          <div className="flex items-start justify-between gap-4 mb-5">
-            <div>
-              <p className="text-xs font-black text-blue-600 uppercase tracking-wider mb-1">Điểm danh nhận thưởng</p>
-              <h3 id={titleId} className="text-xl md:text-2xl font-black text-slate-800">Câu hỏi ngẫu nhiên</h3>
-              <p id={descriptionId} className="text-sm text-slate-500 mt-1">Nguồn: {attendance.question.quizTitle}</p>
-            </div>
-            <button ref={closeRef} type="button" onClick={close}
-              disabled={attendance.isSubmitting}
-              aria-label="Đóng hộp thoại điểm danh"
-              className="text-slate-400 hover:text-slate-600 text-sm font-bold disabled:opacity-60">Đóng</button>
-          </div>
-          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 md:p-5 mb-4">
-            <MathSpan content={attendance.question.question || ''}
-              className="text-blue-900 font-semibold leading-relaxed" />
-          </div>
-          <div className="space-y-3 mb-5">
-            {attendance.question.options.map((option, index) => {
-              const label = String.fromCharCode(65 + index);
-              const selected = attendance.selectedAnswer === label;
-              const correct = (attendance.result === 'correct' || attendance.result === 'wrong')
-                && label === attendance.question?.correctLabel;
-              const wrong = attendance.result === 'wrong' && selected && !correct;
-              const stateClass = correct ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
-                : wrong ? 'border-red-400 bg-red-50 text-red-700'
-                  : selected ? 'border-indigo-400 bg-indigo-50 text-blue-800'
-                    : 'border-slate-200 hover:border-indigo-300 bg-white';
-              return (
-                <button key={`${attendance.question?.id}-${label}`} type="button"
-                  disabled={attendance.result !== null || attendance.isSubmitting}
-                  onClick={() => attendance.selectAnswer(label)}
-                  className={`w-full text-left p-3 rounded-xl border-2 transition-colors flex items-center gap-3 ${stateClass}`}>
-                  <span className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 text-xs font-black flex items-center justify-center shrink-0">{label}</span>
-                  <MathSpan content={cleanOptionText(option)} className="font-medium text-slate-700" />
-                </button>
-              );
-            })}
-          </div>
-          {attendance.message && (
-            <div role={attendance.result === 'wrong' ? 'alert' : 'status'}
-              className={`rounded-xl px-4 py-3 text-sm font-semibold mb-5 ${attendance.result === 'correct'
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : attendance.result === 'wrong'
-                  ? 'bg-red-50 text-red-700 border border-red-200'
-                  : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>{attendance.message}</div>
-          )}
-          <div className="flex items-center justify-end gap-3">
-            {attendance.result === 'wrong' && !attendance.claimedToday && (
-              <button type="button" onClick={attendance.open}
-                className="px-4 py-2 rounded-xl border border-indigo-200 text-blue-700 font-bold hover:bg-indigo-50">Câu khác</button>
-            )}
-            <button type="button" onClick={close} disabled={attendance.isSubmitting}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 disabled:opacity-60">Đóng</button>
-            {attendance.result === null && (
-              <button type="button" onClick={() => void attendance.submit()}
-                disabled={!attendance.selectedAnswer || attendance.isSubmitting}
-                className="px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
-                {attendance.isSubmitting ? 'Đang kiểm tra...' : 'Xác nhận đáp án'}
+    <AnimatePresence>
+      {attendance.isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm md:items-center md:p-4"
+          onClick={close}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
+            tabIndex={-1}
+            onClick={(event) => event.stopPropagation()}
+            className="h-dvh w-full overflow-y-auto bg-white p-4 shadow-2xl md:h-auto md:max-w-2xl md:rounded-3xl md:p-8"
+          >
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="mb-1 text-xs font-bold uppercase tracking-wider text-sky-700">
+                  Điểm danh nhận thưởng
+                </p>
+                <h3 id={titleId} className="text-xl font-bold text-slate-900 md:text-2xl">
+                  Điểm danh hôm nay
+                </h3>
+                <p id={descriptionId} className="mt-1 text-sm text-slate-500">
+                  {attendance.completed
+                    ? 'Em đã hoàn thành 2 câu hỏi.'
+                    : `Câu ${attendance.currentNumber}/${attendance.attempt?.totalQuestions ?? 2}`}
+                </p>
+              </div>
+              <button
+                ref={closeRef}
+                type="button"
+                onClick={close}
+                disabled={attendance.isSubmitting}
+                aria-label="Đóng hộp thoại điểm danh"
+                className="min-h-10 rounded-lg px-3 text-sm font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-60"
+              >
+                Đóng
               </button>
+            </div>
+
+            {attendance.completed && attendance.attempt ? (
+              <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
+                <p className="text-lg font-bold text-emerald-800">Đã điểm danh</p>
+                <p className="mt-2 text-sm text-emerald-800">
+                  Em trả lời đúng {attendance.attempt.correctCount}/{attendance.attempt.totalQuestions} câu
+                </p>
+                <p className="mt-3 font-bold text-emerald-900">
+                  +{attendance.attempt.awardedCoins ?? 5} Xu · +{attendance.attempt.awardedExp ?? 10} EXP
+                </p>
+                <button
+                  type="button"
+                  onClick={close}
+                  className="mt-5 min-h-11 rounded-[10px] bg-emerald-600 px-5 text-sm font-semibold text-white hover:bg-emerald-700"
+                >
+                  Hoàn tất
+                </button>
+              </div>
+            ) : attendance.currentItem ? (
+              <>
+                <div className="mb-4 rounded-2xl border border-sky-100 bg-sky-50 p-4 md:p-5">
+                  {attendance.currentItem.questionRichText ? (
+                    <QuestionRichTextRenderer
+                      value={attendance.currentItem.questionRichText}
+                      fallback={attendance.currentItem.question}
+                      className="font-semibold leading-relaxed text-slate-900"
+                    />
+                  ) : (
+                    <MathSpan
+                      content={attendance.currentItem.question}
+                      className="font-semibold leading-relaxed text-slate-900"
+                    />
+                  )}
+                </div>
+
+                {attendance.currentItem.image ? (
+                  <SafeRasterImage
+                    src={attendance.currentItem.image}
+                    alt={attendance.currentItem.imageAlt || 'Hình minh họa câu hỏi'}
+                    className="mx-auto mb-4 block max-h-64 max-w-full rounded-[10px] border border-slate-200 bg-white object-contain"
+                  />
+                ) : null}
+
+                <div className="mb-5 space-y-3">
+                  {attendance.currentItem.options.map((option, index) => {
+                    const label = String.fromCharCode(65 + index);
+                    const selected = attendance.selectedAnswer === label;
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        disabled={attendance.isSubmitting}
+                        onClick={() => attendance.selectAnswer(label)}
+                        className={`flex min-h-12 w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition-colors disabled:opacity-60 ${
+                          selected
+                            ? 'border-sky-500 bg-sky-50 text-sky-900'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-sky-300'
+                        }`}
+                        aria-pressed={selected}
+                      >
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
+                          {label}
+                        </span>
+                        <MathSpan content={option} className="font-medium" />
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {attendance.message ? (
+                  <div role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                    {attendance.message}
+                  </div>
+                ) : null}
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => void attendance.submit()}
+                    disabled={!attendance.selectedAnswer || attendance.isSubmitting}
+                    className="min-h-11 rounded-[10px] bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {attendance.isSubmitting
+                      ? 'Đang lưu...'
+                      : attendance.currentNumber >= (attendance.attempt?.totalQuestions ?? 2)
+                        ? 'Hoàn thành'
+                        : 'Tiếp tục'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div role="status" className="py-10 text-center text-sm text-slate-500">
+                Đang tải câu hỏi điểm danh...
+              </div>
             )}
-          </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
+      )}
+    </AnimatePresence>
   );
 };

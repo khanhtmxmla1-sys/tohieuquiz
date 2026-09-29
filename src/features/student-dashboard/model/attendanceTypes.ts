@@ -1,14 +1,47 @@
-export interface AttendanceQuestion {
+import type { QuestionRichTextEnvelopeV1 } from '../../../../shared/question-rich-text.contract';
+
+export interface AttendanceAttemptItem {
   id: string;
-  quizId: string;
   questionId: string;
-  quizTitle: string;
+  position: number;
   question: string;
+  questionRichText?: QuestionRichTextEnvelopeV1;
   options: string[];
-  correctLabel: string;
+  image?: string;
+  imageAlt?: string;
+  selectedAnswer?: string | null;
+  isAnswered: boolean;
+  isCorrect?: boolean;
+}
+
+export interface AttendanceAttemptData {
+  attemptId: string;
+  status: 'IN_PROGRESS' | 'COMPLETED';
+  completed: boolean;
+  correctCount: number;
+  totalQuestions: number;
+  answeredCount: number;
+  items: AttendanceAttemptItem[];
+  awardedCoins?: number;
+  awardedExp?: number;
+  newCoins?: number;
+  newLevel?: number;
+  newExp?: number;
+  newExpToNext?: number;
+}
+
+export interface AttendanceAttemptSummary {
+  attemptId: string;
+  status: 'IN_PROGRESS' | 'COMPLETED';
+  answeredCount: number;
+  correctCount: number;
+  totalQuestions: number;
 }
 
 export interface AttendanceStatusData {
+  enabled: boolean;
+  available: boolean;
+  questionCount: number;
   claimedToday: boolean;
   claimDates: string[];
   streakDays: number;
@@ -17,21 +50,10 @@ export interface AttendanceStatusData {
   nextRewardCoins: number;
   todayDateKey: string;
   weekStartDateKey: string;
+  attempt?: AttendanceAttemptSummary | null;
 }
 
 export type AttendanceRewardPreview = Pick<
   AttendanceStatusData,
   'attendanceDayNumber' | 'nextRewardExp' | 'nextRewardCoins'
 >;
-
-export interface AttendanceClaimData {
-  claimed: boolean;
-  alreadyClaimed: boolean;
-  claimDates: string[];
-  streakDays: number;
-  attendanceDayNumber: number;
-  multiplier: number;
-  awardedExp: number;
-  awardedCoins: number;
-  message?: string;
-}

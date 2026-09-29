@@ -7,6 +7,7 @@ import { StudentTable } from '../components/StudentTable';
 import { AddStudentModal, ResetPasswordModal } from '../components/Modals';
 import ParentAccessModal from '../components/ParentAccessModal';
 import ParentCommunicationPanel from '../components/ParentCommunicationPanel';
+import AttendanceQuestionBankPanel from '../components/AttendanceQuestionBankPanel';
 import { useRosterStore } from '../../../stores/useRosterStore';
 import { showSuccess, showError } from '../../../utils/toast';
 import type { Student } from '../types';
@@ -194,6 +195,12 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classroom, onB
                     Đang ngoại tuyến — dữ liệu lớp đã tải vẫn được hiển thị, các thao tác máy chủ tạm thời bị khóa.
                 </div>
             )}
+
+            <AttendanceQuestionBankPanel
+                classId={classroom.id}
+                teacherUsername={classroom.teacherUsername}
+                isOnline={isOnline}
+            />
 
             {students.length > 0 && (
                 <div className="flex flex-col sm:flex-row gap-3 bg-white border border-gray-100 rounded-2xl p-3">

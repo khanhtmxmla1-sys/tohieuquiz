@@ -4,10 +4,8 @@ import {
   buildAssignmentReviewQuiz,
   buildAssignedQuizzes,
   buildSelectedAssignmentAnswers,
-  buildAttendanceQuestionPool,
   buildPracticeCatalog,
   getAttendanceBadgeText,
-  getAttendanceMultiplier,
   getRewardSummary,
 } from '../src/features/student-dashboard/model';
 
@@ -111,25 +109,17 @@ describe('student dashboard practice model', () => {
 });
 
 describe('student dashboard attendance model', () => {
-  it('prefers math and Vietnamese MCQ questions and normalizes answer labels', () => {
-    const pool = buildAttendanceQuestionPool([
-      { id: 'science', title: 'Khoa học', category: 'tu-nhien-xa-hoi', questions: [{ id: 's1', type: 'MCQ', question: 'Science?', options: ['A. One', 'B. Two'], correctAnswer: 'A' }] },
-      { id: 'math', title: 'Toán', category: 'toan', questions: [{ id: 'm1', type: 'MCQ', question: '1 + 1?', options: ['A. 1', 'B. 2'], correctAnswer: '2' }] },
-    ] as any);
-
-    expect(pool).toHaveLength(1);
-    expect(pool[0]).toMatchObject({ id: 'math-m1', quizTitle: 'Toán', correctLabel: 'B' });
-    expect(getAttendanceMultiplier(3)).toBe(2);
-    expect(getAttendanceMultiplier(5)).toBe(3);
-    expect(getAttendanceMultiplier(7)).toBe(5);
-  });
-
-  it('renders the attendance reward preview from server-provided values', () => {
+  it('renders the fixed two-question reward preview from server-provided values', () => {
     expect(getAttendanceBadgeText(false, true, {
       attendanceDayNumber: 4,
-      nextRewardCoins: 321,
-      nextRewardExp: 654,
-    })).toBe('Điểm danh ngày 4: +321 Xu +654 EXP');
+      nextRewardCoins: 5,
+      nextRewardExp: 10,
+    })).toBe('Điểm danh hôm nay · 2 câu · +5 Xu +10 EXP');
+  });
+
+  it('uses compact labels when attendance is already claimed or unavailable', () => {
+    expect(getAttendanceBadgeText(true, true, null)).toBe('Đã điểm danh hôm nay');
+    expect(getAttendanceBadgeText(false, false, null)).toBe('Điểm danh đang tắt');
   });
 });
 
