@@ -19,6 +19,12 @@ import {
     UsersRound,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import {
+    SCHOOL_IDENTIFIER,
+    SCHOOL_LOCATION_LABEL,
+    SCHOOL_NAME,
+    SCHOOL_OFFICIAL_EMAIL,
+} from '../../config/schoolIdentity';
 import PublicPageHeader from './PublicPageHeader';
 
 const supportTopics = [
@@ -125,7 +131,25 @@ const ContactPage: React.FC = () => {
                     </div>
                 </section>
 
+
+                <section className="rounded-[28px] border border-blue-100 bg-blue-50/70 p-6 md:p-8" aria-label="Thông tin nhận diện nhà trường">
+                    <p className="text-sm font-bold uppercase tracking-[0.12em] text-blue-600">Thông tin nhà trường</p>
+                    <p className="mt-2 text-xl font-extrabold text-[#172554]">{SCHOOL_NAME}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{SCHOOL_LOCATION_LABEL}</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">Mã định danh: {SCHOOL_IDENTIFIER}</p>
+                    <a
+                        href={`mailto:${SCHOOL_OFFICIAL_EMAIL}`}
+                        className="mt-3 inline-flex text-sm font-bold text-blue-700 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200"
+                    >
+                        {SCHOOL_OFFICIAL_EMAIL}
+                    </a>
+                </section>
+
                 <section className="grid gap-5 md:grid-cols-3" aria-label="Các kênh liên hệ nhanh">
+                    <div className="md:col-span-3">
+                        <p className="text-sm font-bold uppercase tracking-[0.12em] text-blue-600">Hỗ trợ nền tảng TôHiệuQuiz</p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">Các kênh dưới đây phục vụ hỗ trợ sử dụng TôHiệuQuiz, không thay thế thông tin liên hệ chính thức của nhà trường.</p>
+                    </div>
                     {quickContacts.map((contact) => (
                         <a
                             key={contact.title}

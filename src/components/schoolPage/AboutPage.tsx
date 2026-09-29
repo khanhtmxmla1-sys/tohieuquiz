@@ -17,6 +17,7 @@ import {
     WandSparkles,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { SCHOOL_NAME, SCHOOL_REGION } from '../../config/schoolIdentity';
 import PublicPageHeader from './PublicPageHeader';
 
 const audiences = [
@@ -79,13 +80,13 @@ const AboutPage: React.FC = () => {
                     <div className="relative z-10">
                         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-blue-700 sm:text-sm">
                             <Sparkles className="h-4 w-4" />
-                            Nền tảng học tập dành cho tiểu học
+                            {SCHOOL_NAME} · {SCHOOL_REGION}
                         </div>
                         <h1 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-[-0.03em] text-[#172554] sm:text-5xl lg:text-6xl">
-                            Học vui hơn. <span className="text-blue-600">Dạy nhẹ nhàng hơn.</span>
+                            {SCHOOL_NAME} – <span className="text-blue-600">học vui hơn, dạy nhẹ nhàng hơn.</span>
                         </h1>
                         <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">
-                            TôHiệuQuiz giúp giáo viên tạo đề, giao bài và theo dõi tiến bộ; giúp học sinh luyện tập hứng thú; đồng thời giúp phụ huynh đồng hành rõ ràng hơn trong quá trình học tập.
+                            Tại Sơn La, TôHiệuQuiz hỗ trợ hoạt động học tập số gắn với Trường Tiểu học Tô Hiệu: giúp giáo viên tạo đề, giao bài và theo dõi tiến bộ; giúp học sinh luyện tập hứng thú; đồng thời giúp phụ huynh đồng hành rõ ràng hơn.
                         </p>
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                             <button
