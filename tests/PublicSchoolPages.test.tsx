@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import AboutPage from '../src/components/schoolPage/AboutPage';
 import ContactPage from '../src/components/schoolPage/ContactPage';
+import SchoolProfilePage from '../src/components/schoolPage/SchoolProfilePage';
 
 const renderPage = (page: React.ReactNode, path: string) =>
     render(<MemoryRouter initialEntries={[path]}>{page}</MemoryRouter>);
@@ -17,6 +18,25 @@ describe('public school pages branding and content', () => {
         expect(screen.getByText('TôHiệuQuiz mang lại điều gì?')).toBeVisible();
         expect(container.textContent).toContain('TôHiệuQuiz');
         expect(container.textContent).not.toMatch(/iTongQuiz|ÍtOngQuiz|ItOngQuiz/i);
+    });
+
+    it('renders the school profile with canonical local brand facts', () => {
+        const { container } = renderPage(
+            <SchoolProfilePage />,
+            '/truong-tieu-hoc-to-hieu-son-la',
+        );
+
+        expect(
+            screen.getByRole('heading', {
+                level: 1,
+                name: 'Trường Tiểu học Tô Hiệu – Sơn La',
+            }),
+        ).toBeVisible();
+        expect(container.textContent).toContain('Phường Tô Hiệu, tỉnh Sơn La');
+        expect(container.textContent).toContain('H52.101.114');
+        expect(container.textContent).toContain('TôHiệuQuiz');
+        expect(screen.getByRole('button', { name: 'Nhà trường' }))
+            .toHaveAttribute('aria-current', 'page');
     });
 
     it('renders verified support channels and acknowledges the contact form locally', () => {
