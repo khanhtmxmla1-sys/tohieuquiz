@@ -9,6 +9,7 @@ import { handleResultRewardClaim } from '../gamification/resultRewardClaim';
 import { answerAttendanceAttempt, getAttendanceStatus, startAttendanceAttempt } from '../gamification/attendanceFlow';
 import { resolveStudentRewardIdentity } from '../gamification/rewardIdentity';
 import { applyStudentReward, parseRewardPayload } from '../gamification/studentRewardLedger';
+import { getStudentLeaderboard, type StudentLeaderboardPeriod, type StudentLeaderboardScope } from '../gamification/studentLeaderboard';
 
 export async function handleGamificationRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
     const authResult = await verifyJWTMiddleware(request, env);
@@ -239,6 +240,27 @@ export async function handleGamificationRoutes(request: Request, env: Env, path:
             console.error('[PetShop] Atomic purchase failed:', error);
             return errorResponse('Could not complete purchase', 500);
         }
+    }
+
+    // GET /api/leaderboard/student - Authenticated student's class/school gold board.
+    if (path === '/api/leaderboard/student' && method === 'GET') {
+        if (!isStudent(user)) return errorResponse('Forbidden: Student access required', 403);
+
+        const requestedScope = url.searchParams.get('scope') || 'class';
+        const requestedPeriod = url.searchParams.get('period') || 'week';
+        if (requestedScope !== 'class' && requestedScope !== 'school') {
+            return errorResponse('Invalid leaderboard scope', 400);
+        }
+        if (requestedPeriod !== 'week' && requestedPeriod !== 'all') {
+            return errorResponse('Invalid leaderboard period', 400);
+        }
+
+        const data = await getStudentLeaderboard(db, user.username, {
+            scope: requestedScope as StudentLeaderboardScope,
+            period: requestedPeriod as StudentLeaderboardPeriod,
+        });
+        if (!data) return errorResponse('Student not found', 404);
+        return jsonResponse({ status: 'success', data });
     }
 
     // GET /api/leaderboard

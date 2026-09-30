@@ -86,6 +86,36 @@ export interface TopGoldStudent {
     coins: number;
 }
 
+export type StudentLeaderboardScope = 'class' | 'school';
+export type StudentLeaderboardPeriod = 'week' | 'all';
+
+export interface StudentLeaderboardQuery {
+    scope: StudentLeaderboardScope;
+    period: StudentLeaderboardPeriod;
+}
+
+export interface StudentLeaderboardEntry {
+    studentId: string;
+    fullName: string;
+    avatar?: string | null;
+    className?: string | null;
+    rank: number;
+    xu: number;
+}
+
+export interface StudentLeaderboardCurrentStudent extends StudentLeaderboardEntry {
+    gapToNext: number | null;
+}
+
+export interface StudentLeaderboardData {
+    topStudents: StudentLeaderboardEntry[];
+    currentStudent: StudentLeaderboardCurrentStudent | null;
+    totalStudents: number;
+    period: StudentLeaderboardPeriod;
+    scope: StudentLeaderboardScope;
+    updatedAt: string;
+}
+
 // --- Pet Selection (for registration / onboarding) ---
 
 export interface PetOption {

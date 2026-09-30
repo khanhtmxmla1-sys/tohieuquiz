@@ -11,6 +11,8 @@ import {
     LeaderboardEntry,
     ResultRewardClaimResult,
     TopGoldStudent,
+    StudentLeaderboardData,
+    StudentLeaderboardQuery,
 } from '../types/gamification.types';
 import { callApi } from './apiAdapter';
 
@@ -118,6 +120,22 @@ export const getTopGoldLeaderboard = async (): Promise<TopGoldStudent[]> => {
         console.error('[GamificationService] fetch top gold failed:', e);
     }
     return [];
+};
+
+export const getStudentLeaderboard = async (
+    query: StudentLeaderboardQuery,
+): Promise<StudentLeaderboardData> => {
+    const response = await callApi<GamificationApiResponse<StudentLeaderboardData>>(
+        'get_student_leaderboard',
+        query,
+    );
+    const data = response?.data ?? (response as unknown as StudentLeaderboardData);
+
+    if (!data || !Array.isArray(data.topStudents) || !('currentStudent' in data)) {
+        throw new Error(response?.message || 'Không thể tải bảng vàng.');
+    }
+
+    return data;
 };
 
 
