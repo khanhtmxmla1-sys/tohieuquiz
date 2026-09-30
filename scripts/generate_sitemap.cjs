@@ -159,6 +159,13 @@ async function buildSitemapData({ siteUrl, apiUrl, today, fetchImpl = fetch }) {
   });
 
   entries.push({
+    loc: toUrl(siteUrl, '/truong-tieu-hoc-to-hieu-son-la', []),
+    lastmod: today,
+    changefreq: 'weekly',
+    priority: '0.9',
+  });
+
+  entries.push({
     loc: toUrl(siteUrl, '/about', []),
     lastmod: today,
     changefreq: 'weekly',
@@ -180,18 +187,6 @@ async function buildSitemapData({ siteUrl, apiUrl, today, fetchImpl = fetch }) {
         lastmod: today,
         changefreq: 'daily',
         priority: '0.9',
-      });
-    });
-
-  quizzes
-    .slice()
-    .sort((a, b) => String(b.created_at || b.createdAt || '').localeCompare(String(a.created_at || a.createdAt || '')))
-    .forEach((quiz) => {
-      entries.push({
-        loc: toUrl(siteUrl, '/', [['quizId', quiz.id]]),
-        lastmod: safeDate(quiz.created_at || quiz.createdAt, today),
-        changefreq: 'weekly',
-        priority: '0.7',
       });
     });
 

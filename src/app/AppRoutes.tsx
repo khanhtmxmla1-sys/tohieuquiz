@@ -15,6 +15,7 @@ import {
     CompetitionStudentRoute,
     StudentCompetitionHomePage,
     StudentDashboardUI,
+    SchoolProfilePage,
     TeacherDashboard,
     TeacherResultDetailPage,
     TermsOfService,
@@ -213,6 +214,10 @@ export const AppRoutes: React.FC<AppRoutesProps> = ({
             />
             <Route path="/teacher/quizzes/manual/new" element={<LegacyManualQuizNewRedirect />} />
             <Route path="/teacher/quizzes/manual/:quizId/edit" element={<LegacyManualQuizEditRedirect />} />
+            <Route
+                path="/truong-tieu-hoc-to-hieu-son-la"
+                element={suspended(<PublicPageLayout onNavigate={onNavigate}><SchoolProfilePage /></PublicPageLayout>)}
+            />
             <Route path="/about" element={suspended(<PublicPageLayout onNavigate={onNavigate}><AboutPage /></PublicPageLayout>)} />
             <Route path="/contact" element={suspended(<PublicPageLayout onNavigate={onNavigate}><ContactPage /></PublicPageLayout>)} />
             <Route path="/phieu/p/:publicToken" element={suspended(<PhieuPublicPage />)} />
