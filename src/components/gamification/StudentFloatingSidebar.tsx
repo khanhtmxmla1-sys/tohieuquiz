@@ -8,6 +8,7 @@ import type {
   StudentLeaderboardQuery,
 } from '../../types/gamification.types';
 import { getAvatarUrl } from '../../config/avatars';
+import { formatSystemDate, formatSystemTime, getSystemDateKey } from '../../utils/dateTime';
 
 type LeaderboardTab = 'week' | 'class' | 'school';
 
@@ -18,27 +19,16 @@ const TAB_CONFIG: Record<LeaderboardTab, { label: string; query: StudentLeaderbo
 };
 
 const xuFormatter = new Intl.NumberFormat('vi-VN');
-const dateFormatter = new Intl.DateTimeFormat('vi-VN', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  timeZone: 'Asia/Ho_Chi_Minh',
-});
-const timeFormatter = new Intl.DateTimeFormat('vi-VN', {
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-  timeZone: 'Asia/Ho_Chi_Minh',
-});
 
 const formatXu = (xu: number): string => `${xuFormatter.format(Math.max(0, xu))} xu`;
 
 const formatUpdatedAt = (updatedAt: string): string => {
   const date = new Date(updatedAt);
-  if (Number.isNaN(date.getTime())) return 'Cập nhật mới nhất';
-  const dateLabel = dateFormatter.format(date);
-  const timeLabel = timeFormatter.format(date);
-  return dateLabel === dateFormatter.format(new Date())
+  if (!Number.isFinite(date.getTime())) return 'Cập nhật mới nhất';
+  const dateLabel = formatSystemDate(date, '');
+  const timeLabel = formatSystemTime(date, '');
+  if (!dateLabel || !timeLabel) return 'Cập nhật mới nhất';
+  return getSystemDateKey(date) === getSystemDateKey()
     ? `Cập nhật lúc ${timeLabel} hôm nay`
     : `Cập nhật lúc ${timeLabel} ${dateLabel}`;
 };
