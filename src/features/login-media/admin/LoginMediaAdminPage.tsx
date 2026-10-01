@@ -4,6 +4,7 @@ import type {
   LoginMediaAdminSettings,
   LoginMediaAdminSlide,
   LoginMediaSlideInput,
+  LoginMediaSlideVisualDraft,
 } from '../loginMediaAdmin.types';
 import { LoginMediaPreview } from './LoginMediaPreview';
 import { LoginMediaSettingsCard } from './LoginMediaSettingsCard';
@@ -23,6 +24,7 @@ const LoginMediaAdminPage = () => {
   const [editing, setEditing] = useState<LoginMediaAdminSlide | null | undefined>(undefined);
   const [preview, setPreview] = useState<LoginMediaAdminSlide | null>(null);
   const [previewSettings, setPreviewSettings] = useState<LoginMediaAdminSettings | null>(null);
+  const [previewDraft, setPreviewDraft] = useState<LoginMediaSlideVisualDraft | null>(null);
 
   const orderedSlides = useMemo(
     () => [...(admin.state?.slides || [])].sort((left, right) => left.sortOrder - right.sortOrder),
@@ -84,6 +86,24 @@ const LoginMediaAdminPage = () => {
   }
 
   const effectivePreviewSettings = previewSettings || admin.state.settings;
+  const draftPreviewId = editing?.id || '__login-media-draft__';
+  const effectivePreviewSlides = previewDraft
+    ? [{
+      id: draftPreviewId,
+      imageUrl: previewDraft.imageUrl,
+      imageWidth: previewDraft.imageWidth,
+      imageHeight: previewDraft.imageHeight,
+      altText: previewDraft.altText || editing?.altText || 'Xem trước banner đang chỉnh sửa',
+      cropX: previewDraft.cropX,
+      cropY: previewDraft.cropY,
+      cropZoom: previewDraft.cropZoom,
+      linkUrl: previewDraft.linkUrl,
+      openNewTab: previewDraft.openNewTab,
+    }]
+    : previewSlides;
+  const effectiveSelectedPreviewId = previewDraft
+    ? draftPreviewId
+    : (selectedPreview?.id || null);
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-5">
@@ -129,8 +149,8 @@ const LoginMediaAdminPage = () => {
 
         <LoginMediaPreview
           settings={effectivePreviewSettings}
-          slides={previewSlides}
-          selectedSlideId={selectedPreview?.id || null}
+          slides={effectivePreviewSlides}
+          selectedSlideId={effectiveSelectedPreviewId}
         />
       </div>
 
@@ -143,6 +163,7 @@ const LoginMediaAdminPage = () => {
           onClose={() => setEditing(undefined)}
           onUpload={admin.uploadImage}
           onSave={saveSlide}
+          onPreviewChange={setPreviewDraft}
         />
       )}
     </div>

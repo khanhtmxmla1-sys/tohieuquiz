@@ -90,6 +90,9 @@ const slide = (overrides: Record<string, unknown> = {}) => ({
   image_url: 'https://res.cloudinary.com/demo/image/upload/v1/tohieuquiz/login-media/2026/08/slide-1.webp',
   image_width: 1200,
   image_height: 520,
+  crop_x: 0.65,
+  crop_y: 0.35,
+  crop_zoom: 1.2,
   alt_text: 'Banner ôn tập',
   internal_title: 'Banner 1',
   link_url: '/practice',
@@ -139,9 +142,14 @@ describe('login media public delivery', () => {
     expect(payload.data.slides).toEqual([{
       id: 'slide-1',
       imageUrl: expect.stringContaining('res.cloudinary.com'),
+      imageWidth: 1200,
+      imageHeight: 520,
       alt: 'Banner ôn tập',
       linkUrl: '/practice',
       openNewTab: false,
+      cropX: 0.65,
+      cropY: 0.35,
+      cropZoom: 1.2,
     }]);
     expect(JSON.stringify(payload)).not.toContain('cloudinaryPublicId');
     expect(JSON.stringify(payload)).not.toContain('createdBy');
@@ -406,9 +414,30 @@ describe('login media admin routes', () => {
 
     expect(response!.status).toBe(201);
     expect(payload.data.enabled).toBe(false);
+    expect(payload.data).toMatchObject({ cropX: 0.5, cropY: 0.5, cropZoom: 1 });
     expect(db.batches).toHaveLength(1);
     expect(db.batches[0]).toHaveLength(2);
-    expect(db.batches[0][0].bindings[10]).toBe(0);
+    expect(db.batches[0][0].bindings[13]).toBe(0);
+  });
+
+  it('rejects crop metadata outside the supported bounds before writing a slide', async () => {
+    const db = new FakeDatabase();
+    const response = await handleLoginMediaRoutes(request('/api/admin/login-media/slides', {
+      method: 'POST',
+      body: JSON.stringify({
+        cloudinaryPublicId: 'tohieuquiz/login-media/2026/08/bad-crop',
+        imageUrl: 'https://res.cloudinary.com/demo/image/upload/v1/tohieuquiz/login-media/2026/08/bad-crop.webp',
+        imageWidth: 1200,
+        imageHeight: 520,
+        altText: 'Banner lỗi crop',
+        cropX: 1.2,
+        cropY: 0.5,
+        cropZoom: 1,
+      }),
+    }), env(db), '/api/admin/login-media/slides', 'POST');
+
+    expect(response!.status).toBe(400);
+    expect(db.batches).toHaveLength(0);
   });
 
   it('updates a slide with expectedUpdatedAt and verifies the winning write', async () => {

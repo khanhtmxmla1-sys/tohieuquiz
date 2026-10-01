@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getLoginMedia } from '../src/services/loginMediaService';
+import { getLoginMedia, parseLoginMediaPublicPayload } from '../src/services/loginMediaService';
 
 const successPayload = {
   status: 'success',
@@ -49,5 +49,30 @@ describe('loginMediaService', () => {
     })));
 
     await expect(getLoginMedia()).rejects.toThrow('Dữ liệu nội dung trang đăng nhập không hợp lệ.');
+  });
+
+  it('keeps public crop metadata and defaults old payloads to centered cover', () => {
+    const baseSlide = {
+      id: 'slide-1',
+      imageUrl: 'https://res.cloudinary.com/demo/image/upload/slide-1.jpg',
+      alt: 'Banner',
+      linkUrl: null,
+      openNewTab: false,
+    };
+    const withCrop = parseLoginMediaPublicPayload({
+      ...successPayload,
+      data: {
+        ...successPayload.data,
+        mode: 'SLIDER',
+        slides: [{ ...baseSlide, cropX: 0.7, cropY: 0.25, cropZoom: 1.4 }],
+      },
+    });
+    const legacy = parseLoginMediaPublicPayload({
+      ...successPayload,
+      data: { ...successPayload.data, mode: 'SLIDER', slides: [baseSlide] },
+    });
+
+    expect(withCrop.slides[0]).toMatchObject({ cropX: 0.7, cropY: 0.25, cropZoom: 1.4 });
+    expect(legacy.slides[0]).toMatchObject({ cropX: 0.5, cropY: 0.5, cropZoom: 1 });
   });
 });

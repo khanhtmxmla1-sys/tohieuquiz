@@ -32,6 +32,9 @@ type LoginMediaSlideRow = {
   image_url: string;
   image_width: number | null;
   image_height: number | null;
+  crop_x: number;
+  crop_y: number;
+  crop_zoom: number;
   alt_text: string;
   internal_title: string;
   link_url: string | null;
@@ -51,6 +54,9 @@ type SlideInput = {
   imageUrl: string;
   imageWidth: number | null;
   imageHeight: number | null;
+  cropX: number;
+  cropY: number;
+  cropZoom: number;
   altText: string;
   internalTitle: string;
   linkUrl: string | null;
@@ -118,6 +124,9 @@ const mapAdminSlide = (row: LoginMediaSlideRow) => ({
   imageUrl: row.image_url,
   imageWidth: row.image_width,
   imageHeight: row.image_height,
+  cropX: row.crop_x,
+  cropY: row.crop_y,
+  cropZoom: row.crop_zoom,
   altText: row.alt_text,
   internalTitle: row.internal_title,
   linkUrl: row.link_url,
@@ -154,7 +163,7 @@ async function publicSlides(db: D1Database, now: string): Promise<LoginMediaSlid
   const result = await withD1Retry(
     () => db.prepare(`
       SELECT id, cloudinary_public_id, image_url, image_width, image_height,
-             alt_text, internal_title, link_url, open_new_tab, sort_order, enabled,
+             crop_x, crop_y, crop_zoom, alt_text, internal_title, link_url, open_new_tab, sort_order, enabled,
              starts_at, ends_at, created_at, created_by, updated_at, updated_by
       FROM login_media_slides
       WHERE enabled = 1
@@ -172,7 +181,7 @@ async function allSlides(db: D1Database): Promise<LoginMediaSlideRow[]> {
   const result = await withD1Retry(
     () => db.prepare(`
       SELECT id, cloudinary_public_id, image_url, image_width, image_height,
-             alt_text, internal_title, link_url, open_new_tab, sort_order, enabled,
+             crop_x, crop_y, crop_zoom, alt_text, internal_title, link_url, open_new_tab, sort_order, enabled,
              starts_at, ends_at, created_at, created_by, updated_at, updated_by
       FROM login_media_slides
       ORDER BY sort_order ASC, created_at ASC
@@ -245,9 +254,14 @@ function mapPublicSlide(row: LoginMediaSlideRow, env: Env) {
   return {
     id: row.id,
     imageUrl,
+    imageWidth: row.image_width,
+    imageHeight: row.image_height,
     alt: row.alt_text,
     linkUrl,
     openNewTab: Boolean(linkUrl) && row.open_new_tab === 1,
+    cropX: row.crop_x,
+    cropY: row.crop_y,
+    cropZoom: row.crop_zoom,
   };
 }
 
@@ -265,6 +279,12 @@ function positiveDimension(value: unknown): number | null | undefined {
   return Number(value);
 }
 
+function cropNumber(value: unknown, fallback: number, min: number, max: number): number | undefined {
+  if (value === undefined) return fallback;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) return undefined;
+  return value;
+}
+
 function optionalIsoDate(value: unknown): string | null | undefined {
   if (value === undefined || value === null || value === '') return null;
   if (typeof value !== 'string') return undefined;
@@ -279,6 +299,9 @@ function parseSlideInput(body: Record<string, unknown>, env: Env): SlideInput | 
     : null;
   const imageWidth = positiveDimension(body.imageWidth);
   const imageHeight = positiveDimension(body.imageHeight);
+  const cropX = cropNumber(body.cropX, 0.5, 0, 1);
+  const cropY = cropNumber(body.cropY, 0.5, 0, 1);
+  const cropZoom = cropNumber(body.cropZoom, 1, 1, 3);
   const linkUrl = safeLink(body.linkUrl);
   const startsAt = optionalIsoDate(body.startsAt);
   const endsAt = optionalIsoDate(body.endsAt);
@@ -289,6 +312,7 @@ function parseSlideInput(body: Record<string, unknown>, env: Env): SlideInput | 
   const sortOrder = body.sortOrder === undefined ? 0 : body.sortOrder;
 
   if (!cloudinaryPublicId || !imageUrl || imageWidth === undefined || imageHeight === undefined
+    || cropX === undefined || cropY === undefined || cropZoom === undefined
     || linkUrl === undefined || startsAt === undefined || endsAt === undefined
     || altText.length > 300 || internalTitle.length > 160
     || typeof openNewTab !== 'boolean' || typeof enabled !== 'boolean'
@@ -304,6 +328,9 @@ function parseSlideInput(body: Record<string, unknown>, env: Env): SlideInput | 
     imageUrl,
     imageWidth,
     imageHeight,
+    cropX,
+    cropY,
+    cropZoom,
     altText,
     internalTitle,
     linkUrl,
@@ -353,7 +380,7 @@ async function jsonBody(request: Request): Promise<Record<string, unknown> | nul
 async function slideById(db: D1Database, id: string): Promise<LoginMediaSlideRow | null> {
   return db.prepare(`
     SELECT id, cloudinary_public_id, image_url, image_width, image_height,
-           alt_text, internal_title, link_url, open_new_tab, sort_order, enabled,
+           crop_x, crop_y, crop_zoom, alt_text, internal_title, link_url, open_new_tab, sort_order, enabled,
            starts_at, ends_at, created_at, created_by, updated_at, updated_by
     FROM login_media_slides
     WHERE id = ?
@@ -456,11 +483,12 @@ async function handleSlideCreate(request: Request, env: Env, actor: string): Pro
     env.DB.prepare(`
       INSERT INTO login_media_slides (
         id, cloudinary_public_id, image_url, image_width, image_height,
-        alt_text, internal_title, link_url, open_new_tab, sort_order, enabled,
+        crop_x, crop_y, crop_zoom, alt_text, internal_title, link_url, open_new_tab, sort_order, enabled,
         starts_at, ends_at, created_at, created_by, updated_at, updated_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       id, input.cloudinaryPublicId, input.imageUrl, input.imageWidth, input.imageHeight,
+      input.cropX, input.cropY, input.cropZoom,
       input.altText, input.internalTitle, input.linkUrl, input.openNewTab ? 1 : 0,
       input.sortOrder, input.enabled ? 1 : 0, input.startsAt, input.endsAt,
       now, actor, now, actor,
@@ -506,11 +534,13 @@ async function handleSlideUpdate(
     env.DB.prepare(`
       UPDATE login_media_slides
       SET cloudinary_public_id = ?, image_url = ?, image_width = ?, image_height = ?,
+          crop_x = ?, crop_y = ?, crop_zoom = ?,
           alt_text = ?, internal_title = ?, link_url = ?, open_new_tab = ?, sort_order = ?,
           enabled = ?, starts_at = ?, ends_at = ?, updated_at = ?, updated_by = ?
       WHERE id = ? AND updated_at = ?
     `).bind(
       input.cloudinaryPublicId, input.imageUrl, input.imageWidth, input.imageHeight,
+      input.cropX, input.cropY, input.cropZoom,
       input.altText, input.internalTitle, input.linkUrl, input.openNewTab ? 1 : 0,
       input.sortOrder, input.enabled ? 1 : 0, input.startsAt, input.endsAt,
       now, actor, id, body.expectedUpdatedAt,

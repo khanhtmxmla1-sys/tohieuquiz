@@ -23,6 +23,9 @@ export interface LoginMediaAdminSlide {
   imageUrl: string;
   imageWidth: number | null;
   imageHeight: number | null;
+  cropX: number;
+  cropY: number;
+  cropZoom: number;
   altText: string;
   internalTitle: string;
   linkUrl: string | null;
@@ -54,11 +57,26 @@ export interface LoginMediaSettingsUpdate {
   reason: string;
 }
 
+export interface LoginMediaSlideVisualDraft {
+  imageUrl: string;
+  imageWidth: number | null;
+  imageHeight: number | null;
+  cropX: number;
+  cropY: number;
+  cropZoom: number;
+  altText: string;
+  linkUrl: string | null;
+  openNewTab: boolean;
+}
+
 export interface LoginMediaSlideInput {
   cloudinaryPublicId: string;
   imageUrl: string;
   imageWidth: number | null;
   imageHeight: number | null;
+  cropX: number;
+  cropY: number;
+  cropZoom: number;
   altText: string;
   internalTitle: string;
   linkUrl: string | null;
