@@ -102,6 +102,52 @@ describe('LoginMediaAdminPage', () => {
     expect(screen.getByRole('radio', { name: 'Tổng quan học tập' })).toBeChecked();
   });
 
+  it('previews draft slider controls before settings are saved', async () => {
+    render(<LoginMediaAdminPage />);
+    await screen.findByText('Banner tháng 8');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Trình chiếu ảnh' }));
+
+    expect(screen.getByRole('button', { name: 'Tạm dừng trình chiếu' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ảnh tiếp theo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ảnh 1' })).toHaveAttribute('aria-current', 'true');
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Hiện mũi tên' }));
+    expect(screen.queryByRole('button', { name: 'Ảnh tiếp theo' })).not.toBeInTheDocument();
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Hiện chấm điều hướng' }));
+    expect(screen.queryByRole('button', { name: 'Ảnh 1' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Tự chuyển ảnh' }));
+    expect(screen.queryByRole('button', { name: 'Tạm dừng trình chiếu' })).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Hiệu ứng' }), { target: { value: 'SLIDE' } });
+    expect(screen.getByRole('img', { name: 'Banner tháng 8' })).toHaveClass('animate-slide-up');
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+  });
+
+  it('matches the public schedule filter when choosing banners for the default preview', async () => {
+    mocks.getState.mockResolvedValueOnce({
+      settings: { ...settings, displayMode: 'SLIDER' },
+      slides: [
+        slide('slide-1', 'Banner đang chạy', 10),
+        { ...slide('slide-2', 'Banner tương lai', 20), startsAt: '2099-01-01T00:00:00.000Z' },
+      ],
+    });
+
+    render(<LoginMediaAdminPage />);
+
+    expect(await screen.findByRole('img', { name: 'Banner đang chạy' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Banner tương lai' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ảnh 2' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ảnh tiếp theo' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Xem trước Banner tương lai' }));
+    expect(screen.getByRole('img', { name: 'Banner tương lai' })).toBeInTheDocument();
+  });
+
   it('saves slider settings with version, interval and an audit reason', async () => {
     render(<LoginMediaAdminPage />);
     await screen.findByText('Banner tháng 8');
