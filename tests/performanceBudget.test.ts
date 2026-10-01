@@ -10,14 +10,11 @@ afterEach(() => { roots.splice(0).forEach(root => rmSync(root, { recursive: true
 describe('performance budget', () => {
   it('ships only bounded, expiring exceptions for known release baselines', () => {
     const budget = JSON.parse(readFileSync('config/performance-budget.json', 'utf8'));
-    expect(budget.allowlist).toHaveLength(3);
+    expect(budget.allowlist).toHaveLength(2);
     expect(budget.allowlist.map((entry: { metric: string }) => entry.metric).sort()).toEqual([
-      'initialJsGzipBytes',
       'lazyChunkGzipBytes',
       'singleChunkMinifiedBytes',
     ]);
-    expect(budget.allowlist.find((entry: { metric: string }) => entry.metric === 'initialJsGzipBytes'))
-      .toMatchObject({ maxBytes: 205500, expires: '2026-09-30' });
     expect(budget.allowlist.filter((entry: { assetPattern?: string }) => entry.assetPattern)
       .every((entry: { assetPattern?: string }) => (
         entry.assetPattern === '^vendor/mathjax/es5/tex-mml-chtml\\.js$'

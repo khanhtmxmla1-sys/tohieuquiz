@@ -64,6 +64,17 @@ export const gamificationRoutes: RouteRegistry = {
         auth: 'session',
         path: () => '/api/leaderboard/top-gold',
     },
+    get_student_leaderboard: {
+        method: 'GET',
+        auth: 'session',
+        path: () => '/api/leaderboard/student',
+        query: ({ scope, period }) => {
+            const q = new URLSearchParams();
+            if (scope === 'class' || scope === 'school') q.set('scope', scope);
+            if (period === 'week' || period === 'all') q.set('period', period);
+            return q;
+        },
+    },
 
     // Game loop
     get_game_loop_dashboard: {
