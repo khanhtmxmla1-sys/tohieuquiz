@@ -263,7 +263,7 @@ export const StudentFloatingSidebar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: 'easeOut' }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-5"
+            className="fixed inset-0 z-50 flex items-end justify-center p-2 sm:items-center sm:p-4 lg:p-6"
           >
             <motion.button
               type="button"
@@ -288,7 +288,7 @@ export const StudentFloatingSidebar = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.96, y: 16 }}
               transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: 'easeOut' }}
-              className="relative flex max-h-[85dvh] w-full max-w-[22rem] flex-col overflow-hidden rounded-[24px] border border-[#E8D8C5] bg-[#FFFDF7] text-[#3E3027] shadow-[0_20px_60px_rgba(62,48,39,0.22)] transition duration-200 motion-reduce:transition-none md:max-h-[70vh]"
+              className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-none flex-col overflow-hidden rounded-[24px] border border-[#E8D8C5] bg-[#FFFDF7] text-[#3E3027] shadow-[0_20px_60px_rgba(62,48,39,0.22)] transition duration-200 motion-reduce:transition-none sm:max-h-[85dvh] sm:max-w-2xl lg:max-h-[82dvh] lg:max-w-3xl"
             >
             <div className="flex items-start justify-between gap-4 border-b border-[#F0E4D4] bg-[#FFF9ED] px-5 pb-4 pt-5 sm:px-7 sm:pt-6">
               <div>
@@ -317,7 +317,7 @@ export const StudentFloatingSidebar = () => {
             </div>
 
             <div className="border-b border-[#F0E4D4] bg-[#FFFDF7] px-4 pt-3 sm:px-7 sm:pt-4">
-              <div role="tablist" aria-label="Phạm vi bảng vàng" className="flex gap-1 overflow-x-auto rounded-xl bg-[#FFF7E8] p-1">
+              <div role="tablist" aria-label="Phạm vi bảng vàng" className="grid grid-cols-3 gap-1 rounded-xl bg-[#FFF7E8] p-1">
                 {(Object.keys(TAB_CONFIG) as LeaderboardTab[]).map((tab) => (
                   <button
                     key={tab}
@@ -326,7 +326,7 @@ export const StudentFloatingSidebar = () => {
                     aria-selected={activeTab === tab}
                     aria-controls="student-leaderboard-panel"
                     onClick={() => setActiveTab(tab)}
-                    className={`min-h-11 flex-1 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C98524] sm:text-sm ${
+                    className={`min-h-11 min-w-0 whitespace-nowrap rounded-lg px-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C98524] sm:px-3 sm:text-sm ${
                       activeTab === tab ? 'bg-[#FFFDF7] text-[#A5631D] shadow-sm' : 'text-[#8B7765] hover:text-[#5A4537]'
                     }`}
                   >
