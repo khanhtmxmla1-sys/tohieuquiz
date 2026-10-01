@@ -61,7 +61,7 @@ describe('StudentFloatingSidebar compact launcher', () => {
     );
   });
 
-  it('opens the rich leaderboard centered in the viewport while preserving the new tabs', async () => {
+  it('opens the approved centered responsive dialog without horizontal tab scrolling', async () => {
     render(<StudentFloatingSidebar />);
 
     const trigger = screen.getByRole('button', { name: 'Mở bảng vàng học sinh' });
@@ -72,8 +72,29 @@ describe('StudentFloatingSidebar compact launcher', () => {
 
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(dialog).toHaveAttribute('id', 'student-golden-board-popup');
-    expect(dialog).toHaveClass('max-w-[22rem]', 'rounded-[24px]', 'md:max-h-[70vh]');
-    expect(layer).toHaveClass('items-center', 'justify-center', 'p-4', 'sm:p-5');
+    expect(dialog).toHaveClass(
+      'max-h-[calc(100dvh-1rem)]',
+      'max-w-none',
+      'sm:max-h-[85dvh]',
+      'sm:max-w-2xl',
+      'lg:max-h-[82dvh]',
+      'lg:max-w-3xl',
+      'rounded-[24px]',
+    );
+    expect(dialog).not.toHaveClass('max-w-[22rem]', 'md:max-h-[70vh]');
+    expect(layer).toHaveClass(
+      'items-end',
+      'justify-center',
+      'p-2',
+      'sm:items-center',
+      'sm:p-4',
+      'lg:p-6',
+    );
+    expect(layer).not.toHaveClass('justify-end', 'md:pb-24');
+    const tabList = screen.getByRole('tablist', { name: 'Phạm vi bảng vàng' });
+    expect(tabList).toHaveClass('grid', 'grid-cols-3');
+    expect(tabList).not.toHaveClass('overflow-x-auto');
+    expect(screen.getByRole('tab', { name: 'Tuần này' })).toHaveClass('min-h-11', 'min-w-0');
     expect(screen.getByRole('tab', { name: 'Tuần này' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Lớp của em' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Toàn trường' })).toBeInTheDocument();
