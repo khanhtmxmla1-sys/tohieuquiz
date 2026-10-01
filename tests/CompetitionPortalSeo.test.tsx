@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSeo } from '../src/hooks/useSeo';
 import { useCompetitionPortalSeo } from '../src/features/competition/portal/public/useCompetitionPortalSeo';
+import { SEO_SOCIAL_IMAGE_URL } from '../src/config/branding';
 
 const mocks = vi.hoisted(() => ({
   getCompetition: vi.fn(),
@@ -105,12 +106,37 @@ describe('Competition portal SEO metadata', () => {
       'Thông tin các cuộc thi, lịch thi và hoạt động học tập công khai.',
     );
     expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'index, follow');
+    expect(document.head.querySelector('meta[property="og:image"]')).toHaveAttribute(
+      'content',
+      SEO_SOCIAL_IMAGE_URL,
+    );
+    expect(document.head.querySelector('meta[name="twitter:image"]')).toHaveAttribute(
+      'content',
+      SEO_SOCIAL_IMAGE_URL,
+    );
     expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute(
       'href',
       `${window.location.origin}/cuoc-thi/`,
     );
     expect(mocks.getCompetition).not.toHaveBeenCalled();
     expect(mocks.getArticle).not.toHaveBeenCalled();
+  });
+
+  it('keeps a campaign hero image above the default social card', async () => {
+    mocks.getCompetition.mockResolvedValue({
+      title: 'Toán tuổi thơ',
+      summary: 'Một sân chơi học tập.',
+      hero: { imageUrl: 'https://cdn.example/campaign.png' },
+    });
+
+    renderSeo('/cuoc-thi/toan-tuoi-tho');
+
+    await waitFor(() => expect(document.head.querySelector('meta[property="og:image"]'))
+      .toHaveAttribute('content', 'https://cdn.example/campaign.png'));
+    expect(document.head.querySelector('meta[name="twitter:image"]')).toHaveAttribute(
+      'content',
+      'https://cdn.example/campaign.png',
+    );
   });
 
   it('uses published article fields for article metadata and canonical URL', async () => {

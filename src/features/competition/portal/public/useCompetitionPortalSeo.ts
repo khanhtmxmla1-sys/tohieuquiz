@@ -4,6 +4,10 @@ import type {
   PublicCompetitionArticleDto,
   PublicCompetitionDetailDto,
 } from '../../../../../shared/competition-portal.contract';
+import {
+  SEO_SOCIAL_IMAGE_ALT,
+  SEO_SOCIAL_IMAGE_URL,
+} from '../../../../config/branding';
 import { publicCompetitionPortalService } from './publicCompetitionPortalService';
 
 const BRAND = 'TôHiệuQuiz';
@@ -83,10 +87,6 @@ const upsertMetaByProperty = (property: string, content: string) => {
   tag.setAttribute('content', content);
 };
 
-const removeMetaByProperty = (property: string) => {
-  document.head.querySelector(`meta[property="${property}"]`)?.remove();
-};
-
 const upsertCanonical = (href: string) => {
   const links = Array.from(document.head.querySelectorAll('link[rel="canonical"]')) as HTMLLinkElement[];
   const [canonical, ...duplicates] = links;
@@ -101,27 +101,25 @@ const upsertCanonical = (href: string) => {
 
 const applyMetadata = (pathname: string, metadata: CompetitionSeoMetadata) => {
   const canonicalUrl = new URL(pathname, window.location.origin).toString();
+  const imageUrl = metadata.imageUrl || SEO_SOCIAL_IMAGE_URL;
+  const imageAlt = metadata.imageUrl ? metadata.title : SEO_SOCIAL_IMAGE_ALT;
   document.title = metadata.title;
   upsertMetaByName('description', metadata.description);
   upsertMetaByName('robots', metadata.robots);
   upsertMetaByName('twitter:title', metadata.title);
   upsertMetaByName('twitter:description', metadata.description);
-  upsertMetaByName('twitter:card', metadata.imageUrl ? 'summary_large_image' : 'summary');
+  upsertMetaByName('twitter:card', 'summary_large_image');
   upsertMetaByProperty('og:title', metadata.title);
   upsertMetaByProperty('og:description', metadata.description);
   upsertMetaByProperty('og:type', metadata.type);
   upsertMetaByProperty('og:url', canonicalUrl);
   upsertMetaByProperty('og:site_name', BRAND);
+  upsertMetaByProperty('og:image', imageUrl);
+  upsertMetaByProperty('og:image:alt', imageAlt);
   upsertMetaByName('twitter:url', canonicalUrl);
+  upsertMetaByName('twitter:image', imageUrl);
+  upsertMetaByName('twitter:image:alt', imageAlt);
   upsertCanonical(canonicalUrl);
-
-  if (metadata.imageUrl) {
-    upsertMetaByProperty('og:image', metadata.imageUrl);
-    upsertMetaByName('twitter:image', metadata.imageUrl);
-  } else {
-    removeMetaByProperty('og:image');
-    document.head.querySelector('meta[name="twitter:image"]')?.remove();
-  }
 };
 
 const fallbackMetadata = (route: CompetitionSeoRoute): CompetitionSeoMetadata => {

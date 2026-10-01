@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { useSeo } from '../src/hooks/useSeo';
+import { SEO_LOGO_URL, SEO_SOCIAL_IMAGE_URL } from '../src/config/branding';
 import {
   BRAND_RELATIONSHIP_LINE,
   SCHOOL_IDENTIFIER,
@@ -73,5 +74,30 @@ describe('Tô Hiệu route SEO metadata', () => {
       'content',
       'noindex, nofollow, noarchive',
     );
+  });
+
+  it('resets default social images and publishes official logo structured data', () => {
+    const staleOgImage = document.createElement('meta');
+    staleOgImage.setAttribute('property', 'og:image');
+    staleOgImage.setAttribute('content', 'https://cdn.example/previous-hero.png');
+    document.head.appendChild(staleOgImage);
+    const staleTwitterImage = document.createElement('meta');
+    staleTwitterImage.setAttribute('name', 'twitter:image');
+    staleTwitterImage.setAttribute('content', 'https://cdn.example/previous-hero.png');
+    document.head.appendChild(staleTwitterImage);
+
+    render(<SeoProbe pathname="/about" />);
+
+    expect(document.head.querySelector('meta[property="og:image"]')).toHaveAttribute(
+      'content',
+      SEO_SOCIAL_IMAGE_URL,
+    );
+    expect(document.head.querySelector('meta[name="twitter:image"]')).toHaveAttribute(
+      'content',
+      SEO_SOCIAL_IMAGE_URL,
+    );
+    const jsonLd = JSON.parse(document.getElementById('seo-jsonld')?.textContent || '{}');
+    expect(JSON.stringify(jsonLd)).toContain(SEO_LOGO_URL);
+    expect(JSON.stringify(jsonLd)).toContain(SEO_SOCIAL_IMAGE_URL);
   });
 });

@@ -8,14 +8,20 @@ import {
     PRODUCT_NAME,
     SCHOOL_LOGO_URL,
     SCHOOL_NAME,
+    SEO_LOGO_URL,
+    SEO_SOCIAL_IMAGE_ALT,
+    SEO_SOCIAL_IMAGE_URL,
 } from '../src/config/branding';
 
 describe('school branding', () => {
     it('keeps product and school identity separate', () => {
         expect(PRODUCT_NAME).toBe('TôHiệuQuiz');
         expect(SCHOOL_NAME).toBe('Trường Tiểu học Tô Hiệu');
-        expect(SCHOOL_LOGO_URL).toBe('/assets/branding/school-logo-v1.png');
-        expect(PRODUCT_LOGO_FALLBACK_URL).toBe('/favicon.svg');
+        expect(SCHOOL_LOGO_URL).toBe('/assets/branding/school-logo-v2.webp');
+        expect(PRODUCT_LOGO_FALLBACK_URL).toBe('/assets/branding/favicon-48.png');
+        expect(SEO_LOGO_URL).toBe('https://www.thtohieu.com/assets/branding/school-logo-512.png');
+        expect(SEO_SOCIAL_IMAGE_URL).toBe('https://www.thtohieu.com/assets/branding/tohieuquiz-social-card-v2.png');
+        expect(SEO_SOCIAL_IMAGE_ALT).toBe('Huy hiệu Trường Tiểu học Tô Hiệu và TôHiệuQuiz');
     });
 
     it('renders a fixed-size school logo with meaningful alternative text', () => {
