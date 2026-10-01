@@ -13,9 +13,14 @@ export interface LoginMediaPublicSettings {
 export interface LoginMediaPublicSlide {
   id: string;
   imageUrl: string;
+  imageWidth: number | null;
+  imageHeight: number | null;
   alt: string;
   linkUrl: string | null;
   openNewTab: boolean;
+  cropX: number;
+  cropY: number;
+  cropZoom: number;
 }
 
 export interface LoginMediaPublicData {

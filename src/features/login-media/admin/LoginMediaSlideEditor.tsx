@@ -5,11 +5,14 @@ import { systemDateTimeLocalToIso, toSystemDateTimeLocal } from '../../../utils/
 import type {
   LoginMediaAdminSlide,
   LoginMediaSlideInput,
+  LoginMediaSlideVisualDraft,
   LoginMediaUploadedImage,
 } from '../loginMediaAdmin.types';
+import { LoginMediaCropEditor, type LoginMediaCropValue } from './LoginMediaCropEditor';
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const DEFAULT_CROP: LoginMediaCropValue = { cropX: 0.5, cropY: 0.5, cropZoom: 1 };
 
 interface Props {
   slide: LoginMediaAdminSlide | null;
@@ -18,6 +21,7 @@ interface Props {
   onClose: () => void;
   onUpload: (file: File, onProgress: (percent: number) => void) => Promise<LoginMediaUploadedImage>;
   onSave: (input: LoginMediaSlideInput) => Promise<boolean>;
+  onPreviewChange?: (draft: LoginMediaSlideVisualDraft | null) => void;
 }
 
 const localDate = (value: string | null): string => {
@@ -27,13 +31,18 @@ const localDate = (value: string | null): string => {
 
 const apiDate = (value: string): string | null => value ? systemDateTimeLocalToIso(value) : null;
 
-export const LoginMediaSlideEditor = ({ slide, nextSortOrder, busy, onClose, onUpload, onSave }: Props) => {
+const cropOf = (slide: LoginMediaAdminSlide | null): LoginMediaCropValue => slide
+  ? { cropX: slide.cropX, cropY: slide.cropY, cropZoom: slide.cropZoom }
+  : DEFAULT_CROP;
+
+export const LoginMediaSlideEditor = ({ slide, nextSortOrder, busy, onClose, onUpload, onSave, onPreviewChange }: Props) => {
   const [image, setImage] = useState<LoginMediaUploadedImage | null>(slide ? {
     secureUrl: slide.imageUrl,
     publicId: slide.cloudinaryPublicId,
     width: slide.imageWidth || 0,
     height: slide.imageHeight || 0,
   } : null);
+  const [crop, setCrop] = useState<LoginMediaCropValue>(() => cropOf(slide));
   const [title, setTitle] = useState(slide?.internalTitle || '');
   const [alt, setAlt] = useState(slide?.altText || '');
   const [linkUrl, setLinkUrl] = useState(slide?.linkUrl || '');
@@ -51,6 +60,7 @@ export const LoginMediaSlideEditor = ({ slide, nextSortOrder, busy, onClose, onU
       width: slide.imageWidth || 0,
       height: slide.imageHeight || 0,
     } : null);
+    setCrop(cropOf(slide));
     setTitle(slide?.internalTitle || '');
     setAlt(slide?.altText || '');
     setLinkUrl(slide?.linkUrl || '');
@@ -60,6 +70,27 @@ export const LoginMediaSlideEditor = ({ slide, nextSortOrder, busy, onClose, onU
     setEndsAt(localDate(slide?.endsAt || null));
     setProgress(0);
   }, [slide]);
+
+  useEffect(() => {
+    if (!image) {
+      onPreviewChange?.(null);
+      return;
+    }
+    const cleanLink = linkUrl.trim();
+    onPreviewChange?.({
+      imageUrl: image.secureUrl,
+      imageWidth: image.width || null,
+      imageHeight: image.height || null,
+      cropX: crop.cropX,
+      cropY: crop.cropY,
+      cropZoom: crop.cropZoom,
+      altText: alt.trim(),
+      linkUrl: cleanLink || null,
+      openNewTab: Boolean(cleanLink) && openNewTab,
+    });
+  }, [alt, crop, image, linkUrl, onPreviewChange, openNewTab]);
+
+  useEffect(() => () => onPreviewChange?.(null), [onPreviewChange]);
 
   const previewAlt = useMemo(() => alt.trim() || 'Xem trước banner đang chỉnh sửa', [alt]);
 
@@ -78,6 +109,7 @@ export const LoginMediaSlideEditor = ({ slide, nextSortOrder, busy, onClose, onU
     try {
       const uploaded = await onUpload(file, setProgress);
       setImage(uploaded);
+      setCrop(DEFAULT_CROP);
       setProgress(100);
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Không thể tải ảnh lên Cloudinary.');
@@ -113,6 +145,9 @@ export const LoginMediaSlideEditor = ({ slide, nextSortOrder, busy, onClose, onU
       imageUrl: image.secureUrl,
       imageWidth: image.width || null,
       imageHeight: image.height || null,
+      cropX: crop.cropX,
+      cropY: crop.cropY,
+      cropZoom: crop.cropZoom,
       altText: alt.trim(),
       internalTitle: title.trim(),
       linkUrl: linkUrl.trim() || null,
@@ -143,9 +178,22 @@ export const LoginMediaSlideEditor = ({ slide, nextSortOrder, busy, onClose, onU
           </label>
           <p className="mt-2 text-xs text-slate-500">JPEG, PNG hoặc WebP · tối đa 5 MB.</p>
           {(uploading || progress > 0) && <div className="mt-3" role="status"><div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-blue-600 transition-[width]" style={{ width: `${progress}%` }} /></div><p className="mt-1 text-xs text-slate-500">{uploading ? `Đang tải ${progress}%` : 'Tải ảnh hoàn tất'}</p></div>}
-          <div className="mt-4 flex aspect-[630/286] items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white">
-            {image ? <img src={image.secureUrl} alt={previewAlt} className="h-full w-full object-cover" /> : <div className="text-center text-slate-400"><UploadCloud aria-hidden="true" className="mx-auto size-8" /><p className="mt-2 text-sm">Chưa có ảnh</p></div>}
-          </div>
+          {image ? (
+            <LoginMediaCropEditor
+              imageUrl={image.secureUrl}
+              imageWidth={image.width || null}
+              imageHeight={image.height || null}
+              alt={previewAlt}
+              cropX={crop.cropX}
+              cropY={crop.cropY}
+              cropZoom={crop.cropZoom}
+              onChange={setCrop}
+            />
+          ) : (
+            <div className="mt-4 flex aspect-[630/286] items-center justify-center overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white">
+              <div className="text-center text-slate-400"><UploadCloud aria-hidden="true" className="mx-auto size-8" /><p className="mt-2 text-sm">Chưa có ảnh</p></div>
+            </div>
+          )}
         </div>
 
         <div className="grid content-start gap-4 sm:grid-cols-2">

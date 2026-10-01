@@ -10,8 +10,8 @@ const sliderPayload = {
   mode: 'SLIDER' as const,
   settings: { autoplay: true, intervalMs: 4000, transition: 'FADE' as const, showDots: true, showArrows: true, pauseOnHover: true },
   slides: [
-    { id: 'slide-1', imageUrl: 'https://res.cloudinary.com/demo/image/upload/slide-1.jpg', alt: 'Banner một', linkUrl: null, openNewTab: false },
-    { id: 'slide-2', imageUrl: 'https://res.cloudinary.com/demo/image/upload/slide-2.jpg', alt: 'Banner hai', linkUrl: null, openNewTab: false },
+    { id: 'slide-1', imageUrl: 'https://res.cloudinary.com/demo/image/upload/slide-1.jpg', imageWidth: 1200, imageHeight: 520, alt: 'Banner một', linkUrl: null, openNewTab: false, cropX: 0.5, cropY: 0.5, cropZoom: 1 },
+    { id: 'slide-2', imageUrl: 'https://res.cloudinary.com/demo/image/upload/slide-2.jpg', imageWidth: 1200, imageHeight: 520, alt: 'Banner hai', linkUrl: null, openNewTab: false, cropX: 0.5, cropY: 0.5, cropZoom: 1 },
   ],
 };
 

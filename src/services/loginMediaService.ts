@@ -26,6 +26,22 @@ const isNullableString = (value: unknown): value is string | null => (
   value === null || typeof value === 'string'
 );
 
+const cropNumber = (value: unknown, fallback: number, min: number, max: number): number => {
+  if (value === undefined) return fallback;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
+    throw new Error(INVALID_PAYLOAD_MESSAGE);
+  }
+  return value;
+};
+
+const imageDimension = (value: unknown): number | null => {
+  if (value === undefined || value === null) return null;
+  if (!Number.isInteger(value) || Number(value) <= 0 || Number(value) > 20000) {
+    throw new Error(INVALID_PAYLOAD_MESSAGE);
+  }
+  return Number(value);
+};
+
 function parseSettings(value: unknown): LoginMediaPublicSettings {
   if (!isObject(value)
     || typeof value.autoplay !== 'boolean'
@@ -54,9 +70,14 @@ function parseSlide(value: unknown): LoginMediaPublicSlide {
   if (!isObject(value)) throw new Error(INVALID_PAYLOAD_MESSAGE);
   const id = value.id;
   const imageUrl = value.imageUrl;
+  const imageWidth = imageDimension(value.imageWidth);
+  const imageHeight = imageDimension(value.imageHeight);
   const alt = value.alt;
   const linkUrl = value.linkUrl;
   const openNewTab = value.openNewTab;
+  const cropX = cropNumber(value.cropX, 0.5, 0, 1);
+  const cropY = cropNumber(value.cropY, 0.5, 0, 1);
+  const cropZoom = cropNumber(value.cropZoom, 1, 1, 3);
 
   if (!isNullableString(linkUrl)) throw new Error(INVALID_PAYLOAD_MESSAGE);
   if (typeof id !== 'string'
@@ -68,7 +89,18 @@ function parseSlide(value: unknown): LoginMediaPublicSlide {
     throw new Error(INVALID_PAYLOAD_MESSAGE);
   }
 
-  return { id, imageUrl, alt, linkUrl, openNewTab };
+  return {
+    id,
+    imageUrl,
+    imageWidth,
+    imageHeight,
+    alt,
+    linkUrl,
+    openNewTab,
+    cropX,
+    cropY,
+    cropZoom,
+  };
 }
 
 export function parseLoginMediaPublicPayload(payload: unknown): LoginMediaPublicData {

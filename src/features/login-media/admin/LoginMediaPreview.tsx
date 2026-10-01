@@ -4,9 +4,15 @@ import LoginMediaCarousel from '../../../components/HomePage/components/login-me
 import type { LoginMediaPublicSlide } from '../../../components/HomePage/components/login-media/loginMedia.types';
 import type { LoginMediaAdminSettings, LoginMediaAdminSlide } from '../loginMediaAdmin.types';
 
+export type LoginMediaPreviewSlide = Pick<
+  LoginMediaAdminSlide,
+  'id' | 'imageUrl' | 'imageWidth' | 'imageHeight' | 'altText'
+  | 'cropX' | 'cropY' | 'cropZoom' | 'linkUrl' | 'openNewTab'
+>;
+
 interface Props {
   settings: LoginMediaAdminSettings;
-  slides: LoginMediaAdminSlide[];
+  slides: LoginMediaPreviewSlide[];
   selectedSlideId?: string | null;
 }
 
@@ -14,7 +20,12 @@ export const LoginMediaPreview = ({ settings, slides, selectedSlideId = null }: 
   const previewSlides = useMemo<LoginMediaPublicSlide[]>(() => slides.map((slide) => ({
     id: slide.id,
     imageUrl: slide.imageUrl,
+    imageWidth: slide.imageWidth,
+    imageHeight: slide.imageHeight,
     alt: slide.altText,
+    cropX: slide.cropX,
+    cropY: slide.cropY,
+    cropZoom: slide.cropZoom,
     linkUrl: slide.linkUrl,
     openNewTab: slide.openNewTab,
   })), [slides]);

@@ -21,8 +21,8 @@ const sliderPayload = {
     pauseOnHover: true,
   },
   slides: [
-    { id: 'slide-1', imageUrl: 'https://res.cloudinary.com/demo/image/upload/slide-1.jpg', alt: 'Banner một', linkUrl: null, openNewTab: false },
-    { id: 'slide-2', imageUrl: 'https://res.cloudinary.com/demo/image/upload/slide-2.jpg', alt: 'Banner hai', linkUrl: null, openNewTab: false },
+    { id: 'slide-1', imageUrl: 'https://res.cloudinary.com/demo/image/upload/slide-1.jpg', imageWidth: 1200, imageHeight: 520, alt: 'Banner một', linkUrl: null, openNewTab: false, cropX: 0.65, cropY: 0.3, cropZoom: 1.25 },
+    { id: 'slide-2', imageUrl: 'https://res.cloudinary.com/demo/image/upload/slide-2.jpg', imageWidth: 1200, imageHeight: 520, alt: 'Banner hai', linkUrl: null, openNewTab: false, cropX: 0.5, cropY: 0.5, cropZoom: 1 },
   ],
 };
 
@@ -45,7 +45,10 @@ describe('LoginMediaSection', () => {
     mockedGetLoginMedia.mockResolvedValue(sliderPayload);
     const { container } = render(<LoginMediaSection />);
 
-    expect(await screen.findByRole('img', { name: 'Banner một' })).toHaveAttribute('src', sliderPayload.slides[0].imageUrl);
+    const image = await screen.findByRole('img', { name: 'Banner một' });
+    expect(image).toHaveAttribute('src', sliderPayload.slides[0].imageUrl);
+    expect(image.style.width).toBe('130.9524%');
+    expect(image.style.height).toBe('125%');
     expect(container.querySelector('[data-purpose="learning-preview"]')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ảnh 1' })).toHaveAttribute('aria-current', 'true');
     expect(screen.getByRole('button', { name: 'Ảnh tiếp theo' })).toBeInTheDocument();

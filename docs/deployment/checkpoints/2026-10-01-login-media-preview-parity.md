@@ -1,11 +1,12 @@
 # Checkpoint — Login Media Preview Parity
 
-**Ngày:** 01/10/2026
-**Trạng thái:** IMPLEMENTATION COMPLETE — VERIFIED FOCUSED SCOPE — CHƯA COMMIT/PUSH/PR
+**Cập nhật gần nhất:** 02/10/2026
+**Trạng thái:** PREVIEW PARITY ĐÃ COMMIT/PUSH — WYSIWYG CROP ĐÃ IMPLEMENT + VERIFY — CROP CHƯA COMMIT/PUSH
 **Worktree:** `C:/quizpro/.worktrees/login-media-preview-parity`
 **Branch:** `fix/login-media-preview-parity`
-**HEAD / Base:** `ab535b4c1a34219c27ba4c133e2185128fb160a4`
-**Base commit:** `ab535b4 feat: add class attendance question bank (#178)`
+**HEAD hiện tại:** `8c420692d90b888db8cc2f7ed938f059f7344a62`
+**HEAD commit:** `8c42069 fix(login-media): align admin preview with login carousel`
+**Tracking:** `origin/fix/login-media-preview-parity` (0 ahead / 0 behind trước phần crop chưa commit)
 
 ---
 
@@ -439,3 +440,57 @@ Không reset/clean/overwrite.
 Kiểm tra lại focused tests, typecheck, lint đúng scope và build trước khi commit.
 Sau đó nếu sạch thì chuẩn bị commit, push và tạo PR; chưa cleanup worktree.
 ```
+
+
+---
+
+## 15. Mở rộng scope — WYSIWYG Banner Crop (02/10/2026)
+
+**Mục tiêu:** Admin kéo/zoom ảnh trong khung 630:286; Crop Editor, Admin Preview và public Login phải render cùng kết quả.
+
+**Dữ liệu:** `cropX/cropY = 0..1`, `cropZoom = 1..3`; mặc định `0.5/0.5/1`.
+
+**Migration:** `workers/migrations/0088_login_media_crop.sql`.
+- Thêm `crop_x`, `crop_y`, `crop_zoom` với DEFAULT + CHECK.
+- `origin/main` hiện kết thúc ở 0087, chưa có collision 0088.
+- Rollout bắt buộc: **apply 0088 trước khi deploy Worker mới**.
+
+**Renderer dùng chung:** `LoginMediaImageViewport.tsx`.
+- Dùng intrinsic width/height + aspect 630/286 để tính cover, zoom, left/top.
+- Clamp vị trí để không lộ khoảng trắng.
+- Không tạo ảnh crop mới trên Cloudinary.
+
+**Crop Editor:** `LoginMediaCropEditor.tsx`.
+- Pointer Events cho chuột/cảm ứng.
+- Kéo focal X/Y, zoom 100–300%, Reset về center/100%.
+- Draft cập nhật ngay khung Preview Admin; chưa Save thì không gọi `updateSlide`.
+
+**API/Worker:** đọc/ghi/validate crop metadata; public payload trả `imageWidth/imageHeight` + crop. Payload public cũ thiếu crop được default center/100%.
+
+**TDD:** đã có RED→GREEN cho renderer intrinsic geometry, migration/validation, crop editor/save và live draft preview.
+
+**Verification cuối:**
+```text
+Focused Vitest: 11 files / 60 tests PASS
+npm run typecheck: PASS
+npm run typecheck:workers: PASS
+Scoped ESLint: PASS, 0 warnings
+npm run build: PASS (4782 modules)
+git diff --check: PASS
+security_scan: 0 hits
+Cypress login-media-admin: final rerun 3/3 PASS
+```
+
+Cypress lần đầu có 1 timeout chờ alias `loginMediaState`; rerun ngay cùng source/environment 3/3 PASS. Chrome Companion vẫn chưa pair/arm nên chưa có visual verification trực tiếp qua Companion.
+
+**Môi trường:** worktree phải junction `workers/node_modules -> C:/quizpro/workers/node_modules` để Worker typecheck tìm `@simplewebauthn/server`; không đổi source/package lock.
+
+**Git crop scope hiện tại:**
+```text
+Branch: fix/login-media-preview-parity
+HEAD: 8c420692d90b888db8cc2f7ed938f059f7344a62
+Tracking: origin/fix/login-media-preview-parity (HEAD 0 ahead / 0 behind trước crop)
+Crop commit/push/deploy: NONE
+```
+
+**Resume:** đọc `git status --short` và diff trước; không reset/clean/overwrite. Nếu giao hàng, rerun focused tests + typecheck root/workers + scoped lint + build. Chỉ commit/push sau user approval.

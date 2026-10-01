@@ -48,12 +48,15 @@ const settings = {
   updatedBy: 'admin-1',
 };
 
-const slide = (id: string, title: string, sortOrder: number) => ({
+const slide = (id: string, title: string, sortOrder: number, overrides: Record<string, unknown> = {}) => ({
   id,
   cloudinaryPublicId: `tohieuquiz/login-media/2026/08/${id}`,
   imageUrl: `https://res.cloudinary.com/demo/image/upload/v1/tohieuquiz/login-media/2026/08/${id}.webp`,
   imageWidth: 1200,
   imageHeight: 520,
+  cropX: 0.5,
+  cropY: 0.5,
+  cropZoom: 1,
   altText: title,
   internalTitle: title,
   linkUrl: null,
@@ -66,6 +69,7 @@ const slide = (id: string, title: string, sortOrder: number) => ({
   createdBy: 'admin-1',
   updatedAt: '2026-08-12T15:00:00.000Z',
   updatedBy: 'admin-1',
+  ...overrides,
 });
 
 const state = () => ({
@@ -89,6 +93,7 @@ beforeEach(() => {
     publicId: 'tohieuquiz/login-media/2026/08/uploaded', width: 1200, height: 520,
   });
   mocks.createSlide.mockResolvedValue(slide('created', 'Banner mới', 30));
+  mocks.updateSlide.mockResolvedValue(slide('slide-1', 'Banner tháng 8', 10));
   mocks.reorderSlides.mockResolvedValue({ slideIds: ['slide-2', 'slide-1'] });
 });
 
@@ -191,7 +196,51 @@ describe('LoginMediaAdminPage', () => {
       internalTitle: 'Banner mới',
       altText: 'Thông báo ôn tập tháng 8',
       enabled: false,
+      cropX: 0.5,
+      cropY: 0.5,
+      cropZoom: 1,
     })));
+  });
+
+  it('edits banner crop WYSIWYG and persists the same crop values', async () => {
+    mocks.getState.mockResolvedValueOnce({
+      settings: { ...settings, displayMode: 'SLIDER' },
+      slides: [slide('slide-1', 'Banner tháng 8', 10, { cropX: 0.65, cropY: 0.35, cropZoom: 1.2 })],
+    });
+    mocks.updateSlide.mockResolvedValueOnce(slide('slide-1', 'Banner tháng 8', 10, { cropX: 0.65, cropY: 0.35, cropZoom: 1.4 }));
+
+    render(<LoginMediaAdminPage />);
+    await screen.findByText('Banner tháng 8');
+    fireEvent.click(screen.getByRole('button', { name: 'Sửa Banner tháng 8' }));
+
+    const cropSection = screen.getByRole('region', { name: 'Căn chỉnh ảnh banner' });
+    expect(within(cropSection).getByLabelText('Phóng to ảnh')).toHaveValue('1.2');
+    const cropImage = within(cropSection).getByRole('img', { name: 'Banner tháng 8' });
+    expect(cropImage.style.width).toBe('125.7143%');
+    expect(cropImage.style.height).toBe('120%');
+
+    const viewport = within(cropSection).getByTestId('login-media-crop-viewport');
+    vi.spyOn(viewport, 'getBoundingClientRect').mockReturnValue({
+      width: 630, height: 286, left: 0, top: 0, right: 630, bottom: 286,
+      x: 0, y: 0, toJSON: () => ({}),
+    });
+    fireEvent.pointerDown(viewport, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(viewport, { pointerId: 1, clientX: 179.2, clientY: 134.32 });
+    fireEvent.pointerUp(viewport, { pointerId: 1, clientX: 179.2, clientY: 134.32 });
+
+    fireEvent.change(within(cropSection).getByLabelText('Phóng to ảnh'), { target: { value: '1.4' } });
+    const mainPreview = screen.getByRole('region', { name: 'Xem trước' });
+    const previewImage = within(mainPreview).getByRole('img', { name: 'Banner tháng 8' });
+    expect(previewImage.style.width).toBe('146.6667%');
+    expect(previewImage.style.left).toBe('-30.6667%');
+    expect(mocks.updateSlide).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu banner' }));
+
+    await waitFor(() => expect(mocks.updateSlide).toHaveBeenCalledWith(
+      'slide-1',
+      expect.objectContaining({ cropX: 0.55, cropY: 0.25, cropZoom: 1.4 }),
+    ));
   });
 
   it('reorders banners with accessible move controls', async () => {

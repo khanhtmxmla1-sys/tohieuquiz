@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import LoginMediaImageViewport from './LoginMediaImageViewport';
 import type { LoginMediaPublicSettings, LoginMediaPublicSlide } from './loginMedia.types';
 
 interface Props {
@@ -56,11 +57,16 @@ const LoginMediaCarousel: React.FC<Props> = ({
   const goNext = () => goTo(currentIndex + 1);
 
   const image = (
-    <img
+    <LoginMediaImageViewport
       key={currentSlide.id}
-      src={currentSlide.imageUrl}
+      imageUrl={currentSlide.imageUrl}
+      imageWidth={currentSlide.imageWidth}
+      imageHeight={currentSlide.imageHeight}
       alt={currentSlide.alt || 'Banner đăng nhập'}
-      className={`h-full w-full object-cover ${transitionClass}`}
+      cropX={currentSlide.cropX}
+      cropY={currentSlide.cropY}
+      cropZoom={currentSlide.cropZoom}
+      imageClassName={transitionClass}
       loading="lazy"
       decoding="async"
       onError={onImageError}
