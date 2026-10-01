@@ -8,9 +8,15 @@ interface Props {
   settings: LoginMediaAdminSettings;
   busy: boolean;
   onSave: (input: LoginMediaSettingsUpdate) => Promise<void>;
+  onPreviewChange?: (settings: LoginMediaAdminSettings) => void;
 }
 
-export const LoginMediaSettingsCard = ({ settings, busy, onSave }: Props) => {
+export const LoginMediaSettingsCard = ({
+  settings,
+  busy,
+  onSave,
+  onPreviewChange,
+}: Props) => {
   const [draft, setDraft] = useState(settings);
   const [intervalSeconds, setIntervalSeconds] = useState(String(settings.intervalMs / 1000));
   const [reason, setReason] = useState('');
@@ -22,6 +28,16 @@ export const LoginMediaSettingsCard = ({ settings, busy, onSave }: Props) => {
     setDraft(settings);
     setIntervalSeconds(String(settings.intervalMs / 1000));
   }, [settings]);
+
+  useEffect(() => {
+    const seconds = Number(intervalSeconds);
+    onPreviewChange?.({
+      ...draft,
+      intervalMs: Number.isFinite(seconds) && seconds >= 2 && seconds <= 30
+        ? Math.round(seconds * 1000)
+        : draft.intervalMs,
+    });
+  }, [draft, intervalSeconds, onPreviewChange]);
 
   const save = async () => {
     const cleanReason = reason.trim();
@@ -56,11 +72,23 @@ export const LoginMediaSettingsCard = ({ settings, busy, onSave }: Props) => {
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="flex cursor-pointer gap-3 rounded-xl border border-slate-200 p-4">
-          <input aria-label="Tổng quan học tập" type="radio" name="login-media-mode" checked={draft.displayMode === 'CONTENT'} onClick={() => setDraft((current) => ({ ...current, displayMode: 'CONTENT' }))} onChange={() => setDraft((current) => ({ ...current, displayMode: 'CONTENT' }))} />
+          <input
+            aria-label="Tổng quan học tập"
+            type="radio"
+            name="login-media-mode"
+            checked={draft.displayMode === 'CONTENT'}
+            onChange={() => setDraft((current) => ({ ...current, displayMode: 'CONTENT' }))}
+          />
           <span><span className="block font-semibold text-slate-900">Tổng quan học tập</span><span className="text-xs text-slate-500">Giữ nội dung mặc định.</span></span>
         </label>
         <label className="flex cursor-pointer gap-3 rounded-xl border border-slate-200 p-4">
-          <input aria-label="Trình chiếu ảnh" type="radio" name="login-media-mode" checked={draft.displayMode === 'SLIDER'} onClick={() => setDraft((current) => ({ ...current, displayMode: 'SLIDER' }))} onChange={() => setDraft((current) => ({ ...current, displayMode: 'SLIDER' }))} />
+          <input
+            aria-label="Trình chiếu ảnh"
+            type="radio"
+            name="login-media-mode"
+            checked={draft.displayMode === 'SLIDER'}
+            onChange={() => setDraft((current) => ({ ...current, displayMode: 'SLIDER' }))}
+          />
           <span><span className="block font-semibold text-slate-900">Trình chiếu ảnh</span><span className="text-xs text-slate-500">Hiển thị banner đang bật và đúng lịch.</span></span>
         </label>
       </div>
@@ -80,14 +108,25 @@ export const LoginMediaSettingsCard = ({ settings, busy, onSave }: Props) => {
         </label>
         <label className="text-sm font-semibold text-slate-700">
           Hiệu ứng
-          <select value={draft.transition} onChange={(event) => setDraft((current) => ({ ...current, transition: event.target.value as 'FADE' | 'SLIDE' }))} className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200">
+          <select
+            value={draft.transition}
+            onChange={(event) => setDraft((current) => ({ ...current, transition: event.target.value as 'FADE' | 'SLIDE' }))}
+            className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          >
             <option value="FADE">Mờ dần (Fade)</option>
             <option value="SLIDE">Trượt (Slide)</option>
           </select>
         </label>
         <label className="text-sm font-semibold text-slate-700 md:col-span-2 xl:col-span-1">
           Lý do thay đổi
-          <input aria-label="Lý do thay đổi" maxLength={500} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ví dụ: Bật banner tuyển sinh" className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200" />
+          <input
+            aria-label="Lý do thay đổi"
+            maxLength={500}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Ví dụ: Bật banner tuyển sinh"
+            className="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          />
         </label>
       </div>
 
@@ -98,7 +137,12 @@ export const LoginMediaSettingsCard = ({ settings, busy, onSave }: Props) => {
         <label className={toggleClass}><input type="checkbox" checked={draft.pauseOnHover} onChange={(event) => setDraft((current) => ({ ...current, pauseOnHover: event.target.checked }))} /> Dừng khi rê chuột</label>
       </div>
 
-      <button type="button" disabled={busy || !reason.trim() || !Number.isFinite(Number(intervalSeconds)) || Number(intervalSeconds) < 2 || Number(intervalSeconds) > 30} onClick={() => void save()} className="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+      <button
+        type="button"
+        disabled={busy || !reason.trim() || !Number.isFinite(Number(intervalSeconds)) || Number(intervalSeconds) < 2 || Number(intervalSeconds) > 30}
+        onClick={() => void save()}
+        className="mt-5 min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      >
         {busy ? 'Đang lưu…' : 'Lưu cài đặt'}
       </button>
     </section>

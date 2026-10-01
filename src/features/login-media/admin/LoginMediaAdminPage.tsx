@@ -1,6 +1,10 @@
 import { Plus, RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { LoginMediaAdminSlide, LoginMediaSlideInput } from '../loginMediaAdmin.types';
+import type {
+  LoginMediaAdminSettings,
+  LoginMediaAdminSlide,
+  LoginMediaSlideInput,
+} from '../loginMediaAdmin.types';
 import { LoginMediaPreview } from './LoginMediaPreview';
 import { LoginMediaSettingsCard } from './LoginMediaSettingsCard';
 import { LoginMediaSlideEditor } from './LoginMediaSlideEditor';
@@ -8,22 +12,36 @@ import { LoginMediaSlideList } from './LoginMediaSlideList';
 import { useLoginMediaAdmin } from './useLoginMediaAdmin';
 import { showConfirm } from '../../../utils/toast';
 
+const isLiveSlide = (slide: LoginMediaAdminSlide, now: number): boolean => (
+  slide.enabled
+  && (!slide.startsAt || Date.parse(slide.startsAt) <= now)
+  && (!slide.endsAt || Date.parse(slide.endsAt) > now)
+);
+
 const LoginMediaAdminPage = () => {
   const admin = useLoginMediaAdmin();
   const [editing, setEditing] = useState<LoginMediaAdminSlide | null | undefined>(undefined);
   const [preview, setPreview] = useState<LoginMediaAdminSlide | null>(null);
+  const [previewSettings, setPreviewSettings] = useState<LoginMediaAdminSettings | null>(null);
 
   const orderedSlides = useMemo(
     () => [...(admin.state?.slides || [])].sort((left, right) => left.sortOrder - right.sortOrder),
     [admin.state?.slides],
   );
+
+  const liveSlides = useMemo(() => {
+    const now = Date.now();
+    return orderedSlides.filter((slide) => isLiveSlide(slide, now)).slice(0, 10);
+  }, [orderedSlides]);
+
   const selectedPreview = preview
     ? orderedSlides.find((slide) => slide.id === preview.id) || null
     : null;
-  const previewSlide = selectedPreview
-    || orderedSlides.find((slide) => slide.enabled)
-    || orderedSlides[0]
-    || null;
+
+  const previewSlides = selectedPreview && !liveSlides.some((slide) => slide.id === selectedPreview.id)
+    ? [selectedPreview]
+    : liveSlides;
+
   const nextSortOrder = orderedSlides.length > 0
     ? Math.max(...orderedSlides.map((slide) => slide.sortOrder)) + 10
     : 10;
@@ -65,6 +83,8 @@ const LoginMediaAdminPage = () => {
     );
   }
 
+  const effectivePreviewSettings = previewSettings || admin.state.settings;
+
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -79,7 +99,12 @@ const LoginMediaAdminPage = () => {
         </button>
       </div>
 
-      <LoginMediaSettingsCard settings={admin.state.settings} busy={admin.busy} onSave={admin.saveSettings} />
+      <LoginMediaSettingsCard
+        settings={admin.state.settings}
+        busy={admin.busy}
+        onSave={admin.saveSettings}
+        onPreviewChange={setPreviewSettings}
+      />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="login-media-slides-title">
@@ -101,7 +126,12 @@ const LoginMediaAdminPage = () => {
             onPreview={setPreview}
           />
         </section>
-        <LoginMediaPreview settings={admin.state.settings} slide={previewSlide} />
+
+        <LoginMediaPreview
+          settings={effectivePreviewSettings}
+          slides={previewSlides}
+          selectedSlideId={selectedPreview?.id || null}
+        />
       </div>
 
       {editing !== undefined && (
