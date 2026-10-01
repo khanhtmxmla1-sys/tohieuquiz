@@ -46,6 +46,8 @@ afterEach(() => {
 
 describe('StudentFloatingSidebar gold leaderboard', () => {
   it('fetches the weekly school view only after opening and renders the current row', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-30T08:00:00.000Z'));
     render(<StudentFloatingSidebar />);
 
     expect(getStudentLeaderboardMock).not.toHaveBeenCalled();

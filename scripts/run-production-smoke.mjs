@@ -78,7 +78,7 @@ const expectStatus = (response, expected, label) => {
 const expectHtmlShell = async (response, label) => {
   expectStatus(response, 200, label);
   const body = await response.text();
-  if (!body.includes('<title>TôHiệuQuiz') || !body.includes('id="root"')) {
+  if (!/<title>[^<]*TôHiệuQuiz[^<]*<\/title>/i.test(body) || !body.includes('id="root"')) {
     throw new Error(`${label} did not return the TôHiệuQuiz application shell.`);
   }
 };

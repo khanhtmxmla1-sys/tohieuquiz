@@ -7,7 +7,7 @@ const site = 'https://www.thtohieu.com';
 const apex = 'https://thtohieu.com';
 const api = 'https://api.thtohieu.com';
 const parent = 'https://phuhuynh.thtohieu.com';
-const html = '<!doctype html><title>TôHiệuQuiz</title><div id="root"></div>';
+const html = '<!doctype html><title>Trường Tiểu học Tô Hiệu Sơn La | TôHiệuQuiz</title><div id="root"></div>';
 const securityHeaders = {
   'strict-transport-security': 'max-age=31536000',
   'x-content-type-options': 'nosniff',

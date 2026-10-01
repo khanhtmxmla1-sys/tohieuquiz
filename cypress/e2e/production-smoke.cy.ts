@@ -2,7 +2,7 @@
 
 const expectHealthyHtml = (response: Cypress.Response<string>) => {
   expect(response.status).to.eq(200);
-  expect(response.body).to.include('<title>TôHiệuQuiz');
+  expect(response.body).to.match(/<title>[^<]*TôHiệuQuiz[^<]*<\/title>/i);
   expect(response.body).to.include('id="root"');
 };
 
