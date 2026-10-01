@@ -263,7 +263,7 @@ export const StudentFloatingSidebar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: 'easeOut' }}
-            className="fixed inset-0 z-50 flex items-end justify-end p-3 pb-[calc(9rem+env(safe-area-inset-bottom))] md:p-5 md:pb-24"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-5"
           >
             <motion.button
               type="button"
