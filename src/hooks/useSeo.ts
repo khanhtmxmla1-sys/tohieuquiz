@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
 import { Quiz } from '../types';
 import {
+    SEO_LOGO_URL,
+    SEO_SOCIAL_IMAGE_ALT,
+    SEO_SOCIAL_IMAGE_URL,
+} from '../config/branding';
+import {
     BRAND_RELATIONSHIP_LINE,
     SCHOOL_IDENTIFIER,
     SCHOOL_LOCALITY,
@@ -96,6 +101,8 @@ const buildStructuredData = (canonicalUrl: string, title: string, description: s
             addressCountry: 'VN',
         },
         url: `${SITE_URL}${SCHOOL_PROFILE_PATH}`,
+        logo: SEO_LOGO_URL,
+        image: SEO_SOCIAL_IMAGE_URL,
     };
 
     if (selectedQuiz) {
@@ -110,6 +117,8 @@ const buildStructuredData = (canonicalUrl: string, title: string, description: s
             inLanguage: 'vi',
             isAccessibleForFree: true,
             numberOfQuestions: selectedQuiz.questions?.length || 0,
+            image: SEO_SOCIAL_IMAGE_URL,
+            publisher: school,
         };
     }
 
@@ -122,6 +131,8 @@ const buildStructuredData = (canonicalUrl: string, title: string, description: s
                 url: 'https://www.thtohieu.com',
                 inLanguage: 'vi',
                 description,
+                logo: SEO_LOGO_URL,
+                image: SEO_SOCIAL_IMAGE_URL,
             },
             school,
             {
@@ -129,6 +140,7 @@ const buildStructuredData = (canonicalUrl: string, title: string, description: s
                 name: title,
                 url: canonicalUrl,
                 description,
+                image: SEO_SOCIAL_IMAGE_URL,
             },
             {
                 '@type': 'SoftwareApplication',
@@ -138,6 +150,8 @@ const buildStructuredData = (canonicalUrl: string, title: string, description: s
                 url: SITE_URL,
                 description: BRAND_RELATIONSHIP_LINE,
                 provider: { '@id': `${SITE_URL}/#school` },
+                logo: SEO_LOGO_URL,
+                image: SEO_SOCIAL_IMAGE_URL,
             },
         ],
     };
@@ -218,12 +232,20 @@ export const useSeo = (
         upsertMetaByProperty('og:title', title);
         upsertMetaByProperty('og:description', description);
         upsertMetaByProperty('og:url', canonicalUrl);
+        upsertMetaByProperty('og:image', SEO_SOCIAL_IMAGE_URL);
+        upsertMetaByProperty('og:image:width', '1200');
+        upsertMetaByProperty('og:image:height', '630');
+        upsertMetaByProperty('og:image:type', 'image/png');
+        upsertMetaByProperty('og:image:alt', SEO_SOCIAL_IMAGE_ALT);
         upsertMetaByProperty('twitter:title', title);
         upsertMetaByProperty('twitter:description', description);
         upsertMetaByProperty('twitter:url', canonicalUrl);
 
         upsertMetaByName('twitter:title', title);
         upsertMetaByName('twitter:description', description);
+        upsertMetaByName('twitter:card', 'summary_large_image');
+        upsertMetaByName('twitter:image', SEO_SOCIAL_IMAGE_URL);
+        upsertMetaByName('twitter:image:alt', SEO_SOCIAL_IMAGE_ALT);
 
         upsertCanonical(canonicalUrl);
         upsertJsonLd('seo-jsonld', structuredData);
