@@ -18,6 +18,8 @@ const TAB_CONFIG: Record<LeaderboardTab, { label: string; query: StudentLeaderbo
   school: { label: 'Toàn trường', query: { scope: 'school', period: 'all' } },
 };
 
+const TROPHY_MASCOT_SRC = '/assets/gamification/cheerful-golden-trophy-mascot.png';
+
 const xuFormatter = new Intl.NumberFormat('vi-VN');
 
 const formatXu = (xu: number): string => `${xuFormatter.format(Math.max(0, xu))} xu`;
@@ -143,6 +145,7 @@ export const StudentFloatingSidebar = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dialogTitleId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -233,15 +236,22 @@ export const StudentFloatingSidebar = () => {
 
   return (
     <>
-      <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-40 sm:right-6">
+      <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 z-40 md:bottom-5 md:right-5">
         <button
+          ref={triggerRef}
           type="button"
           onClick={openLeaderboard}
           aria-label="Mở bảng vàng học sinh"
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#E4B557] bg-[#FFF8E8] px-4 text-sm font-bold text-[#8A571D] shadow-[0_8px_24px_rgba(151,112,71,0.18)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#FFF2C7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C98524] focus-visible:ring-offset-2"
+          aria-expanded={isOpen}
+          aria-controls="student-golden-board-popup"
+          className="group flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-[#E4B557] bg-white p-1 shadow-[0_8px_24px_rgba(151,112,71,0.18)] transition duration-200 hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C98524] focus-visible:ring-offset-2 md:h-16 md:w-16"
         >
-          <Trophy aria-hidden="true" className="h-5 w-5 fill-[#E8B94D] text-[#B7791F]" />
-          <span className="hidden sm:inline">Bảng vàng</span>
+          <img
+            src={TROPHY_MASCOT_SRC}
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-contain transition-transform duration-200 group-hover:scale-105"
+          />
         </button>
       </div>
 
@@ -253,7 +263,7 @@ export const StudentFloatingSidebar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: 'easeOut' }}
-            className="fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-4"
+            className="fixed inset-0 z-50 flex items-end justify-end p-3 pb-[calc(9rem+env(safe-area-inset-bottom))] md:p-5 md:pb-24"
           >
             <motion.button
               type="button"
@@ -269,6 +279,7 @@ export const StudentFloatingSidebar = () => {
 
             <motion.section
               ref={dialogRef}
+              id="student-golden-board-popup"
               role="dialog"
               aria-modal="true"
               aria-labelledby={dialogTitleId}
@@ -277,14 +288,17 @@ export const StudentFloatingSidebar = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.96, y: 16 }}
               transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: 'easeOut' }}
-              className="relative flex max-h-[85dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-[28px] border border-[#E8D8C5] bg-[#FFFDF7] text-[#3E3027] shadow-[0_20px_60px_rgba(62,48,39,0.22)] transition duration-200 motion-reduce:transition-none md:rounded-[28px]"
+              className="relative flex max-h-[85dvh] w-full max-w-[22rem] flex-col overflow-hidden rounded-[24px] border border-[#E8D8C5] bg-[#FFFDF7] text-[#3E3027] shadow-[0_20px_60px_rgba(62,48,39,0.22)] transition duration-200 motion-reduce:transition-none md:max-h-[70vh]"
             >
             <div className="flex items-start justify-between gap-4 border-b border-[#F0E4D4] bg-[#FFF9ED] px-5 pb-4 pt-5 sm:px-7 sm:pt-6">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#FBE5A9] text-[#A5631D]">
-                    <Trophy aria-hidden="true" className="h-5 w-5 fill-[#E8B94D]" />
-                  </span>
+                  <img
+                    src={TROPHY_MASCOT_SRC}
+                    alt=""
+                    aria-hidden="true"
+                    className="h-10 w-10 shrink-0 object-contain"
+                  />
                   <div>
                     <h2 id={dialogTitleId} className="text-lg font-bold text-[#3E3027] sm:text-xl">Bảng vàng học sinh</h2>
                     <p className="text-xs text-[#806C5B] sm:text-sm">{periodCopy}</p>
