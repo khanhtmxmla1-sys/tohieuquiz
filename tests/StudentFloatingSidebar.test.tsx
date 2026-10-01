@@ -61,7 +61,7 @@ describe('StudentFloatingSidebar compact launcher', () => {
     );
   });
 
-  it('opens the rich leaderboard in a compact floating card while preserving the new tabs', async () => {
+  it('opens the rich leaderboard centered in the viewport while preserving the new tabs', async () => {
     render(<StudentFloatingSidebar />);
 
     const trigger = screen.getByRole('button', { name: 'Mở bảng vàng học sinh' });
@@ -73,12 +73,7 @@ describe('StudentFloatingSidebar compact launcher', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(dialog).toHaveAttribute('id', 'student-golden-board-popup');
     expect(dialog).toHaveClass('max-w-[22rem]', 'rounded-[24px]', 'md:max-h-[70vh]');
-    expect(layer).toHaveClass(
-      'items-end',
-      'justify-end',
-      'pb-[calc(9rem+env(safe-area-inset-bottom))]',
-      'md:pb-24',
-    );
+    expect(layer).toHaveClass('items-center', 'justify-center', 'p-4', 'sm:p-5');
     expect(screen.getByRole('tab', { name: 'Tuần này' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Lớp của em' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Toàn trường' })).toBeInTheDocument();
