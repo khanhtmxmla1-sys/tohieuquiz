@@ -3,6 +3,7 @@
  * Editor for UNDERLINE question type.
  */
 import React from 'react';
+import { UnderlineSentence } from '../../../../../components/common/UnderlineSentence';
 import type { UnderlineEditorDraft } from '../../../types/quiz-editor.types';
 import { FieldRow, TextInput } from './shared';
 
@@ -34,32 +35,24 @@ const UnderlineEditor: React.FC<UnderlineEditorProps> = ({ draft, onChange }) =>
 
         <FieldRow
             label="Các từ để chọn"
-            hint="Click vào từ bên dưới để đánh dấu là đáp án đúng (gạch dưới)."
+            hint="Nhấn vào từ hoặc các từ trong cụm cần làm đáp án đúng."
         >
-            <div className="flex flex-wrap gap-2">
-                {draft.words.map((word, i) => {
-                    const isCorrect = draft.correctWordIndexes.includes(i);
-                    return (
-                        <button
-                            key={i}
-                            type="button"
-                            onClick={() => {
-                                const next = isCorrect
-                                    ? draft.correctWordIndexes.filter((idx) => idx !== i)
-                                    : [...draft.correctWordIndexes, i].sort((a, b) => a - b);
-                                onChange({ ...draft, correctWordIndexes: next });
-                            }}
-                            className={`px-2 py-1 rounded text-sm transition-all ${
-                                isCorrect
-                                    ? 'bg-green-100 text-green-800 font-semibold underline border border-green-400'
-                                    : 'bg-gray-100 text-gray-700 border border-gray-200 hover:border-gray-400'
-                            }`}
-                        >
-                            {word}
-                        </button>
-                    );
-                })}
-            </div>
+            <UnderlineSentence
+                sentence={draft.sentence}
+                words={draft.words}
+                interactive
+                stateForIndex={(index) =>
+                    draft.correctWordIndexes.includes(index) ? 'correct' : 'idle'
+                }
+                onToggle={(index) => {
+                    const selected = draft.correctWordIndexes.includes(index);
+                    const next = selected
+                        ? draft.correctWordIndexes.filter((value) => value !== index)
+                        : [...draft.correctWordIndexes, index].sort((a, b) => a - b);
+                    onChange({ ...draft, correctWordIndexes: next });
+                }}
+                ariaLabel="Chọn từ hoặc cụm từ làm đáp án đúng"
+            />
             {draft.correctWordIndexes.length === 0 && (
                 <p className="text-xs text-amber-600 mt-1">⚠️ Chưa chọn từ đúng</p>
             )}

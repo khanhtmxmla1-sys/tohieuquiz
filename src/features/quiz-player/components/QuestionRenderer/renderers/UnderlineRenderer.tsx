@@ -1,14 +1,18 @@
 import React from 'react';
 import { BaseRendererProps } from '../types';
-import MathSpan from '../atoms/MathSpan';
-import { selectedAnswerClass, unselectedAnswerClass } from '../../answer-state/stateStyles';
+import { UnderlineSentence } from '../../../../../components/common/UnderlineSentence';
 
 const UnderlineRenderer: React.FC<BaseRendererProps> = ({
   question: question,
   answers,
   onAnswerChange,
 }) => {
-  const words = (question as any).words || [];
+  const words = Array.isArray((question as any).words)
+    ? (question as any).words.map(String)
+    : [];
+  const sentence = typeof (question as any).sentence === 'string'
+    ? (question as any).sentence
+    : undefined;
   const rawAnswer = answers[question.id];
   const selectedIndexes: number[] = Array.isArray(rawAnswer) ? rawAnswer : [];
 
@@ -29,36 +33,20 @@ const UnderlineRenderer: React.FC<BaseRendererProps> = ({
 
   return (
     <div className="underline-renderer-container pt-2">
-      <div className="flex min-h-[160px] flex-wrap items-center justify-center gap-x-2 gap-y-4 rounded-[10px] border border-dashed border-slate-300 bg-slate-50 p-6 md:p-8">
-        {words.map((word: string, index: number) => {
-          const isSelected = selectedIndexes.includes(index);
-
-          return (
-            <button
-              key={index}
-              type="button"
-              aria-pressed={isSelected}
-              onClick={() => handleToggle(index)}
-              className={`min-h-11 rounded-[8px] border px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
-                isSelected
-                  ? selectedAnswerClass
-                  : unselectedAnswerClass + ' hover:border-sky-300'
-              }`}
-            >
-              <MathSpan
-                content={word}
-                className={`text-lg font-medium md:text-xl ${
-                  isSelected ? 'underline decoration-2 decoration-sky-600 underline-offset-8' : ''
-                }`}
-              />
-            </button>
-          );
-        })}
+      <div className="rounded-[10px] border border-slate-200 bg-white p-4 text-[17px] leading-8 sm:p-5 sm:text-lg">
+        <UnderlineSentence
+          sentence={sentence}
+          words={words}
+          interactive
+          stateForIndex={(index) => (selectedIndexes.includes(index) ? 'selected' : 'idle')}
+          onToggle={handleToggle}
+          ariaLabel="Đoạn văn để gạch chân"
+        />
       </div>
 
       <div className="mt-5 flex flex-col items-center gap-3">
         <p className="text-center text-sm leading-6 text-[#526174]">
-          Nhấn vào từ hoặc cụm từ em muốn gạch chân.
+          Em hãy nhấn vào từ hoặc cụm từ cần gạch chân.
         </p>
         {selectedIndexes.length > 0 ? (
           <button

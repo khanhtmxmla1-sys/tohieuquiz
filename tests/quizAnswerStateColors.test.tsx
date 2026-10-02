@@ -48,7 +48,8 @@ const underlineQuestion = {
   id: 'underline-1',
   type: 'UNDERLINE',
   text: 'Chọn từ cần gạch chân',
-  words: ['từ một', 'từ hai'],
+  sentence: 'từ một từ hai',
+  words: ['từ', 'một', 'từ', 'hai'],
 } as unknown as Question;
 
 describe('quiz answer state colors', () => {
@@ -68,7 +69,7 @@ describe('quiz answer state colors', () => {
     expect(selectedAnswer.querySelector('span')).toHaveClass('bg-sky-600');
   });
 
-  it('uses blue for other selectable answer types', () => {
+  it('uses expected selected states for other selectable answer types, including natural UNDERLINE text', () => {
     const { unmount } = render(
       <MultipleSelectRenderer
         question={multipleSelectQuestion}
@@ -101,14 +102,53 @@ describe('quiz answer state colors', () => {
       <UnderlineRenderer
         question={underlineQuestion}
         index={0}
-        answers={{ 'underline-1': [1] }}
+        answers={{ 'underline-1': [3] }}
         onAnswerChange={vi.fn()}
       />,
     );
-    expect(screen.getByRole('button', { name: 'từ hai' })).toHaveClass(
-      'border-sky-600',
-      'bg-sky-100',
+    const selectedUnderline = screen.getByRole('button', { name: 'hai' });
+    expect(selectedUnderline).toHaveAttribute('aria-pressed', 'true');
+    expect(selectedUnderline).toHaveClass(
+      'underline',
+      'decoration-sky-600',
+      'underline-offset-[4px]',
     );
+    expect(selectedUnderline).not.toHaveClass('border', 'bg-sky-100', 'px-4');
+    expect(screen.getByText('Em hãy nhấn vào từ hoặc cụm từ cần gạch chân.')).toBeInTheDocument();
+  });
+
+  it('keeps underline selections sorted while toggling indexes without duplicates', () => {
+    const onAnswerChange = vi.fn();
+    const question = {
+      ...underlineQuestion,
+      id: 'underline-2',
+      sentence: 'một hai ba bốn',
+      words: ['một', 'hai', 'ba', 'bốn'],
+    } as unknown as Question;
+
+    const Harness = () => {
+      const [answers, setAnswers] = useState<Record<string, any>>({ 'underline-2': [3, 1] });
+
+      return (
+        <UnderlineRenderer
+          question={question}
+          index={0}
+          answers={answers}
+          onAnswerChange={(questionId, value) => {
+            onAnswerChange(questionId, value);
+            setAnswers((current) => ({ ...current, [questionId]: value }));
+          }}
+        />
+      );
+    };
+
+    render(<Harness />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'ba' }));
+    expect(onAnswerChange).toHaveBeenLastCalledWith('underline-2', [1, 2, 3]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'hai' }));
+    expect(onAnswerChange).toHaveBeenLastCalledWith('underline-2', [2, 3]);
   });
 
   it('uses the same blue selected state for Đúng and Sai', () => {

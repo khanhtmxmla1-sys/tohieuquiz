@@ -9,11 +9,11 @@ import type {
     ReviewOrderingItem,
     ReviewTextAnswerItem,
     ReviewTrueFalseItem,
-    ReviewUnderlineItem,
     ReviewWordScrambleItem,
 } from '../../../domain/quiz-scoring';
 import MathSpan from '../MathSpan';
 import SafeRasterImage from '../SafeRasterImage';
+import { UnderlineSentence, type UnderlineTokenState } from '../UnderlineSentence';
 import {
     answerText,
     asQuestionRecord,
@@ -363,24 +363,48 @@ const CategorizationReview: React.FC<{ presentation: Exclude<ReturnType<typeof c
     );
 };
 
-const UnderlineReview: React.FC<{ presentation: Exclude<ReturnType<typeof underlinePresentationOf>, undefined> }> = ({ presentation }) => {
+const UnderlineReview: React.FC<{
+    question: unknown;
+    presentation: Exclude<ReturnType<typeof underlinePresentationOf>, undefined>;
+}> = ({ question, presentation }) => {
     const items = useMemo(() => [...presentation.items].sort((left, right) => left.index - right.index), [presentation.items]);
+    const questionRecord = asQuestionRecord(question);
+    const sentence = typeof questionRecord.sentence === 'string' ? questionRecord.sentence : undefined;
+    const sourceWords = Array.isArray(questionRecord.words)
+        && questionRecord.words.length > 0
+        && questionRecord.words.every((word): word is string => typeof word === 'string')
+        ? questionRecord.words
+        : undefined;
+    const words = sourceWords ?? items.map((item) => item.text);
+    const hasContiguousPresentationIndexes = items.every((item, position) => (
+        Number.isInteger(item.index) && item.index === position
+    ));
+    const itemByIndex = useMemo(() => {
+        // A source words array is the authority for sparse indexes. Without it,
+        // only contiguous presentation indexes are safe to map onto fallback words.
+        if (!sourceWords && !hasContiguousPresentationIndexes) return new Map();
+        return new Map(
+            items
+                .filter((item) => Number.isInteger(item.index) && item.index >= 0 && item.index < words.length)
+                .map((item) => [item.index, item]),
+        );
+    }, [hasContiguousPresentationIndexes, items, sourceWords, words.length]);
+
+    const stateForIndex = (index: number): UnderlineTokenState => {
+        const item = itemByIndex.get(index);
+        if (!item) return 'idle';
+        if (item.state === 'unknown') return 'idle';
+        if (item.selected) return item.correct ? 'correct' : 'incorrect';
+        return item.correct ? 'missed' : 'idle';
+    };
+
     return (
-        <div className="flex flex-wrap gap-2" aria-label="Các từ cần gạch chân">
-            {items.map((item: ReviewUnderlineItem) => (
-                <div
-                    key={`${item.id}-${item.index}`}
-                    data-testid="student-review-underline-word"
-                    data-word-index={item.index}
-                    data-state={item.state}
-                    className={`rounded-[8px] border px-3 py-2 text-sm ${stateClassName(item.state)}`}
-                >
-                    <MathSpan content={item.text} className={item.selected ? 'font-bold underline decoration-2 underline-offset-2' : 'font-medium'} />
-                    <div className="mt-1 text-xs font-bold">
-                        {item.selected ? `Em chọn · ${stateLabel(item.state)}` : item.correct ? 'Đáp án đúng · Em chưa chọn' : 'Không chọn'}
-                    </div>
-                </div>
-            ))}
+        <div aria-label="Các từ cần gạch chân">
+            <UnderlineSentence
+                sentence={sentence}
+                words={words}
+                stateForIndex={stateForIndex}
+            />
         </div>
     );
 };
@@ -542,7 +566,7 @@ const StudentReviewBody: React.FC<StudentReviewBodyProps> = ({
                 ) : categorizationPresentation ? (
                     <CategorizationReview presentation={categorizationPresentation} />
                 ) : underlinePresentation ? (
-                    <UnderlineReview presentation={underlinePresentation} />
+                    <UnderlineReview question={question} presentation={underlinePresentation} />
                 ) : textAnswerPresentation ? (
                     <TextAnswerReview question={question} presentation={textAnswerPresentation} />
                 ) : wordScramblePresentation ? (

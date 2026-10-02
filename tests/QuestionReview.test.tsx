@@ -201,8 +201,8 @@ describe('QuestionReview Component', () => {
         it('nên hiển thị đúng khi học sinh chọn ĐÚNG', () => {
             render(<QuestionReview index={0} question={mockUnderline} studentAnswer={[0, 1]} />);
             expect(screen.getByTestId('icon-correct')).toBeDefined();
-            expect(document.querySelectorAll('.word-item.correct-word')).toHaveLength(2);
-            expect(document.querySelector('.word-item.error-underline')).toBeNull();
+            expect(document.querySelectorAll('[data-underline-state="correct"]')).toHaveLength(2);
+            expect(document.querySelector('[data-underline-state="incorrect"]')).toBeNull();
         });
 
         it('chuẩn hóa index chuỗi, loại trùng và bỏ index ngoài phạm vi', () => {
@@ -213,9 +213,9 @@ describe('QuestionReview Component', () => {
                 status="correct"
             />);
 
-            expect(document.querySelectorAll('.word-item.correct-word')).toHaveLength(1);
-            expect(document.querySelectorAll('.word-item.student-selected')).toHaveLength(1);
-            expect(document.querySelector('.word-item.error-underline')).toBeNull();
+            expect(document.querySelectorAll('[data-underline-state="correct"]')).toHaveLength(1);
+            expect(document.querySelectorAll('[data-underline-state="incorrect"]')).toHaveLength(0);
+            expect(document.querySelector('[data-underline-state="missed"]')).toBeNull();
         });
     });
 

@@ -356,32 +356,139 @@ describe('StudentReviewBody', () => {
     expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
   });
 
-  it('renders underline duplicate words by index with textual status labels', () => {
+  it('renders underline duplicate words in the source sentence with semantic states by index', () => {
     const presentation = {
       schemaVersion: 1,
       source: 'submission' as const,
       type: 'UNDERLINE' as const,
       items: [
-        { id: 'word-0', index: 0, text: 'đỏ', selected: true, correct: false, state: 'incorrect' as const },
         { id: 'word-1', index: 1, text: 'đỏ', selected: false, correct: true, state: 'skipped' as const },
+        { id: 'word-0', index: 0, text: 'đỏ', selected: true, correct: false, state: 'incorrect' as const },
       ],
     };
 
     render(
       <StudentReviewBody
-        question={{ id: 'review-question', type: 'UNDERLINE', words: ['đỏ', 'đỏ'] }}
+        question={{ id: 'review-question', type: 'UNDERLINE', sentence: '“đỏ,”\nđỏ.', words: ['đỏ', 'đỏ'] }}
         selectedAnswer={{ type: 'UNDERLINE', indexes: [0] }}
         reviewDetail={review(presentation)}
         outcome="incorrect"
       />,
     );
 
-    const rows = screen.getAllByTestId('student-review-underline-word');
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveAttribute('data-word-index', '0');
-    expect(rows[0]).toHaveTextContent('Em chọn · Sai');
-    expect(rows[1]).toHaveAttribute('data-word-index', '1');
-    expect(rows[1]).toHaveTextContent('Đáp án đúng · Em chưa chọn');
+    const body = screen.getByTestId('student-review-body');
+    expect(body).toHaveTextContent('“đỏ,”');
+    expect(body).toHaveTextContent('đỏ.');
+    expect(screen.queryAllByTestId('student-review-underline-word')).toHaveLength(0);
+
+    const tokens = Array.from(body.querySelectorAll('[data-underline-state]'));
+    expect(tokens).toHaveLength(2);
+    expect(tokens[0]).toHaveAttribute('data-underline-index', '0');
+    expect(tokens[0]).toHaveAttribute('data-underline-state', 'incorrect');
+    expect(tokens[0]).not.toHaveClass('border', 'rounded-[8px]', 'px-3');
+    expect(tokens[1]).toHaveAttribute('data-underline-index', '1');
+    expect(tokens[1]).toHaveAttribute('data-underline-state', 'missed');
+    expect(screen.getByText('chọn sai')).toHaveClass('sr-only');
+    expect(screen.getByText('đáp án bị bỏ sót')).toHaveClass('sr-only');
+    expect(body).not.toHaveTextContent('Em chọn · Sai');
+    expect(body).not.toHaveTextContent('Đáp án đúng · Em chưa chọn');
+  });
+
+  it('uses original question words when underline presentation indexes are sparse', () => {
+    const presentation = {
+      schemaVersion: 1,
+      source: 'submission' as const,
+      type: 'UNDERLINE' as const,
+      items: [
+        { id: 'word-3', index: 3, text: 'bốn', selected: true, correct: false, state: 'incorrect' as const },
+        { id: 'word-1', index: 1, text: 'hai', selected: false, correct: true, state: 'skipped' as const },
+      ],
+    };
+
+    render(
+      <StudentReviewBody
+        question={{
+          id: 'review-question',
+          type: 'UNDERLINE',
+          sentence: 'một hai ba bốn.',
+          words: ['một', 'hai', 'ba', 'bốn.'],
+        }}
+        selectedAnswer={{ type: 'UNDERLINE', indexes: [3] }}
+        reviewDetail={review(presentation)}
+        outcome="incorrect"
+      />,
+    );
+
+    const body = screen.getByTestId('student-review-body');
+    expect(body).toHaveTextContent('một hai');
+    expect(body).toHaveTextContent('ba bốn.');
+    const tokens = Array.from(body.querySelectorAll('[data-underline-state]'));
+    expect(tokens.map((token) => token.getAttribute('data-underline-index'))).toEqual(['0', '1', '2', '3']);
+    expect(tokens.map((token) => token.getAttribute('data-underline-state'))).toEqual(['idle', 'missed', 'idle', 'incorrect']);
+  });
+
+  it('ignores out-of-range underline indexes instead of coloring another source word', () => {
+    const presentation = {
+      schemaVersion: 1,
+      source: 'submission' as const,
+      type: 'UNDERLINE' as const,
+      items: [
+        { id: 'word-99', index: 99, text: 'ngoài phạm vi', selected: true, correct: false, state: 'incorrect' as const },
+      ],
+    };
+
+    render(
+      <StudentReviewBody
+        question={{
+          id: 'review-question',
+          type: 'UNDERLINE',
+          sentence: 'một hai.',
+          words: ['một', 'hai.'],
+        }}
+        selectedAnswer={{ type: 'UNDERLINE', indexes: [99] }}
+        reviewDetail={review(presentation)}
+        outcome="incorrect"
+      />,
+    );
+
+    const body = screen.getByTestId('student-review-body');
+    const tokens = Array.from(body.querySelectorAll('[data-underline-state]'));
+    expect(tokens).toHaveLength(2);
+    expect(tokens.every((token) => token.getAttribute('data-underline-state') === 'idle')).toBe(true);
+  });
+
+  it('keeps unknown underline presentation states neutral despite selected/correct flags', () => {
+    const presentation = {
+      schemaVersion: 1,
+      source: 'submission' as const,
+      type: 'UNDERLINE' as const,
+      items: [
+        { id: 'word-0', index: 0, text: 'một', selected: true, correct: true, state: 'unknown' as const },
+        { id: 'word-1', index: 1, text: 'hai', selected: false, correct: true, state: 'unknown' as const },
+        { id: 'word-2', index: 2, text: 'ba', selected: true, correct: false, state: 'unknown' as const },
+      ],
+    };
+
+    render(
+      <StudentReviewBody
+        question={{
+          id: 'review-question',
+          type: 'UNDERLINE',
+          sentence: 'một hai ba.',
+          words: ['một', 'hai', 'ba.'],
+        }}
+        selectedAnswer={{ type: 'UNDERLINE', indexes: [0, 2] }}
+        reviewDetail={review(presentation)}
+        outcome="incorrect"
+      />,
+    );
+
+    const body = screen.getByTestId('student-review-body');
+    const tokens = Array.from(body.querySelectorAll('[data-underline-state]'));
+    expect(tokens.map((token) => token.getAttribute('data-underline-state'))).toEqual(['idle', 'idle', 'idle']);
+    expect(screen.queryByText('đã chọn')).not.toBeInTheDocument();
+    expect(screen.queryByText('đáp án đúng')).not.toBeInTheDocument();
+    expect(screen.queryByText('chọn sai')).not.toBeInTheDocument();
   });
 
   it('renders short answer and riddle values from trusted text presentation', () => {
