@@ -14,7 +14,7 @@ const HeroSection: React.FC = () => {
     return (
         <section className="order-2 w-full max-w-[700px] lg:order-1 lg:pr-2" aria-labelledby="login-hero-title">
             <div className="login-page-reveal">
-                <div className="relative mb-3 aspect-[1235/571] w-[min(72vw,300px)] overflow-hidden sm:mb-4">
+                <div className="relative mx-auto mb-3 aspect-[1235/571] w-[min(72vw,300px)] overflow-hidden sm:mb-4">
                     <img
                         src="/images/online-education-platform.png"
                         alt="Nền tảng giáo dục trực tuyến"
