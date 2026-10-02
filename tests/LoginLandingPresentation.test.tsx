@@ -37,6 +37,14 @@ describe('Login landing presentation', () => {
     expect(container.querySelector('section')).toHaveClass('order-1');
   });
 
+  it('centers the online-education logo without centering the hero copy', () => {
+    render(<HeroSection />);
+
+    const logo = screen.getByRole('img', { name: 'Nền tảng giáo dục trực tuyến' });
+    expect(logo.parentElement).toHaveClass('mx-auto');
+    expect(screen.getByRole('heading', { level: 1 })).not.toHaveClass('text-center');
+  });
+
   it('keeps the supporting hero compact and the role selector flat', () => {
     const heroRender = render(<HeroSection />);
     expect(screen.getByText('Theo năng lực học sinh')).toBeInTheDocument();
