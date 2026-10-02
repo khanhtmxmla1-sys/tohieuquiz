@@ -1,5 +1,9 @@
 import React, { memo } from 'react';
 import type { AnswerReviewValue, QuestionAnswerReview } from '../../../../domain/quiz-scoring';
+import {
+    UnderlineSentence,
+    type UnderlineTokenState,
+} from '../../UnderlineSentence';
 import { normalizeIndexList } from '../reviewNormalization';
 
 interface UnderlineReviewProps {
@@ -21,10 +25,46 @@ const ReviewLines: React.FC<{ title: string; value: AnswerReviewValue }> = ({ ti
     </div>
 );
 
+const isSelectedIndexFlag = (value: unknown): boolean => (
+    value === true
+    || value === 1
+    || (typeof value === 'string' && ['true', '1'].includes(value.trim().toLowerCase()))
+);
+
+const isIndexSelectionMap = (value: unknown): boolean => {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+
+    return Object.entries(value as Record<string, unknown>).some(([key, selected]) => {
+        const index = Number(key);
+        return /^\d+$/u.test(key)
+            && Number.isInteger(index)
+            && index >= 0
+            && isSelectedIndexFlag(selected);
+    });
+};
+
+const isIndexSource = (value: unknown): boolean => (
+    Array.isArray(value) || isIndexSelectionMap(value)
+);
+
+const parseCorrectIndexSource = (value: unknown): { source: unknown; hasSource: boolean } => {
+    if (typeof value !== 'string') {
+        return { source: value, hasSource: isIndexSource(value) };
+    }
+
+    try {
+        const parsed = JSON.parse(value);
+        return { source: parsed, hasSource: Array.isArray(parsed) };
+    } catch {
+        return { source: undefined, hasSource: false };
+    }
+};
+
 const UnderlineReview: React.FC<UnderlineReviewProps> = memo(({ question, studentAnswer, reviewDetail }) => {
     const words = Array.isArray(question.words) ? question.words : [];
-    const hasCorrectIndexSource = question.correctWordIndexes != null || question.correctAnswer != null;
-    const correctSource = question.correctWordIndexes ?? question.correctAnswer;
+    const sentence = typeof question.sentence === 'string' ? question.sentence : undefined;
+    const rawCorrectSource = question.correctWordIndexes ?? question.correctAnswer;
+    const { source: correctSource, hasSource: hasCorrectIndexSource } = parseCorrectIndexSource(rawCorrectSource);
     const correctIndices = normalizeIndexList(correctSource, words.length);
     const studentIndices = normalizeIndexList(studentAnswer, words.length);
     const canUseServerFallback = Boolean(
@@ -44,27 +84,23 @@ const UnderlineReview: React.FC<UnderlineReviewProps> = memo(({ question, studen
 
     return (
         <div className="underline-review-template">
-            <div className="words-container">
-                {words.map((word: string, index: number) => {
+            <UnderlineSentence
+                sentence={sentence}
+                words={words.map((word: unknown) => String(word))}
+                stateForIndex={(index): UnderlineTokenState => {
                     const isSelectedByStudent = studentIndices.includes(index);
-                    const isActuallyCorrect = hasCorrectIndexSource && correctIndices.includes(index);
+                    const isActuallyCorrect = correctIndices.includes(index);
 
-                    let wordClass = 'word-item';
-                    if (isSelectedByStudent) wordClass += ' student-selected';
-                    if (isActuallyCorrect) wordClass += ' correct-word';
-                    if (hasCorrectIndexSource && isSelectedByStudent && !isActuallyCorrect) wordClass += ' error-underline';
-                    if (hasCorrectIndexSource && !isSelectedByStudent && isActuallyCorrect) wordClass += ' missed-underline';
+                    if (hasCorrectIndexSource) {
+                        if (isSelectedByStudent && isActuallyCorrect) return 'correct';
+                        if (isSelectedByStudent) return 'incorrect';
+                        if (isActuallyCorrect) return 'missed';
+                    }
 
-                    return (
-                        <span key={index} className={wordClass}>
-                            {typeof word === 'object' ? JSON.stringify(word) : word}
-                            {hasCorrectIndexSource && isActuallyCorrect && !isSelectedByStudent
-                                ? <span className="missed-marker">^</span>
-                                : null}
-                        </span>
-                    );
-                })}
-            </div>
+                    return isSelectedByStudent ? 'selected' : 'idle';
+                }}
+                ariaLabel="Kết quả câu gạch chân"
+            />
             <div className="underline-legend small mt-2">
                 <span className="legend-item student">Gạch chân của bé</span>
                 {hasCorrectIndexSource
