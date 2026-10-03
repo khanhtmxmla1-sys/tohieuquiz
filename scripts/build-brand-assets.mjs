@@ -17,6 +17,7 @@ export const BRAND_ASSET_SPECS = [
   { relativePath: 'public/assets/branding/pwa-icon-512.png', width: 512, height: 512, format: 'png', alpha: true },
   { relativePath: 'public/assets/branding/pwa-maskable-512.png', width: 512, height: 512, format: 'png', alpha: false },
   { relativePath: 'public/assets/branding/tohieuquiz-social-card-v2.png', width: 1200, height: 630, format: 'png', alpha: false },
+  { relativePath: 'public/favicon-school-v2.png', width: 512, height: 512, format: 'png', alpha: true },
 ];
 
 const output = (root, relativePath) => path.join(root, relativePath);
@@ -48,6 +49,10 @@ export async function writeBrandAssets(projectRoot = DEFAULT_ROOT) {
   await resizeSeal(source, 180).png({ compressionLevel: 9 }).toFile(output(projectRoot, BRAND_ASSET_SPECS[4].relativePath));
   await resizeSeal(source, 192).png({ compressionLevel: 9 }).toFile(output(projectRoot, BRAND_ASSET_SPECS[5].relativePath));
   await resizeSeal(source, 512).png({ compressionLevel: 9 }).toFile(output(projectRoot, BRAND_ASSET_SPECS[6].relativePath));
+  await fs.copyFile(
+    output(projectRoot, BRAND_ASSET_SPECS[1].relativePath),
+    output(projectRoot, BRAND_ASSET_SPECS[9].relativePath),
+  );
 
   const maskableSeal = await resizeSeal(source, 400).png().toBuffer();
   await sharp({ create: { width: 512, height: 512, channels: 3, background: '#FFFDF7' } })
@@ -74,6 +79,11 @@ export async function inspectBrandAssets(projectRoot = DEFAULT_ROOT) {
       if (metadata.width !== spec.width || metadata.height !== spec.height) errors.push(`${spec.relativePath}: dimensions`);
       if (metadata.format !== spec.format) errors.push(`${spec.relativePath}: format`);
       if (Boolean(metadata.hasAlpha) !== spec.alpha) errors.push(`${spec.relativePath}: alpha`);
+      if (spec.relativePath === 'public/favicon-school-v2.png') {
+        const sourceBytes = await fs.readFile(output(projectRoot, 'public/assets/branding/school-logo-512.png'));
+        const faviconBytes = await fs.readFile(output(projectRoot, spec.relativePath));
+        if (!faviconBytes.equals(sourceBytes)) errors.push(`${spec.relativePath}: content`);
+      }
     } catch {
       errors.push(`${spec.relativePath}: missing`);
     }
