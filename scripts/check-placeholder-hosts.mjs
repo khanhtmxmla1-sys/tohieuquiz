@@ -7,11 +7,43 @@ const TEXT_EXTENSIONS = new Set([
 ]);
 
 const PLACEHOLDER_HOST_PATTERN = /(?:https?:\/\/|\/\/|["'`]|\s|^)((?:[a-z0-9-]+\.)+invalid)(?=[:/?#"'`]|\s|$)/gim;
+const ZOD_INTERNAL_COMPILE_INVALID_PATTERN = /(?<![\w$.])Symbol\.for\(\s*(['"])zod\.compile\.invalid\1\s*\)/g;
+
+const isInsideQuotedLiteral = (source, position) => {
+  let quote = null;
+  let escaped = false;
+
+  for (let index = 0; index < position; index += 1) {
+    const character = source[index];
+    if (escaped) {
+      escaped = false;
+    } else if (character === '\\' && quote) {
+      escaped = true;
+    } else if (quote) {
+      if (character === quote) quote = null;
+    } else if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+    }
+  }
+
+  return quote !== null;
+};
+
+const hasMemberAccessPrefix = (source, position) => source.slice(0, position).trimEnd().endsWith('.');
 
 export const findPlaceholderHosts = (text) => {
   const hosts = [];
   const source = String(text || '');
+  const ignoredHostPositions = new Set();
+
+  for (const marker of source.matchAll(ZOD_INTERNAL_COMPILE_INVALID_PATTERN)) {
+    if (isInsideQuotedLiteral(source, marker.index) || hasMemberAccessPrefix(source, marker.index)) continue;
+    ignoredHostPositions.add(marker.index + marker[0].indexOf('zod.compile.invalid'));
+  }
+
   for (const match of source.matchAll(PLACEHOLDER_HOST_PATTERN)) {
+    const hostPosition = match.index + match[0].indexOf(match[1]);
+    if (ignoredHostPositions.has(hostPosition)) continue;
     hosts.push(match[1].toLowerCase());
   }
   return [...new Set(hosts)];
