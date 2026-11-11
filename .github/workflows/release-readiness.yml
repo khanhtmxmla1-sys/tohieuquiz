@@ -7,6 +7,8 @@ on:
       - 'docs/**'
       - '**/*.md'
       - '.github/ISSUE_TEMPLATE/**'
+  pull_request:
+    branches: [release/worker-production-107716d]
   workflow_dispatch:
     inputs:
       base_ref:

@@ -136,19 +136,28 @@ describe('release readiness checks', () => {
       .toEqual(['vendor/mathjax/es5/tex-mml-chtml.js is 1173007 bytes (limit 563200)']);
   });
 
-  it('runs on main and manual dispatch without containing a deployment command', () => {
-    const workflow = readFileSync('.github/workflows/release-readiness.yml', 'utf8');
-    expect(workflow).not.toContain('pull_request:');
-    expect(workflow).toContain('push:');
-    expect(workflow).toContain('branches: [main]');
+  it('runs on main, the protected release PR, and manual dispatch without containing a deployment command', () => {
+    const workflow = readFileSync('.github/workflows/release-readiness.yml', 'utf8').replace(/\r\n/g, '\n');
+    const pullRequestSection = workflow.match(/\n  pull_request:\r?\n([\s\S]*?)(?=\n  workflow_dispatch:)/)?.[1];
+
+    expect(pullRequestSection).toBe('    branches: [release/worker-production-107716d]');
+    expect(workflow).toContain('push:\n    branches: [main]');
     expect(workflow).toContain('workflow_dispatch:');
+    expect(workflow).toContain('permissions:\n  contents: read');
+    expect(workflow).toContain("RELEASE_BASE_REF: ${{ inputs.base_ref || github.event.pull_request.base.sha || 'origin/main' }}");
+    expect(workflow).toContain('name: Core readiness gate');
+    expect(workflow).toContain('name: Cypress stubbed readiness');
+    expect(workflow).toContain('name: Cypress Blueprint V3 readiness');
+    expect(workflow).toContain('name: Cypress AI SVG diagram readiness');
+    expect(workflow).toContain('name: Release ready');
     expect(workflow).toContain('npm run verify');
     expect(workflow).toContain('npm run perf:budget');
     expect(workflow).toContain('tests/d1MigrationLayout.test.ts');
+    expect(workflow).toContain('npm run release:readiness -- --base="$RELEASE_BASE_REF" --output=reports/release-readiness-policy.json');
     expect(workflow).toContain('npm run cypress:run:stubbed');
     expect(workflow).toContain('npm run cypress:run:blueprint-v3');
-    expect(workflow).toContain('name: Release ready');
-    expect(workflow).toContain('--output=reports/release-readiness-policy.json');
+    expect(workflow).toContain('npm run cypress:run:svg-diagrams');
+    expect(workflow).not.toContain('pull_request_target');
     expect(workflow).not.toMatch(/\b(?:wrangler\s+deploy|npm\s+run\s+deploy|vercel\s+deploy)\b/i);
   });
 

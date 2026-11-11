@@ -19,6 +19,7 @@ import { JWTPayload } from '../utils/jwt';
 import { withD1Retry } from '../utils/d1';
 import { internalErrorResponse } from '../utils/internalError';
 import {
+    canAccessQuiz,
     loadTeacherQuizOwnerIdentity,
     quizOwnerMatchesIdentity,
     teacherQuizOwnerQueryValues,
@@ -37,19 +38,6 @@ import {
     deserializeQuestionRichText,
     serializeQuestionRichText,
 } from '../../../shared/question-rich-text.contract';
-
-const canAccessQuiz = async (db: D1Database, user: JWTPayload, quizId: string): Promise<boolean> => {
-    if (requireAdmin(user)) return true;
-    if (user.role !== 'teacher') return false;
-
-    const [quiz, identity] = await Promise.all([
-        db.prepare('SELECT created_by FROM quizzes WHERE id = ?').bind(quizId).first<{ created_by: string }>(),
-        loadTeacherQuizOwnerIdentity(db, user.username),
-    ]);
-    if (!quiz || !identity) return false;
-
-    return quizOwnerMatchesIdentity(quiz.created_by, identity);
-};
 
 const parseJsonArray = (value: unknown): any[] => {
     if (Array.isArray(value)) return value;
