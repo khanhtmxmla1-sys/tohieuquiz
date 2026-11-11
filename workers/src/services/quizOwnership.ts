@@ -1,4 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
+import type { JWTPayload } from '../utils/jwt';
 
 interface TeacherQuizOwnerRow {
   username: string;
@@ -9,6 +10,23 @@ interface TeacherQuizOwnerRow {
 export interface TeacherQuizOwnerIdentity {
   username: string;
   legacyFullName?: string;
+}
+
+export async function canAccessQuiz(
+  db: D1Database,
+  user: JWTPayload,
+  quizId: string,
+): Promise<boolean> {
+  if (user.role === 'admin') return true;
+  if (user.role !== 'teacher') return false;
+
+  const [quiz, identity] = await Promise.all([
+    db.prepare('SELECT created_by FROM quizzes WHERE id = ?').bind(quizId).first<{ created_by: string }>(),
+    loadTeacherQuizOwnerIdentity(db, user.username),
+  ]);
+  if (!quiz || !identity) return false;
+
+  return quizOwnerMatchesIdentity(quiz.created_by, identity);
 }
 
 const normalizeOwner = (value: string | null | undefined): string =>
