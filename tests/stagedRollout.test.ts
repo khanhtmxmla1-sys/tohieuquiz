@@ -1,12 +1,114 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   buildRollbackTarget,
   buildStageTarget,
   evaluateRolloutMetrics,
   summarizeTarget,
 } from '../scripts/run-staged-rollout.mjs';
+import { runStagedRollout } from '../scripts/run-staged-rollout.mjs';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('staged rollout orchestration', () => {
+  it('keeps a local plan network-free without production credentials', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'quizpro-staged-plan-'));
+    const output = join(tempDir, 'plan.json');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('plan must not call network'));
+    try {
+      const code = await runStagedRollout([
+        '--action', 'plan',
+        '--site', 'https://staging.example',
+        '--api', 'https://api.staging.example',
+        '--flag', 'fixture_flag',
+        '--stage', 'admin-only',
+        '--output', output,
+      ], {});
+
+      expect(code).toBe(0);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps a read-only evaluation network-free even when credentials are present', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'quizpro-staged-evaluate-'));
+    const output = join(tempDir, 'evaluate.json');
+    const metrics = join(tempDir, 'metrics.json');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('read-only evaluate must not call network'));
+    writeFileSync(metrics, JSON.stringify({ error5xxRatePercent: 0 }), 'utf8');
+    try {
+      const code = await runStagedRollout([
+        '--action', 'evaluate',
+        '--site', 'https://www.thtohieu.com',
+        '--api', 'https://api.thtohieu.com',
+        '--production-targets',
+        '--flag', 'fixture_flag',
+        '--stage', 'admin-only',
+        '--metrics', metrics,
+        '--observation-started-at', '2026-11-01T00:00:00.000Z',
+        '--output', output,
+      ], { SMOKE_ADMIN_USERNAME: 'fixture-admin', SMOKE_ADMIN_PASSWORD: 'fixture-password' });
+
+      expect(code).toBe(0);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it.each(['apply', 'rollback'])('blocks credentialed %s before login when the target is untrusted', async (action) => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'quizpro-staged-target-'));
+    const output = join(tempDir, `${action}.json`);
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network should not run'));
+    try {
+      const code = await runStagedRollout([
+        '--action', action,
+        '--site', 'https://www.thtohieu.com.untrusted.example',
+        '--api', 'https://api.thtohieu.com.untrusted.example',
+        '--flag', 'fixture_flag',
+        '--stage', 'admin-only',
+        '--output', output,
+      ], { SMOKE_ADMIN_USERNAME: 'fixture-admin', SMOKE_ADMIN_PASSWORD: 'fixture-password' });
+
+      expect(code).toBe(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('blocks evaluate auto-rollback before login when the target is untrusted', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'quizpro-staged-target-'));
+    const output = join(tempDir, 'evaluate.json');
+    const metrics = join(tempDir, 'metrics.json');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network should not run'));
+    writeFileSync(metrics, JSON.stringify({ error5xxRatePercent: 2 }), 'utf8');
+    try {
+      const code = await runStagedRollout([
+        '--action', 'evaluate',
+        '--auto-rollback',
+        '--site', 'https://www.thtohieu.com.untrusted.example',
+        '--api', 'https://api.thtohieu.com.untrusted.example',
+        '--flag', 'fixture_flag',
+        '--stage', 'admin-only',
+        '--metrics', metrics,
+        '--observation-started-at', '2026-11-01T00:00:00.000Z',
+        '--output', output,
+      ], { SMOKE_ADMIN_USERNAME: 'fixture-admin', SMOKE_ADMIN_PASSWORD: 'fixture-password' });
+
+      expect(code).toBe(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('builds the required rollout sequence without exposing pilot identifiers in summaries', () => {
     expect(buildStageTarget('admin-only')).toMatchObject({ audience: 'admin', percentage: 100 });
     expect(buildStageTarget('teachers-5')).toMatchObject({ audience: 'teacher', percentage: 5 });
