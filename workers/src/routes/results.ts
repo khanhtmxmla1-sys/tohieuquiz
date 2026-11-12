@@ -25,6 +25,7 @@ import {
     loadQuizQuestionsForGrading,
     readStoredReviewDetails,
 } from '../services/quizGradingService';
+import { canAccessQuiz } from '../services/quizOwnership';
 import {
     recordScoringShadowObservation,
     resolveQuizScoringRolloutMode,
@@ -754,6 +755,11 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         if (!body) return errorResponse('Invalid JSON body');
         if (!requireTeacher(user) && !isStudent(user)) {
             return errorResponse('Forbidden: Authenticated user required', 403);
+        }
+
+        const quizId = String(body.quizId || '').trim();
+        if (user.role === 'teacher' && !(await canAccessQuiz(db, user, quizId))) {
+            return errorResponse('Forbidden: Quiz access required', 403);
         }
 
         return await handleValidateAnswers(db, body, {

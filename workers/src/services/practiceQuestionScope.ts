@@ -59,7 +59,6 @@ export function extractPracticeTags(rawTags: unknown): string[] {
   return Array.from(new Set(
     rawTags
       .split(/[ \t\r\n,]+/u)
-      .map((tag) => tag.trim())
-      .filter((tag) => PRACTICE_TAG_PATTERN.test(tag)),
+      .filter((tag) => normalizePracticeTopic(tag) === tag),
   ));
 }

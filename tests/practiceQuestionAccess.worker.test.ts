@@ -184,6 +184,71 @@ describe('public practice question access', () => {
     ]);
   });
 
+  it('does not advertise stored tags that the selection endpoint cannot query', async () => {
+    fixture = createFixture();
+    fixture.sqlite.exec(`
+      INSERT INTO questions (id, quiz_id, type, question, options, correct_answer, tags) VALUES
+        ('q-percent-tag', 'public-open', 'MCQ', 'invalid percent tag', 'A|B', 'A', '#Ti_le%'),
+        ('q-star-tag', 'public-open', 'MCQ', 'invalid star tag', 'A|B', 'A', '#Toan*'),
+        ('q-long-tag', 'public-open', 'MCQ', 'invalid long tag', 'A|B', 'A', '#${'x'.repeat(129)}'),
+        ('q-trailing-nbsp-tag', 'public-open', 'MCQ', 'non canonical trailing whitespace', 'A|B', 'A', '#Trailing\u00a0'),
+        ('q-leading-nbsp-tag', 'public-open', 'MCQ', 'non canonical leading whitespace', 'A|B', 'A', '\u00a0#Leading');
+    `);
+
+    const topicsResponse = await runTopics(fixture.db);
+    const topicsPayload = await readJson(topicsResponse);
+    const topics = topicsPayload.topics as Array<{ name: string; count: number }>;
+
+    const topicNames = topics.map((topic) => topic.name);
+    for (const invalidTopic of [
+      '#Ti_le%',
+      '#Toan*',
+      `#${'x'.repeat(129)}`,
+      '#Trailing',
+      '#Leading',
+    ]) {
+      expect(topicNames).not.toContain(invalidTopic);
+    }
+    expect(topics.find((topic) => topic.name === '#Toan')?.count).toBe(1);
+
+    for (const topic of topics) {
+      const selection = await runPractice(
+        fixture.db,
+        `?topic=${encodeURIComponent(topic.name)}&limit=50`,
+      );
+      const selectionPayload = await readJson(selection);
+      expect(selection.status).toBe(200);
+      expect(selectionPayload.questions).toHaveLength(topic.count);
+    }
+
+    const trailingNbspSelection = await runPractice(
+      fixture.db,
+      `?topic=${encodeURIComponent('#Trailing')}&limit=50`,
+    );
+    const leadingNbspSelection = await runPractice(
+      fixture.db,
+      `?topic=${encodeURIComponent('#Leading')}&limit=50`,
+    );
+    const invalidPercentSelection = await runPractice(
+      fixture.db,
+      `?topic=${encodeURIComponent('#Ti_le%')}&limit=50`,
+    );
+    const invalidStarSelection = await runPractice(
+      fixture.db,
+      `?topic=${encodeURIComponent('#Toan*')}&limit=50`,
+    );
+    const invalidLongSelection = await runPractice(
+      fixture.db,
+      `?topic=${encodeURIComponent(`#${'x'.repeat(129)}`)}&limit=50`,
+    );
+
+    expect((await readJson(trailingNbspSelection)).questions).toHaveLength(0);
+    expect((await readJson(leadingNbspSelection)).questions).toHaveLength(0);
+    expect(invalidPercentSelection.status).toBe(400);
+    expect(invalidStarSelection.status).toBe(400);
+    expect(invalidLongSelection.status).toBe(400);
+  });
+
   it('materializes protected quiz ids instead of running correlated scans per question', () => {
     fixture = createFixture();
     const plan = fixture.sqlite.prepare(`
