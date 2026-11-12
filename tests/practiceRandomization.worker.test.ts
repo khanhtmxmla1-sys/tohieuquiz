@@ -46,7 +46,7 @@ describe('practice randomization policy', () => {
     const response = await runPractice(db);
     expect(response.status).toBe(200);
     const questionSql = db.sql.find((sql) => sql.includes('FROM questions')) || '';
-    expect(questionSql).toContain('ORDER BY rowid ASC');
+    expect(questionSql).toContain('ORDER BY q.rowid ASC');
     expect(questionSql).not.toContain('ORDER BY RANDOM()');
   });
 

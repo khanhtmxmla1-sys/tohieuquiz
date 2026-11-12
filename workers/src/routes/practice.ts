@@ -2,6 +2,12 @@ import { Env } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
 import { deserializeQuestionRichText } from '../../../shared/question-rich-text.contract';
 import { loadRandomizationPolicy } from '../services/randomizationPolicyService';
+import {
+    extractPracticeTags,
+    normalizePracticeTopic,
+    parsePracticeLimit,
+    PUBLIC_PRACTICE_SOURCE_SCOPE_SQL,
+} from '../services/practiceQuestionScope';
 
 export async function handlePracticeRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
     const db = env.DB;
@@ -9,24 +15,25 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
     // GET /api/practice/topics - List all unique topics (from tags column)
     if (path === '/api/practice/topics' && method === 'GET') {
         try {
-            // Get all tags from questions table that are not empty
-            const rows = await db.prepare('SELECT tags FROM questions WHERE tags IS NOT NULL AND tags != ""').all<{ tags: string }>();
+            // Only expose topics from the same public, unprotected pool used below.
+            const rows = await db.prepare(`
+                SELECT q.tags
+                ${PUBLIC_PRACTICE_SOURCE_SCOPE_SQL}
+                  AND q.tags IS NOT NULL
+                  AND q.tags != ''
+            `).all<{ tags: string }>();
 
             // Because one question could have multiple tags separated by commas or spaces, we need to process them
             const topicMap = new Map<string, number>();
 
             rows.results.forEach((row: any) => {
                 if (row.tags) {
-                    // Split by comma or space
-                    const tagsArray = row.tags.split(/[\s,]+/);
+                    const tagsArray = extractPracticeTags(row.tags);
                     const uniqueTagsInQuestion = new Set<string>();
 
                     tagsArray.forEach((tag: string) => {
                         const trimmed = tag.trim();
-                        // Only add hashtags that start with # and exist
-                        if (trimmed && trimmed.startsWith('#')) {
-                            uniqueTagsInQuestion.add(trimmed);
-                        }
+                        if (trimmed) uniqueTagsInQuestion.add(trimmed);
                     });
 
                     // Update count for each unique tag in this question
@@ -52,31 +59,29 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
     if (path === '/api/practice' && method === 'GET') {
         try {
             const url = new URL(request.url);
-            let topic = url.searchParams.get('topic');
-            const limitParam = url.searchParams.get('limit') || '10';
-            const limit = Math.min(parseInt(limitParam, 10) || 10, 50); // Max 50 questions
+            const topic = normalizePracticeTopic(url.searchParams.get('topic'));
+            const limit = parsePracticeLimit(url.searchParams.get('limit'));
 
             if (!topic) {
                 return errorResponse('Missing topic parameter', 400);
             }
-
-            // Decode URI component in case it was encoded (e.g., %23Phép_Nhân)
-            topic = decodeURIComponent(topic);
-
-            // Add # prefix if missing
-            if (!topic.startsWith('#')) {
-                topic = '#' + topic;
+            if (limit === null) {
+                return errorResponse('Invalid limit parameter', 400);
             }
 
-            // Using LIKE to match variations, e.g. multiple tags in the same string "#Toan, #Phep_Nhan"
-            // We pad with % to allow matching anywhere in the tags string
-            const searchPattern = `%${topic}%`;
             const randomizationPolicy = await loadRandomizationPolicy(db);
-            const questionOrder = randomizationPolicy.randomizePracticeSelection ? 'RANDOM()' : 'rowid ASC';
+            const questionOrder = randomizationPolicy.randomizePracticeSelection ? 'RANDOM()' : 'q.rowid ASC';
 
             const rows = await db.prepare(
-                `SELECT id, quiz_id, type, question, question_rich_text, options, correct_answer, items, text_field, blanks, distractors, sentence, words, correct_word_indexes, image, svg_content, svg_alt, tags FROM questions WHERE tags LIKE ? ORDER BY ${questionOrder} LIMIT ?`
-            ).bind(searchPattern, limit).all<import('../types').Question>();
+                `SELECT q.id, q.quiz_id, q.type, q.question, q.question_rich_text, q.options, q.correct_answer, q.items, q.text_field, q.blanks, q.distractors, q.sentence, q.words, q.correct_word_indexes, q.image, q.svg_content, q.svg_alt, q.tags
+                 ${PUBLIC_PRACTICE_SOURCE_SCOPE_SQL}
+                   AND INSTR(
+                     ',' || REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(q.tags, ''), ' ', ','), char(9), ','), char(10), ','), char(13), ',') || ',',
+                     ',' || ? || ','
+                   ) > 0
+                 ORDER BY ${questionOrder}
+                 LIMIT ?`
+            ).bind(topic, limit).all<import('../types').Question>();
 
             // Map D1 snake_case and JSON string fields to frontend camelCase objects
             const mappedQuestions = rows.results.map((q: any) => {
