@@ -46,6 +46,15 @@ const fakeFetch = vi.fn(async (input: string | URL | Request, init?: RequestInit
   return json({ status: 'error' }, 404);
 });
 
+const overrideFetchResponse = (origin: string, pathname: string, response: Response) => vi.fn(async (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => {
+  const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input : input.url);
+  if (url.origin === origin && url.pathname === pathname) return response.clone();
+  return fakeFetch(input, init);
+});
+
 afterEach(() => {
   rmSync(output, { force: true });
   fakeFetch.mockClear();
@@ -180,6 +189,47 @@ describe('production smoke execution', () => {
     expect(code).toBe(1);
     expect(JSON.parse(readFileSync(output, 'utf8'))).toMatchObject({
       status: 'blocked',
+      coverage: 'public',
+    });
+  });
+
+  it.each([
+    ['parent private noindex shell', parent, '/login', html, 200, {
+      ...securityHeaders, 'x-robots-tag': 'noindex, nofollow', 'cache-control': 'private, no-store',
+    }, 0],
+    ['parent 503 noindex', parent, '/login', '', 503, {
+      ...securityHeaders, 'x-robots-tag': 'noindex', 'cache-control': 'private, no-store',
+    }, 1],
+    ['parent noindex invalid shell', parent, '/login', '<!doctype html><title>Maintenance</title>', 200, {
+      ...securityHeaders, 'x-robots-tag': 'noindex', 'cache-control': 'private, no-store',
+    }, 1],
+    ['parent noindex missing private cache directive', parent, '/login', html, 200, {
+      ...securityHeaders, 'x-robots-tag': 'noindex', 'cache-control': 'public, not-private, no-store',
+    }, 1],
+    ['parent noindex missing no-store cache directive', parent, '/login', html, 200, {
+      ...securityHeaders, 'x-robots-tag': 'noindex', 'cache-control': 'private',
+    }, 1],
+    ['site private noindex shell', site, '/', html, 200, {
+      ...securityHeaders, 'x-robots-tag': 'noindex, nofollow', 'cache-control': 'private, no-store',
+    }, 1],
+  ])('keeps noindex blocked except for a private parent login shell (%s)', async (
+    _label,
+    origin,
+    pathname,
+    body,
+    status,
+    headers,
+    expectedCode,
+  ) => {
+    const fetchImpl = overrideFetchResponse(origin, pathname, new Response(body, { status, headers }));
+    const code = await runProductionSmoke([
+      '--site', site, '--apex', apex, '--api', api, '--parent', parent,
+      '--production-targets', '--public-only', '--skip-browser', '--output', output,
+    ], { fetchImpl: fetchImpl as typeof fetch, env: {} });
+
+    expect(code).toBe(expectedCode);
+    expect(JSON.parse(readFileSync(output, 'utf8'))).toMatchObject({
+      status: expectedCode === 0 ? 'ready' : 'blocked',
       coverage: 'public',
     });
   });

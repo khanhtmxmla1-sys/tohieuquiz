@@ -76,8 +76,20 @@ const request = async (fetchImpl, url, init = {}) => fetchImpl(url, {
   signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
 });
 
-const expectStatus = (response, expected, label) => {
-  if (response.status === 503 || /\bnoindex\b/i.test(String(response.headers.get('x-robots-tag') || ''))) {
+const hasPrivateNoStoreCache = (response) => {
+  const directives = new Set(
+    String(response.headers.get('cache-control') || '')
+      .split(',')
+      .map((directive) => directive.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  return directives.has('private') && directives.has('no-store');
+};
+
+const expectStatus = (response, expected, label, { allowPrivateNoindex = false } = {}) => {
+  const noindex = /\bnoindex\b/i.test(String(response.headers.get('x-robots-tag') || ''));
+  const allowedPrivateNoindex = allowPrivateNoindex && response.status === 200 && noindex && hasPrivateNoStoreCache(response);
+  if (response.status === 503 || (noindex && !allowedPrivateNoindex)) {
     throw new Error(`${label} is unavailable for production smoke.`);
   }
   const statuses = Array.isArray(expected) ? expected : [expected];
@@ -86,8 +98,8 @@ const expectStatus = (response, expected, label) => {
   }
 };
 
-const expectHtmlShell = async (response, label) => {
-  expectStatus(response, 200, label);
+const expectHtmlShell = async (response, label, options = {}) => {
+  expectStatus(response, 200, label, options);
   const body = await response.text();
   if (!/<title>[^<]*TôHiệuQuiz[^<]*<\/title>/i.test(body) || !body.includes('id="root"')) {
     throw new Error(`${label} did not return the TôHiệuQuiz application shell.`);
@@ -204,7 +216,7 @@ export async function runProductionSmoke(
   });
   await addCheck(report, 'frontend.parent', async () => {
     const response = await request(fetchImpl, `${parentUrl}/login`);
-    await expectHtmlShell(response.clone(), 'Parent frontend');
+    await expectHtmlShell(response.clone(), 'Parent frontend', { allowPrivateNoindex: true });
     expectSecurityHeaders(response, 'Parent frontend');
   });
   await addCheck(report, 'api.same_origin_health', async () => {
