@@ -53,7 +53,10 @@ describe('production smoke runner safeguards', () => {
       .toThrow('Unapproved production smoke target');
     expect(() => assertProductionTarget('https://api.thtohieu.com.untrusted.example/', 'api'))
       .toThrow('Unapproved production smoke target');
-    expect(() => assertProductionTarget('https://user:password@api.thtohieu.com/', 'api'))
+    const userInfoUrl = new URL(PRODUCTION_ORIGINS.api);
+    userInfoUrl.username = 'fixture-user';
+    userInfoUrl.password = 'fixture-password';
+    expect(() => assertProductionTarget(userInfoUrl.toString(), 'api'))
       .toThrow('Unapproved production smoke target');
     expect(() => assertProductionTarget('http://api.thtohieu.com/', 'api'))
       .toThrow('Unapproved production smoke target');
