@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertProductionTarget } from './production-targets.mjs';
 import { normalizeSmokeUrl, redactSmokeText } from './run-production-smoke.mjs';
 
 export const ROLLOUT_STAGES = ['admin-only', 'teachers-5', 'pilot-class', 'teachers-25', 'full'];
@@ -122,6 +123,8 @@ const http = async (url, init = {}) => fetch(url, {
 });
 
 const loginAdmin = async (apiUrl, siteUrl, env) => {
+  assertProductionTarget(apiUrl, 'api');
+  assertProductionTarget(siteUrl, 'site');
   const username = required(env.SMOKE_ADMIN_USERNAME, 'SMOKE_ADMIN_USERNAME');
   const password = required(env.SMOKE_ADMIN_PASSWORD, 'SMOKE_ADMIN_PASSWORD');
   const response = await http(`${apiUrl}/api/login`, {
@@ -220,8 +223,19 @@ export async function runStagedRollout(args = process.argv.slice(2), env = proce
   };
 
   try {
-    const apiUrl = normalizeSmokeUrl(readArg(args, '--api'), false);
-    const siteUrl = normalizeSmokeUrl(readArg(args, '--site'), false);
+    const credentialedAction = action === 'apply'
+      || action === 'rollback'
+      || (action === 'evaluate' && args.includes('--auto-rollback'));
+    const productionTargets = args.includes('--production-targets') || credentialedAction;
+    if (productionTargets && args.includes('--allow-local')) {
+      throw new Error('Staged production rollout cannot use --allow-local.');
+    }
+    const apiUrl = productionTargets
+      ? assertProductionTarget(readArg(args, '--api'), 'api')
+      : normalizeSmokeUrl(readArg(args, '--api'), false);
+    const siteUrl = productionTargets
+      ? assertProductionTarget(readArg(args, '--site'), 'site')
+      : normalizeSmokeUrl(readArg(args, '--site'), false);
     report.target = summarizeTarget(buildStageTarget(stage, pilotClassId));
     if (action === 'plan') {
       report.status = 'planned';

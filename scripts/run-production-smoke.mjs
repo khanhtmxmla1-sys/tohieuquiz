@@ -3,18 +3,26 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertProductionTarget, PRODUCTION_ORIGINS } from './production-targets.mjs';
 
 const require = createRequire(import.meta.url);
 const DEFAULT_TIMEOUT_MS = 15_000;
 const HOSTILE_ORIGIN = 'https://hostile.invalid';
+const PROTECTED_CREDENTIAL_NAMES = [
+  'SMOKE_ADMIN_USERNAME', 'SMOKE_ADMIN_PASSWORD',
+  'SMOKE_TEACHER_USERNAME', 'SMOKE_TEACHER_PASSWORD',
+  'SMOKE_STUDENT_USERNAME', 'SMOKE_STUDENT_PASSWORD',
+  'SMOKE_PARENT_ACCESS_CODE', 'SMOKE_PARENT_PIN',
+];
 const isLocalHost = (hostname) => ['localhost', '127.0.0.1', '::1', '[::1]'].includes(hostname);
+const hasProtectedCredentials = (env) => PROTECTED_CREDENTIAL_NAMES.some((name) => String(env[name] || '').trim());
 
 export function normalizeSmokeUrl(raw, allowLocal = false) {
   let url;
   try {
     url = new URL(String(raw || ''));
   } catch {
-    throw new Error(`Invalid smoke URL: ${raw || '(empty)'}`);
+    throw new Error('Invalid smoke URL.');
   }
   if (url.username || url.password || url.search || url.hash) {
     throw new Error('Smoke URLs must not contain credentials, query strings, or fragments.');
@@ -69,6 +77,9 @@ const request = async (fetchImpl, url, init = {}) => fetchImpl(url, {
 });
 
 const expectStatus = (response, expected, label) => {
+  if (response.status === 503 || /\bnoindex\b/i.test(String(response.headers.get('x-robots-tag') || ''))) {
+    throw new Error(`${label} is unavailable for production smoke.`);
+  }
   const statuses = Array.isArray(expected) ? expected : [expected];
   if (!statuses.includes(response.status)) {
     throw new Error(`${label} returned HTTP ${response.status}; expected ${statuses.join(' or ')}.`);
@@ -91,7 +102,11 @@ const expectSecurityHeaders = (response, label) => {
   }
 };
 
-const login = async (fetchImpl, apiUrl, origin, path, body) => {
+const login = async (fetchImpl, apiUrl, origin, path, body, productionTargets = false) => {
+  if (productionTargets) {
+    assertProductionTarget(apiUrl, 'api');
+    assertProductionTarget(origin, path === '/api/parent/login' ? 'parent' : 'site');
+  }
   const response = await request(fetchImpl, `${apiUrl}${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', origin },
@@ -138,12 +153,33 @@ export async function runProductionSmoke(
   { fetchImpl = fetch, spawn = spawnSync, env = process.env } = {},
 ) {
   const allowLocal = args.includes('--allow-local');
+  const protectedCredentials = hasProtectedCredentials(env);
+  const productionTargets = args.includes('--production-targets') || protectedCredentials;
+  if (productionTargets && allowLocal) {
+    throw new Error('Production smoke credentials cannot be used with --allow-local.');
+  }
   const skipBrowser = args.includes('--skip-browser');
+  const publicOnly = args.includes('--public-only');
   const aiSmoke = args.includes('--ai-smoke');
-  const siteUrl = normalizeSmokeUrl(readArg(args, '--site'), allowLocal);
-  const apexUrl = normalizeSmokeUrl(readArg(args, '--apex') || siteUrl, allowLocal);
-  const apiUrl = normalizeSmokeUrl(readArg(args, '--api'), allowLocal);
-  const parentUrl = normalizeSmokeUrl(readArg(args, '--parent'), allowLocal);
+  if (publicOnly && aiSmoke) {
+    throw new Error('AI smoke cannot be combined with --public-only.');
+  }
+  if (publicOnly && protectedCredentials) {
+    throw new Error('Public-only mode cannot use protected smoke credentials.');
+  }
+  if (protectedCredentials && !skipBrowser) {
+    throw new Error('Credentialed production smoke requires --skip-browser.');
+  }
+  const resolveTarget = (name, fallback) => productionTargets
+    ? assertProductionTarget(
+      readArg(args, `--${name}`) || (name === 'apex' ? PRODUCTION_ORIGINS.apex : fallback),
+      name,
+    )
+    : normalizeSmokeUrl(readArg(args, `--${name}`) || fallback, allowLocal);
+  const siteUrl = resolveTarget('site');
+  const apexUrl = resolveTarget('apex', siteUrl);
+  const apiUrl = resolveTarget('api');
+  const parentUrl = resolveTarget('parent');
   const outputPath = readArg(args, '--output') || 'reports/production-smoke.json';
   const mutationNamespace = assertMutationNamespace(readArg(args, '--mutation-namespace') || 'none');
   const report = {
@@ -151,6 +187,7 @@ export async function runProductionSmoke(
     startedAt: new Date().toISOString(),
     finishedAt: null,
     targets: { site: siteUrl, apex: apexUrl, api: apiUrl, parent: parentUrl },
+    coverage: publicOnly ? 'public' : 'public-and-authenticated',
     aiSmoke,
     mutationNamespace,
     checks: [],
@@ -203,43 +240,45 @@ export async function runProductionSmoke(
   }
 
   let teacherCookie = '';
-  await addCheck(report, 'role.admin.read', async () => {
-    const credentials = requiredEnv(env, ['SMOKE_ADMIN_USERNAME', 'SMOKE_ADMIN_PASSWORD']);
-    const cookie = await login(fetchImpl, apiUrl, siteUrl, '/api/login', {
-      username: credentials.SMOKE_ADMIN_USERNAME,
-      password: credentials.SMOKE_ADMIN_PASSWORD,
+  if (!publicOnly) {
+    await addCheck(report, 'role.admin.read', async () => {
+      const credentials = requiredEnv(env, ['SMOKE_ADMIN_USERNAME', 'SMOKE_ADMIN_PASSWORD']);
+      const cookie = await login(fetchImpl, apiUrl, siteUrl, '/api/login', {
+        username: credentials.SMOKE_ADMIN_USERNAME,
+        password: credentials.SMOKE_ADMIN_PASSWORD,
+      }, productionTargets);
+      const response = await authenticatedRead(fetchImpl, apiUrl, siteUrl, cookie, '/api/admin/operations', 'Admin operations');
+      if (!String(response.headers.get('cache-control') || '').includes('no-store')) {
+        throw new Error('Admin operations response must be no-store.');
+      }
     });
-    const response = await authenticatedRead(fetchImpl, apiUrl, siteUrl, cookie, '/api/admin/operations', 'Admin operations');
-    if (!String(response.headers.get('cache-control') || '').includes('no-store')) {
-      throw new Error('Admin operations response must be no-store.');
-    }
-  });
-  await addCheck(report, 'role.teacher.read', async () => {
-    const credentials = requiredEnv(env, ['SMOKE_TEACHER_USERNAME', 'SMOKE_TEACHER_PASSWORD']);
-    teacherCookie = await login(fetchImpl, apiUrl, siteUrl, '/api/login', {
-      username: credentials.SMOKE_TEACHER_USERNAME,
-      password: credentials.SMOKE_TEACHER_PASSWORD,
+    await addCheck(report, 'role.teacher.read', async () => {
+      const credentials = requiredEnv(env, ['SMOKE_TEACHER_USERNAME', 'SMOKE_TEACHER_PASSWORD']);
+      teacherCookie = await login(fetchImpl, apiUrl, siteUrl, '/api/login', {
+        username: credentials.SMOKE_TEACHER_USERNAME,
+        password: credentials.SMOKE_TEACHER_PASSWORD,
+      }, productionTargets);
+      await authenticatedRead(fetchImpl, apiUrl, siteUrl, teacherCookie, '/api/teacher/action-center', 'Teacher action center');
     });
-    await authenticatedRead(fetchImpl, apiUrl, siteUrl, teacherCookie, '/api/teacher/action-center', 'Teacher action center');
-  });
-  await addCheck(report, 'role.student.read', async () => {
-    const credentials = requiredEnv(env, ['SMOKE_STUDENT_USERNAME', 'SMOKE_STUDENT_PASSWORD']);
-    const cookie = await login(fetchImpl, apiUrl, siteUrl, '/api/student-login', {
-      username: credentials.SMOKE_STUDENT_USERNAME,
-      password: credentials.SMOKE_STUDENT_PASSWORD,
+    await addCheck(report, 'role.student.read', async () => {
+      const credentials = requiredEnv(env, ['SMOKE_STUDENT_USERNAME', 'SMOKE_STUDENT_PASSWORD']);
+      const cookie = await login(fetchImpl, apiUrl, siteUrl, '/api/student-login', {
+        username: credentials.SMOKE_STUDENT_USERNAME,
+        password: credentials.SMOKE_STUDENT_PASSWORD,
+      }, productionTargets);
+      await authenticatedRead(fetchImpl, apiUrl, siteUrl, cookie, '/api/student-profile', 'Student profile');
     });
-    await authenticatedRead(fetchImpl, apiUrl, siteUrl, cookie, '/api/student-profile', 'Student profile');
-  });
-  await addCheck(report, 'role.parent.read', async () => {
-    const credentials = requiredEnv(env, ['SMOKE_PARENT_ACCESS_CODE', 'SMOKE_PARENT_PIN']);
-    const cookie = await login(fetchImpl, apiUrl, parentUrl, '/api/parent/login', {
-      accessCode: credentials.SMOKE_PARENT_ACCESS_CODE,
-      pin: credentials.SMOKE_PARENT_PIN,
+    await addCheck(report, 'role.parent.read', async () => {
+      const credentials = requiredEnv(env, ['SMOKE_PARENT_ACCESS_CODE', 'SMOKE_PARENT_PIN']);
+      const cookie = await login(fetchImpl, apiUrl, parentUrl, '/api/parent/login', {
+        accessCode: credentials.SMOKE_PARENT_ACCESS_CODE,
+        pin: credentials.SMOKE_PARENT_PIN,
+      }, productionTargets);
+      await authenticatedRead(fetchImpl, apiUrl, parentUrl, cookie, '/api/parent/dashboard', 'Parent dashboard');
     });
-    await authenticatedRead(fetchImpl, apiUrl, parentUrl, cookie, '/api/parent/dashboard', 'Parent dashboard');
-  });
+  }
 
-  if (aiSmoke) {
+  if (aiSmoke && !publicOnly) {
     await addCheck(report, 'ai.rollout_readiness', async () => {
       if (!teacherCookie) throw new Error('Teacher session unavailable for AI smoke.');
       await authenticatedRead(fetchImpl, apiUrl, siteUrl, teacherCookie, '/api/teacher-ai-quota', 'Teacher AI quota');

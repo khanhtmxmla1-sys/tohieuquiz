@@ -4,6 +4,7 @@ import {
   normalizeSmokeUrl,
   redactSmokeText,
 } from '../scripts/run-production-smoke.mjs';
+import { assertProductionTarget, PRODUCTION_ORIGINS } from '../scripts/production-targets.mjs';
 
 describe('production smoke runner safeguards', () => {
   it('normalizes an HTTPS target and removes its trailing slash', () => {
@@ -16,6 +17,12 @@ describe('production smoke runner safeguards', () => {
     credentialUrl.username = 'fixture-user';
     credentialUrl.password = ['opaque', 'fixture'].join('-');
     expect(() => normalizeSmokeUrl(credentialUrl.toString(), false)).toThrow('credentials');
+  });
+
+  it('does not reflect malformed URL input in configuration errors', () => {
+    const canary = 'fixture-canary-should-not-appear';
+    expect(() => normalizeSmokeUrl(`https://[${canary}`, false)).toThrow('Invalid smoke URL.');
+    expect(() => normalizeSmokeUrl(`https://[${canary}`, false)).not.toThrow(canary);
   });
 
   it('allows localhost only when local mode is explicit', () => {
@@ -38,5 +45,35 @@ describe('production smoke runner safeguards', () => {
     expect(redacted).not.toContain('hunter2');
     expect(redacted).not.toContain('123456');
     expect(redacted).not.toContain('admin@example.test');
+  });
+
+  it('accepts only the canonical origin for each production target', () => {
+    expect(assertProductionTarget(`${PRODUCTION_ORIGINS.api}/`, 'api')).toBe(PRODUCTION_ORIGINS.api);
+    expect(() => assertProductionTarget(`${PRODUCTION_ORIGINS.site}/`, 'api'))
+      .toThrow('Unapproved production smoke target');
+    expect(() => assertProductionTarget('https://api.thtohieu.com.untrusted.example/', 'api'))
+      .toThrow('Unapproved production smoke target');
+    const userInfoUrl = new URL(PRODUCTION_ORIGINS.api);
+    userInfoUrl.username = 'fixture-user';
+    userInfoUrl.password = 'fixture-password';
+    expect(() => assertProductionTarget(userInfoUrl.toString(), 'api'))
+      .toThrow('Unapproved production smoke target');
+    expect(() => assertProductionTarget('http://api.thtohieu.com/', 'api'))
+      .toThrow('Unapproved production smoke target');
+    expect(() => assertProductionTarget('https://api.thtohieu.com:8443/', 'api'))
+      .toThrow('Unapproved production smoke target');
+    expect(() => assertProductionTarget('https://api.thtohieu.com:443/', 'api'))
+      .toThrow('Unapproved production smoke target');
+    expect(() => assertProductionTarget(' https://api.thtohieu.com:443/', 'api'))
+      .toThrow('Unapproved production smoke target');
+    expect(() => assertProductionTarget('https:////api.thtohieu.com:443/', 'api'))
+      .toThrow('Unapproved production smoke target');
+    expect(() => assertProductionTarget('https://api.thtohieu.com/extra', 'api'))
+      .toThrow('Unapproved production smoke target');
+    expect(() => assertProductionTarget('https://api.thtohieu.com/?leak=true', 'api'))
+      .toThrow('Unapproved production smoke target');
+    const canary = 'fixture-canary-should-not-appear';
+    expect(() => assertProductionTarget(`https://[${canary}`, 'api')).toThrow('Unapproved production smoke target');
+    expect(() => assertProductionTarget(`https://[${canary}`, 'api')).not.toThrow(canary);
   });
 });
