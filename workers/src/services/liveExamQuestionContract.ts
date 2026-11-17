@@ -4,6 +4,7 @@ import {
   decodeStudentAnswersForGrading,
   deriveStudentQuizDtoKey,
   encodeStudentAnswersForPresentation,
+  hasOpaqueStudentAnswerIds,
   StudentQuizQuestionDtoError,
   toStudentQuestionDto,
   type StudentQuizQuestionDtoContext,
@@ -62,44 +63,7 @@ export function readLiveExamDtoSnapshot(value: unknown): LiveExamDtoSnapshotEnve
   };
 }
 
-export function hasOpaqueStudentAnswerIds(answersInput: unknown): boolean {
-  const answers = answersInput && typeof answersInput === 'object' && !Array.isArray(answersInput)
-    ? answersInput as Record<string, unknown>
-    : {};
-  const unwrap = (value: unknown): unknown => {
-    if (value && typeof value === 'object' && !Array.isArray(value)
-      && Object.prototype.hasOwnProperty.call(value, 'selectedAnswer')) {
-      return unwrap((value as Record<string, unknown>).selectedAnswer);
-    }
-    return value;
-  };
-  const isOpaque = (value: unknown): boolean => typeof value === 'string' && value.startsWith('sq1_');
-  return Object.values(answers).some((rawAnswer) => {
-    const answer = unwrap(rawAnswer);
-    if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return false;
-    const record = answer as Record<string, unknown>;
-    const type = typeof record.type === 'string' ? record.type.toUpperCase() : '';
-    if (type === 'MATCHING') {
-      const pairs = record.pairs && typeof record.pairs === 'object' ? record.pairs : record;
-      return Object.entries(pairs as Record<string, unknown>)
-        .filter(([key]) => !['type', 'selectedLeft', '__shuffledIds'].includes(key))
-        .some(([leftId, rightId]) => isOpaque(leftId) || isOpaque(rightId));
-    }
-    if (type === 'DRAG_DROP') {
-      const values = record.values && typeof record.values === 'object' ? record.values : record;
-      return Object.keys(values as Record<string, unknown>).some(isOpaque);
-    }
-    // MatchingRenderer and DragDropRenderer currently emit direct maps with
-    // no type/pairs/values wrapper. Opaque IDs are always map keys there. A
-    // canonical matching left key paired with an opaque right ID is also a
-    // mixed-contract submission and must enter strict decoding.
-    const directEntries = Object.entries(record)
-      .filter(([key]) => !['type', 'selectedLeft', '__shuffledIds'].includes(key));
-    if (directEntries.some(([key]) => isOpaque(key))) return true;
-    if (directEntries.some(([key, value]) => /^(?:left|l)-\d+$/.test(key) && isOpaque(value))) return true;
-    return false;
-  });
-}
+export { hasOpaqueStudentAnswerIds };
 
 /**
  * Build the server-owned presentation/scoring contract for one live attempt.

@@ -278,6 +278,47 @@ export const isOpaqueStudentQuestionId = (value: unknown): value is string => (
   typeof value === 'string' && value.startsWith('sq1_')
 );
 
+/**
+ * Detect the student DTO contract without inspecting arbitrary answer content.
+ * Current renderers emit direct maps; typed/pairs/values envelopes are also
+ * accepted for compatibility. Any structured opaque identifier forces the
+ * strict decoder path, including mixed legacy/opaque submissions.
+ */
+export function hasOpaqueStudentAnswerIds(answersInput: unknown): boolean {
+  const answers = answersInput && typeof answersInput === 'object' && !Array.isArray(answersInput)
+    ? answersInput as Record<string, unknown>
+    : {};
+  const unwrap = (value: unknown): unknown => {
+    if (value && typeof value === 'object' && !Array.isArray(value)
+      && Object.prototype.hasOwnProperty.call(value, 'selectedAnswer')) {
+      return unwrap((value as Record<string, unknown>).selectedAnswer);
+    }
+    return value;
+  };
+  return Object.values(answers).some((rawAnswer) => {
+    const answer = unwrap(rawAnswer);
+    if (!answer || typeof answer !== 'object' || Array.isArray(answer)) return false;
+    const record = answer as Record<string, unknown>;
+    const type = typeof record.type === 'string' ? record.type.toUpperCase() : '';
+    if (type === 'MATCHING') {
+      const pairs = record.pairs && typeof record.pairs === 'object' ? record.pairs : record;
+      return Object.entries(pairs as Record<string, unknown>)
+        .filter(([key]) => !['type', 'selectedLeft', '__shuffledIds'].includes(key))
+        .some(([leftId, rightId]) => isOpaqueStudentQuestionId(leftId) || isOpaqueStudentQuestionId(rightId));
+    }
+    if (type === 'DRAG_DROP') {
+      const values = record.values && typeof record.values === 'object' ? record.values : record;
+      return Object.keys(values as Record<string, unknown>).some(isOpaqueStudentQuestionId);
+    }
+    const directEntries = Object.entries(record)
+      .filter(([key]) => !['type', 'selectedLeft', '__shuffledIds'].includes(key));
+    if (directEntries.some(([key]) => isOpaqueStudentQuestionId(key))) return true;
+    return directEntries.some(([key, value]) => (
+      /^(?:left|l)-\d+$/.test(key) && isOpaqueStudentQuestionId(value)
+    ));
+  });
+}
+
 // This is the only root-level UI metadata emitted by the current student
 // player. It is intentionally allowlisted here instead of accepting every
 // underscore-prefixed field from a client result envelope.

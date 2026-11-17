@@ -295,7 +295,9 @@ describe('quiz play access policy', () => {
       assignmentId: 'assignment-a', subject: 'student-a',
       now: new Date('2026-11-17T00:01:00.000Z'),
     })).resolves.toBeNull();
-    await expect(verifyQuizAccessGrant(`${token.grant.slice(0, -1)}x`, {
+    const [grantHeader, grantPayload, grantSignature] = token.grant.split('.');
+    const tamperedSignature = `${grantSignature[0] === 'A' ? 'B' : 'A'}${grantSignature.slice(1)}`;
+    await expect(verifyQuizAccessGrant([grantHeader, grantPayload, tamperedSignature].join('.'), {
       secret: 'test-secret', quizId: 'quiz-coded', revision: 7,
       assignmentId: 'assignment-a', subject: 'student-a', accessCode: 'ABC123',
       now: new Date('2026-11-17T00:01:00.000Z'),
@@ -533,16 +535,16 @@ describe('scope-aware play questions route', () => {
       accessCode: 'ABC123', expiresInSeconds: 60, now: new Date('2020-01-01T00:00:00.000Z'),
     });
     const [header, payload, signature] = verified.grant.split('.');
-    const tamperedSignature = `${signature.slice(0, -1)}${signature.endsWith('x') ? 'y' : 'x'}`;
+    const tamperedSignature = `${signature[0] === 'A' ? 'B' : 'A'}${signature.slice(1)}`;
     const tampered = [header, payload, tamperedSignature].join('.');
-    for (const token of [expired.grant, tampered]) {
+    for (const [label, token] of [['expired', expired.grant], ['tampered-signature', tampered]] as const) {
       const response = await handleQuizRoutes(
         new Request('https://test/api/quizzes/quiz-coded/play-questions', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ accessGrant: token }),
         }), env(db), '/api/quizzes/quiz-coded/play-questions', 'POST',
       );
-      expect(response.status).toBe(403);
+      expect(response.status, label).toBe(403);
     }
     expect(db.questionQueries).toBe(0);
   });

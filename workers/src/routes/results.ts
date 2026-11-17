@@ -28,6 +28,7 @@ import {
 import {
     deriveStudentQuizDtoKey,
     deriveStudentQuizDtoScope,
+    hasOpaqueStudentAnswerIds,
 } from '../services/studentQuizQuestionDto';
 import { canAccessQuiz } from '../services/quizOwnership';
 import {
@@ -630,12 +631,15 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             username: user.username,
             classIds: [canonicalClassId],
         });
-        const quizRevision = user.role === 'student'
+        const useStudentDto = user.role === 'student'
+            && Boolean(studentContext)
+            && hasOpaqueStudentAnswerIds(body.answers || {});
+        const quizRevision = useStudentDto
             ? await db.prepare('SELECT revision FROM quizzes WHERE id = ? LIMIT 1')
                 .bind(quizId)
                 .first<{ revision?: number | null }>()
             : null;
-        const studentDtoContext = user.role === 'student' && studentContext
+        const studentDtoContext = useStudentDto && studentContext
             ? {
                 quizId: String(quizId),
                 revision: Number(quizRevision?.revision || 1),
