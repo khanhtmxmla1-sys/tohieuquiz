@@ -8,6 +8,10 @@ import {
   gradeQuizSubmission,
   attachReviewDetailsWithinBudget,
 } from '../workers/src/services/quizGradingService';
+import {
+  deriveStudentQuizDtoScope,
+  toStudentQuestionDto,
+} from '../workers/src/services/studentQuizQuestionDto';
 
 class Statement {
   bindings: unknown[] = [];
@@ -41,6 +45,64 @@ const rows = [
 ];
 
 describe('Worker quiz grading service', () => {
+  it('decodes student DTO IDs before scoring and stores canonical IDs', async () => {
+    const context = {
+      quizId: 'quiz-a',
+      revision: 7,
+      scope: deriveStudentQuizDtoScope({
+        quizId: 'quiz-a',
+        actor: { role: 'student', id: 'student-a' },
+      }),
+      key: 'dto-test-secret',
+    };
+    const mappedQuestions = [
+      { id: 'drop', type: 'DRAG_DROP', text: '[1]', blanks: [{ id: 'blank_0', correctAnswer: 'x' }], distractors: ['y'] },
+      { id: 'match', type: 'MATCHING', pairs: [{ left: 'A', right: '1' }, { left: 'B', right: '2' }] },
+    ];
+    const [dropDto, matchDto] = await Promise.all(mappedQuestions.map((question) => toStudentQuestionDto(question, context)));
+    const dropBlankId = (dropDto.blanks as Array<{ id: string }>)[0].id;
+    const rightItems = matchDto.rightItems as Array<{ id: string; content: string }>;
+    const leftItems = matchDto.leftItems as Array<{ id: string; content: string }>;
+    const opaqueAnswers = {
+      drop: { type: 'DRAG_DROP', values: { [dropBlankId]: 'x' } },
+      match: {
+        type: 'MATCHING',
+        pairs: Object.fromEntries(leftItems.map((left) => [
+          left.id,
+          rightItems.find((right) => right.content === (left.content === 'A' ? '1' : '2'))?.id,
+        ])),
+      },
+    };
+    const legacyAnswers = {
+      drop: { type: 'DRAG_DROP', values: { blank_0: 'x' } },
+      match: { type: 'MATCHING', pairs: { 'left-0': 'right-0', 'left-1': 'right-1' } },
+    };
+    const dragRows = [{ ...rows[0], type: 'DRAG_DROP', distractors: JSON.stringify(['y']) }, rows[1]];
+    const legacy = await gradeQuizSubmission(new Database(dragRows) as any, 'quiz-a', legacyAnswers);
+    const dtoGrading = await gradeQuizSubmission(new Database(dragRows) as any, 'quiz-a', opaqueAnswers, context);
+
+    expect(dtoGrading.score).toBe(legacy.score);
+    expect(dtoGrading.correctCount).toBe(legacy.correctCount);
+    expect(dtoGrading.details.map((detail) => detail.isCorrect)).toEqual([true, true]);
+    expect(dtoGrading.canonicalAnswers.match).toEqual({
+      type: 'MATCHING',
+      pairs: { 'left-0': 'right-0', 'left-1': 'right-1' },
+    });
+    expect(dtoGrading.canonicalAnswers.drop).toEqual({
+      type: 'DRAG_DROP',
+      values: { blank_0: 'x' },
+    });
+
+    const stored = buildAuthoritativeStoredAnswers(
+      dtoGrading.questions,
+      dtoGrading.canonicalAnswers,
+      dtoGrading.details,
+    );
+    expect((stored.match as any).selectedAnswer.pairs).toEqual({ 'left-0': 'right-0', 'left-1': 'right-1' });
+    expect((stored.drop as any).selectedAnswer.values).toEqual({ blank_0: 'x' });
+    expect(JSON.stringify(stored)).not.toContain('sq1_');
+  });
+
   it('grades D1 rows through the canonical engine', async () => {
     const result = await gradeQuizSubmission(new Database(rows) as any, 'quiz-a', {
       drop: { 0: 'x', isCorrect: false },

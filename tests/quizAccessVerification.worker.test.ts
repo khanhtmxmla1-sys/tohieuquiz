@@ -1,3 +1,5 @@
+// @vitest-environment node
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JWTPayload } from '../workers/src/utils/jwt';
 
@@ -35,7 +37,7 @@ class Database {
 
   prepare(sql: string) { return new Statement(sql, this); }
   first(sql: string, bindings: unknown[]) {
-    if (sql.includes('SELECT access_code, require_code FROM quizzes')) {
+    if (sql.includes('FROM quizzes WHERE id = ?')) {
       return bindings[0] === 'quiz-1' ? this.quiz : null;
     }
     if (sql.includes('FROM teachers t')) {
@@ -68,7 +70,7 @@ describe('quiz access verification', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ valid: true });
+    expect(await response.json()).toEqual(expect.objectContaining({ valid: true, grant: expect.any(String) }));
   });
 
   it('returns one generic forbidden response for wrong and missing quizzes', async () => {

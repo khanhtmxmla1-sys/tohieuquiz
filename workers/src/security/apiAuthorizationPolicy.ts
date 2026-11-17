@@ -12,6 +12,7 @@ export type ApiOwnershipKey =
   | 'parentSession'
   | 'studentId'
   | 'quizId'
+  | 'assignmentId'
   | 'resultId'
   | 'classId'
   | 'batchId'
@@ -72,6 +73,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('feature-flag-resolve', '/api/system-settings/feature-flags/resolve', 'authenticated', ['session', 'parentSession'], 'server-derived rollout subject', { match: 'exact', methods: ['GET'] }),
   policy('feature-flag-admin', '/api/system-settings/feature-flags', 'admin-only', ['route-handler'], 'feature flag requireAdmin checks'),
   policy('practice', '/api/practice', 'public', ['none'], 'practice route validation'),
+  policy('quiz-play-questions', '/api/quizzes/:quizId/play-questions', 'public', ['quizId', 'assignmentId', 'route-handler'], 'public learner scope plus server-side student/session/assignment checks', { match: 'template', methods: ['POST'] }),
   policy('question-catalog', '/api/questions', 'public', ['quizId'], 'quiz handler strips answers', { methods: ['GET'] }),
   policy('quiz-access-verification', '/api/quizzes/access-verification', 'public', ['quizId'], 'rate-limited generic access-code verifier', { methods: ['POST'] }),
   policy('quiz-catalog', '/api/quizzes', 'public', ['quizId'], 'quiz catalogue handler', { match: 'exact', methods: ['GET'] }),
@@ -136,6 +138,7 @@ export const apiAuthorizationPolicies: readonly ApiAuthorizationPolicy[] = [
   policy('gift-shop', '/api/gift-shop', 'authenticated', ['studentId', 'classId', 'route-handler'], 'scoped catalog and order reads'),
   policy('game-loop-track-quiz', '/api/game-loop/track-quiz', 'student-owned', ['session', 'studentId', 'resultId'], 'JWT student identity plus results.student_id ownership', { match: 'exact', methods: ['POST'] }),
   policy('game-loop', '/api/game-loop', 'student-owned', ['session', 'studentId'], 'JWT student identity; reward/progress sources are derived server-side'),
+  policy('live-exam-questions', '/api/live-exam/:sessionId/questions', 'student-owned', ['session', 'studentId', 'quizId'], 'student participant and active work-window checks', { match: 'template', methods: ['GET'] }),
   policy('live-exam', '/api/live-exam', 'authenticated', ['studentId', 'quizId', 'classId', 'route-handler'], 'role and session ownership checks'),
   policy('certificates', '/api/certificates', 'authenticated', ['studentId', 'classId', 'batchId', 'route-handler'], 'certificate ownership checks'),
   policy('certificate-batches', '/api/certificate-batches', 'teacher-owned', ['studentId', 'classId', 'batchId'], 'certificate batch ownership'),

@@ -11,6 +11,7 @@ import { handleControlRoute } from './controlRoute';
 import { handleCreateRoute } from './createRoute';
 import { handleJoinRoute } from './joinRoute';
 import { handleParticipantsRoute } from './participantsRoute';
+import { handleQuestionsRoute } from './questionsRoute';
 import { handleResultsRoute } from './resultsRoute';
 import { createLiveExamRouteContext, type LiveExamRouteHandler } from './routeContext';
 import { handleSessionRoute } from './sessionRoute';
@@ -25,6 +26,7 @@ const ROUTE_HANDLERS: LiveExamRouteHandler[] = [
   handleControlRoute,
   handleParticipantsRoute,
   handleJoinRoute,
+  handleQuestionsRoute,
   handleStatusRoute,
   handleSubmitRoute,
   handleAutosaveRoute,
