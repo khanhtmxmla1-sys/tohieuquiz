@@ -28,6 +28,7 @@ export class StudentQuizQuestionDtoError extends Error {
 }
 
 const textEncoder = new TextEncoder();
+const STUDENT_QUIZ_DTO_KDF_CONTEXT = 'tohieuquiz-student-question-dto-key-v1';
 
 const asRecord = (value: unknown): Record<string, any> => (
   value && typeof value === 'object' && !Array.isArray(value)
@@ -64,8 +65,8 @@ async function hmacHex(key: string | Uint8Array, message: string): Promise<strin
   return Array.from(new Uint8Array(signature), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-export async function deriveStudentQuizDtoKey(secret: string): Promise<string> {
-  return hmacHex(secret, 'tohieuquiz-student-question-dto-key-v1');
+export async function deriveStudentQuizDtoKey(sourceMaterial: string): Promise<string> {
+  return hmacHex(sourceMaterial, STUDENT_QUIZ_DTO_KDF_CONTEXT);
 }
 
 export function deriveStudentQuizDtoScope(input: {
