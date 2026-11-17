@@ -215,13 +215,7 @@ describe('POST /api/results authoritative scoring', () => {
     const legacyPayload = await legacyResponse.json() as any;
     expect(legacyResponse.status).toBe(200);
     expect(legacyPayload.score).toBe(10);
-    expect(legacyPayload.answers.match.selectedAnswer).toEqual({
-      type: 'MATCHING',
-      pairs: { 'left-0': 'right-0', 'left-1': 'right-1' },
-    });
-    expect(legacyPayload.answers.drag.selectedAnswer).toEqual({
-      type: 'DRAG_DROP',
-      values: { 'drag-a': 'X' },
-    });
+    expect(legacyPayload.answers.match.selectedAnswer).toEqual({ 'left-0': 'right-0', 'left-1': 'right-1' });
+    expect(legacyPayload.answers.drag.selectedAnswer).toEqual({ 'drag-a': 'X' });
   });
 });
