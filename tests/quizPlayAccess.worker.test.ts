@@ -169,7 +169,7 @@ describe('quiz play access policy', () => {
     db.quiz = { ...db.quiz, id: 'quiz-assigned', show_on_home: 'FALSE' };
     db.assignment = {
       id: 'assignment-a', quiz_id: 'quiz-assigned', class_id: 'class-a', student_id: '',
-      deadline: '2026-11-18T00:00:00.000Z', status: 'OPEN',
+      deadline: '2099-01-01T00:00:00.000Z', status: 'OPEN',
     };
     await expect(resolveQuizPlayAccess(db as any, {
       quizId: 'quiz-assigned',
@@ -452,7 +452,7 @@ describe('scope-aware play questions route', () => {
     db.quiz = { ...db.quiz, id: 'quiz-hidden-assigned', show_on_home: 'FALSE' };
     db.assignment = {
       id: 'assignment-class', quiz_id: 'quiz-hidden-assigned', class_id: 'class-a', student_id: '',
-      deadline: '2026-11-18T00:00:00.000Z', status: 'OPEN',
+      deadline: '2099-01-01T00:00:00.000Z', status: 'OPEN',
     };
     currentUser = actor() as JWTPayload;
     const allowed = await handleQuizRoutes(
