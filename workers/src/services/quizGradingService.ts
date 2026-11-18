@@ -13,6 +13,11 @@ import {
 } from '../../../src/domain/quiz-scoring';
 import { deserializeQuestionRichText } from '../../../shared/question-rich-text.contract';
 import { mapLiveExamQuestionRow } from './liveExamQuestionMapper';
+import {
+  decodeStudentAnswersForGrading,
+  type StudentQuizQuestionDtoContext,
+  StudentQuizQuestionDtoError,
+} from './studentQuizQuestionDto';
 
 export class QuizGradingServiceError extends Error {
   constructor(
@@ -36,6 +41,8 @@ export interface AuthoritativeQuizGrading {
   voidedCount: number;
   details: QuestionGradingResult[];
   questions: Array<Record<string, unknown>>;
+  /** Canonical answers used by the scoring engine and safe result persistence. */
+  canonicalAnswers: Record<string, unknown>;
 }
 
 const QUESTION_COLUMNS = `
@@ -75,9 +82,27 @@ export async function gradeQuizSubmission(
   db: D1Database,
   quizId: string,
   answers: unknown,
+  studentDtoContext?: StudentQuizQuestionDtoContext,
 ): Promise<AuthoritativeQuizGrading> {
   const questions = await loadQuizQuestionsForGrading(db, quizId);
-  const grading = gradeQuiz({ questions }, answers);
+  let canonicalAnswers: Record<string, unknown>;
+  try {
+    canonicalAnswers = studentDtoContext
+      ? await decodeStudentAnswersForGrading(questions, answers, studentDtoContext)
+      : (answers && typeof answers === 'object' && !Array.isArray(answers)
+        ? answers as Record<string, unknown>
+        : {});
+  } catch (error) {
+    if (error instanceof StudentQuizQuestionDtoError) {
+      throw new QuizGradingServiceError(
+        'Submitted answer IDs are not valid for this quiz attempt',
+        400,
+        error.code,
+      );
+    }
+    throw error;
+  }
+  const grading = gradeQuiz({ questions }, canonicalAnswers);
   return {
     gradingVersion: grading.engineVersion,
     answerSchemaVersion: grading.answerSchemaVersion,
@@ -88,6 +113,7 @@ export async function gradeQuizSubmission(
     voidedCount: grading.voidedCount,
     details: grading.details,
     questions,
+    canonicalAnswers,
   };
 }
 

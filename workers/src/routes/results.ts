@@ -25,6 +25,11 @@ import {
     loadQuizQuestionsForGrading,
     readStoredReviewDetails,
 } from '../services/quizGradingService';
+import {
+    deriveStudentQuizDtoKey,
+    deriveStudentQuizDtoScope,
+    hasOpaqueStudentAnswerIds,
+} from '../services/studentQuizQuestionDto';
 import { canAccessQuiz } from '../services/quizOwnership';
 import {
     recordScoringShadowObservation,
@@ -626,9 +631,33 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             username: user.username,
             classIds: [canonicalClassId],
         });
+        const useStudentDto = user.role === 'student'
+            && Boolean(studentContext)
+            && hasOpaqueStudentAnswerIds(body.answers || {});
+        const quizRevision = useStudentDto
+            ? await db.prepare('SELECT revision FROM quizzes WHERE id = ? LIMIT 1')
+                .bind(quizId)
+                .first<{ revision?: number | null }>()
+            : null;
+        const studentDtoContext = useStudentDto && studentContext
+            ? {
+                quizId: String(quizId),
+                revision: Number(quizRevision?.revision || 1),
+                scope: deriveStudentQuizDtoScope({
+                    quizId: String(quizId),
+                    actor: {
+                        role: user.role,
+                        id: String(studentContext.id || user.id || '').trim() || undefined,
+                        username: String(studentContext.username || user.username || '').trim() || undefined,
+                    },
+                    assignmentId: assignment?.id || undefined,
+                }),
+                key: await deriveStudentQuizDtoKey(env.JWT_SECRET),
+            }
+            : undefined;
         let grading;
         try {
-            grading = await gradeQuizSubmission(db, quizId, body.answers || {});
+            grading = await gradeQuizSubmission(db, quizId, body.answers || {}, studentDtoContext);
         } catch (error) {
             if (error instanceof QuizGradingServiceError) {
                 return jsonResponse({
@@ -654,12 +683,12 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const totalQuestions = grading.totalQuestions;
         const authoritativeAnswers = buildAuthoritativeStoredAnswers(
             grading.questions,
-            body.answers || {},
+            grading.canonicalAnswers,
             grading.details,
         );
         const reviewDetails = buildAuthoritativeReviewDetails(
             grading.questions,
-            authoritativeAnswers,
+            grading.canonicalAnswers,
             grading.details,
         );
         const answersWithReview = attachReviewDetailsWithinBudget(authoritativeAnswers, reviewDetails);

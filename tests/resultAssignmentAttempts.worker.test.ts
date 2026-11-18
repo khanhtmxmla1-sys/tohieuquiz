@@ -106,6 +106,7 @@ describe('assignment-scoped result attempt limits', () => {
       statement.sql.includes('WHERE a.id = ?')
       && statement.bindings[0] === 'assignment-current-3-attempts'
     ))).toBe(true);
+    expect(db.executed.some((statement) => statement.sql.includes('SELECT revision FROM quizzes'))).toBe(false);
 
     const attemptCount = db.executed.find(statement => statement.sql.includes('COUNT(*) as cnt'));
     expect(attemptCount?.sql).toContain('assignment_id = ?');

@@ -25,6 +25,7 @@ const routeSamples = [
   ['/api/login', 'POST', 'public'],
   ['/api/student-login', 'POST', 'public'],
   ['/api/questions', 'GET', 'public'],
+  ['/api/quizzes/quiz-1/play-questions', 'POST', 'public'],
   ['/api/quizzes/access-verification/quiz-1', 'POST', 'public'],
   ['/api/quizzes/quiz-1', 'PUT', 'teacher-owned'],
   ['/api/results/42', 'GET', 'teacher-owned'],
@@ -74,6 +75,18 @@ const routeSamples = [
 ] as const;
 
 describe('API authorization matrix', () => {
+  it('uses an explicit public POST-only policy for scoped quiz playback', () => {
+    expect(findApiAuthorizationPolicy('/api/quizzes/quiz-1/play-questions', 'POST')).toMatchObject({
+      id: 'quiz-play-questions',
+      path: '/api/quizzes/:quizId/play-questions',
+      match: 'template',
+      methods: ['POST'],
+      authorization: 'public',
+      ownership: ['quizId', 'assignmentId', 'route-handler'],
+    });
+    expect(findApiAuthorizationPolicy('/api/quizzes/quiz-1/play-questions', 'GET')?.id).not.toBe('quiz-play-questions');
+  });
+
   it('uses an exact POST-only policy for server quiz generation before the generic AI proxy policy', () => {
     expect(findApiAuthorizationPolicy('/api/ai/quiz/generate', 'POST')).toMatchObject({
       id: 'server-quiz-generation',

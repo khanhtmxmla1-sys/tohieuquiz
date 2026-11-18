@@ -281,6 +281,7 @@ describe('competition school exam server-side result embargo', () => {
       'chatMessageRoute.ts',
       'chatReadRoute.ts',
       'joinRoute.ts',
+      'questionsRoute.ts',
       'resultsRoute.ts',
       'statusRoute.ts',
       'submitRoute.ts',

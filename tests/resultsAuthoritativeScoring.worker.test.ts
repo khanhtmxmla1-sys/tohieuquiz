@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { JWTPayload } from '../workers/src/utils/jwt';
+import {
+  deriveStudentQuizDtoKey,
+  deriveStudentQuizDtoScope,
+  toStudentQuestionDto,
+} from '../workers/src/services/studentQuizQuestionDto';
 
 let currentUser: JWTPayload;
 vi.mock('../workers/src/middleware/jwtAuth', () => ({
@@ -36,6 +41,48 @@ class Database {
       correct_word_indexes: '', image: '', difficulty: 1, answer_schema_version: 1,
     }];
     return [];
+  }
+}
+
+class StudentStatement {
+  bindings: unknown[] = [];
+  constructor(readonly sql: string, readonly db: StudentDatabase) {}
+  bind(...values: unknown[]) { this.bindings = values; return this; }
+  async first<T>() { return this.db.first(this.sql, this.bindings) as T; }
+  async all<T>() { return { results: this.db.all(this.sql, this.bindings) as T[] }; }
+  async run() { return { success: true, meta: { changes: 1, last_row_id: 778 } }; }
+}
+
+class StudentDatabase {
+  prepare(sql: string) { return new StudentStatement(sql, this); }
+  first(sql: string) {
+    if (sql.includes('FROM students')) {
+      return { id: 'student-a', username: 'student-a', full_name: 'An', class_id: 'class-a', class_name: '4A' };
+    }
+    if (sql.includes('FROM classes') && sql.includes('WHERE id = ?')) {
+      return { id: 'class-a', name: '4A', teacher_username: 'teacher-a' };
+    }
+    if (sql.includes('SELECT revision FROM quizzes')) return { revision: 7 };
+    if (sql.includes('SELECT category FROM quizzes')) return { category: 'math' };
+    return null;
+  }
+  all(sql: string) {
+    if (!sql.includes('FROM questions')) return [];
+    return [
+      {
+        id: 'match', type: 'MATCHING', question: 'Nối', options: '', correct_answer: '',
+        items: JSON.stringify([{ left: 'A', right: '1' }, { left: 'B', right: '2' }]),
+        text_field: '', blanks: '', distractors: '', sentence: '', words: '',
+        correct_word_indexes: '', image: '', difficulty: 1, answer_schema_version: 1,
+      },
+      {
+        id: 'drag', type: 'DRAG_DROP', question: 'Điền', options: '', correct_answer: '',
+        items: '', text_field: 'Chọn [1]',
+        blanks: JSON.stringify([{ id: 'drag-a', correctAnswer: 'X' }]),
+        distractors: JSON.stringify(['Y']), sentence: '', words: '',
+        correct_word_indexes: '', image: '', difficulty: 1, answer_schema_version: 1,
+      },
+    ];
   }
 }
 
@@ -87,5 +134,88 @@ describe('POST /api/results authoritative scoring', () => {
     expect(insert?.bindings[10]).toBe(10);
     expect(insert?.bindings[13]).toBe('2.0.0');
     expect(insert?.bindings).not.toContain(99);
+  });
+
+  it('decodes opaque student answers and persists canonical IDs in the result', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', fullName: 'An' } as JWTPayload;
+    const db = new StudentDatabase();
+    const context = {
+      quizId: 'quiz-a',
+      revision: 7,
+      scope: deriveStudentQuizDtoScope({ quizId: 'quiz-a', actor: currentUser }),
+      key: await deriveStudentQuizDtoKey('test-secret'),
+    };
+    const dto = await toStudentQuestionDto({
+      id: 'match',
+      type: 'MATCHING',
+      question: 'Nối',
+      items: JSON.stringify([{ left: 'A', right: '1' }, { left: 'B', right: '2' }]),
+    }, context);
+    const dragDto = await toStudentQuestionDto({
+      id: 'drag', type: 'DRAG_DROP', question: 'Điền', text: 'Chọn [1]',
+      blanks: [{ id: 'drag-a', correctAnswer: 'X' }], distractors: ['Y'],
+    }, context);
+    const leftItems = dto.leftItems as Array<{ id: string; content: string }>;
+    const rightItems = dto.rightItems as Array<{ id: string; content: string }>;
+    const opaquePairs = Object.fromEntries(leftItems.map((left) => [
+      left.id,
+      rightItems.find((right) => right.content === (left.content === 'A' ? '1' : '2'))?.id,
+    ]));
+    const dragBlankId = (dragDto.blanks as Array<{ id: string }>)[0].id;
+
+    const response = await handleResultRoutes(new Request('https://test/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quizId: 'quiz-a', quizTitle: 'Nối', className: '4A', timeTaken: 10,
+        answers: {
+          _questionOrder: ['match', 'drag'],
+          match: {
+            selectedAnswer: { type: 'MATCHING', pairs: opaquePairs },
+            isCorrect: false,
+            status: 'wrong',
+            gradingVersion: 'client-forged',
+            questionSnapshot: { correctAnswer: 'client-forged' },
+          },
+          drag: {
+            selectedAnswer: { type: 'DRAG_DROP', values: { [dragBlankId]: 'X' } },
+            isCorrect: false,
+            status: 'wrong',
+            questionSnapshot: { correctAnswer: 'client-forged' },
+          },
+        },
+      }),
+    }), { DB: db, JWT_SECRET: 'test-secret' } as any, '/api/results', 'POST');
+
+    const payload = await response.json() as any;
+    expect(response.status).toBe(200);
+    expect(payload.score).toBe(10);
+    expect(payload.answers.match.selectedAnswer).toEqual({
+      type: 'MATCHING',
+      pairs: { 'left-0': 'right-0', 'left-1': 'right-1' },
+    });
+    expect(payload.answers.drag.selectedAnswer).toEqual({
+      type: 'DRAG_DROP',
+      values: { 'drag-a': 'X' },
+    });
+    expect(JSON.stringify(payload.answers)).not.toContain('sq1_');
+
+    const legacyResponse = await handleResultRoutes(new Request('https://test/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quizId: 'quiz-a', quizTitle: 'Nối', className: '4A', timeTaken: 10,
+        // Existing player submissions are direct ID maps, not a client-selected contract.
+        answers: {
+          match: { 'left-0': 'right-0', 'left-1': 'right-1' },
+          drag: { 'drag-a': 'X' },
+        },
+      }),
+    }), { DB: db, JWT_SECRET: 'test-secret' } as any, '/api/results', 'POST');
+    const legacyPayload = await legacyResponse.json() as any;
+    expect(legacyResponse.status).toBe(200);
+    expect(legacyPayload.score).toBe(10);
+    expect(legacyPayload.answers.match.selectedAnswer).toEqual({ 'left-0': 'right-0', 'left-1': 'right-1' });
+    expect(legacyPayload.answers.drag.selectedAnswer).toEqual({ 'drag-a': 'X' });
   });
 });

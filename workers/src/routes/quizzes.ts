@@ -15,7 +15,7 @@ import {
     QuestionRichTextValidationError,
 } from '../utils/helpers';
 import { verifyJWTMiddleware, requireAdmin, requireTeacher } from '../middleware/jwtAuth';
-import { JWTPayload } from '../utils/jwt';
+import { extractJWTFromRequest, JWTPayload } from '../utils/jwt';
 import { withD1Retry } from '../utils/d1';
 import { internalErrorResponse } from '../utils/internalError';
 import {
@@ -33,6 +33,17 @@ import {
 } from '../services/questionMath';
 import { QuestionScoringContractValidationError } from '../services/questionScoringContract';
 import { sanitizeSvgDiagram } from '../services/svgDiagramSanitizer';
+import { resolveQuizPlayAccess } from '../services/quizAccessPolicy';
+import {
+    issueQuizAccessGrant,
+    quizAccessGrantLifetimeSeconds,
+    verifyQuizAccessGrant,
+} from '../services/quizAccessGrant';
+import {
+    deriveStudentQuizDtoKey,
+    deriveStudentQuizDtoScope,
+    toStudentQuestionDto,
+} from '../services/studentQuizQuestionDto';
 import { z } from 'zod';
 import {
     deserializeQuestionRichText,
@@ -52,6 +63,7 @@ const parseJsonArray = (value: unknown): any[] => {
 
 const quizAccessCodeSchema = z.object({
     accessCode: z.string().trim().min(1).max(10).regex(/^[A-Za-z0-9]+$/),
+    assignmentId: z.string().trim().min(1).max(128).optional(),
 });
 
 const isEnabledFlag = (value: unknown): boolean => {
@@ -70,6 +82,32 @@ const constantTimeTextEqual = (actual: string, expected: string): boolean => {
         difference |= (actualBytes[index] ?? 0) ^ (expectedBytes[index] ?? 0);
     }
     return difference === 0;
+};
+
+const privateJsonResponse = <T>(data: T, status = 200): Response => {
+    const response = jsonResponse(data, status);
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', 'private, no-store');
+    return new Response(response.body, { status: response.status, headers });
+};
+
+const privateErrorResponse = (message: string, status = 400): Response =>
+    privateJsonResponse({ status: 'error', message }, status);
+
+const privateizeResponse = (response: Response): Response => {
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', 'private, no-store');
+    return new Response(response.body, { status: response.status, headers });
+};
+
+const optionalAuthUser = async (
+    request: Request,
+    env: Env,
+): Promise<{ user: JWTPayload | null; failure: Response | null }> => {
+    const authResult = await verifyJWTMiddleware(request, env);
+    if (!(authResult instanceof Response)) return { user: authResult.user, failure: null };
+    if (extractJWTFromRequest(request)) return { user: null, failure: privateizeResponse(authResult) };
+    return { user: null, failure: null };
 };
 
 export const sanitizeQuizForStudent = (
@@ -392,18 +430,34 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
             }, 400);
         }
 
+        const optionalAuth = await optionalAuthUser(request, env);
+        if (optionalAuth.failure) return optionalAuth.failure;
+        const user = optionalAuth.user;
         const quiz = await db.prepare(
-            'SELECT access_code, require_code FROM quizzes WHERE id = ?',
+            'SELECT id, access_code, require_code, show_on_home, revision, time_limit FROM quizzes WHERE id = ?',
         ).bind(quizId).first<{
+            id?: string;
             access_code?: string | null;
             require_code?: string | number | boolean | null;
+            show_on_home?: string | number | boolean | null;
+            revision?: number | null;
+            time_limit?: number | null;
         }>();
 
         if (!quiz) {
             return jsonResponse({ valid: false, error: 'INVALID_ACCESS_CODE' }, 403);
         }
+        const assignmentId = parsed.data.assignmentId;
         if (!isEnabledFlag(quiz.require_code)) {
-            return jsonResponse({ valid: true });
+            const decision = await resolveQuizPlayAccess(db, {
+                quizId,
+                actor: user,
+                assignmentId,
+                now: new Date(),
+            });
+            return decision.allowed
+                ? jsonResponse({ valid: true })
+                : jsonResponse({ valid: false, error: 'INVALID_ACCESS_CODE' }, 403);
         }
 
         const actualCode = parsed.data.accessCode.toUpperCase();
@@ -411,7 +465,105 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
         if (!expectedCode || !constantTimeTextEqual(actualCode, expectedCode)) {
             return jsonResponse({ valid: false, error: 'INVALID_ACCESS_CODE' }, 403);
         }
-        return jsonResponse({ valid: true });
+        const decision = await resolveQuizPlayAccess(db, {
+            quizId,
+            actor: user,
+            assignmentId,
+            accessCodeVerified: true,
+            now: new Date(),
+        });
+        if (!decision.allowed) return jsonResponse({ valid: false, error: 'INVALID_ACCESS_CODE' }, 403);
+        const subject = user?.role === 'student' ? (user.id || user.username) : undefined;
+        const grant = await issueQuizAccessGrant({
+            secret: env.JWT_SECRET,
+            quizId,
+            revision: Number(quiz.revision || decision.revision || 1),
+            assignmentId,
+            subject,
+            accessCode: expectedCode,
+            expiresInSeconds: quizAccessGrantLifetimeSeconds(quiz.time_limit),
+        });
+        return privateJsonResponse({ valid: true, ...grant });
+    }
+
+    // POST /api/quizzes/:quizId/play-questions - scope-aware learner payload
+    const playQuestionsMatch = path.match(/^\/api\/quizzes\/([^/]+)\/play-questions$/);
+    if (playQuestionsMatch && method === 'POST') {
+        let quizId = '';
+        try {
+            quizId = decodeURIComponent(playQuestionsMatch[1]).trim();
+        } catch {
+            return privateErrorResponse('Invalid quiz ID', 400);
+        }
+        if (!quizId) return privateErrorResponse('Invalid quiz ID', 400);
+
+        const optionalAuth = await optionalAuthUser(request, env);
+        if (optionalAuth.failure) return optionalAuth.failure;
+        const user = optionalAuth.user;
+        const body = await parseBody(request);
+        const assignmentId = typeof body?.assignmentId === 'string' && body.assignmentId.trim()
+            ? body.assignmentId.trim()
+            : undefined;
+        const accessGrant = typeof body?.accessGrant === 'string' ? body.accessGrant.trim() : '';
+        const quiz = await db.prepare('SELECT revision, access_code, require_code FROM quizzes WHERE id = ?')
+            .bind(quizId).first<{ revision?: number | null; access_code?: string | null; require_code?: string | number | boolean | null }>();
+        if (!quiz) return privateErrorResponse('Forbidden: Quiz access required', 403);
+        const revision = Number(quiz.revision || 1);
+        const subject = user?.role === 'student' ? (user.id || user.username) : undefined;
+        const grantClaims = accessGrant
+            ? await verifyQuizAccessGrant(accessGrant, {
+                secret: env.JWT_SECRET,
+                quizId,
+                revision,
+                assignmentId,
+                subject,
+                accessCode: isEnabledFlag(quiz.require_code) ? String(quiz.access_code || '') : undefined,
+            })
+            : null;
+        const decision = await resolveQuizPlayAccess(db, {
+            quizId,
+            actor: user,
+            assignmentId,
+            accessCodeVerified: Boolean(grantClaims),
+            now: new Date(),
+        });
+        if (!decision.allowed) return privateErrorResponse('Forbidden: Quiz access required', 403);
+        if (grantClaims && grantClaims.revision !== decision.revision) {
+            return privateErrorResponse('Quiz revision changed; please verify access again', 409);
+        }
+        const latestQuiz = await db.prepare('SELECT revision FROM quizzes WHERE id = ?')
+            .bind(quizId).first<{ revision?: number | null }>();
+        if (Number(latestQuiz?.revision || 1) !== decision.revision) {
+            return privateErrorResponse('Quiz revision changed; please retry', 409);
+        }
+
+        const rows = await withD1Retry(
+            () => db.prepare('SELECT * FROM questions WHERE quiz_id = ? ORDER BY rowid ASC').bind(quizId).all<any>(),
+            'POST /api/quizzes play-questions',
+        );
+        const canonicalStudent = user?.role === 'student'
+            ? await db.prepare(`
+                SELECT id, username
+                FROM students
+                WHERE username = ? AND COALESCE(archived_at, '') = ''
+                LIMIT 1
+            `).bind(user.username).first<{ id?: string; username?: string }>()
+            : null;
+        const dtoActor = user?.role === 'student'
+            ? { ...user, id: canonicalStudent?.id || user.id }
+            : user;
+        const dtoContext = {
+            quizId,
+            revision: decision.revision,
+            scope: deriveStudentQuizDtoScope({ quizId, actor: dtoActor, assignmentId }),
+            key: await deriveStudentQuizDtoKey(env.JWT_SECRET),
+        };
+        const studentQuestions = await Promise.all(rows.results.map((question) => toStudentQuestionDto(question, dtoContext)));
+        return privateJsonResponse({
+            quizId,
+            revision: decision.revision,
+            questions: studentQuestions,
+        });
     }
 
     // GET /api/quizzes
