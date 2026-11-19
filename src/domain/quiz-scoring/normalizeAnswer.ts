@@ -1,4 +1,4 @@
-import { asArray, asRecord, normalizeText, parseMaybeJson } from './questionIdentity';
+import { asRecord, normalizeText, parseMaybeJson } from './questionIdentity';
 import { withoutUiMetadata, unwrapStoredResultAnswer } from './legacyAnswerAdapters';
 import { normalizeQuestionForGrading } from './normalizeQuestion';
 import type { NormalizedAnswerResult, NormalizedGradableQuestion, NormalizedOption, QuizAnswer } from './types';
