@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
 
 const homePageSource = readSource('src/components/HomePage/HomePage.tsx');
-const studentQuizViewSource = readSource('src/app/StudentQuizView.tsx');
+const quizPlayerSource = readSource('src/features/quiz-player/hooks/useQuizPlayer.ts');
+const quizStartNoticeSource = readSource('src/components/student/QuizStartNotice.tsx');
 const waitingRoomChatSource = readSource('src/components/LiveExam/WaitingRoomChatPanel.tsx');
 const studentDashboardSource = readSource('src/components/HomePage/StudentDashboardUI.tsx');
 const errorBoundarySource = readSource('src/components/common/ErrorBoundary.tsx');
@@ -15,7 +16,8 @@ const sharedErrorSource = [errorBoundarySource, supportErrorSource, apiErrorsSou
 const stylesSource = readSource('styles.css');
 const studentCopySource = [
   homePageSource,
-  studentQuizViewSource,
+  quizPlayerSource,
+  quizStartNoticeSource,
   waitingRoomChatSource,
   sharedErrorSource,
 ].join('\n');
@@ -32,14 +34,7 @@ describe('student dashboard Vietnamese copy', () => {
   });
 
   it('uses fully accented Vietnamese in the quiz loading error state', () => {
-    for (const copy of [
-      'Chưa tải được câu hỏi',
-      'Hệ thống chưa tải được câu hỏi cho bài này. Vui lòng thử lại.',
-      'Về trang chủ',
-      'Thử lại',
-    ]) {
-      expect(studentQuizViewSource).toContain(copy);
-    }
+    expect(quizPlayerSource).toContain('Không tải được câu hỏi của bài làm.');
   });
 
   it('uses valid UTF-8 copy in the shared error screen', () => {

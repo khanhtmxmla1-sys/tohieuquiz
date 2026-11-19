@@ -86,7 +86,7 @@ describe('useManualQuizPublish', () => {
         expect(quizStoreMocks.modifyQuiz).not.toHaveBeenCalled();
         expect(order[0]).toBe('canonical');
         expect(order).toEqual(expect.arrayContaining(['local-draft', 'remote-draft', 'refresh']));
-        expect(quizStoreMocks.loadQuizzes).toHaveBeenCalledWith({ force: true });
+        expect(quizStoreMocks.loadQuizzes).toHaveBeenCalledWith({ force: true, includeQuestions: true });
         expect(onSuccess).toHaveBeenCalledTimes(1);
         expect(useManualQuizWorkspaceStore.getState().envelope).toBeNull();
     });
