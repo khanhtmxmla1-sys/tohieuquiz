@@ -14,6 +14,7 @@ import type {
     LiveExamParticipantsResponse,
     LiveExamResultsResponse,
     LiveExamSubmissionResponse,
+    LiveExamQuestionsResponse,
     WaitingRoomChatMessage,
     WaitingRoomChatResponse,
     CreateLiveExamRequest,
@@ -27,6 +28,7 @@ import { TeacherAction } from '../types/liveExam.types';
 import { fetchWithJWTInterceptor } from '../utils/jwtInterceptor';
 import { retryWithBackoff, type RetryOptions } from '../utils/boundedRetry';
 import { getWorkersApiBaseUrl } from './api/config';
+import { adaptStudentQuizQuestion } from './quizAccessService';
 
 export class LiveExamApiError extends Error {
     readonly status: number;
@@ -249,6 +251,29 @@ export async function getSessionStatus(
         `/api/live-exam/${sessionId}/status`,
         {},
     );
+}
+
+/**
+ * Get the participant-scoped question DTO for an active Live Exam session.
+ * The Worker derives the question contract from the authenticated participant;
+ * the client must not fall back to the quiz catalogue for this flow.
+ */
+export async function getLiveExamQuestions(
+    sessionId: string,
+): Promise<LiveExamQuestionsResponse> {
+    const normalizedSessionId = String(sessionId || '').trim();
+    if (!normalizedSessionId) throw new LiveExamApiError('Missing Live Exam session ID', 400);
+    const response = await apiCall<LiveExamQuestionsResponse>(
+        `/api/live-exam/${encodeURIComponent(normalizedSessionId)}/questions`,
+    );
+    return {
+        ...response,
+        questions: Array.isArray(response.questions)
+            ? response.questions.map((question) => adaptStudentQuizQuestion(
+                question as unknown as Record<string, unknown>,
+            ))
+            : [],
+    };
 }
 
 /**

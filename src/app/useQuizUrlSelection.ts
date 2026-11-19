@@ -15,7 +15,7 @@ export const useQuizUrlSelection = () => {
 
         const foundQuiz = quizStore.quizzes.find((quiz) => quiz.id === quizId);
         if (foundQuiz) {
-            quizStore.selectQuiz(foundQuiz);
+            quizStore.selectQuiz(foundQuiz, { loadQuestions: false });
             quizStore.setView('student');
         }
     }, [location.pathname, location.search, quizStore]);

@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
   onSaveResult: vi.fn(),
   trackQuizActivity: vi.fn(),
   startAssignmentAttempt: vi.fn(),
+  fetchQuizPlayQuestions: vi.fn(),
+  requestQuizAccess: vi.fn(),
+  adaptStudentQuizQuestion: vi.fn((question: unknown) => question),
 }));
 
 vi.mock('../src/stores/useClassroomStore', () => ({
@@ -29,6 +32,11 @@ vi.mock('../src/services/quizValidationService', () => ({
 }));
 vi.mock('../src/services/classroomService', () => ({
   startAssignmentAttempt: mocks.startAssignmentAttempt,
+}));
+vi.mock('../src/services/quizAccessService', () => ({
+  fetchQuizPlayQuestions: mocks.fetchQuizPlayQuestions,
+  requestQuizAccess: mocks.requestQuizAccess,
+  adaptStudentQuizQuestion: mocks.adaptStudentQuizQuestion,
 }));
 vi.mock('../src/features/quiz-player/utils/quizScoring', () => ({
   calculateStudentScore: mocks.calculateStudentScore,
@@ -74,6 +82,11 @@ describe('assigned quiz result payload', () => {
       remainingAttempts: 2,
       deadline: '2099-01-01T00:00:00.000Z',
       status: 'OPEN',
+    });
+    mocks.fetchQuizPlayQuestions.mockResolvedValue({
+      quizId: 'quiz-week-30',
+      revision: 1,
+      questions: quiz.questions,
     });
   });
 

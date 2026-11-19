@@ -12,7 +12,8 @@ import {
 import { logger } from '../src/services/logger';
 import { MAX_COLLECTION_LIMIT } from '../shared/pagination.contract';
 
-let activeQuizLoad: Promise<void> | null = null;
+let activeQuizLoad: { includeQuestions: boolean; promise: Promise<void> } | null = null;
+let quizLoadGeneration = 0;
 const MAX_RESULT_PAGE_REQUESTS = 1000;
 const INVALID_RESULTS_PAGINATION_ERROR = 'Dữ liệu phân trang kết quả học tập không hợp lệ.';
 const RESULTS_PAGINATION_LIMIT_ERROR = 'Dữ liệu kết quả học tập vượt quá giới hạn phân trang.';
@@ -198,6 +199,7 @@ interface QuizState {
     isLoading: boolean;
     error: string | null;
     quizzesLoadedAt: number | null;
+    quizCatalogMode: 'metadata' | 'questions';
 
     // View actions
     setView: (view: ViewType) => void;
@@ -208,7 +210,7 @@ interface QuizState {
     addQuiz: (quiz: Quiz) => void;
     updateQuiz: (quiz: Quiz) => void;
     deleteQuiz: (id: string) => void;
-    selectQuiz: (quiz: Quiz | null) => void;
+    selectQuiz: (quiz: Quiz | null, options?: { loadQuestions?: boolean }) => void;
     setClassLevel: (level: string | null) => void;
     setCategory: (category: string | null) => void;
 
@@ -245,6 +247,7 @@ export const useQuizStore = create<QuizState>()(
             isLoading: false,
             error: null,
             quizzesLoadedAt: null,
+            quizCatalogMode: 'metadata',
 
             // View actions
             setView: (view) => set({ view }),
@@ -269,10 +272,12 @@ export const useQuizStore = create<QuizState>()(
             deleteQuiz: (id) => set((state) => ({
                 quizzes: state.quizzes.filter(q => q.id !== id)
             })),
-            selectQuiz: (quiz) => {
+            selectQuiz: (quiz, options) => {
                 const activeQuiz = quiz && !isArchivedQuizCategory(quiz.category) ? quiz : null;
                 set({ selectedQuiz: activeQuiz });
-                if (activeQuiz && (!Array.isArray(activeQuiz.questions) || activeQuiz.questions.length === 0)) {
+                if (options?.loadQuestions !== false
+                    && activeQuiz
+                    && (!Array.isArray(activeQuiz.questions) || activeQuiz.questions.length === 0)) {
                     void get().loadQuizQuestions(activeQuiz.id);
                 }
             },
@@ -297,7 +302,7 @@ export const useQuizStore = create<QuizState>()(
                     const res = await callApi<any>('duplicate_quiz', { quizId });
                     if (res?.status === 'success') {
                         // Reload to get the new quiz with all questions
-                        await get().loadQuizzes({ force: true });
+                        await get().loadQuizzes({ force: true, includeQuestions: true });
                         return true;
                     }
                     return false;
@@ -311,13 +316,14 @@ export const useQuizStore = create<QuizState>()(
             loadQuizzes: (options = {}) => {
                 const state = get();
                 const force = options.force === true;
+                const includeQuestions = options.includeQuestions === true;
 
                 if (!force && isQuizCatalogFresh({
                     hasQuizzes: state.quizzes.length > 0,
                     loadedAt: state.quizzesLoadedAt,
                     now: Date.now(),
                     maxAgeMs: options.maxAgeMs,
-                })) {
+                }) && (!includeQuestions || state.quizCatalogMode === 'questions')) {
                     return Promise.resolve();
                 }
 
@@ -325,18 +331,31 @@ export const useQuizStore = create<QuizState>()(
                     cacheService.invalidatePrefix('quizzes:');
                 }
 
-                if (activeQuizLoad) return activeQuizLoad;
+                if (activeQuizLoad && (!includeQuestions || activeQuizLoad.includeQuestions)) {
+                    return activeQuizLoad.promise;
+                }
+
+                const loadGeneration = ++quizLoadGeneration;
 
                 const request = (async () => {
                     set({ isLoading: true, error: null });
                     try {
-                        const [quizData, questionData] = await Promise.all([
-                            callApi<any[]>('get_quizzes'),
-                            callApi<any[]>('get_questions'),
-                        ]);
+                        const [quizData, questionData] = includeQuestions
+                            ? await Promise.all([
+                                callApi<any[]>('get_quizzes'),
+                                callApi<any[]>('get_questions'),
+                            ])
+                            : [await callApi<any[]>('get_quizzes'), [] as any[]];
+
+                        if (loadGeneration !== quizLoadGeneration) return;
 
                         if (!Array.isArray(quizData)) {
-                            set({ quizzes: [], isLoading: false, quizzesLoadedAt: null });
+                            set({
+                                quizzes: [],
+                                isLoading: false,
+                                quizzesLoadedAt: null,
+                                quizCatalogMode: 'metadata',
+                            });
                             return;
                         }
 
@@ -396,10 +415,11 @@ export const useQuizStore = create<QuizState>()(
                             versionNumber: Number(row.versionNumber || row.version_number || 1),
                             revision: Number(row.revision || 1),
                             updatedAt: row.updatedAt || row.updated_at || row.createdAt || row.created_at,
-                            questions:
-                                questionsByQuizId.get(row.id)
-                                || existingById.get(row.id)?.questions
-                                || [],
+                            questions: includeQuestions
+                                ? questionsByQuizId.get(row.id)
+                                    || existingById.get(row.id)?.questions
+                                    || []
+                                : [],
                         }));
 
                         const currentSelectedQuiz = get().selectedQuiz;
@@ -423,20 +443,24 @@ export const useQuizStore = create<QuizState>()(
                             selectedQuiz: updatedSelectedQuiz,
                             isLoading: false,
                             quizzesLoadedAt: Date.now(),
+                            quizCatalogMode: includeQuestions ? 'questions' : 'metadata',
                         });
                     } catch (err: any) {
                         set({
                             error: err.message || 'Failed to load quizzes',
                             isLoading: false,
                             quizzesLoadedAt: null,
+                            quizCatalogMode: 'metadata',
                         });
                     }
                 })();
 
-                activeQuizLoad = request.finally(() => {
-                    activeQuizLoad = null;
+                const coordinator = { includeQuestions, promise: request };
+                activeQuizLoad = coordinator;
+                void request.finally(() => {
+                    if (activeQuizLoad === coordinator) activeQuizLoad = null;
                 });
-                return activeQuizLoad;
+                return request;
             },
 
             loadQuizQuestions: async (quizId: string) => {

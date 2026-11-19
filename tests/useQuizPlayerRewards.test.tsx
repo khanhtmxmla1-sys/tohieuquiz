@@ -8,6 +8,9 @@ const mocks = vi.hoisted(() => ({
   onSaveResult: vi.fn(),
   claimResultReward: vi.fn(),
   trackQuizActivity: vi.fn(),
+  fetchQuizPlayQuestions: vi.fn(),
+  requestQuizAccess: vi.fn(),
+  adaptStudentQuizQuestion: vi.fn((question: unknown) => question),
 }));
 
 vi.mock('../src/stores/useClassroomStore', () => ({
@@ -34,6 +37,11 @@ vi.mock('../src/stores/useGameLoopStore', () => ({
 }));
 vi.mock('../src/services/quizValidationService', () => ({
   validateAnswersOnServer: mocks.validateAnswersOnServer,
+}));
+vi.mock('../src/services/quizAccessService', () => ({
+  fetchQuizPlayQuestions: mocks.fetchQuizPlayQuestions,
+  requestQuizAccess: mocks.requestQuizAccess,
+  adaptStudentQuizQuestion: mocks.adaptStudentQuizQuestion,
 }));
 vi.mock('../src/features/quiz-player/utils/quizScoring', () => ({
   calculateStudentScore: mocks.calculateStudentScore,
@@ -122,6 +130,28 @@ describe('useQuizPlayer result rewards', () => {
       newCoins: 50,
       leveledUp: false,
       mood: 'excited',
+    });
+    mocks.fetchQuizPlayQuestions.mockImplementation(async (quizId: string) => {
+      const candidates = [
+        makeQuiz(),
+        makeMatchingQuiz(),
+        makeStudentSafeShortAnswerQuiz(),
+        {
+          ...makeQuiz(), id: 'quiz-ordering-authoritative', questions: [{
+            id: 'q1', type: QuestionType.ORDERING, question: 'Sắp xếp',
+            items: ['B', 'A'], correctOrder: [1, 0],
+          }],
+        },
+        {
+          ...makeQuiz(), id: 'quiz-voided-result', questions: [
+            { id: 'q1', type: QuestionType.MCQ, question: 'Câu 1', options: ['A', 'B'], correctAnswer: 'A' },
+            { id: 'q2', type: QuestionType.MCQ, question: 'Câu 2', options: ['A', 'B'], correctAnswer: 'A' },
+            { id: 'q3', type: QuestionType.SHORT_ANSWER, question: 'Câu lỗi', correctAnswer: '' },
+          ],
+        },
+      ] as Quiz[];
+      const match = candidates.find((candidate) => candidate.id === quizId);
+      return { quizId, revision: 1, questions: match?.questions || makeQuiz().questions };
     });
   });
 
@@ -354,6 +384,7 @@ describe('useQuizPlayer result rewards', () => {
       await result.current.handleStart();
     });
     expect(result.current.step).toBe('quiz');
+    expect(mocks.fetchQuizPlayQuestions).not.toHaveBeenCalled();
     await act(async () => result.current.handleSubmit());
 
     expect(mocks.onSaveResult).not.toHaveBeenCalled();

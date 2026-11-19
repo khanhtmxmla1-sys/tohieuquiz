@@ -212,7 +212,7 @@ const ManageTab: React.FC<ManageTabProps> = ({ quizzes, onDelete, onEdit, onMana
         setIsRefreshing(true);
         try {
             await Promise.all([
-                quizStore.loadQuizzes({ force: true }),
+                quizStore.loadQuizzes({ force: true, includeQuestions: true }),
                 authStore.isAdmin
                     ? fetchAllAssignments()
                     : fetchTeacherAssignments(authStore.username || ''),

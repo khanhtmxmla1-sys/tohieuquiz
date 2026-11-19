@@ -31,7 +31,6 @@ export const useStudentAssignments = (studentId?: string) => {
   const selectQuiz = useQuizStore((state) => state.selectQuiz);
   const setView = useQuizStore((state) => state.setView);
   const loadResults = useQuizStore((state) => state.loadResults);
-  const loadQuizQuestions = useQuizStore((state) => state.loadQuizQuestions);
   const requestedPage = location.pathname === getStudentRoute('assignments')
     ? Number.parseInt(searchParams.get('page') || '1', 10)
     : 1;
@@ -88,7 +87,9 @@ export const useStudentAssignments = (studentId?: string) => {
   }, [allQuizzes.length, page, setPage, totalPages]);
 
   const startQuiz = useCallback((quiz: AssignedQuiz) => {
-    selectQuiz(quiz);
+    // Learner questions must come from the scoped play endpoint when the
+    // player starts; do not prefetch the legacy authoring question route.
+    selectQuiz(quiz, { loadQuestions: false });
     setView('student');
   }, [selectQuiz, setView]);
 
@@ -137,16 +138,10 @@ export const useStudentAssignments = (studentId?: string) => {
         throw new Error('Bài làm này chưa có dữ liệu câu trả lời để xem lại.');
       }
 
-      let reviewQuizData = buildAssignmentReviewQuiz(quiz, storedAnswers);
-      if (reviewQuizData.questions.length < result.totalQuestions) {
-        const loadedQuiz = await loadQuizQuestions(quiz.id);
-        if (loadedQuiz) {
-          reviewQuizData = buildAssignmentReviewQuiz({
-            ...loadedQuiz,
-            _assignmentData: quiz._assignmentData,
-          }, storedAnswers);
-        }
-      }
+      // Review is intentionally snapshot-only. Learners must not hydrate
+      // authoring questions through the legacy GET /api/questions route.
+      // A partial snapshot remains reviewable; an empty one is rejected below.
+      const reviewQuizData = buildAssignmentReviewQuiz(quiz, storedAnswers);
 
       if (reviewQuizData.questions.length === 0) {
         throw new Error('Không tải được nội dung câu hỏi của bài làm.');
@@ -163,7 +158,7 @@ export const useStudentAssignments = (studentId?: string) => {
     } finally {
       setReviewingAssignmentId(null);
     }
-  }, [allQuizzes, loadQuizQuestions, loadResults]);
+  }, [allQuizzes, loadResults]);
 
   return {
     pagedQuizzes,

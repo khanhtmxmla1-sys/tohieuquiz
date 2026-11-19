@@ -79,6 +79,95 @@ describe('quizStore.loadQuizzes', () => {
     } as any);
   });
 
+  it('can select a learner quiz without prefetching legacy authoring questions', async () => {
+    useQuizStore.getState().selectQuiz({
+      ...quizRows[0],
+      questions: [],
+    } as any, { loadQuestions: false });
+
+    await Promise.resolve();
+
+    expect(useQuizStore.getState().selectedQuiz?.id).toBe('quiz-1');
+    expect(mocks.callApi).not.toHaveBeenCalled();
+  });
+
+  it('loads learner catalog metadata without calling the broad legacy question route', async () => {
+    useQuizStore.setState({
+      quizzes: [{ ...quizRows[0], questions: [{ id: 'stale-secret-answer-key' }] }],
+    } as any);
+    mocks.callApi.mockImplementation(async (action: string) => {
+      if (action === 'get_quizzes') return quizRows;
+      throw new Error(`Legacy question route must not run: ${action}`);
+    });
+
+    await useQuizStore.getState().loadQuizzes({ includeQuestions: false });
+
+    expect(mocks.callApi).toHaveBeenCalledWith('get_quizzes');
+    expect(mocks.callApi).not.toHaveBeenCalledWith('get_questions');
+    expect(useQuizStore.getState().quizzes[0].questions).toEqual([]);
+  });
+
+  it('does not let an in-flight metadata load satisfy a concurrent authoring load', async () => {
+    let releaseMetadata!: (value: unknown[]) => void;
+    const metadataPromise = new Promise<unknown[]>((resolve) => {
+      releaseMetadata = resolve;
+    });
+    let catalogCalls = 0;
+    mocks.callApi.mockImplementation((action: string) => {
+      if (action === 'get_quizzes') {
+        catalogCalls += 1;
+        return catalogCalls === 1 ? metadataPromise : Promise.resolve(quizRows);
+      }
+      if (action === 'get_questions') return Promise.resolve([{
+        id: 'question-1', quiz_id: 'quiz-1', type: 'MCQ',
+        question: '1 + 1?', options: '1|2', correct_answer: 'option-1',
+      }]);
+      throw new Error(`Unexpected action: ${action}`);
+    });
+
+    const metadataLoad = useQuizStore.getState().loadQuizzes({ includeQuestions: false });
+    await Promise.resolve();
+    const authoringLoad = useQuizStore.getState().loadQuizzes({ includeQuestions: true });
+
+    expect(mocks.callApi).toHaveBeenCalledWith('get_questions');
+    expect(catalogCalls).toBe(2);
+    releaseMetadata(quizRows);
+    await Promise.all([metadataLoad, authoringLoad]);
+    expect(useQuizStore.getState().quizzes[0].questions).toHaveLength(1);
+  });
+
+  it('does not treat one embedded quiz as proof that the whole catalog is authoring-hydrated', async () => {
+    installSuccessfulApi();
+    await useQuizStore.getState().loadQuizzes({ includeQuestions: false });
+    useQuizStore.setState({
+      quizzes: [{ ...quizRows[0], questions: [{ id: 'one-embedded-question' }] }],
+      quizzesLoadedAt: Date.now(),
+    } as any);
+    mocks.callApi.mockClear();
+
+    await useQuizStore.getState().loadQuizzes({ includeQuestions: true });
+
+    expect(mocks.callApi).toHaveBeenCalledWith('get_questions');
+  });
+
+  it('keeps legacy question hydration explicit for teacher authoring', async () => {
+    const questionRows = [{
+      id: 'question-1', quiz_id: 'quiz-1', type: 'MCQ',
+      question: '1 + 1?', options: '1|2', correct_answer: 'option-1',
+    }];
+    mocks.callApi.mockImplementation(async (action: string) => {
+      if (action === 'get_quizzes') return quizRows;
+      if (action === 'get_questions') return questionRows;
+      throw new Error(`Unexpected action: ${action}`);
+    });
+
+    await useQuizStore.getState().loadQuizzes({ includeQuestions: true });
+
+    expect(mocks.callApi).toHaveBeenCalledWith('get_questions');
+    expect(useQuizStore.getState().quizzes[0].questions).toHaveLength(1);
+    expect(useQuizStore.getState().quizzes[0].questions[0]).toMatchObject({ correctAnswer: 'B' });
+  });
+
   it('shares one API request pair across concurrent callers', async () => {
     let release!: (value: unknown[]) => void;
     const quizPromise = new Promise<unknown[]>((resolve) => {
@@ -90,8 +179,8 @@ describe('quizStore.loadQuizzes', () => {
       throw new Error(`Unexpected action: ${action}`);
     });
 
-    const first = useQuizStore.getState().loadQuizzes();
-    const second = useQuizStore.getState().loadQuizzes();
+    const first = useQuizStore.getState().loadQuizzes({ includeQuestions: true });
+    const second = useQuizStore.getState().loadQuizzes({ includeQuestions: true });
 
     expect(mocks.callApi).toHaveBeenCalledTimes(2);
     release(quizRows);
@@ -110,8 +199,8 @@ describe('quizStore.loadQuizzes', () => {
       throw new Error(`Unexpected action: ${action}`);
     });
 
-    const first = useQuizStore.getState().loadQuizzes();
-    const forced = useQuizStore.getState().loadQuizzes({ force: true });
+    const first = useQuizStore.getState().loadQuizzes({ includeQuestions: true });
+    const forced = useQuizStore.getState().loadQuizzes({ force: true, includeQuestions: true });
 
     expect(mocks.invalidatePrefix).toHaveBeenCalledWith('quizzes:');
     expect(mocks.callApi).toHaveBeenCalledTimes(2);
@@ -123,11 +212,11 @@ describe('quizStore.loadQuizzes', () => {
   it('reuses fresh data and force reloads after invalidating cache', async () => {
     installSuccessfulApi();
 
-    await useQuizStore.getState().loadQuizzes();
-    await useQuizStore.getState().loadQuizzes();
+    await useQuizStore.getState().loadQuizzes({ includeQuestions: true });
+    await useQuizStore.getState().loadQuizzes({ includeQuestions: true });
     expect(mocks.callApi).toHaveBeenCalledTimes(2);
 
-    await useQuizStore.getState().loadQuizzes({ force: true });
+    await useQuizStore.getState().loadQuizzes({ force: true, includeQuestions: true });
     expect(mocks.invalidatePrefix).toHaveBeenCalledWith('quizzes:');
     expect(mocks.callApi).toHaveBeenCalledTimes(4);
   });
@@ -141,11 +230,11 @@ describe('quizStore.loadQuizzes', () => {
       throw new Error(`Unexpected action: ${action}`);
     });
 
-    await useQuizStore.getState().loadQuizzes();
+    await useQuizStore.getState().loadQuizzes({ includeQuestions: true });
     expect(useQuizStore.getState().quizzesLoadedAt).toBeNull();
 
     shouldFail = false;
-    await useQuizStore.getState().loadQuizzes();
+    await useQuizStore.getState().loadQuizzes({ includeQuestions: true });
     expect(useQuizStore.getState().quizzes).toHaveLength(1);
     expect(mocks.callApi).toHaveBeenCalledTimes(4);
   });
@@ -170,7 +259,7 @@ describe('quizStore.loadQuizzes', () => {
       },
     } as any);
 
-    await useQuizStore.getState().loadQuizzes({ force: true });
+    await useQuizStore.getState().loadQuizzes({ force: true, includeQuestions: true });
 
     expect(useQuizStore.getState().selectedQuiz?._assignmentData).toEqual(assignmentData);
   });
@@ -179,7 +268,7 @@ describe('quizStore.loadQuizzes', () => {
     installSuccessfulApi();
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
-    await useQuizStore.getState().loadQuizzes();
+    await useQuizStore.getState().loadQuizzes({ includeQuestions: true });
 
     expect(mocks.debug).toHaveBeenCalledWith(
       'Loaded 1 quizzes from D1',

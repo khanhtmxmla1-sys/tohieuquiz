@@ -9,6 +9,8 @@
  * Live Exam Session Status
  * State machine: scheduled → waiting → active → scoring → closed
  */
+import type { Question } from './domain.types';
+
 export enum LiveExamStatus {
   SCHEDULED = 'scheduled',  // Created but not started yet
   WAITING = 'waiting',      // Teacher opened, students joining
@@ -16,6 +18,13 @@ export enum LiveExamStatus {
   PAUSED = 'paused',        // Teacher temporarily freezes the room timer
   SCORING = 'scoring',      // Time expired, calculating scores
   CLOSED = 'closed',        // Results revealed to students
+}
+
+export interface LiveExamQuestionsResponse {
+  sessionId: string;
+  quizId: string;
+  revision: number;
+  questions: Question[];
 }
 
 /**

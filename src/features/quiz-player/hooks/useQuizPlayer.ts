@@ -4,7 +4,7 @@ import { useClassroomStore } from '../../../stores/useClassroomStore';
 import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
 import { validateAnswersOnServer } from '../../../services/quizValidationService';
-import { verifyQuizAccessCode } from '../../../services/quizAccessService';
+import { adaptStudentQuizQuestion, fetchQuizPlayQuestions, requestQuizAccess } from '../../../services/quizAccessService';
 import { startAssignmentAttempt } from '../../../services/classroomService';
 import { playTingSound, showConfirm } from '../../../utils/toast';
 import { useQuizProgressRollout } from './useQuizProgressRollout';
@@ -87,23 +87,12 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
     }, [shuffleArray]);
 
     const restoredDraft = useMemo(() => loadQuizAttemptDraft(quiz.id), [quiz.id]);
-    const restoredQuestions = useMemo(() => {
-        if (!restoredDraft) return [];
-        const byId = new Map(quiz.questions.map((question) => [question.id, question]));
-        const ordered = restoredDraft.questionOrder
-            .map((questionId) => byId.get(questionId))
-            .filter((question): question is Question => Boolean(question));
-        return ordered.length === quiz.questions.length ? ordered : [];
-    }, [quiz.questions, restoredDraft]);
-    const hasRestorableDraft = Boolean(restoredDraft && restoredQuestions.length === quiz.questions.length);
-
     // Initial step logic
     const getInitialStep = useCallback((): QuizStep => {
-        if (hasRestorableDraft) return 'quiz';
         if (quiz.requireCode) return 'code';
         if (isLoggedIn) return 'notice';
         return 'info';
-    }, [hasRestorableDraft, isLoggedIn, quiz.requireCode]);
+    }, [isLoggedIn, quiz.requireCode]);
 
     // Core state
     const [step, setStep] = useState<QuizStep>(getInitialStep());
@@ -120,7 +109,10 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
         restoredDraft ? Date.parse(restoredDraft.startedAt) : 0
     ));
     const [result, setResult] = useState<StudentResult | null>(null);
-    const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>(restoredQuestions);
+    // Questions are always populated from the scoped learner endpoint at start.
+    // A draft may provide the order/answers, but never authorizes using stale
+    // questions from the catalog or session storage.
+    const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>([]);
     const [isStarting, setIsStarting] = useState(false);
     const [startError, setStartError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -129,6 +121,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
     const startTriggeredRef = useRef(false);
     const submissionTriggeredRef = useRef(false);
     const navigationConfirmOpenRef = useRef(false);
+    const accessGrantRef = useRef<string | null>(null);
 
     // Gamification state
     const [showReward, setShowReward] = useState(false);
@@ -208,6 +201,26 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
             const assignmentId = quiz._assignmentData?.id
                 ? String(quiz._assignmentData.id)
                 : '';
+            const loadedQuestions = quiz.isPractice
+                ? quiz.questions
+                : (() => {
+                    // Formal/public/assignment quizzes must use the scoped DTO.
+                    // Practice quizzes are virtual and already carry their
+                    // server-selected questions in memory.
+                    return fetchQuizPlayQuestions(quiz.id, {
+                        assignmentId: assignmentId || undefined,
+                        accessGrant: accessGrantRef.current || undefined,
+                    }).then((playPayload) => (
+                        Array.isArray(playPayload.questions)
+                            ? playPayload.questions.map((question) => adaptStudentQuizQuestion(question))
+                            : []
+                    ));
+                })();
+            const resolvedQuestions = await loadedQuestions;
+            if (resolvedQuestions.length === 0) {
+                throw new Error('Không tải được câu hỏi của bài làm.');
+            }
+
             if (assignmentId) {
                 if (!session?.studentId) {
                     throw new Error('Phiên học sinh không hợp lệ. Em hãy đăng nhập lại.');
@@ -215,20 +228,33 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
                 await startAssignmentAttempt(assignmentId, String(session.studentId));
             }
 
-            const hasLevels = quiz.questions.some((q: any) => q.difficultyLevel);
-            const finalQuestions = randomizationPolicy?.shuffleQuestions === false
-                ? [...quiz.questions]
-                : hasLevels
-                    ? shuffleWithinLevel(quiz.questions)
-                    : shuffleArray(quiz.questions);
+            const loadedById = new Map(resolvedQuestions.map((question) => [String(question.id), question]));
+            const restoredOrder = restoredDraft
+                ? restoredDraft.questionOrder
+                    .map((questionId) => loadedById.get(questionId))
+                    .filter((question): question is Question => Boolean(question))
+                : [];
+            const canResumeDraft = Boolean(
+                restoredDraft
+                && restoredOrder.length === resolvedQuestions.length
+                && restoredOrder.length === restoredDraft.questionOrder.length,
+            );
+            const hasLevels = resolvedQuestions.some((q: any) => q.difficultyLevel);
+            const finalQuestions = canResumeDraft
+                ? restoredOrder
+                : randomizationPolicy?.shuffleQuestions === false
+                    ? [...resolvedQuestions]
+                    : hasLevels
+                        ? shuffleWithinLevel(resolvedQuestions)
+                        : shuffleArray(resolvedQuestions);
             const startedAt = Date.now();
 
             submissionTriggeredRef.current = false;
             setShuffledQuestions(finalQuestions);
-            setAnswers({});
-            setCurrentPage(1);
-            setStartTime(startedAt);
-            setExpiresAt(createQuizDeadline(quiz.timeLimit, startedAt));
+            setAnswers(canResumeDraft ? restoredDraft.answers : {});
+            setCurrentPage(canResumeDraft ? restoredDraft.currentPage : 1);
+            setStartTime(canResumeDraft ? Date.parse(restoredDraft.startedAt) : startedAt);
+            setExpiresAt(canResumeDraft ? restoredDraft.expiresAt : createQuizDeadline(quiz.timeLimit, startedAt));
             setStep('quiz');
         } catch (error: unknown) {
             startTriggeredRef.current = false;
@@ -240,12 +266,15 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
     }, [
         isStarting,
         quiz._assignmentData?.id,
+        quiz.id,
+        quiz.isPractice,
         quiz.questions,
         quiz.timeLimit,
         randomizationPolicy?.shuffleQuestions,
         session?.studentId,
         shuffleArray,
         shuffleWithinLevel,
+        restoredDraft,
         studentClass,
         studentName,
     ]);
@@ -255,15 +284,20 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
         setIsVerifyingCode(true);
         setCodeError('');
         try {
-            const valid = await verifyQuizAccessCode(quiz.id, enteredCode);
-            if (valid) setStep(isLoggedIn ? 'notice' : 'info');
-            else setCodeError('Mã không đúng. Vui lòng thử lại!');
+            const assignmentId = quiz._assignmentData?.id
+                ? String(quiz._assignmentData.id)
+                : undefined;
+            const access = await requestQuizAccess(quiz.id, enteredCode, assignmentId);
+            if (access.valid) {
+                accessGrantRef.current = access.accessGrant || null;
+                setStep(isLoggedIn ? 'notice' : 'info');
+            } else setCodeError('Mã không đúng. Vui lòng thử lại!');
         } catch {
             setCodeError('Không thể kiểm tra mã lúc này. Vui lòng thử lại.');
         } finally {
             setIsVerifyingCode(false);
         }
-    }, [enteredCode, isLoggedIn, isVerifyingCode, quiz.id]);
+    }, [enteredCode, isLoggedIn, isVerifyingCode, quiz._assignmentData?.id, quiz.id]);
 
     const handleAnswerChange = useCallback((questionId: string, value: any, subId?: string) => {
         setAnswers(prev => {
@@ -315,7 +349,7 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
             );
             const finalAnswersWithSnapshots: Record<string, any> = {};
 
-            quiz.questions.forEach((question) => {
+            shuffledQuestions.forEach((question) => {
                 const serverResult = validationByQuestionId.get(String(question.id));
                 finalAnswersWithSnapshots[question.id] = {
                     selectedAnswer: answers[question.id] ?? null,
@@ -330,10 +364,10 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
             const authoritativeTotalQuestions = Number.isFinite(Number(validationResult.total))
                 && Number(validationResult.total) >= 0
                 ? Number(validationResult.total)
-                : quiz.questions.length;
+                : shuffledQuestions.length;
             const authoritativeQuestionCount = Number.isFinite(Number(validationResult.questionCount))
                 ? Number(validationResult.questionCount)
-                : quiz.questions.length;
+                : shuffledQuestions.length;
             const authoritativeVoidedCount = Number.isFinite(Number(validationResult.voidedCount))
                 ? Number(validationResult.voidedCount)
                 : validationDetails.filter((detail) => detail.status === 'voided').length;

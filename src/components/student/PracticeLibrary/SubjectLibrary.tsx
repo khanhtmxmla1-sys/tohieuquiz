@@ -57,7 +57,7 @@ const ValidSubjectLibrary = ({ subjectId, onBack }: ValidSubjectLibraryProps) =>
         return;
       }
 
-      quizStore.selectQuiz(virtualQuiz);
+      quizStore.selectQuiz(virtualQuiz, { loadQuestions: false });
       quizStore.setView('student');
     } catch {
       showError('Không thể tải bài luyện tập. Vui lòng thử lại.');

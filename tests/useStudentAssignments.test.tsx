@@ -154,6 +154,59 @@ describe('useStudentAssignments review integrity', () => {
     expect(result.current.reviewState?.answers.q1).toBe('1');
   });
 
+  it('keeps a partial snapshot review without hydrating questions through the legacy route', async () => {
+    useQuizStore.setState({
+      results: [{ ...resultRow('result-A', 'assignment-A', '2026-08-10T08:00:00.000Z'), totalQuestions: 2 }],
+    } as any);
+    mocks.fetchResultAnswerReview.mockResolvedValueOnce({
+      answers: {
+        _questionOrder: ['q1', 'q2'],
+        q1: { selectedAnswer: '1', questionSnapshot: quiz.questions[0] },
+      },
+      reviewDetails: [],
+    });
+
+    const { result } = renderHook(() => useStudentAssignments(), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={['/student/assignments']}>{children}</MemoryRouter>
+      ),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const assignmentA = result.current.pagedQuizzes.find(
+      (item) => item._assignmentData?.id === 'assignment-A',
+    );
+    await act(async () => {
+      await result.current.reviewQuiz(assignmentA!);
+    });
+
+    expect(useQuizStore.getState().loadQuizQuestions).not.toHaveBeenCalled();
+    expect(result.current.reviewState?.quiz.questions.map((item) => item.id)).toEqual(['q1']);
+    expect(mocks.showError).not.toHaveBeenCalled();
+  });
+
+  it('keeps the existing error when the review response has no question snapshots', async () => {
+    mocks.fetchResultAnswerReview.mockResolvedValueOnce({ answers: { _questionOrder: [] }, reviewDetails: [] });
+
+    const { result } = renderHook(() => useStudentAssignments(), {
+      wrapper: ({ children }) => (
+        <MemoryRouter initialEntries={['/student/assignments']}>{children}</MemoryRouter>
+      ),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const assignmentA = result.current.pagedQuizzes.find(
+      (item) => item._assignmentData?.id === 'assignment-A',
+    );
+    await act(async () => {
+      await result.current.reviewQuiz(assignmentA!);
+    });
+
+    expect(useQuizStore.getState().loadQuizQuestions).not.toHaveBeenCalled();
+    expect(mocks.showError).toHaveBeenCalledWith('Bài làm này chưa có dữ liệu câu trả lời để xem lại.');
+    expect(result.current.reviewState).toBeNull();
+  });
+
   it('replaces the previous review state when a different assignment is opened', async () => {
     mocks.fetchResultAnswerReview.mockImplementation(async (resultId: string) => ({
       answers: {

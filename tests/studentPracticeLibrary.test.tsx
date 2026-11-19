@@ -198,7 +198,7 @@ describe('practice subject library page', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Phep nhan/i }));
 
     await waitFor(() => {
-      expect(libraryMocks.selectQuiz).toHaveBeenCalledWith(virtualQuiz);
+      expect(libraryMocks.selectQuiz).toHaveBeenCalledWith(virtualQuiz, { loadQuestions: false });
       expect(libraryMocks.setView).toHaveBeenCalledWith('student');
     });
   });
