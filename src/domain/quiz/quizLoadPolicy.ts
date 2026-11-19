@@ -1,6 +1,8 @@
 export interface QuizLoadOptions {
   force?: boolean;
   maxAgeMs?: number;
+  /** Fetch authoring question rows; learner/public catalogs should omit them. */
+  includeQuestions?: boolean;
 }
 
 export const DEFAULT_QUIZ_LOAD_MAX_AGE_MS = 30_000;

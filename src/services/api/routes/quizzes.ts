@@ -10,7 +10,19 @@ export const quizRoutes: RouteRegistry = {
         method: 'POST',
         auth: 'public',
         path: ({ quizId }) => `/api/quizzes/access-verification/${encodeURIComponent(quizId)}`,
-        body: (_action, { accessCode }) => ({ accessCode }),
+        body: (_action, { accessCode, assignmentId }) => ({
+            accessCode,
+            ...(assignmentId ? { assignmentId } : {}),
+        }),
+    },
+    get_quiz_play_questions: {
+        method: 'POST',
+        auth: 'public',
+        path: ({ quizId }) => `/api/quizzes/${encodeURIComponent(quizId)}/play-questions`,
+        body: (_action, { assignmentId, accessGrant }) => ({
+            ...(assignmentId ? { assignmentId } : {}),
+            ...(accessGrant ? { accessGrant } : {}),
+        }),
     },
     create_quiz: {
         method: 'POST',

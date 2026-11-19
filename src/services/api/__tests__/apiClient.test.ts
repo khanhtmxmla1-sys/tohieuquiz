@@ -37,6 +37,22 @@ describe('executeApiAction — method and URL', () => {
         expect((init as RequestInit).method).toBe('GET');
     });
 
+    it('POST get_quiz_play_questions sends only the scoped learner access fields', async () => {
+        mockOk({ quizId: 'quiz-1', revision: 3, questions: [] });
+        await executeApiAction('get_quiz_play_questions', {
+            quizId: 'quiz-1',
+            assignmentId: 'assignment-7',
+            accessGrant: 'grant.student.quiz-1',
+        });
+        const [url, init] = mockFetch.mock.calls[0];
+        expect(String(url)).toMatch('/api/quizzes/quiz-1/play-questions');
+        expect((init as RequestInit).method).toBe('POST');
+        expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+            assignmentId: 'assignment-7',
+            accessGrant: 'grant.student.quiz-1',
+        });
+    });
+
     it('DELETE delete_quiz has no body', async () => {
         mockOk();
         await executeApiAction('delete_quiz', { quizId: 'q1' });

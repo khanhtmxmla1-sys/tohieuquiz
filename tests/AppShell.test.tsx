@@ -233,7 +233,7 @@ describe('App shell routing contracts', () => {
         expect(screen.queryByText('gift-shop')).not.toBeInTheDocument();
     });
 
-    it('shows retry recovery when a selected quiz has no loaded questions', async () => {
+    it('starts the scoped learner player when a selected catalog quiz has no embedded questions', async () => {
         const loadQuizQuestions = vi.fn(async () => null);
         const goHome = vi.fn();
         useQuizStore.setState({
@@ -247,12 +247,9 @@ describe('App shell routing contracts', () => {
 
         renderApp();
 
-        expect(await screen.findByText('Chưa tải được câu hỏi')).toBeInTheDocument();
-        expect(screen.getByText('Question load failed')).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
-        expect(loadQuizQuestions).toHaveBeenCalledWith('quiz-1');
-        fireEvent.click(screen.getByRole('button', { name: 'Về trang chủ' }));
-        expect(goHome).toHaveBeenCalledTimes(1);
+        expect(await screen.findByText('student-view')).toBeInTheDocument();
+        expect(loadQuizQuestions).not.toHaveBeenCalled();
+        expect(goHome).not.toHaveBeenCalled();
     });
 
     it('keeps public routes and wildcard redirect contracts', async () => {

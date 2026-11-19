@@ -51,7 +51,7 @@ export const useTeacherDashboardBootstrap = () => {
   }, []);
 
   useEffect(() => {
-    void loadQuizzes();
+    void loadQuizzes({ includeQuestions: true });
     void loadTeacherResults();
   }, [loadQuizzes, loadTeacherResults]);
 

@@ -472,7 +472,7 @@ describe('CompetitionRoundExamPlayer', () => {
 
     await waitFor(() => expect(mocks.submit).toHaveBeenCalledTimes(2));
     expect(mocks.submit.mock.calls[1][0].idempotencyKey).toBe(firstSubmitKey);
-    expect(loadQuizAttemptDraft(draftIdentity)).toBeNull();
+    await waitFor(() => expect(loadQuizAttemptDraft(draftIdentity)).toBeNull());
     expect(await screen.findByText('Điểm: 3')).toBeInTheDocument();
     expect(screen.getByText('Số câu đúng: 0/2')).toBeInTheDocument();
     expect(screen.queryByText('Điểm: 10')).not.toBeInTheDocument();

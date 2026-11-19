@@ -6,6 +6,9 @@ import { quizAttemptStorageKey } from '../src/features/quiz-player/quizAttemptDr
 const mocks = vi.hoisted(() => ({
   validateAnswersOnServer: vi.fn(),
   startAssignmentAttempt: vi.fn(),
+  fetchQuizPlayQuestions: vi.fn(),
+  requestQuizAccess: vi.fn(),
+  adaptStudentQuizQuestion: vi.fn((question: unknown) => question),
 }));
 
 vi.mock('../src/stores/useClassroomStore', () => ({
@@ -27,6 +30,11 @@ vi.mock('../src/services/quizValidationService', () => ({
 }));
 vi.mock('../src/services/classroomService', () => ({
   startAssignmentAttempt: mocks.startAssignmentAttempt,
+}));
+vi.mock('../src/services/quizAccessService', () => ({
+  fetchQuizPlayQuestions: mocks.fetchQuizPlayQuestions,
+  requestQuizAccess: mocks.requestQuizAccess,
+  adaptStudentQuizQuestion: mocks.adaptStudentQuizQuestion,
 }));
 vi.mock('../src/utils/toast', () => ({ playTingSound: vi.fn(), showError: vi.fn() }));
 
@@ -67,6 +75,11 @@ describe('useQuizPlayer resume', () => {
       deadline: '2099-01-01T00:00:00.000Z',
       status: 'OPEN',
     });
+    mocks.fetchQuizPlayQuestions.mockImplementation(async (quizId: string) => ({
+      quizId,
+      revision: 1,
+      questions: quiz.questions,
+    }));
   });
 
   afterEach(() => vi.useRealTimers());
@@ -197,7 +210,7 @@ describe('useQuizPlayer resume', () => {
     expect(result.current.startError).toBe('Em đã hết lượt làm bài này (1/1).');
   });
 
-  it('restores answers, question order, page and remaining time from an active draft', () => {
+  it('refetches authorized questions and restores answers, order, page and time from an active draft', async () => {
     window.sessionStorage.setItem(quizAttemptStorageKey(quiz.id), JSON.stringify({
       version: 1,
       quizId: quiz.id,
@@ -216,6 +229,17 @@ describe('useQuizPlayer resume', () => {
       onSaveResult: vi.fn(),
     }));
 
+    expect(result.current.step).toBe('notice');
+    expect(result.current.shuffledQuestions).toEqual([]);
+
+    await act(async () => {
+      await result.current.handleStart();
+    });
+
+    expect(mocks.fetchQuizPlayQuestions).toHaveBeenCalledWith('quiz-resume', {
+      assignmentId: undefined,
+      accessGrant: undefined,
+    });
     expect(result.current.step).toBe('quiz');
     expect(result.current.answers).toEqual({ q2: 'B' });
     expect(result.current.shuffledQuestions.map((question) => question.id)).toEqual(['q2', 'q1']);
@@ -274,6 +298,11 @@ describe('useQuizPlayer resume', () => {
         { id: 'q4', type: QuestionType.MCQ, question: '4?', options: ['A', 'B'], correctAnswer: 'A' },
       ],
     } as Quiz;
+    mocks.fetchQuizPlayQuestions.mockResolvedValueOnce({
+      quizId: orderedQuiz.id,
+      revision: 1,
+      questions: orderedQuiz.questions,
+    });
     const { result } = renderHook(() => useQuizPlayer({
       quiz: orderedQuiz,
       onExit: vi.fn(),

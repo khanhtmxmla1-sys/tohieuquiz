@@ -508,7 +508,7 @@ const ManualQuizWorkspacePage: React.FC = () => {
             );
             useManualQuizWorkspaceStore.getState().reset();
             navigate(getQuizEditorRoute(version.id), { replace: true });
-            void loadQuizzes({ force: true }).catch(() => undefined);
+            void loadQuizzes({ force: true, includeQuestions: true }).catch(() => undefined);
         } catch (error: unknown) {
             setEditorAccessError(error instanceof Error ? error.message : 'Không thể tạo phiên bản mới.');
         } finally {

@@ -236,7 +236,7 @@ const HomePage: React.FC = () => {
                 }
             }
         }
-        quizStore.selectQuiz(q);
+        quizStore.selectQuiz(q, { loadQuestions: false });
         quizStore.setView('student');
     };
 
