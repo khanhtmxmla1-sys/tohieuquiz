@@ -2,10 +2,12 @@
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 import { handlePracticeRoutes } from '../workers/src/routes/practice';
+import { isQuizAttachedToProtectedWorkflow } from '../workers/src/services/quizAccessPolicy';
 import { PUBLIC_PRACTICE_SOURCE_SCOPE_SQL } from '../workers/src/services/practiceQuestionScope';
 
 type SqliteStatement = {
   all: (...values: unknown[]) => Record<string, unknown>[];
+  get: (...values: unknown[]) => Record<string, unknown> | undefined;
 };
 
 class SqliteD1 {
@@ -15,8 +17,10 @@ class SqliteD1 {
     const statement = this.sqlite.prepare(sql) as unknown as SqliteStatement;
     const wrapper = {
       all: async <T>() => ({ results: statement.all() as T[] }),
+      first: async <T>() => statement.get() as T | null,
       bind: (...values: unknown[]) => ({
         all: async <T>() => ({ results: statement.all(...values) as T[] }),
+        first: async <T>() => statement.get(...values) as T | null,
       }),
     };
     return wrapper;
@@ -142,6 +146,19 @@ describe('public practice question access', () => {
     expect(response.status).toBe(200);
     expect(payload.questions.map((question: any) => question.id)).toEqual(['q-public-toan']);
     expect(JSON.stringify(payload)).not.toContain('SECRET-');
+  });
+
+  it.each([
+    ['assigned', 'assigned'],
+    ['live', 'live'],
+    ['competition', 'competition'],
+    ['snapshot', 'snapshot-only'],
+    ['school exam', 'school-room'],
+  ])('shares the protected-workflow predicate with the %s mapping', async (_label, quizId) => {
+    fixture = createFixture();
+
+    await expect(isQuizAttachedToProtectedWorkflow(fixture.db as any, quizId)).resolves.toBe(true);
+    await expect(isQuizAttachedToProtectedWorkflow(fixture.db as any, 'public-open')).resolves.toBe(false);
   });
 
   it('matches one exact tag instead of a substring and decodes the URL once', async () => {

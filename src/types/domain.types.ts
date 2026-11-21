@@ -384,6 +384,14 @@ export interface StudentResult {
     }[];
 }
 
+/**
+ * Ephemeral context used only while submitting a result. Access grants must
+ * never be persisted in StudentResult, Zustand state, or browser storage.
+ */
+export interface QuizResultSubmissionContext {
+    accessGrant?: string;
+}
+
 export interface Teacher {
     username: string;
     password: string; // Plain text for this simple app

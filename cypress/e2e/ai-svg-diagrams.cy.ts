@@ -186,7 +186,7 @@ const studentQuiz = {
   category: 'toan',
   timeLimit: 10,
   requireCode: false,
-  isPractice: true,
+  isPractice: false,
   questions: [{
     id: 'svg-mcq',
     quizId: 'svg-student-quiz',
@@ -261,17 +261,50 @@ describe('AI SVG diagrams end-to-end', () => {
       statusCode: 200,
       body: { status: 'success', data: { aiAssistantEnabled: false } },
     });
-    cy.intercept('POST', '**/api/validate', {
+    cy.intercept('POST', '**/api/quizzes/svg-student-quiz/play-questions', {
       statusCode: 200,
       body: {
-        status: 'success',
-        score: 10,
-        correctCount: 1,
-        total: 1,
-        gradingVersion: 'canonical-v1',
-        details: [{ questionId: 'svg-mcq', isCorrect: true, status: 'correct' }],
+        quizId: 'svg-student-quiz',
+        revision: 1,
+        questions: [{
+          id: 'svg-mcq',
+          type: 'MCQ',
+          question: 'Quan sát tam giác ABC. Cạnh nào nằm ngang?',
+          options: ['AB', 'BC', 'CA', 'Không có cạnh nào'],
+          svgContent: SVG_CONTENT,
+          svgAlt: SVG_ALT,
+          svgVersion: 1,
+        }],
       },
-    }).as('validateSvgAnswer');
+    }).as('playSvgQuestions');
+
+    cy.intercept('POST', '**/api/results', (request) => {
+      request.reply({
+        statusCode: 200,
+        body: {
+          status: 'success',
+          resultId: 7001,
+          assignmentId: null,
+          classId: null,
+          score: 10,
+          correctCount: 1,
+          questionCount: 1,
+          totalQuestions: 1,
+          voidedCount: 0,
+          gradingVersion: 'canonical-v1',
+          answers: {
+            'svg-mcq': {
+              selectedAnswer: { type: 'MCQ', optionId: 'option-0' },
+              isCorrect: true,
+              status: 'correct',
+            },
+            _questionOrder: ['svg-mcq'],
+          },
+          validationDetails: [{ questionId: 'svg-mcq', isCorrect: true, status: 'correct' }],
+          reviewDetails: [],
+        },
+      });
+    }).as('submitSvgResult');
 
     cy.visit('/', { onBeforeLoad: installStudentQuiz });
     cy.reload();
@@ -287,7 +320,14 @@ describe('AI SVG diagrams end-to-end', () => {
     cy.get('#question-svg-mcq').find('button').first().click();
     cy.contains('button:visible', 'Nộp bài').click();
     cy.contains('button', 'Đồng ý nộp').click();
-    cy.wait('@validateSvgAnswer');
+    cy.wait('@playSvgQuestions');
+    cy.wait('@submitSvgResult').its('request.body').should((body) => {
+      expect(body.answers).to.deep.equal({
+        'svg-mcq': { type: 'MCQ', optionId: 'option-0' },
+        _questionOrder: ['svg-mcq'],
+      });
+      expect(body).not.to.have.property('validationDetails');
+    });
     cy.contains('10/10').should('be.visible');
   });
 });

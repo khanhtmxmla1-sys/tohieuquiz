@@ -1,6 +1,10 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import type { JWTPayload } from '../utils/jwt';
 import { canAccessQuiz } from './quizOwnership';
+import {
+    PROTECTED_WORKFLOW_QUIZ_IDS_SQL,
+    PUBLIC_PRACTICE_SOURCE_SCOPE_SQL,
+} from './practiceQuestionScope';
 
 export type QuizPlayActor = Pick<JWTPayload, 'id' | 'username' | 'role' | 'classId'>;
 
@@ -155,4 +159,33 @@ export async function resolveQuizPlayAccess(
     }
 
     return deny(input.assignmentId ? 'ASSIGNMENT_SCOPE_DENIED' : 'QUIZ_SCOPE_DENIED');
+}
+
+/**
+ * A persisted quiz may be used as the learner validation oracle only when it
+ * belongs to the same explicitly public pool used by /api/practice.  Keeping
+ * this predicate next to the play policy prevents a quiz that is merely shown
+ * on the home page from becoming a grading oracle after it is assigned or
+ * attached to a protected workflow.
+ */
+export async function isPublicPracticeQuiz(db: D1Database, quizId: string): Promise<boolean> {
+    if (!quizId.trim()) return false;
+    const row = await db.prepare(`
+        SELECT 1
+        ${PUBLIC_PRACTICE_SOURCE_SCOPE_SQL}
+          AND public_quiz.id = ?
+        LIMIT 1
+    `).bind(quizId.trim()).first<{ '1'?: number }>();
+    return Boolean(row);
+}
+
+export async function isQuizAttachedToProtectedWorkflow(db: D1Database, quizId: string): Promise<boolean> {
+    if (!quizId.trim()) return false;
+    const row = await db.prepare(`
+        SELECT 1
+        FROM (${PROTECTED_WORKFLOW_QUIZ_IDS_SQL}) AS protected_workflow
+        WHERE protected_workflow.protected_quiz_id = ?
+        LIMIT 1
+    `).bind(quizId.trim()).first<{ '1'?: number }>();
+    return Boolean(row);
 }

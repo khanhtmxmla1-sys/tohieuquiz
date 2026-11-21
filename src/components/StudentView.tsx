@@ -1,5 +1,5 @@
 import React from 'react';
-import { Quiz, StudentResult } from '../types';
+import { Quiz, QuizResultSubmissionContext, StudentResult } from '../types';
 import {
   AccessCodeForm,
   StudentInfoForm,
@@ -21,7 +21,7 @@ import { useRandomizationPolicy } from '../features/randomization/useRandomizati
 interface Props {
   quiz: Quiz;
   onExit: () => void;
-  onSaveResult: (result: StudentResult) => void | StudentResult | Promise<void | StudentResult>;
+  onSaveResult: (result: StudentResult, context?: QuizResultSubmissionContext) => void | StudentResult | Promise<void | StudentResult>;
 }
 
 const StudentView: React.FC<Props> = ({ quiz, onExit, onSaveResult }) => {

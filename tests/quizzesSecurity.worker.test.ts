@@ -36,6 +36,19 @@ class Database {
   };
   prepare(sql: string) { return new Statement(sql, this); }
   first(sql: string, bindings: unknown[]) {
+    if (sql.includes('show_on_home') && sql.includes('require_code') && sql.includes('FROM quizzes')) {
+      const quizId = String(bindings[0] || '');
+      return {
+        id: quizId,
+        revision: 1,
+        show_on_home: ['quiz-a', 'quiz-assigned', 'quiz-live', 'quiz-competition'].includes(quizId) ? 'TRUE' : 'FALSE',
+        require_code: quizId === 'quiz-protected' ? 'TRUE' : 'FALSE',
+        time_limit: 15,
+      };
+    }
+    if (sql.includes('SELECT 1') && sql.includes('public_quiz.id')) {
+      return bindings[0] === 'quiz-a' ? { '1': 1 } : null;
+    }
     if (sql.includes('FROM teachers t')) {
       return { username: 'teacher-a', full_name: 'CÃ´ A', full_name_count: 1 };
     }
@@ -85,6 +98,27 @@ describe('quiz answer confidentiality and ownership', () => {
     expect(db.executed.some((statement) => statement.sql.includes('show_on_home'))).toBe(true);
   });
 
+  it('blocks an anonymous legacy question catalog', async () => {
+    const db = new Database();
+    const response = await handleQuizRoutes(new Request('https://test/api/questions'), env(db), '/api/questions', 'GET');
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ status: 'error' });
+    expect(db.executed.some((statement) => statement.sql.includes('SELECT q.*'))).toBe(false);
+  });
+
+  it.each(['quiz-protected', 'quiz-assigned', 'quiz-live', 'quiz-competition'])
+    ('blocks an anonymous legacy read for %s', async (quizId) => {
+      const db = new Database();
+      const response = await handleQuizRoutes(
+        new Request(`https://test/api/questions?quizId=${quizId}`),
+        env(db), '/api/questions', 'GET',
+      );
+
+      expect(response.status).toBe(403);
+      expect(db.executed.some((statement) => statement.sql.includes('SELECT q.*'))).toBe(false);
+    });
+
   it('falls back to sanitized public questions when authentication is unavailable', async () => {
     currentAuthErrorStatus = 503;
     const db = new Database();
@@ -108,16 +142,41 @@ describe('quiz answer confidentiality and ownership', () => {
     expect(JSON.parse(rows[0].blanks)[0]).not.toHaveProperty('correctAnswer');
   });
 
-  it('keeps the authenticated student catalog contract while sanitizing every row', async () => {
+  it('blocks the authenticated student legacy question catalog', async () => {
     currentUser = { id: 'student-a', username: 'student-a', role: 'student', classId: 'class-a' };
     const db = new Database();
     const response = await handleQuizRoutes(authRequest('https://test/api/questions'), env(db), '/api/questions', 'GET');
-    const rows = await response.json() as any[];
-    expect(response.status).toBe(200);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).not.toHaveProperty('correct_answer');
-    expect(JSON.parse(rows[0].items)[0]).not.toHaveProperty('isCorrect');
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ status: 'error' });
+    expect(db.executed.some((statement) => statement.sql.includes('SELECT * FROM questions'))).toBe(false);
   });
+
+  it('blocks an authenticated student from reading a protected quiz by id', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', classId: 'class-a' };
+    const db = new Database();
+    const response = await handleQuizRoutes(
+      authRequest('https://test/api/questions?quizId=quiz-protected'),
+      env(db), '/api/questions', 'GET',
+    );
+
+    expect(response.status).toBe(403);
+    expect(db.executed.some((statement) => statement.sql.includes('FROM questions'))).toBe(false);
+  });
+
+  it.each(['quiz-assigned', 'quiz-live', 'quiz-competition'])(
+    'blocks an authenticated student from using legacy GET for %s',
+    async (quizId) => {
+      currentUser = { id: 'student-a', username: 'student-a', role: 'student', classId: 'class-a' };
+      const db = new Database();
+      const response = await handleQuizRoutes(
+        authRequest(`https://test/api/questions?quizId=${quizId}`),
+        env(db), '/api/questions', 'GET',
+      );
+
+      expect(response.status).toBe(403);
+      expect(db.executed.some((statement) => statement.sql.includes('SELECT * FROM questions WHERE quiz_id'))).toBe(false);
+    },
+  );
 
   it('loads full question data for a uniquely matched legacy display-name owner', async () => {
     currentUser = { username: 'teacher-a', fullName: 'CÃ´ A', role: 'teacher' };

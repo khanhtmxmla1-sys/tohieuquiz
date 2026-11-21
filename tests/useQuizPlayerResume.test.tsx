@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   fetchQuizPlayQuestions: vi.fn(),
   requestQuizAccess: vi.fn(),
   adaptStudentQuizQuestion: vi.fn((question: unknown) => question),
+  trackQuizActivity: vi.fn(),
 }));
 
 vi.mock('../src/stores/useClassroomStore', () => ({
@@ -23,7 +24,7 @@ vi.mock('../src/stores/useGamificationStore', () => ({
   useGamificationStore: { getState: () => ({ pet: null, coins: 0 }) },
 }));
 vi.mock('../src/stores/useGameLoopStore', () => ({
-  useGameLoopStore: { getState: () => ({ trackQuizActivity: vi.fn() }) },
+  useGameLoopStore: { getState: () => ({ trackQuizActivity: mocks.trackQuizActivity }) },
 }));
 vi.mock('../src/services/quizValidationService', () => ({
   validateAnswersOnServer: mocks.validateAnswersOnServer,
@@ -158,9 +159,31 @@ describe('useQuizPlayer resume', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
 
-    expect(mocks.validateAnswersOnServer).toHaveBeenCalledOnce();
+    expect(mocks.validateAnswersOnServer).not.toHaveBeenCalled();
     expect(onSaveResult).toHaveBeenCalledOnce();
     expect(result.current.step).toBe('result');
+  });
+
+  it.each(['403', '409'])('keeps the draft and blocks completion side effects when submit returns %s', async (status) => {
+    const onSaveResult = vi.fn().mockRejectedValue(new Error(`HTTP ${status}`));
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult,
+    }));
+
+    await act(async () => result.current.handleStart());
+    act(() => result.current.handleAnswerChange('q1', 'A'));
+    const draftBeforeSubmit = window.sessionStorage.getItem(quizAttemptStorageKey(quiz.id));
+    expect(draftBeforeSubmit).toBeTruthy();
+
+    await act(async () => result.current.handleSubmit());
+
+    expect(result.current.step).toBe('quiz');
+    expect(result.current.showReward).toBe(false);
+    expect(mocks.trackQuizActivity).not.toHaveBeenCalled();
+    expect(window.sessionStorage.getItem(quizAttemptStorageKey(quiz.id))).toBe(draftBeforeSubmit);
+    expect(result.current.submitError).toContain(`HTTP ${status}`);
   });
 
   it('ignores a duplicate start click while the first start is in progress', async () => {
