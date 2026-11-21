@@ -25,12 +25,36 @@ class Statement {
     }] : [];
     return { results: results as T[] };
   }
-  async run() { this.db.executed.push(this); return { success: true, meta: { changes: 1, last_row_id: 91 } }; }
+  async run() {
+    this.db.executed.push(this);
+    return this.db.run(this.sql, this.bindings);
+  }
 }
 
 class FakeDatabase {
   executed: Statement[] = [];
+  batches: Statement[][] = [];
+  insertChanges: unknown[] = [];
+  insertResultOverrides: Array<Record<string, unknown>> = [];
+  insertSuccess = true;
+  nextResultId = 91;
   prepare(sql: string) { return new Statement(sql, this); }
+
+  async run(sql: string, _bindings: unknown[] = []) {
+    if (sql.includes('INSERT INTO results')) {
+      const override = this.insertResultOverrides.shift();
+      if (override) return override;
+      return {
+        success: this.insertSuccess,
+        meta: { changes: this.insertChanges.shift() ?? 1, last_row_id: this.nextResultId++ },
+      };
+    }
+    return { success: true, meta: { changes: 1, last_row_id: 0 } };
+  }
+  async batch(statements: Statement[]) {
+    this.batches.push(statements);
+    return statements.map(() => ({ success: true, results: [], meta: { changes: 1 } }));
+  }
   first(sql: string, bindings: unknown[]) {
     if (sql.includes('SELECT id, class_id FROM students')) {
       return { id: 'student-1', class_id: 'class-4a9' };
@@ -75,6 +99,43 @@ class FakeDatabase {
     }
     if (sql.includes('COUNT(*) as cnt')) return { cnt: 1 };
     return null;
+  }
+}
+
+const deferred = <T = void>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((resolvePromise) => { resolve = resolvePromise; });
+  return { promise, resolve };
+};
+
+class ForcedRaceDatabase extends FakeDatabase {
+  private insertCalls = 0;
+  private countReads = 0;
+  private readonly firstInsertReached = deferred();
+  private readonly secondInsertReached = deferred();
+
+  first(sql: string, bindings: unknown[]) {
+    if (sql.includes('COUNT(*) as cnt')) {
+      this.countReads += 1;
+      return { cnt: this.countReads <= 2 ? 0 : 1 };
+    }
+    if (sql.includes('FROM assignments') && sql.includes('WHERE a.id = ?')) {
+      return { ...super.first(sql, bindings) as Record<string, unknown>, max_attempts: 1 };
+    }
+    return super.first(sql, bindings);
+  }
+
+  async run(sql: string, bindings: unknown[]) {
+    if (sql.includes('INSERT INTO results')) {
+      this.insertCalls += 1;
+      if (this.insertCalls === 1) {
+        this.firstInsertReached.resolve();
+        await this.secondInsertReached.promise;
+      } else if (this.insertCalls === 2) {
+        this.secondInsertReached.resolve();
+      }
+    }
+    return super.run(sql, bindings);
   }
 }
 
@@ -234,5 +295,45 @@ describe('assignment-scoped result attempt limits', () => {
     );
 
     expect(response.status).toBe(403);
+  });
+
+  it('rejects the competing submission when the atomic result write reports no changed row', async () => {
+    const db = new ForcedRaceDatabase();
+    db.insertChanges = [1, 0];
+
+    const responses = await Promise.all([
+      handleResultRoutes(makeRequest(), { DB: db } as any, '/api/results', 'POST'),
+      handleResultRoutes(makeRequest(), { DB: db } as any, '/api/results', 'POST'),
+    ]);
+    const payloads = await Promise.all(responses.map((response) => response.json() as Promise<any>));
+
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    expect(payloads.find((payload) => payload.code === 'ASSIGNMENT_ATTEMPTS_EXHAUSTED')).toMatchObject({
+      attemptCount: 1,
+      maxAttempts: 1,
+    });
+    expect(db.executed.filter((statement) => statement.sql.includes('INSERT OR IGNORE INTO parent_notifications'))).toHaveLength(1);
+    expect(db.batches).toHaveLength(1);
+    expect(db.batches[0]?.[0]?.bindings[0]).toBe('91');
+  });
+
+  it.each([
+    ['success false', { success: false, meta: { changes: 1, last_row_id: 91 } }],
+    ['missing changes', { success: true, meta: { last_row_id: 91 } }],
+    ['null changes', { success: true, meta: { changes: null, last_row_id: 91 } }],
+    ['string changes', { success: true, meta: { changes: '1', last_row_id: 91 } }],
+    ['NaN changes', { success: true, meta: { changes: Number.NaN, last_row_id: 91 } }],
+  ])('propagates an assignment insert failure for %s instead of returning a quota response', async (_case, insertResult) => {
+    const db = new FakeDatabase();
+    db.insertResultOverrides = [insertResult];
+
+    await expect(handleResultRoutes(
+      makeRequest(),
+      { DB: db } as any,
+      '/api/results',
+      'POST',
+    )).rejects.toThrow('ASSIGNMENT_RESULT_INSERT_FAILED');
+
+    expect(db.executed.filter((statement) => statement.sql.includes('INSERT OR IGNORE INTO parent_notifications'))).toHaveLength(0);
   });
 });

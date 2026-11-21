@@ -669,8 +669,10 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
             }, 409);
         }
 
+        let assignmentMaxAttempts = 1;
         if (assignment) {
             const maxAttempts = Number(assignment.max_attempts) || 1;
+            assignmentMaxAttempts = maxAttempts;
             const countResult = await db.prepare(
                 `SELECT COUNT(*) as cnt
                  FROM results
@@ -758,20 +760,67 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         );
         const answersWithReview = attachReviewDetailsWithinBudget(authoritativeAnswers, reviewDetails);
         const submittedAt = new Date().toISOString();
-        const insertResult = await db.prepare(`
+        const resultInsertSql = assignment
+            ? `
+            INSERT INTO results (
+                student_id, assignment_id, class_id, student_name, class_name, quiz_id, quiz_title,
+                score, correct_count, total_questions, time_taken, submitted_at, answers,
+                grading_version
+            ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            WHERE (
+                SELECT COUNT(*)
+                FROM results
+                WHERE assignment_id = ?
+                  AND COALESCE(answers, '') != '{"status":"STARTED"}'
+                  AND student_id = ?
+            ) < ?
+        `
+            : `
             INSERT INTO results (
                 student_id, assignment_id, class_id, student_name, class_name, quiz_id, quiz_title,
                 score, correct_count, total_questions, time_taken, submitted_at, answers,
                 grading_version
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).bind(
+        `;
+        const resultInsertBindings: unknown[] = [
             canonicalStudentId, assignment?.id || null, canonicalClassId, studentName, className, quizId,
             body.quizTitle || '', score, correctCount,
             totalQuestions, body.timeTaken || 0,
             submittedAt,
             JSON.stringify(answersWithReview),
             grading.gradingVersion,
-        ).run();
+        ];
+        if (assignment) {
+            resultInsertBindings.push(assignment.id, canonicalStudentId, assignmentMaxAttempts);
+        }
+        const insertResult = await db.prepare(resultInsertSql).bind(...resultInsertBindings).run();
+        const insertChanges = insertResult.meta?.changes;
+        if (assignment && (
+            insertResult.success !== true
+            || typeof insertChanges !== 'number'
+            || !Number.isFinite(insertChanges)
+            || !Number.isInteger(insertChanges)
+            || (insertChanges !== 0 && insertChanges !== 1)
+        )) {
+            throw new Error('ASSIGNMENT_RESULT_INSERT_FAILED');
+        }
+        if (assignment && insertChanges === 0) {
+            const countResult = await db.prepare(
+                `SELECT COUNT(*) as cnt
+                 FROM results
+                 WHERE assignment_id = ?
+                   AND COALESCE(answers, '') != '{"status":"STARTED"}'
+                   AND student_id = ?`
+            ).bind(assignment.id, canonicalStudentId).first<{ cnt: number }>();
+            const currentAttempts = Number(countResult?.cnt || 0);
+            return jsonResponse({
+                status: 'error',
+                code: 'ASSIGNMENT_ATTEMPTS_EXHAUSTED',
+                message: `Em đã hết lượt làm bài này (${currentAttempts}/${assignmentMaxAttempts}).`,
+                attemptCount: currentAttempts,
+                maxAttempts: assignmentMaxAttempts,
+            }, 409);
+        }
         const resultId = insertResult.meta.last_row_id;
         if (canonicalStudentId) {
             try {
