@@ -32,6 +32,9 @@ class FakeDatabase {
   executed: Statement[] = [];
   prepare(sql: string) { return new Statement(sql, this); }
   first(sql: string, bindings: unknown[]) {
+    if (sql.includes('SELECT id, class_id FROM students')) {
+      return { id: 'student-1', class_id: 'class-4a9' };
+    }
     if (sql.includes('FROM students') && sql.includes('WHERE students.username = ?')) {
       return {
         id: 'student-1', username: 'student-1', full_name: 'Nguyen Van A',
@@ -46,6 +49,18 @@ class FakeDatabase {
         id: bindings[0], quiz_id: 'quiz-week-30', class_id: 'class-4a9',
         class_name: '4A9', student_id: '', max_attempts: 3,
         status: 'OPEN', deadline: '2099-01-01T00:00:00.000Z',
+      };
+    }
+    if (sql.includes('FROM assignments') && sql.includes('WHERE id = ?')) {
+      return {
+        id: bindings[0], quiz_id: 'quiz-week-30', class_id: 'class-4a9',
+        student_id: '', status: 'OPEN', deadline: '2099-01-01T00:00:00.000Z',
+      };
+    }
+    if (sql.includes('show_on_home') && sql.includes('require_code') && sql.includes('FROM quizzes')) {
+      return {
+        id: bindings[0], revision: 1, show_on_home: 'FALSE', require_code: 'FALSE',
+        access_code: '', time_limit: 15,
       };
     }
     if (sql.includes("UPPER(COALESCE(a.status, 'OPEN')) = 'OPEN'")) {
@@ -101,7 +116,9 @@ describe('assignment-scoped result attempt limits', () => {
     const payload = await response.json() as any;
 
     expect(response.status).toBe(200);
-    expect(payload).toEqual(expect.objectContaining({ status: 'success', resultId: 91 }));
+    expect(payload).toEqual(expect.objectContaining({
+      status: 'success', resultId: 91, assignmentId: 'assignment-current-3-attempts',
+    }));
     expect(db.executed.some((statement) => (
       statement.sql.includes('WHERE a.id = ?')
       && statement.bindings[0] === 'assignment-current-3-attempts'
@@ -119,7 +136,7 @@ describe('assignment-scoped result attempt limits', () => {
     expect(insert?.bindings).toContain('assignment-current-3-attempts');
   });
 
-  it('falls back to the newest applicable open assignment for older clients', async () => {
+  it('denies a student submission that omits the exact assignment id', async () => {
     const db = new FakeDatabase();
     const { assignmentId: _assignmentId, ...legacyBody } = requestBody;
 
@@ -130,12 +147,11 @@ describe('assignment-scoped result attempt limits', () => {
       'POST',
     );
 
-    expect(response.status).toBe(200);
-    const fallbackQuery = db.executed.find((statement) => (
+    expect(response.status).toBe(403);
+    expect(db.executed.some((statement) => (
       statement.sql.includes("UPPER(COALESCE(a.status, 'OPEN')) = 'OPEN'")
-    ));
-    expect(fallbackQuery?.sql).toContain('datetime(a.created_at) DESC');
-    expect(fallbackQuery?.sql).toContain("COALESCE(a.student_id, '') = '' OR a.student_id = ?");
+    ))).toBe(false);
+    expect(db.executed.some((statement) => statement.sql.includes('INSERT INTO results'))).toBe(false);
   });
 
   it('rejects a stale result submission for a revoked assignment', async () => {

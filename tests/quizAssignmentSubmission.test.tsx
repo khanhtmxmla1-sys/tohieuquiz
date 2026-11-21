@@ -104,9 +104,83 @@ describe('assigned quiz result payload', () => {
     act(() => result.current.handleAnswerChange('q1', 'B'));
     await act(async () => result.current.handleSubmit());
 
+    expect(mocks.validateAnswersOnServer).not.toHaveBeenCalled();
     expect(mocks.onSaveResult).toHaveBeenCalledWith(expect.objectContaining({
       quizId: 'quiz-week-30',
       assignmentId: 'assignment-current-3-attempts',
+      answers: { q1: 'B', _questionOrder: ['q1'] },
+    }), expect.objectContaining({ accessGrant: undefined }));
+  });
+
+  it('passes the access grant only through the ephemeral submit context', async () => {
+    const codeQuiz = {
+      ...quiz,
+      id: 'quiz-code-submit',
+      requireCode: true,
+      _assignmentData: undefined,
+    } as unknown as Quiz;
+    mocks.requestQuizAccess.mockResolvedValue({ valid: true, accessGrant: 'grant-memory-only' });
+    mocks.fetchQuizPlayQuestions.mockResolvedValue({
+      quizId: codeQuiz.id,
+      revision: 1,
+      questions: codeQuiz.questions,
+    });
+
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz: codeQuiz,
+      onExit: vi.fn(),
+      onSaveResult: mocks.onSaveResult,
     }));
+
+    act(() => result.current.setEnteredCode('abc123'));
+    await act(async () => result.current.handleCodeVerify());
+    await act(async () => result.current.handleStart());
+    act(() => result.current.handleAnswerChange('q1', 'B'));
+    await act(async () => result.current.handleSubmit());
+
+    expect(mocks.onSaveResult).toHaveBeenCalledWith(
+      expect.anything(),
+      { accessGrant: 'grant-memory-only' },
+    );
+    expect(JSON.stringify(mocks.onSaveResult.mock.calls[0][0])).not.toContain('grant-memory-only');
+  });
+
+  it('renders the authoritative saved result returned by the Worker adapter', async () => {
+    const authoritativeResult: StudentResult = {
+      id: 'server-result-99',
+      quizId: quiz.id,
+      assignmentId: 'assignment-current-3-attempts',
+      quizTitle: quiz.title,
+      studentName: 'Nguyen Van A',
+      studentClass: '4A9',
+      score: 7.5,
+      correctCount: 3,
+      questionCount: 4,
+      totalQuestions: 4,
+      voidedCount: 0,
+      timeTaken: 1.25,
+      submittedAt: '2026-11-20T01:00:00.000Z',
+      answers: { q1: { selectedAnswer: 'B', isCorrect: false }, _questionOrder: ['q1'] },
+      validationDetails: [{ questionId: 'q1', isCorrect: false, status: 'wrong' }],
+      reviewDetails: [],
+      gradingVersion: '2.0.0',
+    };
+    mocks.onSaveResult.mockResolvedValue(authoritativeResult);
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult: mocks.onSaveResult,
+    }));
+
+    await act(async () => result.current.handleStart());
+    await act(async () => result.current.handleSubmit());
+
+    expect(result.current.result).toEqual(authoritativeResult);
+    expect(result.current.rewardData).toMatchObject({
+      resultId: 'server-result-99',
+      score: 7.5,
+      correctCount: 3,
+      totalQuestions: 4,
+    });
   });
 });

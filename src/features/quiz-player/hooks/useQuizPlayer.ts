@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Quiz, Question, StudentResult } from '../../../types';
+import { Quiz, Question, QuizResultSubmissionContext, StudentResult } from '../../../types';
 import { useClassroomStore } from '../../../stores/useClassroomStore';
 import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
-import { validateAnswersOnServer } from '../../../services/quizValidationService';
 import { adaptStudentQuizQuestion, fetchQuizPlayQuestions, requestQuizAccess } from '../../../services/quizAccessService';
+import { gradeQuiz } from '../../../domain/quiz-scoring';
 import { startAssignmentAttempt } from '../../../services/classroomService';
 import { playTingSound, showConfirm } from '../../../utils/toast';
 import { useQuizProgressRollout } from './useQuizProgressRollout';
@@ -20,7 +20,7 @@ import type { RandomizationPolicy } from '../../../../shared/randomization-polic
 interface UseQuizPlayerProps {
     quiz: Quiz;
     onExit: () => void;
-    onSaveResult: (result: StudentResult) => void | StudentResult | Promise<void | StudentResult>;
+    onSaveResult: (result: StudentResult, context?: QuizResultSubmissionContext) => void | StudentResult | Promise<void | StudentResult>;
     randomizationPolicy?: RandomizationPolicy;
 }
 
@@ -332,53 +332,6 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
         const timeTaken = Math.round((elapsedSeconds / 60) * 100) / 100;
 
         try {
-            const validationResult = await validateAnswersOnServer({
-                quizId: quiz.id,
-                answers,
-                studentName,
-                studentClass
-            });
-
-            if (!validationResult.success) throw new Error(validationResult.error || 'Server validation failed');
-
-            const validationDetails = Array.isArray(validationResult.details)
-                ? validationResult.details
-                : [];
-            const validationByQuestionId = new Map(
-                validationDetails.map((detail) => [String(detail.questionId), detail]),
-            );
-            const finalAnswersWithSnapshots: Record<string, any> = {};
-
-            shuffledQuestions.forEach((question) => {
-                const serverResult = validationByQuestionId.get(String(question.id));
-                finalAnswersWithSnapshots[question.id] = {
-                    selectedAnswer: answers[question.id] ?? null,
-                    isCorrect: serverResult?.isCorrect === true,
-                    status: serverResult?.status ?? (serverResult?.isCorrect ? 'correct' : 'wrong'),
-                    gradingVersion: validationResult.gradingVersion,
-                    questionSnapshot: { ...question },
-                };
-            });
-
-            const detailCorrectCount = validationDetails.filter((detail) => detail.isCorrect === true).length;
-            const authoritativeTotalQuestions = Number.isFinite(Number(validationResult.total))
-                && Number(validationResult.total) >= 0
-                ? Number(validationResult.total)
-                : shuffledQuestions.length;
-            const authoritativeQuestionCount = Number.isFinite(Number(validationResult.questionCount))
-                ? Number(validationResult.questionCount)
-                : shuffledQuestions.length;
-            const authoritativeVoidedCount = Number.isFinite(Number(validationResult.voidedCount))
-                ? Number(validationResult.voidedCount)
-                : validationDetails.filter((detail) => detail.status === 'voided').length;
-            const authoritativeCorrectCount = Number.isFinite(Number(validationResult.correctCount))
-                ? Number(validationResult.correctCount)
-                : detailCorrectCount;
-            const authoritativeScore = Number.isFinite(Number(validationResult.score))
-                ? Number(validationResult.score)
-                : authoritativeTotalQuestions === 0
-                    ? 0
-                    : Number(((authoritativeCorrectCount / authoritativeTotalQuestions) * 10).toFixed(1));
             const resultData: StudentResult = {
                 id: generateUUID(), // Temporary client ID, will be replaced by server ID
                 quizId: quiz.id,
@@ -386,27 +339,64 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
                 quizTitle: quiz.title,
                 studentName,
                 studentClass,
-                score: authoritativeScore,
-                correctCount: authoritativeCorrectCount,
-                questionCount: authoritativeQuestionCount,
-                totalQuestions: authoritativeTotalQuestions,
-                voidedCount: authoritativeVoidedCount,
+                // Formal submissions are scored by the Worker. These values
+                // are placeholders for the request shape and are never used
+                // to render or reward a saved result.
+                score: 0,
+                correctCount: 0,
+                questionCount: shuffledQuestions.length,
+                totalQuestions: shuffledQuestions.length,
+                voidedCount: 0,
                 timeTaken,
                 submittedAt: new Date().toISOString(),
                 answers: {
-                    ...finalAnswersWithSnapshots,
+                    ...answers,
                     _questionOrder: shuffledQuestions.map(q => q.id)
                 },
-                validationDetails,
-                gradingVersion: validationResult.gradingVersion
             };
 
-            let finalResult = resultData;
-            if (!quiz.isPractice) {
-                const savedResult = await onSaveResult(resultData);
-                if (savedResult) {
-                    finalResult = savedResult;
+            let finalResult: StudentResult;
+            if (quiz.isPractice) {
+                const grading = gradeQuiz({ ...quiz, questions: shuffledQuestions }, answers);
+                const questionById = new Map(shuffledQuestions.map((question) => [String(question.id), question]));
+                const validationDetails = grading.details.map((detail) => ({
+                    questionId: detail.questionId,
+                    isCorrect: detail.isCorrect,
+                    status: detail.status,
+                    issueCode: detail.issueCode,
+                }));
+                const practiceAnswers = Object.fromEntries(grading.details.map((detail) => {
+                    const question = questionById.get(detail.questionId);
+                    return [detail.questionId, {
+                        selectedAnswer: answers[detail.questionId] ?? null,
+                        isCorrect: detail.isCorrect,
+                        status: detail.status,
+                        gradingVersion: grading.engineVersion,
+                        questionSnapshot: question ? { ...question } : undefined,
+                    }];
+                }));
+                finalResult = {
+                    ...resultData,
+                    score: grading.score,
+                    correctCount: grading.correctCount,
+                    questionCount: grading.questionCount,
+                    totalQuestions: grading.totalQuestions,
+                    voidedCount: grading.voidedCount,
+                    answers: {
+                        ...practiceAnswers,
+                        _questionOrder: shuffledQuestions.map(q => q.id),
+                    },
+                    validationDetails,
+                    gradingVersion: grading.engineVersion,
+                };
+            } else {
+                const savedResult = await onSaveResult(resultData, {
+                    accessGrant: accessGrantRef.current || undefined,
+                });
+                if (!savedResult) {
+                    throw new Error('Worker không trả về kết quả authoritative. Vui lòng thử lại.');
                 }
+                finalResult = savedResult;
             }
             setResult(finalResult);
             clearQuizAttemptDraft(quiz.id);

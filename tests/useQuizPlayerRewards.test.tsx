@@ -221,7 +221,7 @@ describe('useQuizPlayer result rewards', () => {
     expect(result.current.isQuestionAnswered(question)).toBe(true);
   });
 
-  it('never lets a client override turn a server-wrong ordering answer into correct', async () => {
+  it('submits raw ordering answers without client-side correctness', async () => {
     const orderingQuiz = {
       ...makeQuiz(),
       id: 'quiz-ordering-authoritative',
@@ -254,12 +254,10 @@ describe('useQuizPlayer result rewards', () => {
       score: 0,
       correctCount: 0,
       totalQuestions: 1,
-      answers: expect.objectContaining({
-        q1: expect.objectContaining({ isCorrect: false }),
-      }),
-    }));
+      answers: { q1: { 0: 2, 1: 1 }, _questionOrder: ['q1'] },
+    }), expect.objectContaining({ accessGrant: undefined }));
   });
-  it('preserves authoritative voided counts and zero-safe denominators', async () => {
+  it('submits formal answers without pre-validation or client fallback fields', async () => {
     const voidedQuiz = {
       ...makeQuiz(),
       id: 'quiz-voided-result',
@@ -297,18 +295,14 @@ describe('useQuizPlayer result rewards', () => {
     await act(async () => result.current.handleSubmit());
 
     expect(mocks.onSaveResult).toHaveBeenCalledWith(expect.objectContaining({
-      score: 10,
-      correctCount: 2,
+      score: 0,
+      correctCount: 0,
       questionCount: 3,
-      totalQuestions: 2,
-      voidedCount: 1,
-      validationDetails: expect.arrayContaining([
-        expect.objectContaining({ questionId: 'q3', status: 'voided' }),
-      ]),
-      answers: expect.objectContaining({
-        q3: expect.objectContaining({ status: 'voided', isCorrect: false }),
-      }),
-    }));
+      totalQuestions: 3,
+      voidedCount: 0,
+      answers: expect.objectContaining({ _questionOrder: expect.arrayContaining(['q1', 'q2', 'q3']) }),
+    }), expect.objectContaining({ accessGrant: undefined }));
+    expect(mocks.validateAnswersOnServer).not.toHaveBeenCalled();
   });
 
   it('claims the reward with the saved result id and shows completion at zero correct', async () => {
@@ -387,9 +381,28 @@ describe('useQuizPlayer result rewards', () => {
     expect(mocks.fetchQuizPlayQuestions).not.toHaveBeenCalled();
     await act(async () => result.current.handleSubmit());
 
+    expect(mocks.validateAnswersOnServer).not.toHaveBeenCalled();
     expect(mocks.onSaveResult).not.toHaveBeenCalled();
     expect(mocks.claimResultReward).not.toHaveBeenCalled();
     expect(result.current.showReward).toBe(true);
     expect(result.current.rewardData).toMatchObject({ status: 'ready', expEarned: 0, coinsEarned: 0 });
+  });
+
+  it('grades practice locally without saving or rewarding on the server', async () => {
+    const practiceQuiz = makeQuiz(true);
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz: practiceQuiz,
+      onExit: vi.fn(),
+      onSaveResult: mocks.onSaveResult,
+    }));
+
+    await act(async () => result.current.handleStart());
+    act(() => result.current.handleAnswerChange('q1', 'B'));
+    await act(async () => result.current.handleSubmit());
+
+    expect(mocks.validateAnswersOnServer).not.toHaveBeenCalled();
+    expect(mocks.onSaveResult).not.toHaveBeenCalled();
+    expect(mocks.claimResultReward).not.toHaveBeenCalled();
+    expect(result.current.result).toMatchObject({ score: 10, correctCount: 1, totalQuestions: 1 });
   });
 });

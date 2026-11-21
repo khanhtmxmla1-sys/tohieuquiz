@@ -1,7 +1,5 @@
 /// <reference types="cypress" />
 
-import { gradeQuiz } from '../../src/domain/quiz-scoring';
-
 const QUIZ_ID = 'scoring-matrix-14';
 
 const questions = [
@@ -141,29 +139,11 @@ describe('Canonical scoring browser matrix', () => {
       body: { status: 'success', data: { aiAssistantEnabled: false } },
     });
 
+    let validateCalls = 0;
     cy.intercept('POST', '**/api/validate', (request) => {
-      const grading = gradeQuiz({ questions }, request.body.answers ?? {});
-      expect(grading.issues, JSON.stringify(grading.details)).to.deep.equal([]);
-      expect(grading.correctCount, JSON.stringify(grading.details)).to.equal(14);
-      expect(grading.score).to.equal(10);
-
-      request.reply({
-        statusCode: 200,
-        body: {
-          status: 'success',
-          score: grading.score,
-          correctCount: grading.correctCount,
-          total: grading.totalQuestions,
-          gradingVersion: grading.engineVersion,
-          details: grading.details.map((detail) => ({
-            questionId: detail.questionId,
-            isCorrect: detail.isCorrect,
-            status: detail.status,
-            issueCode: detail.issueCode,
-          })),
-        },
-      });
-    }).as('validateAnswers');
+      validateCalls += 1;
+      request.reply({ statusCode: 500, body: { status: 'error', message: 'Practice must not call /api/validate' } });
+    }).as('unexpectedValidate');
 
     cy.visit('/', { onBeforeLoad: installQuiz });
     cy.contains('Ma trận chấm điểm 14 dạng câu hỏi', { timeout: 15_000 }).should('be.visible');
@@ -228,9 +208,7 @@ describe('Canonical scoring browser matrix', () => {
     cy.contains('Bạn đã hoàn thành tất cả câu hỏi.').should('be.visible');
     cy.contains('button', 'Đồng ý nộp').click();
 
-    cy.wait('@validateAnswers').its('request.body.answers').should((answers) => {
-      expect(Object.keys(answers)).to.have.length(14);
-    });
+    cy.then(() => expect(validateCalls, 'practice /api/validate calls').to.equal(0));
     cy.get('[role="dialog"]').within(() => {
       cy.contains('10/10').should('be.visible');
       cy.contains('14/14 câu đúng').should('be.visible');
@@ -245,27 +223,11 @@ describe('Canonical scoring browser matrix', () => {
       body: { status: 'success', data: { aiAssistantEnabled: false } },
     });
 
+    let validateCalls = 0;
     cy.intercept('POST', '**/api/validate', (request) => {
-      const grading = gradeQuiz({ questions: skippedQuestions }, request.body.answers ?? {});
-      expect(grading.correctCount).to.equal(13);
-      expect(grading.details.filter((detail) => detail.status === 'skipped')).to.have.length(2);
-      request.reply({
-        statusCode: 200,
-        body: {
-          status: 'success',
-          score: grading.score,
-          correctCount: grading.correctCount,
-          total: grading.totalQuestions,
-          gradingVersion: grading.engineVersion,
-          details: grading.details.map((detail) => ({
-            questionId: detail.questionId,
-            isCorrect: detail.isCorrect,
-            status: detail.status,
-            issueCode: detail.issueCode,
-          })),
-        },
-      });
-    }).as('validateSkippedAnswers');
+      validateCalls += 1;
+      request.reply({ statusCode: 500, body: { status: 'error', message: 'Practice must not call /api/validate' } });
+    }).as('unexpectedSkippedValidate');
 
     cy.visit('/', { onBeforeLoad: installSkippedQuiz });
     cy.contains('Kiểm tra xem lại câu bỏ trống', { timeout: 15_000 }).should('be.visible');
@@ -284,7 +246,7 @@ describe('Canonical scoring browser matrix', () => {
     cy.contains('button', 'Nộp bài').click();
     cy.contains('p', '2 câu chưa bắt đầu').should('be.visible');
     cy.contains('button', 'Đồng ý nộp').click();
-    cy.wait('@validateSkippedAnswers');
+    cy.then(() => expect(validateCalls, 'practice /api/validate calls').to.equal(0));
 
     cy.get('[role="dialog"]').within(() => {
       cy.contains('13/15 câu đúng').should('be.visible');

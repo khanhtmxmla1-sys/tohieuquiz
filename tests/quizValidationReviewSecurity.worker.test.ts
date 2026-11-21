@@ -74,6 +74,19 @@ class RouteDatabase {
   }
 
   first(sql: string, bindings: unknown[]) {
+    if (sql.includes('show_on_home') && sql.includes('require_code') && sql.includes('FROM quizzes')) {
+      const quizId = String(bindings[0] || '');
+      return {
+        id: quizId,
+        revision: 1,
+        show_on_home: quizId === 'quiz-a' ? 'TRUE' : 'FALSE',
+        require_code: quizId === 'quiz-protected' ? 'TRUE' : 'FALSE',
+        time_limit: 15,
+      };
+    }
+    if (sql.includes('SELECT 1') && sql.includes('public_quiz.id')) {
+      return bindings[0] === 'quiz-a' ? { '1': 1 } : null;
+    }
     if (sql.includes('FROM teachers t')) {
       return { username: 'teacher-a', full_name: 'Cô A', full_name_count: this.teacherFullNameCount };
     }
@@ -216,6 +229,20 @@ describe('staff quiz validation ownership', () => {
 
     const response = await handleResultRoutes(
       authRequest({ quizId: 'quiz-missing', answers: {} }),
+      routeEnv(db), '/api/validate', 'POST',
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ message: 'Forbidden: Quiz access required' });
+    expect(db.gradingQueryCount).toBe(0);
+  });
+
+  it('blocks a student validation oracle for a protected quiz before grading', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', classId: 'class-a' };
+    const db = new RouteDatabase();
+
+    const response = await handleResultRoutes(
+      authRequest({ quizId: 'quiz-protected', answers: {} }),
       routeEnv(db), '/api/validate', 'POST',
     );
 

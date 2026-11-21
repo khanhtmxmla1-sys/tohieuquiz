@@ -5,6 +5,13 @@ import {
   deriveStudentQuizDtoScope,
   toStudentQuestionDto,
 } from '../workers/src/services/studentQuizQuestionDto';
+const verifyQuizAccessGrantMock = vi.hoisted(() => vi.fn());
+vi.mock('../workers/src/services/quizAccessGrant', async () => {
+  const actual = await vi.importActual<typeof import('../workers/src/services/quizAccessGrant')>(
+    '../workers/src/services/quizAccessGrant',
+  );
+  return { ...actual, verifyQuizAccessGrant: verifyQuizAccessGrantMock };
+});
 
 let currentUser: JWTPayload;
 vi.mock('../workers/src/middleware/jwtAuth', () => ({
@@ -50,12 +57,33 @@ class StudentStatement {
   bind(...values: unknown[]) { this.bindings = values; return this; }
   async first<T>() { return this.db.first(this.sql, this.bindings) as T; }
   async all<T>() { return { results: this.db.all(this.sql, this.bindings) as T[] }; }
-  async run() { return { success: true, meta: { changes: 1, last_row_id: 778 } }; }
+  async run() {
+    if (this.sql.includes('INSERT INTO results')) this.db.insertCount += 1;
+    return { success: true, meta: { changes: 1, last_row_id: 778 } };
+  }
 }
 
 class StudentDatabase {
+  requireCode = false;
+  publicPractice = true;
+  protectedWorkflow = false;
+  gradingQueryCount = 0;
+  insertCount = 0;
+  assignmentId: string | null = null;
   prepare(sql: string) { return new StudentStatement(sql, this); }
-  first(sql: string) {
+  first(sql: string, bindings: unknown[] = []) {
+    if (sql.includes('FROM assignments a') && this.assignmentId && bindings[0] === this.assignmentId) {
+      return {
+        id: this.assignmentId,
+        quiz_id: 'quiz-a',
+        class_id: 'class-a',
+        student_id: 'student-a',
+        max_attempts: 3,
+        status: 'OPEN',
+        deadline: '',
+        class_name: '4A',
+      };
+    }
     if (sql.includes('FROM students')) {
       return { id: 'student-a', username: 'student-a', full_name: 'An', class_id: 'class-a', class_name: '4A' };
     }
@@ -63,11 +91,20 @@ class StudentDatabase {
       return { id: 'class-a', name: '4A', teacher_username: 'teacher-a' };
     }
     if (sql.includes('SELECT revision FROM quizzes')) return { revision: 7 };
+    if (sql.includes('show_on_home') && sql.includes('require_code') && sql.includes('FROM quizzes')) {
+      return { id: 'quiz-a', revision: 7, require_code: this.requireCode ? 'TRUE' : 'FALSE', access_code: 'CODE', show_on_home: 'TRUE', time_limit: 15 };
+    }
+    if (sql.includes('AS protected_workflow')) return this.protectedWorkflow ? { '1': 1 } : null;
+    if (sql.includes('protected_practice_quizzes')) {
+      return this.publicPractice && !this.protectedWorkflow ? { '1': 1 } : null;
+    }
+    if (sql.includes('SELECT 1') && sql.includes('public_quiz.id')) return this.publicPractice ? { '1': 1 } : null;
     if (sql.includes('SELECT category FROM quizzes')) return { category: 'math' };
     return null;
   }
   all(sql: string) {
     if (!sql.includes('FROM questions')) return [];
+    this.gradingQueryCount += 1;
     return [
       {
         id: 'match', type: 'MATCHING', question: 'Nối', options: '', correct_answer: '',
@@ -88,6 +125,7 @@ class StudentDatabase {
 
 describe('POST /api/results authoritative scoring', () => {
   beforeEach(() => {
+    verifyQuizAccessGrantMock.mockReset();
     currentUser = { username: 'teacher-a', role: 'teacher', fullName: 'Cô A' } as JWTPayload;
   });
 
@@ -217,5 +255,125 @@ describe('POST /api/results authoritative scoring', () => {
     expect(legacyPayload.score).toBe(10);
     expect(legacyPayload.answers.match.selectedAnswer).toEqual({ 'left-0': 'right-0', 'left-1': 'right-1' });
     expect(legacyPayload.answers.drag.selectedAnswer).toEqual({ 'drag-a': 'X' });
+  });
+
+  it('rejects a code-protected student submission without an access grant', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', fullName: 'An' } as JWTPayload;
+    const db = new StudentDatabase();
+    db.requireCode = true;
+    const response = await handleResultRoutes(new Request('https://test/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quizId: 'quiz-a', quizTitle: 'Nối', className: '4A', timeTaken: 10,
+        answers: { match: { selectedAnswer: {} } },
+      }),
+    }), { DB: db, JWT_SECRET: 'test-secret' } as any, '/api/results', 'POST');
+
+    expect(response.status).toBe(403);
+    expect((await response.json()) as any).toMatchObject({ message: 'Forbidden: Quiz access required' });
+  });
+
+  it('accepts a code-protected student submission with a matching in-memory grant', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', fullName: 'An' } as JWTPayload;
+    const db = new StudentDatabase();
+    db.requireCode = true;
+    verifyQuizAccessGrantMock.mockResolvedValue({
+      quizId: 'quiz-a', revision: 7, purpose: 'quiz_access_grant', sub: 'student-a',
+    });
+    const response = await handleResultRoutes(new Request('https://test/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quizId: 'quiz-a', quizTitle: 'Nối', className: '4A', timeTaken: 10, accessGrant: 'valid-grant',
+        answers: {
+          match: { selectedAnswer: { type: 'MATCHING', pairs: { 'left-0': 'right-0', 'left-1': 'right-1' } } },
+          drag: { selectedAnswer: { type: 'DRAG_DROP', values: { 'drag-a': 'X' } } },
+        },
+      }),
+    }), { DB: db, JWT_SECRET: 'test-secret' } as any, '/api/results', 'POST');
+
+    expect(response.status).toBe(200);
+    expect((await response.json()) as any).toMatchObject({ status: 'success', score: 10 });
+    expect(verifyQuizAccessGrantMock).toHaveBeenCalled();
+    expect(verifyQuizAccessGrantMock.mock.calls[0][1]).toMatchObject({
+      quizId: 'quiz-a', revision: 7, subject: 'student-a', accessCode: 'CODE',
+    });
+  });
+
+  it('rejects a code-protected reused quiz with a grant when assignmentId is omitted', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', fullName: 'An' } as JWTPayload;
+    const db = new StudentDatabase();
+    db.requireCode = true;
+    db.protectedWorkflow = true;
+    verifyQuizAccessGrantMock.mockResolvedValue({
+      quizId: 'quiz-a', revision: 7, purpose: 'quiz_access_grant', sub: 'student-a',
+    });
+    const response = await handleResultRoutes(new Request('https://test/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quizId: 'quiz-a', quizTitle: 'Nối', className: '4A', timeTaken: 10, accessGrant: 'valid-grant',
+        answers: { match: { selectedAnswer: {} } },
+      }),
+    }), { DB: db, JWT_SECRET: 'test-secret' } as any, '/api/results', 'POST');
+
+    expect(response.status).toBe(403);
+    expect(db.gradingQueryCount).toBe(0);
+    expect(db.insertCount).toBe(0);
+  });
+
+  it('rejects a wrong or stale access grant before grading', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', fullName: 'An' } as JWTPayload;
+    const db = new StudentDatabase();
+    db.requireCode = true;
+    verifyQuizAccessGrantMock.mockResolvedValue(null);
+    const response = await handleResultRoutes(new Request('https://test/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quizId: 'quiz-a', quizTitle: 'Nối', className: '4A', timeTaken: 10, accessGrant: 'stale-grant',
+        answers: { match: { selectedAnswer: {} } },
+      }),
+    }), { DB: db, JWT_SECRET: 'test-secret' } as any, '/api/results', 'POST');
+
+    expect(response.status).toBe(403);
+    expect((await response.json()) as any).toMatchObject({ message: 'Forbidden: Quiz access required' });
+  });
+
+  it('rejects an unlocked public submission when the quiz belongs to a protected workflow', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', fullName: 'An' } as JWTPayload;
+    const db = new StudentDatabase();
+    db.publicPractice = false;
+    const response = await handleResultRoutes(new Request('https://test/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quizId: 'quiz-a', quizTitle: 'Nối', className: '4A', timeTaken: 10,
+        answers: { match: { selectedAnswer: {} } },
+      }),
+    }), { DB: db, JWT_SECRET: 'test-secret' } as any, '/api/results', 'POST');
+
+    expect(response.status).toBe(403);
+    expect((await response.json()) as any).toMatchObject({ message: 'Forbidden: Quiz access required' });
+  });
+
+  it('binds a grant to the exact assignment scope before grading', async () => {
+    currentUser = { id: 'student-a', username: 'student-a', role: 'student', fullName: 'An' } as JWTPayload;
+    const db = new StudentDatabase();
+    db.requireCode = true;
+    db.assignmentId = 'assignment-a';
+    verifyQuizAccessGrantMock.mockResolvedValue(null);
+    const response = await handleResultRoutes(new Request('https://test/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quizId: 'quiz-a', assignmentId: 'assignment-a', quizTitle: 'Nối', className: '4A',
+        accessGrant: 'grant-for-another-assignment', answers: { match: { selectedAnswer: {} } },
+      }),
+    }), { DB: db, JWT_SECRET: 'test-secret' } as any, '/api/results', 'POST');
+
+    expect(response.status).toBe(403);
+    expect(verifyQuizAccessGrantMock.mock.calls[0][1]).toMatchObject({ assignmentId: 'assignment-a' });
   });
 });

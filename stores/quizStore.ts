@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Quiz, StudentResult } from '../src/types';
+import { Quiz, QuizResultSubmissionContext, StudentResult } from '../src/types';
 import { callApi } from '../src/services/apiAdapter';
 import { serializeQuizForSave } from '../src/domain/quiz/quizSerializer';
 import { cacheService } from '../src/services/CacheService';
@@ -230,7 +230,7 @@ interface QuizState {
     modifyQuiz: (quiz: Quiz) => Promise<void>;
     removeQuiz: (id: string) => Promise<void>;
     duplicateQuiz: (quizId: string) => Promise<boolean>;
-    submitResult: (result: StudentResult) => Promise<StudentResult>;
+    submitResult: (result: StudentResult, context?: QuizResultSubmissionContext) => Promise<StudentResult>;
     removeResult: (id: string) => Promise<void>;
 }
 
@@ -639,15 +639,18 @@ export const useQuizStore = create<QuizState>()(
                 }
             },
 
-            submitResult: async (result) => {
+            submitResult: async (result, context) => {
                 try {
                     const res = await callApi<{
                         status: string;
-                        resultId?: number;
+                        resultId?: number | string;
+                        assignmentId?: string | null;
+                        classId?: string | null;
                         score?: number;
                         correctCount?: number;
+                        questionCount?: number;
                         totalQuestions?: number;
-                        classId?: string;
+                        voidedCount?: number;
                         gradingVersion?: string;
                         answers?: StudentResult['answers'];
                         validationDetails?: StudentResult['validationDetails'];
@@ -655,32 +658,57 @@ export const useQuizStore = create<QuizState>()(
                     }>('submit_result', {
                         ...result,
                         className: result.studentClass,
-                        quizTitle: result.quizTitle || 'Unknown Quiz'
+                        quizTitle: result.quizTitle || 'Unknown Quiz',
+                        ...(context?.accessGrant ? { accessGrant: context.accessGrant } : {}),
                     });
-                    if (res && res.status === 'success') {
+                    const isCompleteAuthoritativeResponse = Boolean(
+                        res
+                        && res.status === 'success'
+                        && res.resultId !== undefined
+                        && res.resultId !== null
+                        && Object.prototype.hasOwnProperty.call(res, 'assignmentId')
+                        && Object.prototype.hasOwnProperty.call(res, 'classId')
+                        && Number.isFinite(res.score)
+                        && Number.isFinite(res.correctCount)
+                        && Number.isFinite(res.questionCount)
+                        && Number.isFinite(res.totalQuestions)
+                        && Number.isFinite(res.voidedCount)
+                        && typeof res.gradingVersion === 'string'
+                        && res.answers !== undefined
+                        && res.answers !== null
+                        && typeof res.answers === 'object'
+                        && !Array.isArray(res.answers)
+                        && Array.isArray(res.validationDetails)
+                        && Array.isArray(res.reviewDetails)
+                    );
+                    if (isCompleteAuthoritativeResponse) {
                         cacheService.invalidatePrefix('results:');
                         const updatedResult: StudentResult = {
-                            ...result,
-                            id: res.resultId ? String(res.resultId) : result.id,
-                            score: typeof res.score === 'number' ? res.score : result.score,
-                            correctCount: typeof res.correctCount === 'number'
-                                ? res.correctCount
-                                : result.correctCount,
-                            totalQuestions: typeof res.totalQuestions === 'number'
-                                ? res.totalQuestions
-                                : result.totalQuestions,
-                            classId: res.classId ?? result.classId,
-                            gradingVersion: res.gradingVersion ?? result.gradingVersion,
-                            answers: res.answers ?? result.answers,
-                            validationDetails: res.validationDetails ?? result.validationDetails,
-                            reviewDetails: res.reviewDetails ?? result.reviewDetails,
+                            id: String(res.resultId),
+                            quizId: result.quizId,
+                            assignmentId: res.assignmentId ?? undefined,
+                            classId: res.classId ?? undefined,
+                            quizTitle: result.quizTitle,
+                            studentName: result.studentName,
+                            studentClass: result.studentClass,
+                            score: res.score as number,
+                            correctCount: res.correctCount as number,
+                            questionCount: res.questionCount as number,
+                            totalQuestions: res.totalQuestions as number,
+                            voidedCount: res.voidedCount as number,
+                            timeTaken: result.timeTaken,
+                            submittedAt: result.submittedAt,
+                            answers: res.answers as StudentResult['answers'],
+                            validationDetails: res.validationDetails as StudentResult['validationDetails'],
+                            reviewDetails: res.reviewDetails as StudentResult['reviewDetails'],
+                            gradingVersion: res.gradingVersion as string,
                         };
                         set((state) => ({
                             results: [...state.results, updatedResult]
                         }));
                         return updatedResult;
                     } else {
-                        throw new Error('Không thể lưu kết quả. Vui lòng thử lại!');
+                        throw new Error('Worker không trả về kết quả authoritative. Vui lòng thử lại!');
                     }
                 } catch (err) {
                     console.error('Failed to submit result:', err);

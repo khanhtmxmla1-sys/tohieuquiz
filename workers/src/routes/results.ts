@@ -32,6 +32,12 @@ import {
 } from '../services/studentQuizQuestionDto';
 import { canAccessQuiz } from '../services/quizOwnership';
 import {
+    isPublicPracticeQuiz,
+    isQuizAttachedToProtectedWorkflow,
+    resolveQuizPlayAccess,
+} from '../services/quizAccessPolicy';
+import { verifyQuizAccessGrant } from '../services/quizAccessGrant';
+import {
     recordScoringShadowObservation,
     resolveQuizScoringRolloutMode,
 } from '../services/quizScoringRolloutService';
@@ -51,6 +57,8 @@ import {
 } from '../services/weaknessProfile';
 
 const normalizeName = (value: string | null | undefined): string => String(value || '').trim().toLowerCase();
+const quizRequiresAccessCode = (value: unknown): boolean => ['1', 'true', 'yes', 'on', 'enabled']
+    .includes(String(value ?? '').trim().toLowerCase());
 
 interface ResultAssignmentPolicy {
     id: string;
@@ -574,9 +582,10 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const canonicalClassId = classResolution.id;
         className = classResolution.name;
 
-        // Legacy clients without assignmentId may still bind to an open assignment,
-        // but only inside the already-resolved canonical class.
-        if (!assignment) {
+        // Staff tooling may still bind a legacy submission to an open
+        // assignment. Learners must send the exact assignmentId so a public
+        // quiz cannot be used to discover or submit against an assigned copy.
+        if (!assignment && !isStudent(user)) {
             assignment = await loadResultAssignmentPolicy(db, {
                 assignmentId: '',
                 quizId,
@@ -592,6 +601,62 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
                 student: studentContext,
             });
             if (assignmentError) return assignmentError;
+        }
+
+        if (isStudent(user)) {
+            const quizAccess = await db.prepare(`
+                SELECT id, revision, show_on_home, require_code, access_code, time_limit
+                FROM quizzes
+                WHERE id = ?
+                LIMIT 1
+            `).bind(quizId).first<{
+                id: string;
+                revision?: number | null;
+                show_on_home?: string | number | boolean | null;
+                require_code?: string | number | boolean | null;
+                access_code?: string | null;
+                time_limit?: number | null;
+            }>();
+            if (!quizAccess) return errorResponse('Forbidden: Quiz access required', 403);
+
+            const scopedAssignmentId = assignment?.id || assignmentId || undefined;
+            const accessGrant = typeof body.accessGrant === 'string' ? body.accessGrant.trim() : '';
+            // Keep grant subject derivation identical to play-questions: the
+            // token identity, not a client-provided or DB-resolved display ID,
+            // binds the code verification to this student session.
+            const subject = String(user.id || user.username || '').trim() || undefined;
+            const revision = Number(quizAccess.revision || 1);
+            const grantClaims = accessGrant
+                ? await verifyQuizAccessGrant(accessGrant, {
+                    secret: env.JWT_SECRET,
+                    quizId: String(quizId),
+                    revision,
+                    assignmentId: scopedAssignmentId,
+                    subject,
+                    accessCode: quizRequiresAccessCode(quizAccess.require_code)
+                        ? String(quizAccess.access_code || '')
+                        : undefined,
+                })
+                : null;
+            const access = await resolveQuizPlayAccess(db, {
+                quizId: String(quizId),
+                actor: user,
+                assignmentId: scopedAssignmentId,
+                accessCodeVerified: Boolean(grantClaims),
+                now: new Date(),
+            });
+            if (!access.allowed) return errorResponse('Forbidden: Quiz access required', 403);
+            if (access.kind === 'public') {
+                if (await isQuizAttachedToProtectedWorkflow(db, String(quizId))) {
+                    return errorResponse('Forbidden: Quiz access required', 403);
+                }
+                if (!access.requiresCode && !(await isPublicPracticeQuiz(db, String(quizId)))) {
+                    return errorResponse('Forbidden: Quiz access required', 403);
+                }
+            }
+            if (grantClaims && grantClaims.revision !== access.revision) {
+                return errorResponse('Quiz revision changed; please verify access again', 409);
+            }
         }
 
         const canonicalStudentId = studentContext?.id
@@ -789,6 +854,26 @@ export async function handleResultRoutes(request: Request, env: Env, path: strin
         const quizId = String(body.quizId || '').trim();
         if (user.role === 'teacher' && !(await canAccessQuiz(db, user, quizId))) {
             return errorResponse('Forbidden: Quiz access required', 403);
+        }
+        if (isStudent(user)) {
+            const quiz = await db.prepare(`
+                SELECT id, revision, show_on_home, require_code, time_limit
+                FROM quizzes
+                WHERE id = ?
+                LIMIT 1
+            `).bind(quizId).first<{
+                id: string;
+                revision?: number | null;
+                show_on_home?: string | number | boolean | null;
+                require_code?: string | number | boolean | null;
+                time_limit?: number | null;
+            }>();
+            const access = quiz
+                ? await resolveQuizPlayAccess(db, { quizId, actor: user, now: new Date() })
+                : { allowed: false as const, code: 'QUIZ_NOT_FOUND' };
+            if (!access.allowed || access.kind !== 'public' || access.requiresCode || !(await isPublicPracticeQuiz(db, quizId))) {
+                return errorResponse('Forbidden: Quiz access required', 403);
+            }
         }
 
         return await handleValidateAnswers(db, body, {

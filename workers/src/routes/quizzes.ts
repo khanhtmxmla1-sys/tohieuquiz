@@ -33,7 +33,7 @@ import {
 } from '../services/questionMath';
 import { QuestionScoringContractValidationError } from '../services/questionScoringContract';
 import { sanitizeSvgDiagram } from '../services/svgDiagramSanitizer';
-import { resolveQuizPlayAccess } from '../services/quizAccessPolicy';
+import { isPublicPracticeQuiz, resolveQuizPlayAccess } from '../services/quizAccessPolicy';
 import {
     issueQuizAccessGrant,
     quizAccessGrantLifetimeSeconds,
@@ -634,6 +634,24 @@ export async function handleQuizRoutes(request: Request, env: Env, path: string,
 
         const url = new URL(request.url);
         const quizId = url.searchParams.get('quizId');
+
+        // Learners must use the scoped play-questions endpoint.  Keep the
+        // legacy GET only for an explicitly public, unlocked quiz so a known
+        // quiz ID cannot turn into a protected-question oracle.
+        if ((user?.role === 'student' || !user) && !quizId) {
+            return errorResponse('Forbidden: Quiz access required', 403);
+        }
+        if ((user?.role === 'student' || !user) && quizId) {
+            const access = await resolveQuizPlayAccess(db, {
+                quizId,
+                actor: user,
+                now: new Date(),
+            });
+            if (!access.allowed) return errorResponse('Forbidden: Quiz access required', 403);
+            if (!(await isPublicPracticeQuiz(db, quizId))) {
+                return errorResponse('Forbidden: Quiz access required', 403);
+            }
+        }
 
         if (user && quizId && requireTeacher(user) && !(await canAccessQuiz(db, user, quizId))) {
             return errorResponse('Forbidden: You do not have permission to read this quiz', 403);
