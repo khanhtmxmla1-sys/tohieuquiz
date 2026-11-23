@@ -526,7 +526,9 @@ describe('authoritative practice grading integration', () => {
 
   it('returns a session conflict for a tampered or expired practice token', async () => {
     const loaded = await loadIntegratedPractice();
-    const tampered = `${loaded.payload.practiceSession.token.slice(0, -1)}${loaded.payload.practiceSession.token.endsWith('a') ? 'b' : 'a'}`;
+    const [header, payload, signature] = loaded.payload.practiceSession.token.split('.');
+    const tamperedSignature = `${signature.startsWith('a') ? 'b' : 'a'}${signature.slice(1)}`;
+    const tampered = `${header}.${payload}.${tamperedSignature}`;
     const request = new Request('https://test/api/practice/grade', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
