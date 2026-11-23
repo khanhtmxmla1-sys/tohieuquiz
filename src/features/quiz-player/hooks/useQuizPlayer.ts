@@ -16,6 +16,11 @@ import {
 import { createQuizDeadline, remainingSeconds, useQuizDeadline } from './useQuizDeadline';
 import { updateMatchingAnswer } from '../utils/structuredAnswerUpdates';
 import type { RandomizationPolicy } from '../../../../shared/randomization-policy.contract';
+import {
+    practiceService,
+    type PracticeGradeResponse,
+    type PracticeSessionEnvelope,
+} from '../../../services/practiceService';
 
 interface UseQuizPlayerProps {
     quiz: Quiz;
@@ -26,6 +31,25 @@ interface UseQuizPlayerProps {
 
 export type QuizStep = 'code' | 'info' | 'notice' | 'quiz' | 'result';
 type SubmissionReason = 'manual' | 'timeout';
+
+type SecurePracticeQuiz = Quiz & { practiceSession?: unknown };
+
+const hasOwnProperty = (value: object, key: string): boolean => (
+    Object.prototype.hasOwnProperty.call(value, key)
+);
+
+const isSecurePracticeSession = (value: unknown): value is PracticeSessionEnvelope => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const session = value as Record<string, unknown>;
+    if (session.version !== 'server-v1' || typeof session.token !== 'string'
+        || !session.token.trim() || typeof session.expiresAt !== 'string') return false;
+    const expiry = Date.parse(session.expiresAt);
+    return Number.isFinite(expiry);
+};
+
+const isExpiredPracticeSession = (value: PracticeSessionEnvelope): boolean => (
+    Date.parse(value.expiresAt) <= Date.now()
+);
 
 export type CompletionRewardStatus = 'ready' | 'syncing' | 'error';
 
@@ -357,38 +381,63 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
 
             let finalResult: StudentResult;
             if (quiz.isPractice) {
-                const grading = gradeQuiz({ ...quiz, questions: shuffledQuestions }, answers);
-                const questionById = new Map(shuffledQuestions.map((question) => [String(question.id), question]));
-                const validationDetails = grading.details.map((detail) => ({
-                    questionId: detail.questionId,
-                    isCorrect: detail.isCorrect,
-                    status: detail.status,
-                    issueCode: detail.issueCode,
-                }));
-                const practiceAnswers = Object.fromEntries(grading.details.map((detail) => {
-                    const question = questionById.get(detail.questionId);
-                    return [detail.questionId, {
-                        selectedAnswer: answers[detail.questionId] ?? null,
+                const secureMetadataPresent = hasOwnProperty(quiz as SecurePracticeQuiz, 'practiceSession');
+                if (secureMetadataPresent) {
+                    const sessionEnvelope = (quiz as SecurePracticeQuiz).practiceSession;
+                    if (!isSecurePracticeSession(sessionEnvelope)) {
+                        throw new Error('Phiên luyện tập không hợp lệ. Vui lòng tải lại bài.');
+                    }
+                    if (isExpiredPracticeSession(sessionEnvelope)) {
+                        throw new Error('Phiên luyện tập đã hết hạn. Vui lòng tải lại bài.');
+                    }
+
+                    const questionOrder = shuffledQuestions.map((question) => String(question.id));
+                    const grading = await practiceService.gradePracticeQuiz({
+                        sessionToken: sessionEnvelope.token,
+                        answers,
+                        questionOrder,
+                    }, quiz.id);
+                    finalResult = mapPracticeGradeToStudentResult(
+                        resultData,
+                        grading,
+                        questionOrder,
+                    );
+                } else {
+                    // Legacy Workers and teacher-owned previews have no secure
+                    // session marker and retain their existing local grading path.
+                    const grading = gradeQuiz({ ...quiz, questions: shuffledQuestions }, answers);
+                    const questionById = new Map(shuffledQuestions.map((question) => [String(question.id), question]));
+                    const validationDetails = grading.details.map((detail) => ({
+                        questionId: detail.questionId,
                         isCorrect: detail.isCorrect,
                         status: detail.status,
+                        issueCode: detail.issueCode,
+                    }));
+                    const practiceAnswers = Object.fromEntries(grading.details.map((detail) => {
+                        const question = questionById.get(detail.questionId);
+                        return [detail.questionId, {
+                            selectedAnswer: answers[detail.questionId] ?? null,
+                            isCorrect: detail.isCorrect,
+                            status: detail.status,
+                            gradingVersion: grading.engineVersion,
+                            questionSnapshot: question ? { ...question } : undefined,
+                        }];
+                    }));
+                    finalResult = {
+                        ...resultData,
+                        score: grading.score,
+                        correctCount: grading.correctCount,
+                        questionCount: grading.questionCount,
+                        totalQuestions: grading.totalQuestions,
+                        voidedCount: grading.voidedCount,
+                        answers: {
+                            ...practiceAnswers,
+                            _questionOrder: shuffledQuestions.map(q => q.id),
+                        },
+                        validationDetails,
                         gradingVersion: grading.engineVersion,
-                        questionSnapshot: question ? { ...question } : undefined,
-                    }];
-                }));
-                finalResult = {
-                    ...resultData,
-                    score: grading.score,
-                    correctCount: grading.correctCount,
-                    questionCount: grading.questionCount,
-                    totalQuestions: grading.totalQuestions,
-                    voidedCount: grading.voidedCount,
-                    answers: {
-                        ...practiceAnswers,
-                        _questionOrder: shuffledQuestions.map(q => q.id),
-                    },
-                    validationDetails,
-                    gradingVersion: grading.engineVersion,
-                };
+                    };
+                }
             } else {
                 const savedResult = await onSaveResult(resultData, {
                     accessGrant: accessGrantRef.current || undefined,
@@ -504,3 +553,24 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
         handleStart, handleCodeVerify, handleAnswerChange, handleMatchingClick, handleSubmit, handleRetryReward, isQuestionAnswered
     };
 };
+
+const mapPracticeGradeToStudentResult = (
+    baseResult: StudentResult,
+    grading: PracticeGradeResponse,
+    questionOrder: string[],
+): StudentResult => ({
+    ...baseResult,
+    id: grading.practiceId,
+    score: grading.score,
+    correctCount: grading.correctCount,
+    questionCount: grading.questionCount,
+    totalQuestions: grading.totalQuestions,
+    voidedCount: grading.voidedCount,
+    gradingVersion: grading.gradingVersion,
+    answers: {
+        ...grading.answers,
+        _questionOrder: questionOrder,
+    },
+    validationDetails: [...grading.validationDetails] as StudentResult['validationDetails'],
+    reviewDetails: grading.reviewDetails as StudentResult['reviewDetails'],
+});

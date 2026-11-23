@@ -268,4 +268,100 @@ describe('Canonical scoring browser matrix', () => {
       cy.contains('[object Object]').should('not.exist');
     });
   });
+
+  it('submits a secure practice session to authoritative grading and renders its review', () => {
+    const { correctAnswer: _correctAnswer, ...safeQuestion } = questions[0];
+    const secureQuiz = {
+      ...quiz,
+      id: 'secure-practice-browser',
+      title: 'Luyện tập bảo mật qua Worker',
+      questions: [{ ...safeQuestion, id: 'secure-mcq' }],
+      practiceSession: {
+        version: 'server-v1',
+        token: 'browser-session-token',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+      },
+    };
+    const gradeRequests: Cypress.Request[] = [];
+    let validateCalls = 0;
+    let resultCalls = 0;
+
+    cy.intercept('GET', '**/api/system-settings*', {
+      statusCode: 200,
+      body: { status: 'success', data: { aiAssistantEnabled: false } },
+    });
+    cy.intercept('POST', '**/api/validate', (request) => {
+      validateCalls += 1;
+      request.reply({ statusCode: 500, body: { status: 'error', message: 'Secure practice must not call /api/validate' } });
+    }).as('unexpectedSecureValidate');
+    cy.intercept('POST', '**/api/results', (request) => {
+      resultCalls += 1;
+      request.reply({ statusCode: 500, body: { status: 'error', message: 'Secure practice must not save results' } });
+    }).as('unexpectedSecureResult');
+    cy.intercept('POST', '**/api/practice/grade', (request) => {
+      gradeRequests.push(request);
+      expect(request.body).to.deep.equal({
+        sessionToken: 'browser-session-token',
+        answers: { 'secure-mcq': { type: 'MCQ', optionId: 'option-1' } },
+        questionOrder: ['secure-mcq'],
+      });
+      expect(request.body).not.to.have.any.keys('score', 'correctCount', 'gradingVersion', 'questionSnapshot');
+      request.reply({
+        statusCode: 200,
+        body: {
+          status: 'success', practiceId: 'secure-practice-browser', score: 10,
+          correctCount: 1, questionCount: 1, totalQuestions: 1, voidedCount: 0,
+          gradingVersion: 'server-v1',
+          answers: { 'secure-mcq': { selectedAnswer: 'B', isCorrect: true, status: 'correct' } },
+          validationDetails: [{ questionId: 'secure-mcq', type: 'MCQ', isCorrect: true, status: 'correct' }],
+          reviewDetails: [{
+            questionId: 'secure-mcq', type: 'MCQ', status: 'correct', isCorrect: true,
+            studentAnswer: { kind: 'text', lines: [{ value: '4' }] },
+            correctAnswer: { kind: 'text', lines: [{ value: '4' }] },
+            presentation: {
+              schemaVersion: 1, source: 'submission', type: 'MCQ',
+              items: [{ id: 'option-1', index: 1, state: 'correct', text: '4', selected: true, correct: true }],
+            },
+          }],
+        },
+      });
+    }).as('securePracticeGrade');
+
+    cy.visit('/', { onBeforeLoad: (win) => {
+      Object.defineProperty(win.Math, 'random', {
+        configurable: true,
+        value: () => 0.999999,
+      });
+      win.localStorage.setItem('tohieuquiz-store', JSON.stringify({
+        state: {
+          view: 'student', quizzes: [secureQuiz], selectedQuiz: secureQuiz, quizzesLoadedAt: Date.now(),
+        },
+        version: 0,
+      }));
+    } });
+    cy.contains('Luyện tập bảo mật qua Worker', { timeout: 15_000 }).should('be.visible');
+    cy.get('input[placeholder="Ví dụ: Lò Văn A"]').type('Học sinh secure');
+    cy.get('select').select('4A1');
+    cy.contains('button', 'Bắt đầu làm bài!').click();
+    withinQuestion('secure-mcq', () => cy.get('button').eq(1).click());
+    cy.contains('button', 'Nộp bài').click();
+    cy.contains('Bạn đã hoàn thành tất cả câu hỏi.').should('be.visible');
+    cy.contains('button', 'Đồng ý nộp').click();
+    cy.wait('@securePracticeGrade');
+    cy.then(() => {
+      expect(gradeRequests, 'secure grade requests').to.have.length(1);
+      expect(validateCalls, 'secure /api/validate calls').to.equal(0);
+      expect(resultCalls, 'secure /api/results calls').to.equal(0);
+    });
+    cy.get('[role="dialog"]').within(() => {
+      cy.contains('10/10').should('be.visible');
+      cy.contains('button', 'Xem kết quả').click();
+    });
+    cy.get('#result-summary-title').should('have.text', '10/10');
+    cy.get('[role="tab"]').contains('Xem lại bài').click();
+    cy.get('[data-testid="student-review-option"][data-option-id="option-1"][data-state="correct"]')
+      .should('be.visible')
+      .and('contain.text', '4')
+      .and('contain.text', 'Em chọn · Đúng');
+  });
 });

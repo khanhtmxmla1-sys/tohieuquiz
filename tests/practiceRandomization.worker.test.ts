@@ -34,8 +34,8 @@ class PracticeDb {
 }
 
 const runPractice = async (db: PracticeDb) => handlePracticeRoutes(
-  new Request('https://test/api/practice?topic=Toan&limit=1'),
-  { DB: db } as any,
+  new Request('https://test/api/practice?topic=Toan&limit=1&delivery=server-v1'),
+  { DB: db, JWT_SECRET: 'practice-test-secret' } as any,
   '/api/practice',
   'GET',
 );
