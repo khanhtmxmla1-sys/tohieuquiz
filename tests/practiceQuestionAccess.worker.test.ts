@@ -36,7 +36,8 @@ const createFixture = () => {
       class_level TEXT NOT NULL DEFAULT '',
       require_code TEXT DEFAULT 'FALSE',
       show_on_home TEXT DEFAULT 'TRUE',
-      source_type TEXT NOT NULL DEFAULT 'manual'
+      source_type TEXT NOT NULL DEFAULT 'manual',
+      revision INTEGER NOT NULL DEFAULT 1
     );
     CREATE TABLE questions (
       id TEXT PRIMARY KEY,
@@ -56,6 +57,9 @@ const createFixture = () => {
       image TEXT DEFAULT '',
       svg_content TEXT DEFAULT '',
       svg_alt TEXT DEFAULT '',
+      image_alt TEXT DEFAULT '',
+      difficulty TEXT DEFAULT '',
+      answer_schema_version INTEGER NOT NULL DEFAULT 1,
       tags TEXT DEFAULT ''
     );
     CREATE TABLE assignments (id TEXT PRIMARY KEY, quiz_id TEXT);
@@ -70,7 +74,7 @@ const createFixture = () => {
     CREATE INDEX idx_competition_quiz_snapshots_quiz_created ON competition_quiz_snapshots(quiz_id);
     INSERT INTO system_settings VALUES ('quiz_randomize_practice_selection', 'false');
 
-    INSERT INTO quizzes VALUES
+    INSERT INTO quizzes (id, title, class_level, require_code, show_on_home, source_type) VALUES
       ('public-open', 'Public open', '', 'FALSE', 'TRUE', 'manual'),
       ('public-code', 'Code protected', '', 'TRUE', 'TRUE', 'manual'),
       ('hidden', 'Hidden', '', 'FALSE', 'FALSE', 'manual'),
@@ -117,8 +121,8 @@ const request = (path: string) => new Request(`https://test${path}`);
 const readJson = async (response: Response) => response.json() as Promise<any>;
 
 const runPractice = (db: SqliteD1, query: string) => handlePracticeRoutes(
-  request(`/api/practice${query}`),
-  { DB: db } as any,
+  request(`/api/practice${query.includes('delivery=') ? query : `${query}${query ? '&' : '?'}delivery=server-v1`}`),
+  { DB: db, JWT_SECRET: 'practice-test-secret' } as any,
   '/api/practice',
   'GET',
 );
@@ -138,6 +142,23 @@ afterEach(() => {
 });
 
 describe('public practice question access', () => {
+  it('requires the negotiated secure delivery version before loading questions', async () => {
+    fixture = createFixture();
+    const response = await handlePracticeRoutes(
+      request('/api/practice?topic=Toan&limit=50'),
+      { DB: fixture.db, JWT_SECRET: 'practice-test-secret' } as any,
+      '/api/practice',
+      'GET',
+    );
+
+    expect(response.status).toBe(409);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(await readJson(response)).toMatchObject({
+      status: 'error',
+      code: 'PRACTICE_CLIENT_REFRESH_REQUIRED',
+    });
+  });
+
   it('only returns questions from the explicitly public, unprotected practice pool', async () => {
     fixture = createFixture();
     const response = await runPractice(fixture.db, '?topic=Toan&limit=50');
@@ -146,6 +167,14 @@ describe('public practice question access', () => {
     expect(response.status).toBe(200);
     expect(payload.questions.map((question: any) => question.id)).toEqual(['q-public-toan']);
     expect(JSON.stringify(payload)).not.toContain('SECRET-');
+    expect(JSON.stringify(payload.questions[0])).not.toMatch(
+      /correct(?:_?answer|Answers?)|correctOrder|correctWordIndexes|correctWord|isCorrect|categoryId|rawToken/i,
+    );
+    expect(payload.questions[0]).toMatchObject({
+      id: 'q-public-toan',
+      type: 'MCQ',
+      options: ['A', 'B'],
+    });
   });
 
   it.each([
@@ -259,8 +288,16 @@ describe('public practice question access', () => {
       `?topic=${encodeURIComponent(`#${'x'.repeat(129)}`)}&limit=50`,
     );
 
-    expect((await readJson(trailingNbspSelection)).questions).toHaveLength(0);
-    expect((await readJson(leadingNbspSelection)).questions).toHaveLength(0);
+    expect(trailingNbspSelection.status).toBe(404);
+    expect(leadingNbspSelection.status).toBe(404);
+    expect(await readJson(trailingNbspSelection)).toMatchObject({
+      status: 'error',
+      code: 'PRACTICE_NO_QUESTIONS',
+    });
+    expect(await readJson(leadingNbspSelection)).toMatchObject({
+      status: 'error',
+      code: 'PRACTICE_NO_QUESTIONS',
+    });
     expect(invalidPercentSelection.status).toBe(400);
     expect(invalidStarSelection.status).toBe(400);
     expect(invalidLongSelection.status).toBe(400);

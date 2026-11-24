@@ -1,6 +1,12 @@
+import {
+    PRACTICE_DELIVERY_VERSION,
+    PRACTICE_MAX_GRADE_BODY_BYTES,
+    isPlainRecord,
+    isPracticeGradeRequest,
+} from '../../../shared/practice-grading.contract';
 import { Env } from '../types';
 import { jsonResponse, errorResponse } from '../utils/response';
-import { deserializeQuestionRichText } from '../../../shared/question-rich-text.contract';
+import { rateLimit } from '../middleware/rateLimit';
 import { loadRandomizationPolicy } from '../services/randomizationPolicyService';
 import {
     extractPracticeTags,
@@ -8,14 +14,81 @@ import {
     parsePracticeLimit,
     PUBLIC_PRACTICE_SOURCE_SCOPE_SQL,
 } from '../services/practiceQuestionScope';
+import {
+    loadPracticeSelection,
+    mapPracticeSourceRow,
+    PracticeGradingError,
+    gradePracticeSubmission,
+} from '../services/practiceGrading';
+import {
+    derivePracticeDtoContext,
+    fingerprintPracticeQuestionRow,
+    signPracticeSession,
+} from '../services/practiceSession';
+import { toPracticeQuestionDto } from '../services/practicePresentation';
+
+const noStoreJson = <T>(data: T, status = 200): Response => {
+    const response = jsonResponse(data, status);
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', 'no-store');
+    return new Response(response.body, { status: response.status, headers });
+};
+
+const noStoreResponse = (response: Response): Response => {
+    const headers = new Headers(response.headers);
+    headers.set('Cache-Control', 'no-store');
+    return new Response(response.body, { status: response.status, headers });
+};
+
+const practiceError = (code: string, message: string, status: number): Response => noStoreJson({
+    status: 'error',
+    code,
+    message,
+}, status);
+
+const parseGradeBody = async (request: Request): Promise<Record<string, unknown> | null> => {
+    const declaredLength = Number(request.headers.get('content-length'));
+    if (Number.isFinite(declaredLength) && declaredLength > PRACTICE_MAX_GRADE_BODY_BYTES) return null;
+    const body = request.body;
+    if (!body) return null;
+    const reader = body.getReader();
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!value || value.byteLength === 0) continue;
+            totalBytes += value.byteLength;
+            if (totalBytes > PRACTICE_MAX_GRADE_BODY_BYTES) {
+                await reader.cancel();
+                return null;
+            }
+            chunks.push(value);
+        }
+    } finally {
+        reader.releaseLock();
+    }
+    const bytes = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
+    try {
+        const parsed = JSON.parse(new TextDecoder().decode(bytes));
+        return isPlainRecord(parsed) ? parsed : null;
+    } catch {
+        return null;
+    }
+};
 
 export async function handlePracticeRoutes(request: Request, env: Env, path: string, method: string): Promise<Response> {
     const db = env.DB;
 
-    // GET /api/practice/topics - List all unique topics (from tags column)
+    // GET /api/practice/topics - List all unique topics from the public pool.
     if (path === '/api/practice/topics' && method === 'GET') {
         try {
-            // Only expose topics from the same public, unprotected pool used below.
             const rows = await db.prepare(`
                 SELECT q.tags
                 ${PUBLIC_PRACTICE_SOURCE_SCOPE_SQL}
@@ -23,24 +96,11 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
                   AND q.tags != ''
             `).all<{ tags: string }>();
 
-            // Because one question could have multiple tags separated by commas or spaces, we need to process them
             const topicMap = new Map<string, number>();
-
             rows.results.forEach((row: any) => {
-                if (row.tags) {
-                    const tagsArray = extractPracticeTags(row.tags);
-                    const uniqueTagsInQuestion = new Set<string>();
-
-                    tagsArray.forEach((tag: string) => {
-                        const trimmed = tag.trim();
-                        if (trimmed) uniqueTagsInQuestion.add(trimmed);
-                    });
-
-                    // Update count for each unique tag in this question
-                    uniqueTagsInQuestion.forEach(tag => {
-                        topicMap.set(tag, (topicMap.get(tag) || 0) + 1);
-                    });
-                }
+                if (!row.tags) return;
+                const uniqueTagsInQuestion = new Set(extractPracticeTags(row.tags));
+                uniqueTagsInQuestion.forEach((tag) => topicMap.set(tag, (topicMap.get(tag) || 0) + 1));
             });
 
             const uniqueTopics = Array.from(topicMap.entries())
@@ -54,122 +114,117 @@ export async function handlePracticeRoutes(request: Request, env: Env, path: str
         }
     }
 
-    // GET /api/practice - Fetch random questions for a specific topic
-    // Expects ?topic=#Phép_Nhân
-    if (path === '/api/practice' && method === 'GET') {
+    if (path === '/api/practice/grade' && method === 'POST') {
+        // Public practice is guest-facing and commonly used from one shared
+        // classroom egress IP. Keep abuse protection while allowing normal
+        // classrooms to submit a full set of short sessions per minute.
+        const rateLimitResponse = await rateLimit(request, env, {
+            windowMs: 60 * 1000,
+            maxRequests: 120,
+            failureMode: 'closed',
+        });
+        if (rateLimitResponse) return noStoreResponse(rateLimitResponse);
+
+        const body = await parseGradeBody(request);
+        if (!body || !isPracticeGradeRequest(body)) {
+            return practiceError('PRACTICE_REQUEST_INVALID', 'Practice grade request is invalid.', 400);
+        }
         try {
-            const url = new URL(request.url);
+            const result = await gradePracticeSubmission({
+                db,
+                jwtSecret: env.JWT_SECRET,
+                sessionToken: body.sessionToken,
+                answers: body.answers,
+                questionOrder: body.questionOrder,
+            });
+            return noStoreJson(result);
+        } catch (error) {
+            if (error instanceof PracticeGradingError) {
+                return practiceError(error.code, error.message, error.status);
+            }
+            console.error('[POST /api/practice/grade] Error:', error instanceof Error ? error.message : 'unknown');
+            return practiceError('PRACTICE_GRADING_UNAVAILABLE', 'Practice grading is temporarily unavailable.', 503);
+        }
+    }
+
+    // Secure practice is versioned. An old browser must refresh before it can
+    // receive any question payload; the legacy route never runs here.
+    if (path === '/api/practice' && method === 'GET') {
+        const url = new URL(request.url);
+        if (url.searchParams.get('delivery') !== PRACTICE_DELIVERY_VERSION) {
+            return practiceError(
+                'PRACTICE_CLIENT_REFRESH_REQUIRED',
+                'This practice client must refresh before starting a secure practice session.',
+                409,
+            );
+        }
+
+        try {
             const topic = normalizePracticeTopic(url.searchParams.get('topic'));
             const limit = parsePracticeLimit(url.searchParams.get('limit'));
-
-            if (!topic) {
-                return errorResponse('Missing topic parameter', 400);
-            }
-            if (limit === null) {
-                return errorResponse('Invalid limit parameter', 400);
-            }
+            if (!topic) return practiceError('PRACTICE_TOPIC_INVALID', 'Missing or invalid topic parameter.', 400);
+            if (limit === null) return practiceError('PRACTICE_LIMIT_INVALID', 'Invalid limit parameter.', 400);
 
             const randomizationPolicy = await loadRandomizationPolicy(db);
-            const questionOrder = randomizationPolicy.randomizePracticeSelection ? 'RANDOM()' : 'q.rowid ASC';
-
-            const rows = await db.prepare(
-                `SELECT q.id, q.quiz_id, q.type, q.question, q.question_rich_text, q.options, q.correct_answer, q.items, q.text_field, q.blanks, q.distractors, q.sentence, q.words, q.correct_word_indexes, q.image, q.svg_content, q.svg_alt, q.tags
-                 ${PUBLIC_PRACTICE_SOURCE_SCOPE_SQL}
-                   AND INSTR(
-                     ',' || REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(q.tags, ''), ' ', ','), char(9), ','), char(10), ','), char(13), ',') || ',',
-                     ',' || ? || ','
-                   ) > 0
-                 ORDER BY ${questionOrder}
-                 LIMIT ?`
-            ).bind(topic, limit).all<import('../types').Question>();
-
-            // Map D1 snake_case and JSON string fields to frontend camelCase objects
-            const mappedQuestions = rows.results.map((q: any) => {
-                const parsed = { ...q };
-                const questionRichText = deserializeQuestionRichText(q.question_rich_text ?? q.questionRichText);
-                delete parsed.question_rich_text;
-                delete parsed.questionRichText;
-                if (questionRichText) parsed.questionRichText = questionRichText;
-                if (typeof q.items === 'string') try { parsed.items = JSON.parse(q.items); } catch { }
-                if (typeof q.pairs === 'string') try { parsed.pairs = JSON.parse(q.pairs); } catch { }
-                if (typeof q.categories === 'string') try { parsed.categories = JSON.parse(q.categories); } catch { }
-                if (typeof q.blanks === 'string') try { parsed.blanks = JSON.parse(q.blanks); } catch { }
-                if (typeof q.distractors === 'string') try { parsed.distractors = JSON.parse(q.distractors); } catch { }
-                if (typeof q.options === 'string') parsed.options = q.options.split('|');
-                if (typeof q.correctAnswers === 'string') try { parsed.correctAnswers = JSON.parse(q.correctAnswers); } catch { }
-                if (typeof q.letters === 'string') try { parsed.letters = JSON.parse(q.letters); } catch { }
-                if (typeof q.riddleLines === 'string') try { parsed.riddleLines = JSON.parse(q.riddleLines); } catch { }
-                if (typeof q.words === 'string') try { parsed.words = JSON.parse(q.words); } catch { }
-                if (typeof q.correctWordIndexes === 'string') try { parsed.correctWordIndexes = JSON.parse(q.correctWordIndexes); } catch { }
-                if (typeof q.correctOrder === 'string') try { parsed.correctOrder = JSON.parse(q.correctOrder); } catch { }
-                if (typeof q.optionImages === 'string') try { parsed.optionImages = JSON.parse(q.optionImages); } catch { }
-
-                // Map legacy/snake_case fields to frontend expected fields
-                parsed.quizId = parsed.quiz_id;
-                parsed.correctAnswer = parsed.correct_answer;
-                parsed.mainQuestion = parsed.question;
-                parsed.correctWord = parsed.correct_word;
-                parsed.text = parsed.text_field;
-                parsed.sentence = parsed.sentence || parsed.text_field || ""; // Found missing mapping
-                parsed.explanation = parsed.explanation || "";
-                parsed.audio = parsed.audio || "";
-                parsed.svgContent = parsed.svgContent || parsed.svg_content || undefined;
-                parsed.svgAlt = parsed.svgAlt || parsed.svg_alt || undefined;
-                parsed.svgVersion = parsed.svgContent && parsed.svgAlt ? 1 : undefined;
-
-                const qType = parsed.type;
-                if (qType === 'IMAGE_QUESTION') {
-                    parsed.optionImages = parsed.optionImages || parsed.distractors || [];
-                } else if (qType === 'UNDERLINE') {
-                    // Critical Fix for Underline
-                    parsed.words = parsed.words || parsed.items || [];
-                    if (parsed.words.length === 0 && parsed.sentence) {
-                        // Fallback: Split sentence into words if words array is empty
-                        parsed.words = parsed.sentence.split(/\s+/).filter((w: string) => w.length > 0);
-                    }
-                    let parsedIndexes = [];
-                    try {
-                        parsedIndexes = typeof parsed.correctAnswer === 'string' ? JSON.parse(parsed.correctAnswer) : (parsed.correctWordIndexes || parsed.correctAnswer);
-                    } catch (e) { }
-                    parsed.correctWordIndexes = Array.isArray(parsedIndexes) ? parsedIndexes : [];
-                } else if (qType === 'MATCHING') {
-                    // Critical Fix for Matching
-                    parsed.pairs = parsed.pairs || parsed.items || [];
-                    // Ensure pairs is an array of objects {left, right}
-                    if (Array.isArray(parsed.pairs) && parsed.pairs.length > 0 && typeof parsed.pairs[0] === 'string') {
-                        // Sometimes items is a flat mixed array, but QuestionRenderer expects objects
-                        // This usually shouldn't happen with modern schema but good to have
-                    }
-                } else if (qType === 'RIDDLE') {
-                    parsed.riddleLines = parsed.riddleLines || parsed.items || [];
-                    parsed.answerLabel = parsed.answerLabel || parsed.text || '';
-                    parsed.hint = parsed.hint || parsed.sentence || '';
-                } else if (qType === 'CATEGORIZATION') {
-                    parsed.categories = parsed.categories || parsed.distractors || [];
-                    parsed.items = parsed.items || [];
-                } else if (qType === 'WORD_SCRAMBLE') {
-                    parsed.letters = parsed.letters || parsed.items || [];
-                }
-
-                return parsed;
+            const sourceRows = await loadPracticeSelection({
+                db,
+                topic,
+                limit,
+                randomize: randomizationPolicy.randomizePracticeSelection,
             });
+            if (sourceRows.length === 0) {
+                return practiceError('PRACTICE_NO_QUESTIONS', 'No practice questions are available for this topic.', 404);
+            }
 
-            // Construct a virtual quiz payload required by TakeQuizUI (it expects full quiz + questions)
+            const practiceId = `practice_${crypto.randomUUID()}`;
+            const sessionId = crypto.randomUUID();
+            const selected = await Promise.all(sourceRows.map(async (row) => ({
+                questionId: String(row.id ?? ''),
+                quizId: String(row.quiz_id ?? ''),
+                revision: Number(row.quiz_revision ?? 1),
+                fingerprint: await fingerprintPracticeQuestionRow(row, env.JWT_SECRET),
+            })));
+            if (selected.some((reference) => !reference.questionId || !reference.quizId
+                || !Number.isSafeInteger(reference.revision) || reference.revision < 0)) {
+                return practiceError('PRACTICE_QUESTION_INVALID', 'Practice questions are temporarily unavailable.', 503);
+            }
+
+            const practiceSession = await signPracticeSession({
+                jwtSecret: env.JWT_SECRET,
+                sessionId,
+                practiceId,
+                selected,
+            });
+            const questions = await Promise.all(sourceRows.map(async (row) => {
+                const sourceQuestion = mapPracticeSourceRow(row);
+                const context = await derivePracticeDtoContext({
+                    jwtSecret: env.JWT_SECRET,
+                    sessionId,
+                    quizId: String(row.quiz_id ?? ''),
+                    revision: Number(row.quiz_revision ?? 1),
+                });
+                const dto = await toPracticeQuestionDto(sourceQuestion, context);
+                return {
+                    ...dto,
+                    quizId: String(row.quiz_id ?? ''),
+                };
+            }));
+
             const virtualQuiz = {
-                id: `practice_${new Date().getTime()}`,
+                id: practiceId,
                 title: `Ôn tập: ${topic.replace('#', '').replace(/_/g, ' ')}`,
                 classLevel: 'Tự do',
                 category: 'Luyện tập',
-                timeLimit: 0, // No time limit for practice
-                isPractice: true, // Flag for frontend logic
+                timeLimit: 0,
+                isPractice: true,
                 createdAt: new Date().toISOString(),
-                questions: mappedQuestions
+                practiceSession,
+                questions,
             };
-
-            return jsonResponse(virtualQuiz);
-        } catch (error: any) {
-            console.error('[GET /api/practice] Error:', error.message);
-            return errorResponse('Failed to fetch practice quiz');
+            return noStoreJson(virtualQuiz);
+        } catch (error) {
+            console.error('[GET /api/practice] Error:', error instanceof Error ? error.message : 'unknown');
+            return practiceError('PRACTICE_UNAVAILABLE', 'Practice questions are temporarily unavailable.', 503);
         }
     }
 

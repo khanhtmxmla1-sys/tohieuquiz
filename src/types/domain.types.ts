@@ -2,6 +2,7 @@ import type { QuestionSkillMetadataFields } from '../shared/skillTaxonomy';
 import type { AiQuestionQualityPersistedSummary } from '../../shared/ai-question-quality.contract';
 import type { QuestionRichTextEnvelopeV1 } from '../../shared/question-rich-text.contract';
 import type { QuestionAnswerReview } from '../domain/quiz-scoring';
+import type { PracticeSessionEnvelope } from '../../shared/practice-grading.contract';
 
 /**
  * Domain Types
@@ -342,6 +343,8 @@ export interface Quiz {
     requireCode?: boolean; // Whether to require code to start quiz
     showOnHome?: boolean; // Whether to show on HomePage library
     isPractice?: boolean; // Whether this quiz is in practice mode
+    /** Secure public-practice selection capability, present only for server-v1 loads. */
+    practiceSession?: PracticeSessionEnvelope;
     aiGeneration?: QuizAiGenerationMetadata;
     sourceType?: 'manual' | 'ai' | 'word_import' | 'excel_import' | 'question_bank' | 'template' | 'duplicated';
     parentQuizId?: string | null;

@@ -48,8 +48,8 @@ describe('question rich-text explicit read paths', () => {
     it('selects and maps question_rich_text in practice quizzes', async () => {
         const db = new FakeDb();
         const response = await handlePracticeRoutes(
-            new Request('https://test/api/practice?topic=Toan&limit=1'),
-            { DB: db } as any,
+            new Request('https://test/api/practice?topic=Toan&limit=1&delivery=server-v1'),
+            { DB: db, JWT_SECRET: 'question-rich-text-practice-test-secret' } as any,
             '/api/practice',
             'GET',
         );
