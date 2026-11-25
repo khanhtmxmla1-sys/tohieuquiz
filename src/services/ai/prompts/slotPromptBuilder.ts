@@ -1,5 +1,5 @@
 import type { QuizBlueprintV3, QuestionBlueprintSlot } from '../../../features/quiz-generator/domain/quizBlueprint';
-import type { QuizGenerationOptions } from '../../geminiService';
+import type { QuizGenerationOptions } from '../aiProvider.types';
 import type { QuestionContractContext } from '../question-contracts/questionContract.types';
 import { getSelectedContractPromptFragments } from '../question-contracts/questionContractRegistry';
 import { buildSvgDiagramPolicyPrompt } from './svgDiagramPolicyPrompt';

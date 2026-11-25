@@ -11,7 +11,7 @@ import type {
   AnnouncementAdminPresetFilter,
   AnnouncementAdminStatusFilter,
 } from './announcementAdminSelectors';
-import type { AnnouncementStatus } from './AnnouncementComposer';
+import type { AnnouncementStatus } from './announcementDraft';
 
 interface AnnouncementListToolbarProps {
   filter: AnnouncementAdminFilter;

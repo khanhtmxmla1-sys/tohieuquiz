@@ -3,7 +3,7 @@
  * Remote OCR always goes through the authenticated Cloudflare Worker.
  */
 
-import type { AIProvider } from '../geminiService';
+import type { AIProvider } from './aiProvider.types';
 import type { QuizAiExecutionContext } from './aiAction';
 import { parseOcrDocument, type OcrDocument } from './schemas/ocrDocumentSchema';
 import { parseAndRepairJSON } from './utils/jsonRepair';

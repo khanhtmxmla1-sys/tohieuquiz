@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, CalendarClock, Users } from 'lucide-react';
 import { ANNOUNCEMENT_AUDIENCE_META } from './announcementAdminMeta';
-import type { AnnouncementDraft } from './AnnouncementComposer';
+import type { AnnouncementDraft } from './announcementDraft';
 
 interface AnnouncementPublishDialogProps {
   draft: AnnouncementDraft;

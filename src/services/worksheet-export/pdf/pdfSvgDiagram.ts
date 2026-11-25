@@ -1,11 +1,8 @@
 import { sanitizeSvgDiagram } from '../../../../shared/svgDiagramSanitizer';
 import { ensurePdfSpace } from './pdfLayout';
-import { PDF_MARGIN, type PdfRenderContext } from './pdfTypes';
+import { PDF_MARGIN, type PdfRenderContext, type PdfSvgDiagramImage } from './pdfTypes';
 
-export interface PdfSvgDiagramImage {
-    dataUrl: string;
-    aspectRatio: number;
-}
+export type { PdfSvgDiagramImage } from './pdfTypes';
 
 const MAX_RASTER_WIDTH = 1_600;
 const MAX_RASTER_HEIGHT = 1_200;

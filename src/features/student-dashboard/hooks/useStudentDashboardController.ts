@@ -9,7 +9,7 @@ import {
 import { useClassroomStore } from '@/src/stores/useClassroomStore';
 import { useHomeworkStore } from '@/src/features/homework/stores/useHomeworkStore';
 import type { HomeworkAssignment } from '@/src/features/homework/types';
-import type { StudentDashboardSection } from '../components/content.types';
+import type { StudentDashboardSection } from '../model/studentDashboardSection';
 import { useStudentAccount } from './useStudentAccount';
 import { useStudentAssignments } from './useStudentAssignments';
 import { useStudentAttendance } from './useStudentAttendance';

@@ -1,4 +1,4 @@
-import type { AnnouncementDraft } from './AnnouncementComposer';
+import type { AnnouncementDraft } from './announcementDraft';
 
 export type AnnouncementPresetId = 'TICKER' | 'BANNER' | 'URGENT';
 

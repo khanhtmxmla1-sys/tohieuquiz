@@ -3,7 +3,7 @@
  * Builds the full prompt sent to AI providers for quiz generation.
  */
 
-import type { QuizGenerationOptions } from '../../geminiService';
+import type { QuizGenerationOptions } from '../aiProvider.types';
 import { buildPromptV3 as buildPromptV3Internal } from './slotPromptBuilder';
 import { buildSvgDiagramPolicyPrompt } from './svgDiagramPolicyPrompt';
 export { buildPromptV3 } from './slotPromptBuilder';

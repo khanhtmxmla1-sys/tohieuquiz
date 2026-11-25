@@ -1,6 +1,6 @@
 import React from 'react';
+export { StudentView } from './studentViewLazy';
 
-export const StudentView = React.lazy(() => import('../components/StudentView'));
 export const TeacherDashboard = React.lazy(() => import('../components/TeacherDashboard'));
 export const TeacherResultDetailPage = React.lazy(() => import('../components/TeacherDashboard/TeacherResultDetailPage'));
 export const GiftShop = React.lazy(() => import('../components/gamification/GiftShop'));

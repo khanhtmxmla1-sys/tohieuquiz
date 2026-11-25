@@ -10,7 +10,7 @@
 import React, { useState } from 'react';
 import { Edit3, Trash2, Sparkles, Loader2, RefreshCw, BookmarkPlus, Check } from 'lucide-react';
 import type { Question } from '../../../../types';
-import { supportsDistractors } from '../../index';
+import { supportsDistractors } from '../../utils/questionHelpers';
 
 interface QuestionCardActionsProps {
     question: Question;

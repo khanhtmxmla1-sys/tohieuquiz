@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { useQuizStore } from '../../stores/quizStore';
 import { PageLoading } from './PageLoading';
-import { StudentView } from './lazyViews';
+import { StudentView } from './studentViewLazy';
 
 export const StudentQuizView: React.FC = () => {
     const quizStore = useQuizStore();

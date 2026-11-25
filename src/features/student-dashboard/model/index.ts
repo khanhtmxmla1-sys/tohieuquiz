@@ -4,3 +4,4 @@ export * from './attendanceTypes';
 export * from './dashboardConstants';
 export * from './practiceCatalogModel';
 export * from './rewardModel';
+export * from './studentDashboardSection';
