@@ -1,4 +1,4 @@
-import type { StudentDashboardSection } from '../features/student-dashboard/components/content.types';
+import type { StudentDashboardSection } from '../features/student-dashboard/model/studentDashboardSection';
 import type { TeacherDashboardTab } from '../stores/useTeacherDashboardUIStore';
 
 const TEACHER_ROUTE_BY_TAB: Record<TeacherDashboardTab, string> = {

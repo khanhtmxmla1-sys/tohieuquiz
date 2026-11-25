@@ -1,5 +1,5 @@
 import type { AnnouncementChannel } from '../../../../shared/notifications.contract';
-import type { AnnouncementAudience, AnnouncementStatus } from './AnnouncementComposer';
+import type { AnnouncementAudience, AnnouncementStatus } from './announcementDraft';
 
 export type AnnouncementAdminTone = 'slate' | 'blue' | 'emerald' | 'amber' | 'red' | 'violet';
 

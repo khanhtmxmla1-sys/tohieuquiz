@@ -2,7 +2,7 @@ import React from 'react';
 import { CalendarClock, Eye, Monitor, Smartphone, Users } from 'lucide-react';
 import { formatSystemDateTime, systemDateTimeLocalToIso } from '../../../utils/dateTime';
 import { ANNOUNCEMENT_AUDIENCE_META, ANNOUNCEMENT_PRESET_META } from './announcementAdminMeta';
-import type { AnnouncementDraft } from './AnnouncementComposer';
+import type { AnnouncementDraft } from './announcementDraft';
 import { AnnouncementPreview } from './AnnouncementPreview';
 import { inferAnnouncementPreset } from './announcementPresets';
 import type { NotificationSurface } from '../selectAnnouncements';

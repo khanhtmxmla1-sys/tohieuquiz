@@ -4,8 +4,9 @@ import type { StudentAssignmentsController } from '../hooks/useStudentAssignment
 import type { StudentAttendanceController } from '../hooks/useStudentAttendance';
 import type { StudentPracticeCatalogController } from '../hooks/useStudentPracticeCatalog';
 import type { StudentRewardsController } from '../hooks/useStudentRewards';
+import type { StudentDashboardSection } from '../model/studentDashboardSection';
 
-export type StudentDashboardSection = 'dashboard' | 'achievements' | 'resultReports' | 'competition';
+export type { StudentDashboardSection } from '../model/studentDashboardSection';
 
 export interface StudentDashboardContentProps {
   studentSession: StudentSession;

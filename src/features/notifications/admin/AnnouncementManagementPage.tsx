@@ -6,11 +6,13 @@ import { systemDateTimeLocalToIso } from '../../../utils/dateTime';
 import { showError, showSuccess } from '../../../utils/toast';
 import {
   AnnouncementComposer,
+} from './AnnouncementComposer';
+import {
   createEmptyAnnouncementDraft,
   type AnnouncementAudience,
   type AnnouncementDraft,
   type AnnouncementStatus,
-} from './AnnouncementComposer';
+} from './announcementDraft';
 import { AnnouncementEmptyState } from './AnnouncementEmptyState';
 import {
   AnnouncementLifecycleDialog,

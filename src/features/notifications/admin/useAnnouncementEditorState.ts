@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AnnouncementDraft } from './AnnouncementComposer';
+import type { AnnouncementDraft } from './announcementDraft';
 import { announcementDraftsEqual } from './announcementDraftUtils';
 
 export type AnnouncementEditorMode = 'closed' | 'create' | 'edit' | 'readonly';

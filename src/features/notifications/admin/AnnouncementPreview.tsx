@@ -6,7 +6,7 @@ import {
   InFlowAnnouncementBanner,
 } from '../components';
 import type { NotificationSurface } from '../selectAnnouncements';
-import type { AnnouncementDraft } from './AnnouncementComposer';
+import type { AnnouncementDraft } from './announcementDraft';
 
 interface AnnouncementPreviewProps {
   draft: AnnouncementDraft;

@@ -6,7 +6,6 @@
 import { REVIEWER_INSTRUCTION } from '../config/constants';
 import { z } from 'zod';
 import { generateImage, checkImageServiceAvailability } from './imageGenerationService';
-import { QuestionType } from '../types';
 import { parseAndRepairJSON, validateAndFixQuiz } from './ai/utils/jsonRepair';
 import { buildPrompt } from './ai/prompts/quizPromptBuilder';
 import { buildGeneratorSystemPrompt } from './ai/prompts/systemPromptBuilder';
@@ -54,15 +53,21 @@ import type {
 } from './ai/question-contracts/questionContract.types';
 import { mapGeneratedQuizV3ToDomain } from './ai/quizDomainAdapter';
 import { processGeneratedQuizSvg } from './ai/svgDiagramProcessing';
+import type {
+  AIProvider,
+  LearnerPromptMode,
+  PromptProfileOptions,
+  QuizGenerationOptions,
+  QuizGenerationStep,
+} from './ai/aiProvider.types';
 
-export type AIProvider = 'gemini' | 'perplexity' | 'openai' | 'llm-mux' | 'localhost' | 'native-ocr' | 'gemini-personal' | 'deepseek-personal';
-export type LearnerPromptMode = 'default' | 'gifted' | 'remedial';
-export type QuizGenerationStep = 'generating' | 'reviewing' | 'repairing' | 'completed';
-
-export interface PromptProfileOptions {
-  useThongTu27: boolean;
-  learnerMode: LearnerPromptMode;
-}
+export type {
+  AIProvider,
+  LearnerPromptMode,
+  PromptProfileOptions,
+  QuizGenerationOptions,
+  QuizGenerationStep,
+} from './ai/aiProvider.types';
 
 export const AI_CORE_SUBJECT_IDS = [
   'toan',
@@ -71,21 +76,6 @@ export const AI_CORE_SUBJECT_IDS = [
   'tu-nhien-xa-hoi',
   'tin-hoc',
 ] as const;
-
-export interface QuizGenerationOptions {
-  title: string;
-  blueprint?: QuizBlueprint;
-  blueprintV3?: QuizBlueprintV3;
-  promptVersion?: 'ai-blueprint-v3';
-  questionCount: number;
-  questionTypes: QuestionType[];
-  difficultyLevels?: { level1: number; level2: number; level3: number };
-  promptProfile?: PromptProfileOptions;
-  imageLibrary?: Array<{ id: string; name: string; data?: string }>;
-  customPrompt?: string;
-  isPdfMode?: boolean;
-  diagramMode?: DiagramGenerationMode;
-}
 
 const toWorkerOptions = (execution?: QuizAiExecutionContext) => execution ? {
   ...(execution.action.source ? { source: execution.action.source } : {}),

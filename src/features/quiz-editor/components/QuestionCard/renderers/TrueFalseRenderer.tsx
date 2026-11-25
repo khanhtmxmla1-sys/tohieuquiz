@@ -5,7 +5,7 @@
 import React from 'react';
 import type { TrueFalseQuestion } from '../../../../../types';
 import { NewlineMathText } from '../../../../../components/common';
-import { toBoolean, normalizeTrueFalseItems } from '../../../';
+import { toBoolean, normalizeTrueFalseItems } from '../../../utils/questionNormalizers';
 
 interface TrueFalseRendererProps {
     question: TrueFalseQuestion;

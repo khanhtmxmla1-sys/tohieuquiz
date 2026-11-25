@@ -1,6 +1,6 @@
 import { systemDateTimeLocalToIso, toSystemDateTimeLocal } from '../../../utils/dateTime';
 import type { AnnouncementChannel, NotificationPriority } from '../../../../shared/notifications.contract';
-import type { AnnouncementAudience, AnnouncementDraft, AnnouncementStatus } from './AnnouncementComposer';
+import type { AnnouncementAudience, AnnouncementDraft, AnnouncementStatus } from './announcementDraft';
 
 export interface AnnouncementDraftSource {
   id: string;

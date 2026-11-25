@@ -1,4 +1,4 @@
-import type { AIProvider } from '../../geminiService';
+import type { AIProvider } from '../aiProvider.types';
 
 export interface AiProviderCapabilities {
   provider: AIProvider;

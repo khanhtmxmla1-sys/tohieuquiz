@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Link2, Plus } from 'lucide-react';
-import type { AnnouncementDraft } from './AnnouncementComposer';
+import type { AnnouncementDraft } from './announcementDraft';
 import type { AnnouncementDraftErrors } from './validateAnnouncementDraft';
 import type { AnnouncementPresetId } from './announcementPresets';
 

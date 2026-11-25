@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp, Clock3, Users } from 'lucide-react';
 import type { AnnouncementChannel, NotificationPriority } from '../../../../shared/notifications.contract';
 import { formatSystemDateTime, systemDateTimeLocalToIso, toSystemDateTimeLocal } from '../../../utils/dateTime';
 import { ANNOUNCEMENT_AUDIENCE_META } from './announcementAdminMeta';
-import type { AnnouncementDraft } from './AnnouncementComposer';
+import type { AnnouncementDraft } from './announcementDraft';
 import { addHoursToAnnouncementLocal } from './announcementSchedule';
 import type { AnnouncementDraftErrors } from './validateAnnouncementDraft';
 

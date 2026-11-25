@@ -1,5 +1,5 @@
 import { isSafeNotificationActionUrl } from '../../../../shared/notifications.contract';
-import type { AnnouncementDraft } from './AnnouncementComposer';
+import type { AnnouncementDraft } from './announcementDraft';
 
 export type AnnouncementDraftErrors = Partial<Record<
   'content' | 'channels' | 'bannerLink' | 'startsAt' | 'endsAt',

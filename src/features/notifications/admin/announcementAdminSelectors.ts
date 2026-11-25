@@ -1,6 +1,6 @@
 import type { AnnouncementChannel, NotificationPriority } from '../../../../shared/notifications.contract';
 import { formatSystemDateTime } from '../../../utils/dateTime';
-import type { AnnouncementAudience, AnnouncementStatus } from './AnnouncementComposer';
+import type { AnnouncementAudience, AnnouncementStatus } from './announcementDraft';
 import type { AnnouncementAdminPreset } from './announcementAdminMeta';
 
 export interface AnnouncementAdminListItem {

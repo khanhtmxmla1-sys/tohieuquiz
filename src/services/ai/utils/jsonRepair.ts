@@ -4,7 +4,7 @@
  * Also handles LaTeX formatting fixes within question text fields.
  */
 
-import type { AIProvider } from '../../geminiService';
+import type { AIProvider } from '../aiProvider.types';
 import { normalizeMathText } from '../../../utils/mathText';
 import { normalizeQuestionMath } from '../../../utils/questionMath';
 

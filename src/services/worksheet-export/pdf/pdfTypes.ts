@@ -1,7 +1,11 @@
 import type jsPDF from 'jspdf';
 import type { WorksheetExportOptions } from '../types';
-import type { PdfSvgDiagramImage } from './pdfSvgDiagram';
 import type { WorksheetImageAssetMap } from '../shared/media';
+
+export interface PdfSvgDiagramImage {
+    dataUrl: string;
+    aspectRatio: number;
+}
 
 export const PDF_MARGIN = 15;
 export const PDF_GRID_SIZE = 5;
