@@ -717,6 +717,72 @@ describe('Competition V1 admin and teacher dashboard surface', () => {
     })));
   });
 
+  it('does not let a stale campaign response overwrite the current selection', async () => {
+    let resolveFirstRounds: ((value: unknown) => void) | undefined;
+    let resolveSecondRounds: ((value: unknown) => void) | undefined;
+    const firstRounds = new Promise(resolve => { resolveFirstRounds = resolve; });
+    const secondRounds = new Promise(resolve => { resolveSecondRounds = resolve; });
+    api.callApi.mockImplementation(async (action: string, payload?: { campaignId?: string }) => {
+      if (action === 'list_competitions') return {
+        items: [
+          { id: 'campaign-first', title: 'Cuộc thi đầu', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh', status: 'ACTIVE' },
+          { id: 'campaign-second', title: 'Cuộc thi sau', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh', status: 'ACTIVE' },
+        ],
+      };
+      if (action === 'get_competition_rounds') return payload?.campaignId === 'campaign-first' ? firstRounds : secondRounds;
+      if (action === 'get_competition_eligibility') return { campaignId: payload?.campaignId, version: 1, items: [] };
+      if (action === 'list_school_exam_events') return { items: [] };
+      if (action === 'list_competition_school_exam_admissions') return { items: [], approvedCount: 0, version: 1 };
+      return { items: [] };
+    });
+
+    render(<CompetitionDashboardPage isAdmin username="admin" />);
+    expect(await screen.findByRole('option', { name: 'Cuộc thi sau' })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Chiến dịch'), { target: { value: 'campaign-second' } });
+    resolveSecondRounds?.({ items: [{ id: 'round-second', roundNumber: 1, status: 'CLOSED', maxAttempts: 2, passingScore: 6 }] });
+    expect(await screen.findByText('CLOSED')).toBeInTheDocument();
+    resolveFirstRounds?.({ items: [{ id: 'round-first', roundNumber: 1, status: 'OPEN', maxAttempts: 2, passingScore: 6 }] });
+    await waitFor(() => expect(screen.getByText('CLOSED')).toBeInTheDocument());
+    expect(screen.queryByText('OPEN')).not.toBeInTheDocument();
+  });
+
+  it('keeps successful detail domains visible when one allSettled request fails', async () => {
+    api.callApi.mockImplementation(async (action: string) => {
+      if (action === 'list_competitions') return { items: [{ id: 'campaign-partial', title: 'Cuộc thi một phần', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh', status: 'ACTIVE' }] };
+      if (action === 'get_competition_rounds') throw new Error('rounds unavailable');
+      if (action === 'get_competition_eligibility') return { campaignId: 'campaign-partial', version: 7, items: [] };
+      if (action === 'list_school_exam_events') return { items: [] };
+      if (action === 'list_competition_school_exam_admissions') return { campaignId: 'campaign-partial', version: 1, approvedCount: 0, items: [] };
+      return { items: [] };
+    });
+    render(<CompetitionDashboardPage isAdmin username="admin" />);
+    expect((await screen.findAllByText('Cuộc thi một phần')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('CHƯA CẤU HÌNH')).length).toBeGreaterThan(0);
+    expect(screen.getByText('Snapshot version 7')).toBeInTheDocument();
+    expect(screen.queryByText('Không tải được dữ liệu vận hành cuộc thi.')).not.toBeInTheDocument();
+  });
+
+  it('locks the audience preview action while its request is pending', async () => {
+    let resolvePreview: ((value: unknown) => void) | undefined;
+    const preview = new Promise(resolve => { resolvePreview = resolve; });
+    api.callApi.mockImplementation(async (action: string) => {
+      if (action === 'list_competitions') return { items: [{ id: 'campaign-draft', title: 'Cuộc thi DRAFT', schoolYear: '2026-2027', timezone: 'Asia/Ho_Chi_Minh', status: 'DRAFT' }] };
+      if (action === 'get_competition_rounds' || action === 'list_school_exam_events') return { items: [] };
+      if (action === 'get_competition_eligibility') return { campaignId: 'campaign-draft', version: 1, items: [] };
+      if (action === 'list_competition_school_exam_admissions') return { campaignId: 'campaign-draft', version: 1, approvedCount: 0, items: [] };
+      if (action === 'preview_competition_audience') return preview;
+      return { items: [] };
+    });
+    render(<CompetitionDashboardPage isAdmin username="admin" />);
+    const previewButton = await screen.findByRole('button', { name: 'Xem trước đối tượng' });
+    fireEvent.click(previewButton);
+    await waitFor(() => expect(previewButton).toBeDisabled());
+    fireEvent.click(previewButton);
+    expect(api.callApi.mock.calls.filter(([action]) => action === 'preview_competition_audience')).toHaveLength(1);
+    resolvePreview?.({ matchedCount: 0 });
+    await waitFor(() => expect(previewButton).not.toBeDisabled());
+  });
+
   it('loads campaign, rounds, eligibility and school-exam planner data from Competition APIs', async () => {
     api.callApi.mockImplementation(async (action: string) => {
       if (action === 'list_competitions') return {

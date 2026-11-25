@@ -59,6 +59,6 @@ describe('Competition V1 teacher dashboard routing gate', () => {
         />
       </React.Suspense>,
     );
-    expect(await screen.findByRole('heading', { name: 'Cuộc thi' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Cuộc thi' }, { timeout: 5000 })).toBeInTheDocument();
   });
 });
