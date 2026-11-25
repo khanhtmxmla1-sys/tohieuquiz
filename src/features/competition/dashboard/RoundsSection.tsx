@@ -39,7 +39,7 @@ export function RoundsSection({
   saveRoundQuiz,
 }: RoundsSectionProps) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-bold text-slate-900">6 vòng thi</h2>
       <p className="mt-2 text-sm text-slate-600">
         Thời gian, số lượt tối đa và điểm đạt lấy từ cấu hình
@@ -65,7 +65,7 @@ export function RoundsSection({
               </div>
               {isAdmin ? (
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <label className="text-xs font-semibold text-slate-600">
+                  <label className="min-w-0 text-xs font-semibold text-slate-600">
                     Mở vòng {roundNumber}
                     <input
                       aria-label={`Mở vòng ${roundNumber}`}
@@ -79,7 +79,7 @@ export function RoundsSection({
                       className="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm font-normal text-slate-900"
                     />
                   </label>
-                  <label className="text-xs font-semibold text-slate-600">
+                  <label className="min-w-0 text-xs font-semibold text-slate-600">
                     Đóng vòng {roundNumber}
                     <input
                       aria-label={`Đóng vòng ${roundNumber}`}
@@ -93,7 +93,7 @@ export function RoundsSection({
                       className="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm font-normal text-slate-900"
                     />
                   </label>
-                  <label className="text-xs font-semibold text-slate-600">
+                  <label className="min-w-0 text-xs font-semibold text-slate-600">
                     Số lượt tối đa vòng {roundNumber}
                     <input
                       aria-label={`Số lượt tối đa vòng ${roundNumber}`}
@@ -108,7 +108,7 @@ export function RoundsSection({
                       className="mt-1 block w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm font-normal text-slate-900"
                     />
                   </label>
-                  <label className="text-xs font-semibold text-slate-600">
+                  <label className="min-w-0 text-xs font-semibold text-slate-600">
                     Điểm đạt vòng {roundNumber}
                     <input
                       aria-label={`Điểm đạt vòng ${roundNumber}`}

@@ -38,7 +38,7 @@ export function CampaignAudienceSection({
   previewAudience,
 }: CampaignAudienceSectionProps) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-bold text-slate-900">
         Chiến dịch & đối tượng
       </h2>
@@ -82,7 +82,7 @@ export function CampaignAudienceSection({
                 ? "Chỉnh chiến dịch DRAFT"
                 : "Tạo chiến dịch mới"}
             </h3>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="text-xs font-semibold">
                 Tên chiến dịch
                 <input
