@@ -347,6 +347,33 @@ describe('scope-aware play questions route', () => {
     expect(db.questionQueries).toBe(1);
   });
 
+  it('returns legacy pipe-separated options for MCQ and multiple-select questions', async () => {
+    const db = new FakeDb();
+    db.questions = [
+      {
+        id: 'mcq-legacy', quiz_id: 'quiz-public', type: 'MCQ', question: 'Chọn một',
+        options: 'A|B|C|D', correct_answer: 'B',
+      },
+      {
+        id: 'multi-legacy', quiz_id: 'quiz-public', type: 'MULTIPLE_SELECT', question: 'Chọn nhiều',
+        options: 'A|B|C|D', correct_answer: '["A","C"]',
+      },
+    ];
+    const response = await handleQuizRoutes(
+      new Request('https://test/api/quizzes/quiz-public/play-questions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      }), env(db), '/api/quizzes/quiz-public/play-questions', 'POST',
+    );
+    const payload = await response.json() as any;
+
+    expect(response.status).toBe(200);
+    expect(payload.questions.map((question: any) => question.options)).toEqual([
+      ['A', 'B', 'C', 'D'],
+      ['A', 'B', 'C', 'D'],
+    ]);
+    expect(JSON.stringify(payload)).not.toMatch(/correctAnswer|correct_answer/);
+  });
+
   it('uses the allowlisted DTO for matching and drag-drop questions', async () => {
     const db = new FakeDb();
     db.questions = [
