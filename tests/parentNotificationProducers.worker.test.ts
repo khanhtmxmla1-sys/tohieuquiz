@@ -3,7 +3,7 @@ import { SYSTEM_CRON } from '../workers/src/scheduling/systemCron';
 
 describe('automatic parent notification producers', () => {
   it('publishes quiz results without exposing answer details', async () => {
-    const source = await import('../workers/src/routes/results?raw');
+    const source = await import('../workers/src/routes/results/submitRoute?raw');
     expect(source.default).toContain("kind: 'quiz_result'");
     expect(source.default).toContain('createParentNotification');
     expect(source.default).toContain('payload: { resultId: String(resultId), quizId, score, correctCount, totalQuestions }');
