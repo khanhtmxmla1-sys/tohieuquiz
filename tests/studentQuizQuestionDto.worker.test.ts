@@ -50,6 +50,42 @@ const underlineQuestion = {
 };
 
 describe('student quiz question DTO', () => {
+  it('preserves legacy pipe-separated options for choice questions without exposing answer keys', async () => {
+    const questions = [
+      { id: 'mcq-legacy', type: 'MCQ', question: 'Chọn một', options: 'A|B|C|D', correct_answer: 'B' },
+      { id: 'multi-legacy', type: 'MULTIPLE_SELECT', question: 'Chọn nhiều', options: 'A|B|C|D', correct_answer: '["A","C"]' },
+      { id: 'image-legacy', type: 'IMAGE_QUESTION', question: 'Chọn hình', options: 'A|B|C|D', correct_answer: 'A' },
+    ];
+
+    for (const question of questions) {
+      const dto = await toStudentQuestionDto(question, context);
+      expect(dto.options).toEqual(['A', 'B', 'C', 'D']);
+      expect(dto).not.toHaveProperty('correct_answer');
+      expect(dto).not.toHaveProperty('correctAnswer');
+      expect(JSON.stringify(dto)).not.toMatch(/correctAnswer|correct_answer/);
+    }
+  });
+
+  it('keeps modern option arrays and fails closed for malformed scalar options', async () => {
+    const nativeArray = await toStudentQuestionDto({
+      id: 'mcq-native', type: 'MCQ', question: 'Mảng', options: ['A', 'B'],
+    }, context);
+    const jsonArray = await toStudentQuestionDto({
+      id: 'mcq-json', type: 'MCQ', question: 'JSON', options: '["A","B"]',
+    }, context);
+    const empty = await toStudentQuestionDto({
+      id: 'mcq-empty', type: 'MCQ', question: 'Rỗng', options: '',
+    }, context);
+    const malformed = await toStudentQuestionDto({
+      id: 'mcq-malformed', type: 'MCQ', question: 'Sai định dạng', options: 'not-an-array',
+    }, context);
+
+    expect(nativeArray.options).toEqual(['A', 'B']);
+    expect(jsonArray.options).toEqual(['A', 'B']);
+    expect(empty.options).toEqual([]);
+    expect(malformed.options).toEqual([]);
+  });
+
   it('does not expose matching pairs or correlated canonical IDs', async () => {
     const dto = await toStudentQuestionDto(matchingQuestion, context);
     const raw = JSON.stringify(dto);

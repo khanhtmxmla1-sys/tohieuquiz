@@ -47,6 +47,27 @@ const parseArray = (value: unknown): any[] => {
   }
 };
 
+/**
+ * Question options predate the learner DTO and are stored in two formats:
+ * JSON arrays for newer rows and pipe-separated text for legacy D1 rows.
+ * Keep this parser separate from parseArray: the other structured fields must
+ * remain JSON-only so malformed authoring data cannot be reinterpreted.
+ */
+const parseChoiceOptions = (value: unknown): any[] => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string' || !value.trim()) return [];
+
+  const normalized = value.trim();
+  try {
+    const parsed = JSON.parse(normalized);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {
+    // Legacy D1 rows use a pipe-delimited string.
+  }
+
+  return normalized.includes('|') ? normalized.split('|') : [];
+};
+
 const asString = (value: unknown): string => String(value ?? '');
 
 const keyBytes = (key: string | Uint8Array): Uint8Array => (
@@ -225,7 +246,7 @@ export async function toStudentQuestionDto(
   }).filter(Boolean);
 
   if (type === 'MCQ' || type === 'MULTIPLE_SELECT' || type === 'IMAGE_QUESTION') {
-    dto.options = textList(question.options);
+    dto.options = textList(parseChoiceOptions(question.options));
     if (type === 'IMAGE_QUESTION') dto.optionImages = textList(question.optionImages ?? question.distractors);
     return dto;
   }
