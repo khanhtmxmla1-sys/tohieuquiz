@@ -5,6 +5,7 @@ import { quizAttemptStorageKey } from '../src/features/quiz-player/quizAttemptDr
 
 const mocks = vi.hoisted(() => ({
   gradePracticeQuiz: vi.fn(),
+  gradeQuiz: vi.fn(),
   claimResultReward: vi.fn(),
   trackQuizActivity: vi.fn(),
 }));
@@ -13,6 +14,10 @@ vi.mock('../src/services/practiceService', () => ({
   practiceService: {
     gradePracticeQuiz: mocks.gradePracticeQuiz,
   },
+}));
+vi.mock('../src/domain/quiz-scoring', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../src/domain/quiz-scoring')>(),
+  gradeQuiz: mocks.gradeQuiz,
 }));
 vi.mock('../src/stores/useClassroomStore', () => ({
   useClassroomStore: () => ({
@@ -79,6 +84,15 @@ describe('useQuizPlayer secure practice submission', () => {
     window.sessionStorage.clear();
     vi.clearAllMocks();
     mocks.gradePracticeQuiz.mockResolvedValue(successfulGrade);
+    mocks.gradeQuiz.mockReturnValue({
+      score: 10,
+      correctCount: 1,
+      questionCount: 1,
+      totalQuestions: 1,
+      voidedCount: 0,
+      engineVersion: 'legacy-v1',
+      details: [{ questionId: 'q1', isCorrect: true, status: 'correct' }],
+    });
   });
 
   it('submits the raw answers and maps authoritative review into completion state', async () => {
@@ -87,6 +101,9 @@ describe('useQuizPlayer secure practice submission', () => {
     const { result } = renderHook(() => useQuizPlayer({ quiz, onExit: vi.fn(), onSaveResult }));
 
     await act(async () => result.current.handleStart());
+    const persistedDraft = window.sessionStorage.getItem(quizAttemptStorageKey(quiz.id));
+    expect(persistedDraft).not.toBeNull();
+    expect(persistedDraft).not.toContain('session-token');
     act(() => result.current.handleAnswerChange('q1', 'A'));
     await act(async () => result.current.handleSubmit());
 
@@ -105,8 +122,10 @@ describe('useQuizPlayer secure practice submission', () => {
       id: 'practice-1', quizId: 'practice-1', score: 10, correctCount: 1,
       totalQuestions: 1, gradingVersion: 'server-v1',
       validationDetails: [{ questionId: 'q1', type: 'MCQ', isCorrect: true, status: 'correct' }],
-      reviewDetails: [{ questionId: 'q1', status: 'correct' }],
+      reviewDetails: successfulGrade.reviewDetails,
     });
+    expect(JSON.stringify(result.current.result)).not.toContain('session-token');
+    expect(JSON.stringify(result.current.rewardData)).not.toContain('session-token');
   });
 
   it('submits a partial raw answer map when a question is untouched', async () => {
@@ -195,10 +214,101 @@ describe('useQuizPlayer secure practice submission', () => {
     await act(async () => result.current.handleSubmit());
 
     expect(mocks.gradePracticeQuiz).not.toHaveBeenCalled();
+    expect(mocks.gradeQuiz).not.toHaveBeenCalled();
     expect(result.current.step).toBe('quiz');
     expect(result.current.submitError).toMatch(/hết hạn|expired|refresh/i);
     expect(onSaveResult).not.toHaveBeenCalled();
     expect(mocks.claimResultReward).not.toHaveBeenCalled();
+  });
+
+  it('treats a secure session expiring at the current clock as expired', async () => {
+    const quiz = makeQuiz(new Date(Date.now()).toISOString());
+    const onSaveResult = vi.fn();
+    const { result } = renderHook(() => useQuizPlayer({ quiz, onExit: vi.fn(), onSaveResult }));
+
+    await act(async () => result.current.handleStart());
+    act(() => result.current.handleAnswerChange('q1', 'A'));
+    await act(async () => result.current.handleSubmit());
+
+    expect(mocks.gradePracticeQuiz).not.toHaveBeenCalled();
+    expect(mocks.gradeQuiz).not.toHaveBeenCalled();
+    expect(result.current.step).toBe('quiz');
+    expect(result.current.submitError).toMatch(/hết hạn|expired|refresh/i);
+    expect(onSaveResult).not.toHaveBeenCalled();
+  });
+
+  it('keeps the legacy local grading path synchronous when no own secure marker exists', async () => {
+    const quiz = {
+      ...makeQuiz(),
+      questions: [
+        ...makeQuiz().questions,
+        { id: 'q2', type: QuestionType.MCQ, question: 'Chọn B', options: ['A', 'B'] } as any,
+      ],
+    } as unknown as Quiz & { practiceSession?: unknown };
+    delete quiz.practiceSession;
+    Object.setPrototypeOf(quiz, { practiceSession: makeQuiz().practiceSession });
+    mocks.gradeQuiz.mockReturnValueOnce({
+      score: 5,
+      correctCount: 1,
+      questionCount: 2,
+      totalQuestions: 1,
+      voidedCount: 1,
+      engineVersion: 'legacy-v2',
+      details: [
+        { questionId: 'q1', isCorrect: true, status: 'correct' },
+        { questionId: 'q2', isCorrect: false, status: 'voided', issueCode: 'MISSING_CORRECT_ANSWER' },
+      ],
+    });
+    const onSaveResult = vi.fn();
+    const { result } = renderHook(() => useQuizPlayer({ quiz, onExit: vi.fn(), onSaveResult }));
+
+    await act(async () => result.current.handleStart());
+    act(() => result.current.handleAnswerChange('q1', 'A'));
+    const expectedQuestionOrder = result.current.shuffledQuestions.map((question) => question.id);
+    let submitPromise: Promise<void> | undefined;
+    act(() => {
+      submitPromise = result.current.handleSubmit();
+      expect(mocks.gradeQuiz).toHaveBeenCalledTimes(1);
+    });
+    expect(result.current.step).toBe('result');
+    expect(result.current.isSubmitting).toBe(false);
+    expect(result.current.result).toMatchObject({
+      score: 5,
+      correctCount: 1,
+      questionCount: 2,
+      totalQuestions: 1,
+      voidedCount: 1,
+      gradingVersion: 'legacy-v2',
+      answers: expect.objectContaining({ _questionOrder: expectedQuestionOrder }),
+    });
+    await act(async () => {
+      await submitPromise;
+    });
+
+    expect(mocks.gradePracticeQuiz).not.toHaveBeenCalled();
+    expect(onSaveResult).not.toHaveBeenCalled();
+    expect(mocks.claimResultReward).not.toHaveBeenCalled();
+    expect(mocks.trackQuizActivity).not.toHaveBeenCalled();
+    expect(result.current.step).toBe('result');
+    expect(result.current.result).toMatchObject({
+      quizId: 'practice-1', score: 5, correctCount: 1, questionCount: 2, totalQuestions: 1,
+      voidedCount: 1, gradingVersion: 'legacy-v2',
+      answers: expect.objectContaining({
+        q1: expect.objectContaining({
+          selectedAnswer: 'A', isCorrect: true, status: 'correct', gradingVersion: 'legacy-v2',
+          questionSnapshot: expect.objectContaining({ id: 'q1', question: 'Chọn A' }),
+        }),
+        q2: expect.objectContaining({
+          selectedAnswer: null, isCorrect: false, status: 'voided', gradingVersion: 'legacy-v2',
+          questionSnapshot: expect.objectContaining({ id: 'q2', question: 'Chọn B' }),
+        }),
+        _questionOrder: expectedQuestionOrder,
+      }),
+      validationDetails: [
+        { questionId: 'q1', isCorrect: true, status: 'correct' },
+        { questionId: 'q2', isCorrect: false, status: 'voided', issueCode: 'MISSING_CORRECT_ANSWER' },
+      ],
+    });
   });
 
   it.each([
@@ -206,6 +316,8 @@ describe('useQuizPlayer secure practice submission', () => {
     null,
     {},
     { version: 'legacy', token: 'session-token', expiresAt: '2099-01-01T00:00:00.000Z' },
+    { version: 'server-v1', token: '  ', expiresAt: '2099-01-01T00:00:00.000Z' },
+    { version: 'server-v1', token: 'session-token', expiresAt: 'not-a-date' },
   ])('treats a secure metadata marker with value %j as secure and fails closed', async (practiceSession) => {
     const quiz = { ...makeQuiz(), practiceSession } as unknown as Quiz;
     const onSaveResult = vi.fn();
@@ -216,6 +328,7 @@ describe('useQuizPlayer secure practice submission', () => {
     await act(async () => result.current.handleSubmit());
 
     expect(mocks.gradePracticeQuiz).not.toHaveBeenCalled();
+    expect(mocks.gradeQuiz).not.toHaveBeenCalled();
     expect(onSaveResult).not.toHaveBeenCalled();
     expect(result.current.step).toBe('quiz');
     expect(result.current.showReward).toBe(false);

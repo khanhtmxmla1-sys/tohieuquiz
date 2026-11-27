@@ -6,6 +6,8 @@ const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 
 
 const homePageSource = readSource('src/components/HomePage/HomePage.tsx');
 const quizPlayerSource = readSource('src/features/quiz-player/hooks/useQuizPlayer.ts');
+const quizSubmissionSource = readSource('src/features/quiz-player/hooks/useQuizSubmission.ts');
+const practiceSubmissionSource = readSource('src/features/quiz-player/utils/practiceSubmission.ts');
 const quizAccessSource = readSource('src/features/quiz-player/hooks/useQuizAccess.ts');
 const quizStartLoaderSource = readSource('src/features/quiz-player/utils/loadQuizStartQuestions.ts');
 const quizStartNoticeSource = readSource('src/components/student/QuizStartNotice.tsx');
@@ -19,6 +21,8 @@ const stylesSource = readSource('styles.css');
 const studentCopySource = [
   homePageSource,
   quizPlayerSource,
+  quizSubmissionSource,
+  practiceSubmissionSource,
   quizAccessSource,
   quizStartLoaderSource,
   quizStartNoticeSource,
