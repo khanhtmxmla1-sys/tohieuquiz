@@ -349,4 +349,209 @@ describe('useQuizPlayer resume', () => {
     randomSpy.mockRestore();
   });
 
+  it('falls back to a fresh attempt when a restored draft contains an unknown question id', async () => {
+    window.sessionStorage.setItem(quizAttemptStorageKey(quiz.id), JSON.stringify({
+      version: 1,
+      quizId: quiz.id,
+      studentName: 'Nguyễn Văn An',
+      studentClass: '5A1',
+      answers: { 'q-missing': 'A' },
+      questionOrder: ['q-missing', 'q1'],
+      currentPage: 2,
+      startedAt: '2026-08-04T04:55:00.000Z',
+      expiresAt: '2026-08-04T05:05:00.000Z',
+    }));
+
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult: vi.fn(),
+    }));
+
+    await act(async () => {
+      await result.current.handleStart();
+    });
+
+    expect(result.current.shuffledQuestions.map((question) => question.id).sort()).toEqual(['q1', 'q2']);
+    expect(result.current.answers).toEqual({});
+    expect(result.current.currentPage).toBe(1);
+  });
+
+  it('falls back to a fresh attempt when a restored draft has a question-count mismatch', async () => {
+    window.sessionStorage.setItem(quizAttemptStorageKey(quiz.id), JSON.stringify({
+      version: 1,
+      quizId: quiz.id,
+      studentName: 'Nguyễn Văn An',
+      studentClass: '5A1',
+      answers: { q1: 'A' },
+      questionOrder: ['q1'],
+      currentPage: 2,
+      startedAt: '2026-08-04T04:55:00.000Z',
+      expiresAt: '2026-08-04T05:05:00.000Z',
+    }));
+
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult: vi.fn(),
+    }));
+
+    await act(async () => {
+      await result.current.handleStart();
+    });
+
+    expect(result.current.shuffledQuestions).toHaveLength(2);
+    expect(result.current.answers).toEqual({});
+    expect(result.current.currentPage).toBe(1);
+  });
+
+  it('characterizes duplicate question ids in a restored order as resumable baseline state', async () => {
+    window.sessionStorage.setItem(quizAttemptStorageKey(quiz.id), JSON.stringify({
+      version: 1,
+      quizId: quiz.id,
+      studentName: 'Nguyễn Văn An',
+      studentClass: '5A1',
+      answers: { q1: 'A' },
+      questionOrder: ['q1', 'q1'],
+      currentPage: 1,
+      startedAt: '2026-08-04T04:55:00.000Z',
+      expiresAt: '2026-08-04T05:05:00.000Z',
+    }));
+
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult: vi.fn(),
+    }));
+
+    await act(async () => {
+      await result.current.handleStart();
+    });
+
+    expect(result.current.shuffledQuestions.map((question) => question.id)).toEqual(['q1', 'q1']);
+    expect(result.current.answers).toEqual({ q1: 'A' });
+  });
+
+  it('submits an already-expired restored draft exactly once', async () => {
+    const onSaveResult = vi.fn(async (savedResult) => savedResult);
+    window.sessionStorage.setItem(quizAttemptStorageKey(quiz.id), JSON.stringify({
+      version: 1,
+      quizId: quiz.id,
+      studentName: 'Nguyễn Văn An',
+      studentClass: '5A1',
+      answers: { q1: 'A' },
+      questionOrder: ['q1', 'q2'],
+      currentPage: 1,
+      startedAt: '2026-08-04T04:55:00.000Z',
+      expiresAt: '2026-08-04T05:00:00.000Z',
+    }));
+
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult,
+    }));
+
+    await act(async () => {
+      await result.current.handleStart();
+      await Promise.resolve();
+    });
+
+    expect(onSaveResult).toHaveBeenCalledOnce();
+    expect(result.current.step).toBe('result');
+    expect(window.sessionStorage.getItem(quizAttemptStorageKey(quiz.id))).toBeNull();
+  });
+
+  it('persists identity, answers, and page changes after starting', async () => {
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult: vi.fn(),
+    }));
+
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    act(() => {
+      result.current.setStudentName('Học sinh khác');
+      result.current.setStudentClass('5A2');
+      result.current.handleAnswerChange('q1', 'B');
+      result.current.setCurrentPage(2);
+    });
+
+    expect(JSON.parse(window.sessionStorage.getItem(quizAttemptStorageKey(quiz.id)) || '{}')).toMatchObject({
+      quizId: quiz.id,
+      studentName: 'Học sinh khác',
+      studentClass: '5A2',
+      answers: { q1: 'B' },
+      currentPage: 2,
+    });
+  });
+
+  it('clears the draft only after a successful save', async () => {
+    const onSaveResult = vi.fn(async (savedResult) => savedResult);
+    const { result } = renderHook(() => useQuizPlayer({
+      quiz,
+      onExit: vi.fn(),
+      onSaveResult,
+    }));
+
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    act(() => result.current.handleAnswerChange('q1', 'A'));
+    expect(window.sessionStorage.getItem(quizAttemptStorageKey(quiz.id))).not.toBeNull();
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(onSaveResult).toHaveBeenCalledOnce();
+    expect(result.current.step).toBe('result');
+    expect(window.sessionStorage.getItem(quizAttemptStorageKey(quiz.id))).toBeNull();
+  });
+
+  it('does not rewrite the draft when only the countdown display refreshes', async () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    try {
+      const { result } = renderHook(() => useQuizPlayer({
+        quiz,
+        onExit: vi.fn(),
+        onSaveResult: vi.fn(),
+      }));
+      await act(async () => result.current.handleStart());
+      const key = quizAttemptStorageKey(quiz.id);
+      const writesBeforeTick = setItem.mock.calls.filter(([storageKey]) => storageKey === key).length;
+      expect(writesBeforeTick).toBeGreaterThan(0);
+
+      await act(async () => vi.advanceTimersByTimeAsync(1000));
+
+      expect(result.current.timeLeft).toBe(599);
+      expect(setItem.mock.calls.filter(([storageKey]) => storageKey === key)).toHaveLength(writesBeforeTick);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('keeps hook state from the original quiz when the quiz id prop changes', async () => {
+    const otherQuiz = { ...quiz, id: 'quiz-other' };
+    const { result, rerender } = renderHook(
+      ({ currentQuiz }) => useQuizPlayer({
+        quiz: currentQuiz,
+        onExit: vi.fn(),
+        onSaveResult: vi.fn(),
+      }),
+      { initialProps: { currentQuiz: quiz } },
+    );
+
+    await act(async () => {
+      await result.current.handleStart();
+    });
+    act(() => result.current.handleAnswerChange('q1', 'A'));
+    rerender({ currentQuiz: otherQuiz });
+
+    expect(result.current.answers).toEqual({ q1: 'A' });
+    expect(result.current.step).toBe('quiz');
+  });
+
 });
