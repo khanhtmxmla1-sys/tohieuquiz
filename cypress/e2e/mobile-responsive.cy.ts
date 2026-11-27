@@ -13,6 +13,52 @@ const assertNoHorizontalOverflow = () => {
 };
 
 describe('Mobile Responsive Smoke', () => {
+  beforeEach(() => {
+    let authenticated = false;
+    const teacher = {
+      username: 'mobile-e2e-teacher',
+      fullName: 'Cô Mobile E2E',
+      role: 'teacher',
+      class: '4A1',
+      requiresPasswordChange: false,
+    };
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+      cy.intercept({ method, pathname: '/api/**' }, (request) => {
+        throw new Error(`Unexpected backend write in mobile fixture: ${request.method} ${request.url}`);
+      });
+    }
+    cy.intercept({ method: 'GET', pathname: '/api/**' }, {
+      statusCode: 200,
+      body: { status: 'success', data: [] },
+    });
+    cy.intercept({ method: 'GET', pathname: '/api/system-settings' }, {
+      statusCode: 200,
+      body: { status: 'success', data: { aiAssistantEnabled: false } },
+    });
+    cy.intercept('GET', '**/api/system-settings/feature-flags/resolve*', {
+      statusCode: 200,
+      body: { status: 'success', data: { key: 'unified_notifications_v1', enabled: false, reason: 'disabled', version: 1 } },
+    });
+    cy.intercept('GET', '**/api/announcements/current*', {
+      statusCode: 200,
+      body: { status: 'success', data: { items: [] } },
+    });
+    cy.intercept({ method: 'GET', pathname: '/api/account/me' }, (request) => {
+      request.reply(authenticated
+        ? { statusCode: 200, body: { status: 'success', data: { ...teacher, teacherClass: '4A1', classes: [] } } }
+        : { statusCode: 401, body: { status: 'error', message: 'Unauthenticated fixture' } });
+    });
+    cy.intercept({ method: 'POST', pathname: '/api/login' }, (request) => {
+      expect(request.body).to.deep.equal({ username: teacher.username, password: 'fixture-mobile-password' });
+      authenticated = true;
+      request.reply({ statusCode: 200, body: { status: 'success', data: teacher } });
+    }).as('mobileTeacherLogin');
+    cy.intercept({ method: 'POST', pathname: '/api/client-telemetry' }, (request) => {
+      expect(request.body, 'only expected performance telemetry').to.include({ kind: 'web_vital' });
+      request.reply({ statusCode: 202, body: { status: 'success' } });
+    });
+  });
+
   MOBILE_VIEWPORTS.forEach(({ width, height, label }) => {
     it(`Public routes render well on ${label}`, () => {
       cy.viewport(width, height);
@@ -32,32 +78,31 @@ describe('Mobile Responsive Smoke', () => {
 
     it(`Auth + dashboard shell on ${label}`, () => {
       cy.viewport(width, height);
-      cy.visit('/');
+      cy.visit('/?login=teacher');
 
       cy.get('input[type="text"]').first().should('be.visible');
       cy.get('input[type="password"]').first().should('be.visible');
       cy.get('form[aria-label="Đăng nhập"] button[type="submit"]').should('be.visible');
       assertNoHorizontalOverflow();
 
-      // Teacher login attempt (keeps test stable even if backend data differs)
-      cy.contains('button', 'Giáo viên').click();
-      cy.get('input[type="text"]').first().clear().type('admin');
-      cy.get('input[type="password"]').first().clear().type('admin');
-      cy.get('form[aria-label="Đăng nhập"] button[type="submit"]').click();
-
-      cy.get('body').then(($body) => {
-        const hasTeacherDashboard = $body.find('.teacher-dashboard-shell').length > 0;
-        if (hasTeacherDashboard) {
-          assertNoHorizontalOverflow();
-          if (width < 1024) {
-            cy.get('button[aria-label="Mở menu điều hướng"]').should('exist');
-          }
-        } else {
-          // Fallback: still validate the login surface when the local API is unavailable.
-          cy.get('form[aria-label="Đăng nhập"]').should('be.visible');
-          assertNoHorizontalOverflow();
-        }
+      cy.get('[role="group"][aria-label="Chọn vai trò đăng nhập"]').within(() => {
+        cy.contains('button', 'Giáo viên').should('have.attr', 'aria-pressed', 'true');
       });
+      cy.location('search').should('include', 'login=teacher');
+      cy.get('#landing-login-username')
+        .should('have.attr', 'placeholder', 'Tài khoản giáo viên')
+        .and('be.enabled')
+        .and('have.value', '');
+      cy.get('#landing-login-username').should('be.enabled').type('mobile-e2e-teacher');
+      cy.get('#landing-login-password').should('be.enabled').and('have.value', '');
+      cy.get('#landing-login-password').should('be.enabled').type('fixture-mobile-password');
+      cy.get('form[aria-label="Đăng nhập"] button[type="submit"]').click();
+      cy.wait('@mobileTeacherLogin').its('response.statusCode').should('eq', 200);
+      cy.get('.teacher-dashboard-shell').should('be.visible');
+      assertNoHorizontalOverflow();
+      if (width < 1024) {
+        cy.get('button[aria-label="Mở menu điều hướng"]').should('exist');
+      }
     });
   });
 });

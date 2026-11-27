@@ -3,9 +3,7 @@ import { Quiz, Question, QuizResultSubmissionContext, StudentResult } from '../.
 import { useClassroomStore } from '../../../stores/useClassroomStore';
 import { useGamificationStore } from '../../../stores/useGamificationStore';
 import { useGameLoopStore } from '../../../stores/useGameLoopStore';
-import { adaptStudentQuizQuestion, fetchQuizPlayQuestions, requestQuizAccess } from '../../../services/quizAccessService';
 import { gradeQuiz } from '../../../domain/quiz-scoring';
-import { startAssignmentAttempt } from '../../../services/classroomService';
 import { playTingSound } from '../../../utils/toast';
 import { useQuizProgressRollout } from './useQuizProgressRollout';
 import {
@@ -15,8 +13,10 @@ import {
 import { createQuizDeadline, remainingSeconds, useQuizDeadline } from './useQuizDeadline';
 import { useQuizAttemptPersistence } from './useQuizAttemptPersistence';
 import { useQuizNavigationGuard } from './useQuizNavigationGuard';
+import { useQuizAccess } from './useQuizAccess';
 import { updateMatchingAnswer } from '../utils/structuredAnswerUpdates';
 import { resolveQuizDraftResume } from '../utils/resolveQuizDraftResume';
+import { loadQuizStartQuestions } from '../utils/loadQuizStartQuestions';
 import type { RandomizationPolicy } from '../../../../shared/randomization-policy.contract';
 import {
     practiceService,
@@ -125,9 +125,6 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
     const [studentName, setStudentName] = useState(restoredDraft?.studentName || session?.fullName || '');
     const [studentClass, setStudentClass] = useState(restoredDraft?.studentClass || session?.className || '');
     const studentAvatar = session?.avatar || null;
-    const [enteredCode, setEnteredCode] = useState('');
-    const [codeError, setCodeError] = useState('');
-    const [isVerifyingCode, setIsVerifyingCode] = useState(false);
     const [answers, setAnswers] = useState<Record<string, any>>(restoredDraft?.answers || {});
     const [expiresAt, setExpiresAt] = useState<string | null>(restoredDraft?.expiresAt || null);
     const timeLeft = useQuizDeadline(expiresAt);
@@ -147,6 +144,19 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
     const startTriggeredRef = useRef(false);
     const submissionTriggeredRef = useRef(false);
     const accessGrantRef = useRef<string | null>(null);
+    const {
+        enteredCode,
+        setEnteredCode,
+        codeError,
+        isVerifyingCode,
+        handleCodeVerify,
+    } = useQuizAccess({
+        quizId: quiz.id,
+        assignmentId: quiz._assignmentData?.id,
+        isLoggedIn,
+        accessGrantRef,
+        setStep,
+    });
 
     // Gamification state
     const [showReward, setShowReward] = useState(false);
@@ -189,35 +199,16 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
         setStartError(null);
 
         try {
-            const assignmentId = quiz._assignmentData?.id
-                ? String(quiz._assignmentData.id)
-                : '';
-            const loadedQuestions = quiz.isPractice
-                ? quiz.questions
-                : (() => {
-                    // Formal/public/assignment quizzes must use the scoped DTO.
-                    // Practice quizzes are virtual and already carry their
-                    // server-selected questions in memory.
-                    return fetchQuizPlayQuestions(quiz.id, {
-                        assignmentId: assignmentId || undefined,
-                        accessGrant: accessGrantRef.current || undefined,
-                    }).then((playPayload) => (
-                        Array.isArray(playPayload.questions)
-                            ? playPayload.questions.map((question) => adaptStudentQuizQuestion(question))
-                            : []
-                    ));
-                })();
-            const resolvedQuestions = await loadedQuestions;
-            if (resolvedQuestions.length === 0) {
-                throw new Error('Không tải được câu hỏi của bài làm.');
-            }
-
-            if (assignmentId) {
-                if (!session?.studentId) {
-                    throw new Error('Phiên học sinh không hợp lệ. Em hãy đăng nhập lại.');
-                }
-                await startAssignmentAttempt(assignmentId, String(session.studentId));
-            }
+            const resolvedQuestions = await loadQuizStartQuestions({
+                quizId: quiz.id,
+                isPractice: quiz.isPractice,
+                questions: quiz.questions,
+                assignmentId: quiz._assignmentData?.id
+                    ? String(quiz._assignmentData.id)
+                    : undefined,
+                accessGrant: accessGrantRef.current || undefined,
+                session,
+            });
 
             const { restoredOrder, canResumeDraft } = resolveQuizDraftResume(restoredDraft, resolvedQuestions);
             const hasLevels = resolvedQuestions.some((q: any) => q.difficultyLevel);
@@ -259,26 +250,6 @@ export const useQuizPlayer = ({ quiz, onExit, onSaveResult, randomizationPolicy 
         studentClass,
         studentName,
     ]);
-
-    const handleCodeVerify = useCallback(async () => {
-        if (isVerifyingCode) return;
-        setIsVerifyingCode(true);
-        setCodeError('');
-        try {
-            const assignmentId = quiz._assignmentData?.id
-                ? String(quiz._assignmentData.id)
-                : undefined;
-            const access = await requestQuizAccess(quiz.id, enteredCode, assignmentId);
-            if (access.valid) {
-                accessGrantRef.current = access.accessGrant || null;
-                setStep(isLoggedIn ? 'notice' : 'info');
-            } else setCodeError('Mã không đúng. Vui lòng thử lại!');
-        } catch {
-            setCodeError('Không thể kiểm tra mã lúc này. Vui lòng thử lại.');
-        } finally {
-            setIsVerifyingCode(false);
-        }
-    }, [enteredCode, isLoggedIn, isVerifyingCode, quiz._assignmentData?.id, quiz.id]);
 
     const handleAnswerChange = useCallback((questionId: string, value: any, subId?: string) => {
         setAnswers(prev => {

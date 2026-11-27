@@ -6,6 +6,8 @@ const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 
 
 const homePageSource = readSource('src/components/HomePage/HomePage.tsx');
 const quizPlayerSource = readSource('src/features/quiz-player/hooks/useQuizPlayer.ts');
+const quizAccessSource = readSource('src/features/quiz-player/hooks/useQuizAccess.ts');
+const quizStartLoaderSource = readSource('src/features/quiz-player/utils/loadQuizStartQuestions.ts');
 const quizStartNoticeSource = readSource('src/components/student/QuizStartNotice.tsx');
 const waitingRoomChatSource = readSource('src/components/LiveExam/WaitingRoomChatPanel.tsx');
 const studentDashboardSource = readSource('src/components/HomePage/StudentDashboardUI.tsx');
@@ -17,6 +19,8 @@ const stylesSource = readSource('styles.css');
 const studentCopySource = [
   homePageSource,
   quizPlayerSource,
+  quizAccessSource,
+  quizStartLoaderSource,
   quizStartNoticeSource,
   waitingRoomChatSource,
   sharedErrorSource,
@@ -34,7 +38,7 @@ describe('student dashboard Vietnamese copy', () => {
   });
 
   it('uses fully accented Vietnamese in the quiz loading error state', () => {
-    expect(quizPlayerSource).toContain('Không tải được câu hỏi của bài làm.');
+    expect(quizStartLoaderSource).toContain('Không tải được câu hỏi của bài làm.');
   });
 
   it('uses valid UTF-8 copy in the shared error screen', () => {
