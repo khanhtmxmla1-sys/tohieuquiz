@@ -177,6 +177,24 @@ describe('public practice question access', () => {
     });
   });
 
+  it('parses JSON-encoded choice options in the public practice route', async () => {
+    fixture = createFixture();
+    fixture.sqlite.exec(`
+      INSERT INTO questions (id, quiz_id, type, question, options, correct_answer, tags)
+      VALUES ('q-public-json-options', 'public-open', 'MCQ', 'public JSON options', '["A","B"]', 'A', '#JsonOptions');
+    `);
+
+    const response = await runPractice(fixture.db, '?topic=JsonOptions&limit=50');
+    const payload = await readJson(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.questions[0]).toMatchObject({
+      id: 'q-public-json-options',
+      type: 'MCQ',
+      options: ['A', 'B'],
+    });
+  });
+
   it.each([
     ['assigned', 'assigned'],
     ['live', 'live'],

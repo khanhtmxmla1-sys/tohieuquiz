@@ -1,5 +1,6 @@
 import { deserializeQuestionRichText } from '../../../shared/question-rich-text.contract';
 import { sanitizeSvgDiagram } from './svgDiagramSanitizer';
+import { parseChoiceOptions } from './choiceOptions';
 
 export interface StudentQuizQuestionDtoContext {
   quizId: string;
@@ -45,27 +46,6 @@ const parseArray = (value: unknown): any[] => {
   } catch {
     return [];
   }
-};
-
-/**
- * Question options predate the learner DTO and are stored in two formats:
- * JSON arrays for newer rows and pipe-separated text for legacy D1 rows.
- * Keep this parser separate from parseArray: the other structured fields must
- * remain JSON-only so malformed authoring data cannot be reinterpreted.
- */
-const parseChoiceOptions = (value: unknown): any[] => {
-  if (Array.isArray(value)) return value;
-  if (typeof value !== 'string' || !value.trim()) return [];
-
-  const normalized = value.trim();
-  try {
-    const parsed = JSON.parse(normalized);
-    if (Array.isArray(parsed)) return parsed;
-  } catch {
-    // Legacy D1 rows use a pipe-delimited string.
-  }
-
-  return normalized.includes('|') ? normalized.split('|') : [];
 };
 
 const asString = (value: unknown): string => String(value ?? '');
@@ -246,7 +226,10 @@ export async function toStudentQuestionDto(
   }).filter(Boolean);
 
   if (type === 'MCQ' || type === 'MULTIPLE_SELECT' || type === 'IMAGE_QUESTION') {
-    dto.options = textList(parseChoiceOptions(question.options));
+    const rawOptions = typeof question.options === 'string'
+      ? question.options.trim()
+      : question.options;
+    dto.options = textList(parseChoiceOptions(rawOptions));
     if (type === 'IMAGE_QUESTION') dto.optionImages = textList(question.optionImages ?? question.distractors);
     return dto;
   }

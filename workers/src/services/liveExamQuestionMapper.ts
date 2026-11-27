@@ -1,5 +1,6 @@
 import type { Question } from '../../../src/types';
 import { deserializeQuestionRichText } from '../../../shared/question-rich-text.contract';
+import { parseChoiceOptions } from './choiceOptions';
 
 function parseJson<T>(value: unknown, fallback: T): T {
     if (value === null || value === undefined || value === '') return fallback;
@@ -9,12 +10,6 @@ function parseJson<T>(value: unknown, fallback: T): T {
     } catch {
         return fallback;
     }
-}
-
-function parsePipeList(value: unknown): string[] {
-    if (Array.isArray(value)) return value.map((item) => String(item));
-    if (typeof value !== 'string' || value.length === 0) return [];
-    return value.split('|');
 }
 
 /**
@@ -50,7 +45,7 @@ export function mapLiveExamQuestionRow(row: any): Question {
         question: String(row.question || ''),
         mainQuestion: String(row.question || ''),
         ...(questionRichText ? { questionRichText } : {}),
-        options: parsePipeList(row.options),
+        options: parseChoiceOptions(row.options).map((item) => String(item)),
         correctAnswer: parsedCorrectAnswer,
         image: String(row.image || ''),
         imageAlt: String(row.imageAlt ?? row.image_alt ?? '') || undefined,
