@@ -160,7 +160,7 @@ Rollback là revert PR/merge commit của phase; không reset branch dùng chung
 ## Checklist delivery và nhắc mục 3 sau khi hoàn tất mục 1
 
 - [x] Phase 1 đã merge và frontend production smoke đạt.
-- [ ] Phase 2 đã merge và frontend production smoke đạt.
+- [x] Phase 2 đã merge và frontend production smoke đạt.
 - [ ] Phase 3 đã merge và frontend production smoke đạt.
 - [ ] CI, Security, Release readiness và code-owner review đã xanh trên từng HEAD.
 - [ ] Sau phase 3 đã cleanup đúng worktree/branch, giữ nguyên dirty main.
@@ -216,3 +216,19 @@ Trạng thái khi lập plan ban đầu là planning-only. User đã duyệt tri
 - Coverage gate hiện có PASS7suite/56test (schemas/utils: statement88,32%, branch62,12%, function94,73%, line89,38%). Build36,17s PASS; performance PASS initialJSgzip169.259byte/CSS48.322byte, ngưỡng giữ nguyên. Securityscan/history/policies và enforced productionaudits root/Worker0 PASS; development findings khi npm ci không nằm trong scope sửa.
 - Browser focused cuối20/20 PASS trên official npm run dev/predev; toàn bộ13spec stubbed đang chạy. Source hash giữ nguyên từ snapshot đã kiểm thử; chưa stage/commit/push.
 - Browser cuối: focused20/20 PASS exit0; fullstubbed13spec/78ca PASS exit0 trong6phút40giây, không fail/skip/pending. Đã yêu cầu dừng dev server riêng sau kiểm thử. Final scope4file, chưa stage/commit/push; chờ gate duyệt phạm vi cuối theo AGENTS.md mục6.
+
+## Tiến độ đợt 3 (snapshot trước commit)
+
+- Đợt 2 đã merge PR #216 tại dc7b71d1ee1d028dcc7b5986b46453a0a5220aa5 sau owner approve đúng HEAD6b995f5; CI/Security/Release readiness5gate trên main PASS. Production8125064662 success, www entry có đúng fullSHA; workspace chunk/MathJax200. Read-only smoke46112317968 success; rollout writes skipped, không Worker/migration.
+- User đã duyệt triển khai toàn bộ plan; gate commit-scope đợt3 vẫn riêng. Worktree codex/refactor-manual-quiz-workspace-navigation từ dc7b71d, exactscope4file: page, navigation hook mới, navigation parity test mới, plan.
+- Giữ workspaceView/setWorkspaceView tại page vì closeActiveSurface/keyboard hook đứng trước recovery và phụ thuộc view. Navigation hook được gọi tại vị trí focusQuestionEditor gốc sau recovery, sở hữu previewQuestion/lastEditedQuestionId/pendingEditorFocusRef và callbacks/effects liên quan. Không tạo useManualQuizEditorFocus riêng, không đổi JSX hay thứ tự đăng ký effect/keyboard. questionEditorRef, guardTransition/runGuarded và publishAfterGuard ở page.
+- npm ci root/Worker theo đúng lockfile, exit0, không junction/dependency changes. Index fresh27.670nodes/56.085edges/300flows; FTS unavailable. Impact page và12symbol dự kiến tách đều LOW, max4directcallers focusQuestionEditor, 0affectedflows. Bổ sung đọc thủ công JSX/callback wiring và source parity.
+- Baseline13suite/74test PASS trên page gốc, exit0. Worker đang bổ sung characterization gap trước extraction; chưa sửa production. Bằng chứng tại C:/Users/Administrator/.codex/artifacts/manual-quiz-navigation-dc7b71d.
+- Characterization cuối trên page gốc8/8PASS + targetedlintPASS, đã rootreview và siết guard/selection/headerpreview/publishconfirmation assertions; initialtestAPI/assumptionfailures giữlog riêng. Fixturetyped đầyđủ QuizEditorEditability. Root đã cho worker tách đúngpage+hook navigation; test/plan ngoài scope worker được giữ nguyên.
+- Source cuối: 11callback bodies sau parameterization, 10handler ngoài scope, 4nav effect/2page effect và toàn bộ JSX khớp baseline. Dependency arrays chỉ thêm parentReactsetters ổn định và parameterize warning property. Root + review độc lập không còn P1/P2. Focused14suite/82testPASS exit0.
+- Finalforceindex27.691nodes/56.094edges/300flows; hook mớiLOW/1directcaller(page)/0affectedflow. Comparetrackedpage+plan2file/6symbolLOW/0flow; newfiles đã indexed/impact riêng, stagedfullscope sauapproval trướccommit. FTS unavailable, đã bổ sung actualdiff/JSXreview.
+- Lint và typecheckfrontend/strict/WorkerPASS. Verifygốc exit1 ở2auditCLI fixture không đổi trong shard3: shard1 181file/1.066testPASS; shard2 181/1.015PASS; shard3 180file/1.121testPASS +2fail. AuditdirectNode/Vitest28/28PASS; audit script/test khớp baseline. Không suppress, không sửa audit ngoài scope, chưa chốt nguyên nhân runnercontext. Shard4 đang chạy bổ sung.
+- Shard4direct180file/1.103testPASS exit0; tổng4.307test khácnhau/723file đã PASS qua các lượt, chỉ bổ sung2ca audit thiếu, không cộng trùng26ca audit. Lượtverifygốc vẫn exit1.
+- Coveragegate hiệncó7suite/56testPASS (schemas/utils statement88,32%, branch62,12%, function94,73%, line89,38%). Build28,94sPASS; performancePASS initialJSgzip169.249byte/CSS48.322byte, ngưỡng giữ nguyên. Securityscan/history/policies và enforcedproductionaudits root/Worker0PASS.
+- Browser đầu19/20, mobile320 gặp ReactcommitRoot "Cannot commit the same tree as before" qua $Cypress.pause; đây là runtimeexception, không phải assertionoverflow. Đã giữlog/ảnh. So sánh coldoriginalpage20/20PASS, rồi khôi phụcsource đợt3 byte-for-byte và xác minh3functionalhash khớp snapshot; coldcurrent20/20PASS. Không đổi dependency/test/exceptionhandler/retry để ép xanh; chưa xác định nguyên nhân, không kết luận refactor hoặc Cypress là nguyên nhân. Fullstubbed13spec đang chạy.
+- Browser cuối: focused20/20PASS exit0; fullstubbed13spec/78caPASS exit0 trong6phút40giây, không fail/skip/pending; workspace20/20 và mobile320 cũng PASS trong fullrun. FirstReactexception vẫn giữlog/ảnh, chưa xác định nguyên nhân. Source3functionalhash khớp snapshot đã verify, Cypress/config/dependency không đổi. Đã dừng devserver riêng; finalscope4file, chưa stage/commit/push, chờ gate duyệt cuối mục6.
