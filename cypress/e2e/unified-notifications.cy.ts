@@ -84,7 +84,7 @@ describe('Unified notification responsive rollout', () => {
     it(`keeps the ${label} form usable with a static login notice`, () => {
       cy.viewport(width, height);
       installPublicNotificationApi();
-      cy.visit('/');
+      cy.visit('/?login=student');
 
       cy.get('[role="group"][aria-label="Chọn vai trò đăng nhập"]')
         .should('be.visible')
@@ -114,8 +114,10 @@ describe('Unified notification responsive rollout', () => {
       });
       cy.get('form').filter(':visible').first().scrollIntoView().should('be.visible').then(($form) => {
         const rect = $form[0].getBoundingClientRect();
+        const viewportHeight = $form[0].ownerDocument.defaultView?.innerHeight ?? 0;
+        expect(viewportHeight, 'AUT viewport height').to.equal(height);
         expect(rect.top, 'form top within viewport tolerance').to.be.gte(-1);
-        expect(rect.bottom).to.be.lte(Cypress.config('viewportHeight'));
+        expect(rect.bottom).to.be.lte(viewportHeight);
       });
       assertNoHorizontalOverflow();
     });

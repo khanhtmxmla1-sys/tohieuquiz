@@ -7,6 +7,7 @@ import { getSystemSettings } from '../src/services/systemSettingsService';
 import { useAuthStore } from '../stores/authStore';
 import { useQuizStore } from '../stores/quizStore';
 import { useClassroomStore } from '../src/stores/useClassroomStore';
+import { useScrollReset } from '../src/app/useScrollReset';
 
 vi.mock('@vercel/analytics/react', () => ({ Analytics: () => <div data-testid="analytics" /> }));
 vi.mock('react-hot-toast', () => ({ Toaster: () => <div data-testid="toaster" /> }));
@@ -14,6 +15,7 @@ vi.mock('../src/hooks/useSeo', () => ({ useSeo: vi.fn() }));
 vi.mock('../src/hooks/useReducedExperience', () => ({
     useReducedExperience: () => ({ reduceData: false, reduceMotion: true, reduceVisuals: true }),
 }));
+vi.mock('../src/app/useScrollReset', () => ({ useScrollReset: vi.fn() }));
 vi.mock('../src/services/systemSettingsService', () => ({ getSystemSettings: vi.fn() }));
 vi.mock('../src/components/ChatBot/ChatBot', () => ({ default: () => <div>chatbot</div> }));
 vi.mock('../src/components/StudentView', () => ({ default: () => <div>student-view</div> }));
@@ -21,6 +23,18 @@ vi.mock('../src/components/TeacherDashboard', () => ({ default: () => <div>teach
 vi.mock('../src/components/TeacherDashboard/TeacherResultDetailPage', () => ({ default: () => <div>teacher-result-detail</div> }));
 vi.mock('../src/components/gamification/GiftShop', () => ({ default: () => <div>gift-shop</div> }));
 vi.mock('../src/components/HomePage/HomePage', () => ({ default: () => <div>home-page</div> }));
+vi.mock('../src/app/lazyViews', async () => {
+    const actual = await vi.importActual<typeof import('../src/app/lazyViews')>('../src/app/lazyViews');
+    return {
+        ...actual,
+        PublicHomeLandingPage: () => (
+            <>
+                <main data-testid="public-home-landing">public-home-landing</main>
+                <footer data-testid="public-home-landing-footer">public-home-landing-footer</footer>
+            </>
+        ),
+    };
+});
 vi.mock('../src/components/legal/PrivacyPolicy', () => ({
     default: ({ onBack }: { onBack: () => void }) => <button onClick={onBack}>privacy-page</button>,
 }));
@@ -56,6 +70,7 @@ const originalQuizState = useQuizStore.getState();
 const originalAuthState = useAuthStore.getState();
 const originalClassroomState = useClassroomStore.getState();
 const mockedSettings = vi.mocked(getSystemSettings);
+const mockedScrollReset = vi.mocked(useScrollReset);
 
 const LocationProbe = () => {
     const location = useLocation();
@@ -147,9 +162,9 @@ describe('App shell routing contracts', () => {
         expect(useQuizStore.getState().loadQuizzes).not.toHaveBeenCalled();
     });
 
-    it('hides the reduced-experience status banner on the unauthenticated root login only', async () => {
+    it('hides the reduced-experience status banner on the unauthenticated public landing only', async () => {
         const rootRender = renderApp('/');
-        expect(await screen.findByText('home-page')).toBeInTheDocument();
+        expect(await screen.findByTestId('public-home-landing')).toBeInTheDocument();
         expect(screen.queryByTestId('reduced-experience-banner')).not.toBeInTheDocument();
         rootRender.unmount();
 
@@ -170,12 +185,30 @@ describe('App shell routing contracts', () => {
         await waitFor(() => expect(useQuizStore.getState().loadQuizzes).toHaveBeenCalledTimes(1));
         expect(mockedSettings).toHaveBeenCalledTimes(1);
         expect(useAuthStore.getState().restoreSession).toHaveBeenCalledWith(false);
-        expect(await screen.findByText('home-page')).toBeInTheDocument();
-        expect(screen.getByText('footer-public')).toBeInTheDocument();
+        expect(await screen.findByTestId('public-home-landing')).toBeInTheDocument();
+        expect(screen.getByTestId('public-home-landing-footer')).toBeInTheDocument();
+        expect(screen.queryByText('footer-public')).not.toBeInTheDocument();
         expect(screen.getByText('chatbot')).toBeInTheDocument();
         expect(screen.getByTestId('analytics')).toBeInTheDocument();
         expect(screen.getByTestId('toaster')).toBeInTheDocument();
     });
+
+    it('keeps the student-player presentation key for a persisted selected quiz', async () => {
+        useQuizStore.setState({ view: 'student', selectedQuiz: quiz });
+        const playerRender = renderApp('/');
+        await waitFor(() => expect(mockedScrollReset).toHaveBeenLastCalledWith('student'));
+        playerRender.unmount();
+    });
+
+    it.each(['student', 'teacher'] as const)(
+        'uses a distinct public-login:%s key when an explicit login URL overrides persisted quiz state',
+        async (role) => {
+            useQuizStore.setState({ view: 'student', selectedQuiz: quiz });
+            const loginRender = renderApp(`/?login=${role}`);
+            await waitFor(() => expect(mockedScrollReset).toHaveBeenLastCalledWith(`public-login:${role}`));
+            loginRender.unmount();
+        },
+    );
 
     it('forces teacher cookie validation only on private teacher routes', async () => {
         renderApp('/teacher/announcements');
@@ -220,7 +253,7 @@ describe('App shell routing contracts', () => {
     it('renders the public root for unauthenticated legacy views without mutating state during render', async () => {
         useQuizStore.setState({ view: 'teacher_dash' });
         const teacherRender = renderApp();
-        expect(await screen.findByText('home-page')).toBeInTheDocument();
+        expect(await screen.findByTestId('public-home-landing')).toBeInTheDocument();
         expect(useQuizStore.getState().view).toBe('teacher_dash');
         expect(screen.queryByText('teacher-dashboard')).not.toBeInTheDocument();
         teacherRender.unmount();
@@ -228,7 +261,7 @@ describe('App shell routing contracts', () => {
         vi.stubEnv('VITE_FEATURE_GIFT_SHOP_V2', 'false');
         useQuizStore.setState({ view: 'shop' });
         renderApp();
-        expect(await screen.findByText('home-page')).toBeInTheDocument();
+        expect(await screen.findByTestId('public-home-landing')).toBeInTheDocument();
         expect(useQuizStore.getState().view).toBe('shop');
         expect(screen.queryByText('gift-shop')).not.toBeInTheDocument();
     });
@@ -260,7 +293,7 @@ describe('App shell routing contracts', () => {
 
         renderApp('/missing-page');
         await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/'));
-        expect(await screen.findByText('home-page')).toBeInTheDocument();
+        expect(await screen.findByTestId('public-home-landing')).toBeInTheDocument();
     });
 
     it('updates chatbot visibility from the system-settings event contract', async () => {

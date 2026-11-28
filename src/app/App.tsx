@@ -37,11 +37,22 @@ const MainApp: React.FC = () => {
     useLegacyQuizQuery();
     const aiAssistantEnabled = useSystemSettings();
     useQuizUrlSelection();
-    useScrollReset(quizStore.view);
 
     const isUnauthenticatedRootLogin = location.pathname === '/'
         && !isTeacherLoggedIn
         && !studentSession;
+    const isStudentQuizPlayer = quizStore.view === 'student' && Boolean(quizStore.selectedQuiz);
+    const isPublicRootPresentation = isUnauthenticatedRootLogin && !isStudentQuizPlayer;
+    const requestedLogin = new URLSearchParams(location.search).get('login');
+    const isExplicitPublicLogin = isUnauthenticatedRootLogin
+        && (requestedLogin === 'student' || requestedLogin === 'teacher');
+    const scrollPresentationKey = isExplicitPublicLogin
+        ? `public-login:${requestedLogin}`
+        : isPublicRootPresentation
+            ? 'public-home-landing'
+            : quizStore.view;
+    useScrollReset(scrollPresentationKey);
+
     const isCompetitionPortalPath = location.pathname === '/cuoc-thi'
         || location.pathname.startsWith('/cuoc-thi/')
         || location.pathname === '/thi'

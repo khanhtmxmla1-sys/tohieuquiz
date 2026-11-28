@@ -64,7 +64,9 @@ describe('Mobile Responsive Smoke', () => {
       cy.viewport(width, height);
 
       cy.visit('/');
-      cy.contains('Trang chủ').should('exist');
+      cy.get('[data-testid="public-home-landing"]').should('be.visible');
+      cy.contains('h1', 'Học và kiểm tra trực tuyến, vui như một trò chơi cho học sinh tiểu học')
+        .should('be.visible');
       assertNoHorizontalOverflow();
 
       cy.visit('/about');
