@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isInterventionSignalEligible } from '../shared/intervention.contract';
 import type { Question } from '../workers/src/types';
-import { buildInterventionSuggestionsFromData } from '../workers/src/services/interventionService';
+import { buildInterventionSuggestionsFromData } from '../workers/src/services/interventionModel';
 
 const answer = (isCorrect: boolean) => ({
   selectedAnswer: isCorrect ? 'A' : 'B',
