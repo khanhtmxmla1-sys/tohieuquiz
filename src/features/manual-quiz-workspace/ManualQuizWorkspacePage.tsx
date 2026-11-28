@@ -21,16 +21,18 @@ import { useManualQuizAutosave } from './hooks/useManualQuizAutosave';
 import { useManualQuizEditorAccess } from './hooks/useManualQuizEditorAccess';
 import { useManualQuizPublish } from './hooks/useManualQuizPublish';
 import { useManualQuizWorkspaceRecovery } from './hooks/useManualQuizWorkspaceRecovery';
+import {
+    useManualQuizWorkspaceNavigation,
+    type ManualQuizWorkspaceView,
+} from './hooks/useManualQuizWorkspaceNavigation';
 import { useManualQuizWorkspaceVersionAction } from './hooks/useManualQuizWorkspaceVersionAction';
 import { useWorkspaceKeyboardShortcuts } from './hooks/useWorkspaceKeyboardShortcuts';
 import { useManualQuizWorkspaceStore } from './store/useManualQuizWorkspaceStore';
 import { validateManualQuiz } from './validation/manualQuizValidation';
 import { reportManualQuizTelemetry } from '../../services/telemetryService';
-import { showConfirm } from '../../utils/toast';
 import type {
     ManualQuizNavigationState,
     ManualQuizSeed,
-    ManualQuizQuestion,
 } from './types/manualQuizWorkspace.types';
 
 const QuestionImportDrawer = React.lazy(() => import('./components/QuestionImportDrawer'));
@@ -43,15 +45,6 @@ const DEFAULT_SEED: ManualQuizSeed = {
     tags: [],
     requireCode: false,
     showOnHome: true,
-};
-
-type WorkspaceView = 'overview' | 'edit' | 'preview';
-
-type PendingEditorFocus = {
-    questionId: string;
-    field?: string;
-    originElement: HTMLElement | null;
-    activated: boolean;
 };
 
 const ManualQuizWorkspacePage: React.FC = () => {
@@ -82,14 +75,11 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const [previousPoints, setPreviousPoints] = useState<Record<string, number> | null>(null);
     const [isQuestionBankOpen, setQuestionBankOpen] = useState(false);
     const [isQuestionImportOpen, setQuestionImportOpen] = useState(false);
-    const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('overview');
-    const [previewQuestion, setPreviewQuestion] = useState<ManualQuizQuestion | null>(null);
-    const [lastEditedQuestionId, setLastEditedQuestionId] = useState<string | null>(null);
+    const [workspaceView, setWorkspaceView] = useState<ManualQuizWorkspaceView>('overview');
     const openedDraftRef = useRef<string | null>(null);
     const requestedDraftId = useMemo(() => new URLSearchParams(location.search).get('draftId'), [location.search]);
     const [editorAccessError, setEditorAccessError] = useState('');
     const questionEditorRef = useRef<QuestionEditorPaneHandle>(null);
-    const pendingEditorFocusRef = useRef<PendingEditorFocus | null>(null);
 
     const seed = navigationState?.manualQuizSeed ?? DEFAULT_SEED;
     const { editability, editorAccessStatus } = useManualQuizEditorAccess({
@@ -220,74 +210,32 @@ const ManualQuizWorkspacePage: React.FC = () => {
         initializeFromSeed,
     });
 
-    const focusQuestionEditor = useCallback((questionId: string, field?: string, skipGuard = false) => {
-        if (!skipGuard && !guardTransition()) return;
-        const originElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-        pendingEditorFocusRef.current = { questionId, field, originElement, activated: false };
-        setLastEditedQuestionId(questionId);
-        selectQuestion(questionId);
-        setWorkspaceView('edit');
-        setValidationOpen(false);
-    }, [guardTransition, selectQuestion]);
-
-    useEffect(() => {
-        const pending = pendingEditorFocusRef.current;
-        if (!pending) return;
-        if (workspaceView === 'edit' && pending.questionId === envelope?.selectedQuestionId) {
-            pending.activated = true;
-            const activeElement = document.activeElement;
-            const focusWasMoved = activeElement instanceof HTMLElement
-                && activeElement !== document.body
-                && activeElement !== pending.originElement;
-            if (focusWasMoved) {
-                pendingEditorFocusRef.current = null;
-                return;
-            }
-            const editor = document.querySelector<HTMLElement>('[aria-label="Trình soạn câu hỏi"]');
-            const target = editor?.querySelector<HTMLElement>(pending.field === 'points'
-                ? '[aria-label="Điểm câu hỏi"]'
-                : '[data-testid="question-rich-editor"]');
-            if (target) {
-                target.focus();
-                pendingEditorFocusRef.current = null;
-            }
-            return;
-        }
-        if (pending.activated) pendingEditorFocusRef.current = null;
-    }, [envelope?.selectedQuestionId, workspaceView]);
-
-    useEffect(() => () => {
-        pendingEditorFocusRef.current = null;
-    }, []);
-
-    const handleQuestionEditorReady = useCallback((readyQuestionId: string) => {
-        const pending = pendingEditorFocusRef.current;
-        if (!pending) return;
-        if (readyQuestionId !== pending.questionId) return;
-        const currentEnvelope = useManualQuizWorkspaceStore.getState().envelope;
-        if (workspaceView !== 'edit' || currentEnvelope?.selectedQuestionId !== pending.questionId) {
-            if (pending.activated) pendingEditorFocusRef.current = null;
-            return;
-        }
-        pending.activated = true;
-
-        const activeElement = document.activeElement;
-        const focusWasMoved = activeElement instanceof HTMLElement
-            && activeElement !== document.body
-            && activeElement !== pending.originElement;
-        if (focusWasMoved) {
-            pendingEditorFocusRef.current = null;
-            return;
-        }
-
-        const editor = document.querySelector<HTMLElement>('[aria-label="Trình soạn câu hỏi"]');
-        const target = editor?.querySelector<HTMLElement>(pending.field === 'points'
-            ? '[aria-label="Điểm câu hỏi"]'
-            : '[data-testid="question-rich-editor"]');
-        if (!target) return;
-        target.focus();
-        pendingEditorFocusRef.current = null;
-    }, [workspaceView]);
+    const {
+        previewQuestion,
+        focusQuestionEditor,
+        handleQuestionEditorReady,
+        openQuestionEditor,
+        handleQuestionAdded,
+        handleBackToOverview,
+        handlePreview,
+        handleBackFromPreview,
+        moveQuestion,
+        finishQuestionEdit,
+        handleHeaderBack,
+        requestPublish,
+    } = useManualQuizWorkspaceNavigation({
+        envelope,
+        workspaceView,
+        setWorkspaceView,
+        serverResolutionVersion: autosaveController.serverResolutionVersion,
+        isReadOnly,
+        requiresPublishedWarning: editability?.requiresPublishedWarning,
+        guardTransition,
+        publishAfterGuard,
+        selectQuestion,
+        setValidationOpen,
+        navigate,
+    });
 
     const goToQuestionIssue = (questionId: string, field?: string) => {
         focusQuestionEditor(questionId, field);
@@ -309,104 +257,6 @@ const ManualQuizWorkspacePage: React.FC = () => {
     };
 
     const selectedQuestion = envelope?.quiz.questions.find((question) => question.id === envelope.selectedQuestionId) ?? null;
-
-    useEffect(() => {
-        if (autosaveController.serverResolutionVersion === 0) return;
-        const acceptedEnvelope = useManualQuizWorkspaceStore.getState().envelope;
-        const acceptedQuestion = acceptedEnvelope?.quiz.questions.find(
-            (question) => question.id === acceptedEnvelope.selectedQuestionId,
-        ) ?? null;
-        setPreviewQuestion(acceptedQuestion);
-    }, [autosaveController.serverResolutionVersion]);
-
-    const openQuestionEditor = useCallback((questionId: string) => {
-        if (isReadOnly) {
-            if (!guardTransition()) return;
-            setLastEditedQuestionId(questionId);
-            selectQuestion(questionId);
-            const question = useManualQuizWorkspaceStore.getState().envelope?.quiz.questions.find((item) => item.id === questionId);
-            if (question) setPreviewQuestion(question);
-            setWorkspaceView('preview');
-            return;
-        }
-        focusQuestionEditor(questionId);
-    }, [focusQuestionEditor, guardTransition, isReadOnly, selectQuestion]);
-
-    const handleQuestionAdded = useCallback((questionId: string) => {
-        focusQuestionEditor(questionId, undefined, true);
-    }, [focusQuestionEditor]);
-
-    const handleBackToOverview = useCallback(() => {
-        if (!guardTransition()) return;
-        setWorkspaceView('overview');
-    }, [guardTransition]);
-
-    const handlePreview = useCallback((question: ManualQuizQuestion) => {
-        if (!guardTransition()) return;
-        setPreviewQuestion(question);
-        setWorkspaceView('preview');
-    }, [guardTransition]);
-
-    const handleBackFromPreview = useCallback(() => {
-        if (!guardTransition()) return;
-        setWorkspaceView(isReadOnly ? 'overview' : 'edit');
-    }, [guardTransition, isReadOnly]);
-
-    const moveQuestion = useCallback((offset: -1 | 1) => {
-        if (!guardTransition()) return;
-        const currentEnvelope = useManualQuizWorkspaceStore.getState().envelope;
-        const currentId = currentEnvelope?.selectedQuestionId;
-        if (!currentEnvelope || !currentId) return;
-        const index = currentEnvelope.quiz.questions.findIndex((question) => question.id === currentId);
-        const next = currentEnvelope.quiz.questions[index + offset];
-        if (!next) return;
-        focusQuestionEditor(next.id, undefined, true);
-    }, [focusQuestionEditor, guardTransition]);
-
-    const finishQuestionEdit = useCallback(() => {
-        if (!guardTransition()) return;
-        setWorkspaceView('overview');
-    }, [guardTransition]);
-
-    const handleHeaderBack = useCallback(() => {
-        if (workspaceView === 'preview' || workspaceView === 'edit') {
-            handleBackToOverview();
-            return;
-        }
-        if (!guardTransition()) return;
-        navigate(-1);
-    }, [guardTransition, handleBackToOverview, navigate, workspaceView]);
-
-    useEffect(() => {
-        if (workspaceView !== 'overview' || !lastEditedQuestionId) return;
-        const timer = window.setTimeout(() => {
-            const row = document.querySelector<HTMLElement>(`[data-question-id="${lastEditedQuestionId}"]`);
-            if (row && typeof row.scrollIntoView === 'function') {
-                row.scrollIntoView({ block: 'nearest' });
-            }
-            const semanticAction = row?.querySelector<HTMLElement>('button[aria-label^="Sửa câu"], button[aria-label^="Xem câu"]')
-                ?? row?.querySelector<HTMLElement>('button[aria-label^="Chọn câu"]');
-            semanticAction?.focus();
-        }, 0);
-        return () => window.clearTimeout(timer);
-    }, [lastEditedQuestionId, workspaceView]);
-
-    const requestPublish = useCallback(() => {
-        if (isReadOnly) return;
-        if (!guardTransition()) return;
-        if (editability?.requiresPublishedWarning) {
-            showConfirm({
-                message: 'Đề đã được giao cho học sinh. Những thay đổi sẽ áp dụng cho các lượt làm tiếp theo. Bạn có chắc muốn lưu?',
-                confirmLabel: 'Lưu thay đổi',
-                onConfirm: () => {
-                    if (!guardTransition()) return;
-                    publishAfterGuard();
-                },
-            });
-            return;
-        }
-        publishAfterGuard();
-    }, [editability?.requiresPublishedWarning, guardTransition, isReadOnly, publishAfterGuard]);
 
     const isOverviewView = workspaceView === 'overview';
 
