@@ -213,7 +213,7 @@
   background: #fff;
   color: #2450a1;
 }
-.public-home__hero-points {
+ul.public-home__hero-points {
   display: flex;
   flex-wrap: wrap;
   gap: 12px 18px;
