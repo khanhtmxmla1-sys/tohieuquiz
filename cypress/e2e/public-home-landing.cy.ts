@@ -123,6 +123,7 @@ describe('Public home landing', () => {
 
   [
     { width: 320, height: 800, label: 'mobile' },
+    { width: 375, height: 812, label: '375x812' },
     { width: 1440, height: 900, label: 'desktop' },
   ].forEach(({ width, height, label }) => {
     it(`keeps the hero entry CTA usable on ${label}`, () => {
@@ -137,6 +138,20 @@ describe('Public home landing', () => {
           expect(rect.top, 'hero CTA top').to.be.at.least(0);
           expect(rect.bottom, 'hero CTA bottom').to.be.at.most(height);
           assertTouchTarget($cta, 'hero CTA');
+        });
+
+      cy.get('[data-testid="public-home-landing"] .public-home__hero-copy')
+        .should(($copy) => {
+          const actions = $copy.find('.public-home__hero-actions')[0] as HTMLElement | undefined;
+          const points = $copy.find('ul.public-home__hero-points')[0] as HTMLElement | undefined;
+          expect(actions, 'hero actions').to.exist;
+          expect(points, 'hero points').to.exist;
+          if (!actions || !points) return;
+
+          const actionsRect = actions.getBoundingClientRect();
+          const pointsRect = points.getBoundingClientRect();
+          expect(pointsRect.top - actionsRect.bottom, `${label} hero points gap`).to.be.at.least(24);
+          expect(getComputedStyle(points).marginTop, `${label} hero points margin-top`).to.equal('24px');
         });
 
       cy.get('[data-testid="public-home-landing"] img[fetchpriority="high"]')
