@@ -104,14 +104,20 @@ const makeForm = (uploadedFile: File | null = null) => {
 const renderGeneration = (
   form: ReturnType<typeof makeForm>,
   aiQuizV2Enabled = true,
+  options: {
+    editingQuiz?: unknown;
+    aiBlueprintV3Enabled?: boolean;
+    serverQuizGenerationEnabled?: boolean;
+  } = {},
 ) => renderHook(() => useQuizGeneration({
   form: form as never,
-  editingQuiz: null,
+  editingQuiz: options.editingQuiz as never,
   isTeacherAccount: true,
   username: 'teacher-a',
   teacherName: 'Cô A',
   aiQuizV2Enabled,
-  aiBlueprintV3Enabled: false,
+  aiBlueprintV3Enabled: options.aiBlueprintV3Enabled ?? false,
+  serverQuizGenerationEnabled: options.serverQuizGenerationEnabled ?? false,
 }));
 
 const prepareAndGeneratePdf = async (
@@ -155,6 +161,58 @@ describe('quiz AI workflow', () => {
 
     expect(aiMocks.generateQuiz.mock.calls[0][3]).toBeUndefined();
     expect(String(aiMocks.generateQuiz.mock.calls[0][2])).toContain('=== TRANG 1 ===');
+  });
+
+  it('preserves client result metadata, editing identity, and manual fields', async () => {
+    const form = makeForm();
+    form.manualTimeLimit = 0;
+    form.requireCode = true;
+    form.accessCode = 'abc';
+    form.category = 'manual-category';
+    form.tags = ['manual-tag'];
+    aiMocks.generateQuiz.mockResolvedValue({
+      title: '',
+      timeLimit: 20,
+      detectedCategory: 'toan',
+      detectedLesson: '  phân số  ',
+      suggestedTags: ['lớp 4'],
+      questions: [{
+        id: 'existing-question',
+        type: QuestionType.MCQ,
+        question: 'Có sẵn',
+      }, {
+        type: QuestionType.MCQ,
+        question: 'Thiếu id',
+      }],
+    });
+    const { result } = renderGeneration(form, true, {
+      editingQuiz: {
+        id: 'existing-quiz',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        createdBy: 'original-teacher',
+      },
+    });
+
+    await act(async () => {
+      await result.current.handleGenerate('exam');
+    });
+
+    const generatedQuiz = form.setGeneratedQuiz.mock.calls[0][0];
+    expect(generatedQuiz).toMatchObject({
+      id: 'existing-quiz',
+      title: 'Đề kiểm tra',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      createdBy: 'original-teacher',
+      timeLimit: 0,
+      accessCode: 'ABC',
+      category: 'manual-category',
+      tags: ['manual-tag'],
+      detectedCategory: 'toan',
+      detectedLesson: 'phân số',
+      suggestedTags: ['lop_4'],
+    });
+    expect(generatedQuiz.questions[0].id).toBe('existing-question');
+    expect(generatedQuiz.questions[1].id).toMatch(/^q-/);
   });
 
   it('generates from selected OCR pages only', async () => {

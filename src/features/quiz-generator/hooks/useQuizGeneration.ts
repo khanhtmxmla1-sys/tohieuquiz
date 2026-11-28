@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import type { QuizAiSource } from '../../../../shared/teacher-ai-credentials.contract';
-import type { ServerQuizGenerationRequest } from '../../../../shared/quiz-generation.contract';
 import type { Quiz, Question } from '../../../types';
 import { QuestionType } from '../../../types';
 import {
@@ -21,6 +20,8 @@ import {
     buildQuizGenerationOptions,
     buildTrialQuizGenerationOptions,
 } from '../domain/buildQuizGenerationRequest';
+import { buildGeneratedQuiz } from '../domain/buildGeneratedQuiz';
+import { buildServerQuizGenerationRequest } from '../domain/buildServerQuizGenerationRequest';
 import { buildQuestionRegenerationPrompt } from '../../../services/ai/prompts/questionRegenerationPrompt';
 import { isAiSelectableQuestionType } from '../../../services/ai/question-contracts/questionTypeAvailability';
 import type { GeneratedQuestionV3 } from '../../../services/ai/question-contracts/questionContract.types';
@@ -113,47 +114,6 @@ export const useQuizGeneration = ({
         }
         return null;
     };
-
-    const createQuizFromResult = (
-        result: Record<string, unknown>,
-        optionsTitle: string,
-        detectedCategory: string | null,
-        detectedLesson: string,
-        suggestedTags: string[],
-        generationKind: GenerationRequestKind,
-    ): Quiz => ({
-        id: editingQuiz?.id || `quiz-${Date.now()}`,
-        title: (result.title as string) || optionsTitle,
-        classLevel: form.classLevel,
-        timeLimit: typeof form.manualTimeLimit === 'number'
-            ? form.manualTimeLimit
-            : (result.timeLimit as number) || 15,
-        questions: ((result.questions || []) as Question[]).map(
-            (question: Question, index: number) => ({
-                ...question,
-                id: question.id || `q-${Date.now()}-${index}`,
-            }),
-        ),
-        createdAt: editingQuiz ? editingQuiz.createdAt : new Date().toISOString(),
-        createdBy: editingQuiz?.createdBy || teacherName || undefined,
-        accessCode: form.requireCode ? form.accessCode.toUpperCase() : undefined,
-        requireCode: form.requireCode,
-        showOnHome: form.showOnHome,
-        category: form.category,
-        tags: form.tags,
-        detectedCategory: detectedCategory || undefined,
-        detectedLesson: detectedLesson || undefined,
-        suggestedTags: suggestedTags.length > 0 ? suggestedTags : undefined,
-        aiGeneration: {
-            promptVersion: typeof result.promptVersion === 'string'
-                ? result.promptVersion
-                : (aiBlueprintV3Enabled ? 'ai-blueprint-v3' : 'ai-quiz-v2'),
-            blueprintVersion: typeof result.blueprintVersion === 'number'
-                ? result.blueprintVersion
-                : (aiBlueprintV3Enabled ? 3 : undefined),
-            generationKind,
-        },
-    });
 
     const prepareOcrPreview = async (file: File): Promise<OcrDocument | null> => {
         activeGenerationRef.current?.controller.abort();
@@ -369,49 +329,31 @@ export const useQuizGeneration = ({
                 && aiBlueprintV3Enabled
                 && requestKind === 'full';
             if (useServerQuizGeneration) {
-                const serverTypeAllocations = form.questionTypeAllocations
-                    .filter(({ count }) => count > 0)
-                    .map(({ type, count }) => ({
-                        type: String(type) as ServerQuizGenerationRequest['typeAllocations'][number]['type'],
-                        count,
-                    }));
-                const unsupportedType = serverTypeAllocations.find(
-                    ({ type }) => !isAiSelectableQuestionType(type as QuestionType),
-                );
-                if (unsupportedType) {
-                    throw new Error('Dạng câu đã chọn chưa được hỗ trợ bởi tạo đề máy chủ.');
-                }
-
-                const serverTitle = form.quizTitle || `${titlePrefix}: ${
-                    form.topic
-                    || form.uploadedFile?.name?.replace(/\.[^/.]+$/, '')
-                    || 'Bài kiểm tra'
-                }`;
-                const serverRequest: ServerQuizGenerationRequest = {
+                const serverRequest = buildServerQuizGenerationRequest({
                     actionId: action.actionId,
                     source: aiSource,
-                    title: serverTitle,
-                    topic: generationTopic,
-                    classLevel: form.classLevel,
-                    content: generationContent,
-                    intent: activeQuizMode === 'exam'
-                        ? 'EXAM'
-                        : activeQuizMode === 'practice'
-                            ? 'PRACTICE'
-                            : form.quizIntent,
-                    sourceMode: isPdfMode ? 'DOCUMENT_TEXT' : 'TOPIC',
+                    mode: activeQuizMode,
+                    generationTopic,
+                    generationContent,
                     questionCount: validation.questionCount,
-                    typeAllocations: serverTypeAllocations,
-                    difficultyLevels: form.difficultyLevels,
-                    promptProfile: form.promptProfile,
-                    customPrompt: form.customPrompt.trim() || undefined,
-                    sourceRefs: isPdfMode
+                    sourcePageNumbers: isPdfMode
                         ? (legacyOcrDocument
-                            ? legacyOcrDocument.pages.map((page) => `page-${page.pageNumber}`)
-                            : form.selectedOcrPageNumbers.map((pageNumber) => `page-${pageNumber}`))
-                        : undefined,
+                            ? legacyOcrDocument.pages.map((page) => page.pageNumber)
+                            : form.selectedOcrPageNumbers)
+                        : [],
                     diagramMode: aiSvgDiagramsEnabled && form.autoGenerateSvg ? 'auto' : 'off',
-                };
+                    form: {
+                        quizTitle: form.quizTitle,
+                        topic: form.topic,
+                        uploadedFile: form.uploadedFile,
+                        classLevel: form.classLevel,
+                        quizIntent: form.quizIntent,
+                        difficultyLevels: form.difficultyLevels,
+                        promptProfile: form.promptProfile,
+                        customPrompt: form.customPrompt,
+                        questionTypeAllocations: form.questionTypeAllocations,
+                    },
+                });
 
                 const serverResponse = await requestServerQuizGeneration(serverRequest, {
                     signal: controller.signal,
@@ -426,13 +368,27 @@ export const useQuizGeneration = ({
                 form.setAiDetectedCategory(detectedCategory);
                 form.setAiDetectedLesson(detectedLesson);
                 form.setAiSuggestedTags(suggestedTags);
-                form.setGeneratedQuiz(createQuizFromResult(
+                form.setGeneratedQuiz(buildGeneratedQuiz(
                     result,
                     serverRequest.title,
                     detectedCategory,
                     detectedLesson,
                     suggestedTags,
                     requestKind,
+                    {
+                        editingQuiz,
+                        teacherName,
+                        aiBlueprintV3Enabled,
+                        form: {
+                            classLevel: form.classLevel,
+                            manualTimeLimit: form.manualTimeLimit,
+                            requireCode: form.requireCode,
+                            accessCode: form.accessCode,
+                            showOnHome: form.showOnHome,
+                            category: form.category,
+                            tags: form.tags,
+                        },
+                    },
                 ));
                 setGenerationStep('completed');
                 return;
@@ -495,13 +451,27 @@ export const useQuizGeneration = ({
             form.setAiDetectedCategory(detectedCategory);
             form.setAiDetectedLesson(detectedLesson);
             form.setAiSuggestedTags(suggestedTags);
-            form.setGeneratedQuiz(createQuizFromResult(
+            form.setGeneratedQuiz(buildGeneratedQuiz(
                 result,
                 options.title,
                 detectedCategory,
                 detectedLesson,
                 suggestedTags,
                 requestKind,
+                {
+                    editingQuiz,
+                    teacherName,
+                    aiBlueprintV3Enabled,
+                    form: {
+                        classLevel: form.classLevel,
+                        manualTimeLimit: form.manualTimeLimit,
+                        requireCode: form.requireCode,
+                        accessCode: form.accessCode,
+                        showOnHome: form.showOnHome,
+                        category: form.category,
+                        tags: form.tags,
+                    },
+                },
             ));
             setGenerationStep('completed');
         } catch (error: unknown) {
