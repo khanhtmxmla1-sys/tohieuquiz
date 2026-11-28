@@ -17,6 +17,7 @@ describe('Production public browser smoke', () => {
     });
     cy.title().should('contain', 'TôHiệuQuiz');
     cy.get('#root').should('not.be.empty');
+    cy.get('[data-testid="public-home-landing"]').should('be.visible');
     cy.contains('TôHiệuQuiz').should('be.visible');
     cy.then(() => expect(browserErrors, 'browser errors').to.deep.equal([]));
   });

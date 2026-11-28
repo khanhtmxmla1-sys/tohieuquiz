@@ -24,7 +24,7 @@ describe('Public home and login flow', () => {
   });
 
   it('renders the current TôHiệuQuiz login experience and switches roles', () => {
-    cy.visit('/');
+    cy.visit('/?login=student');
 
     cy.get('#login-title', { timeout: 10000 }).should('be.visible');
     cy.contains('TôHiệuQuiz').should('be.visible');

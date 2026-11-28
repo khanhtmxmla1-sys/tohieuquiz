@@ -30,7 +30,7 @@ const DESKTOP = { width: 1280, height: 720 } as const;
  * footer into view, so another synthetic scroll would change the offset immediately before the
  * navigation and make the assertion observe Cypress behavior instead of reader behavior.
  */
-const clickFooterLink = (label: string) => cy.get('footer button').contains(label).click({ scrollBehavior: false });
+const clickFooterLink = (label: string) => cy.get('footer button, footer a').contains(label).click({ scrollBehavior: false });
 
 const visitScrolledToBottom = (path: string) => {
   cy.viewport(DESKTOP.width, DESKTOP.height);

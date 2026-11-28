@@ -13,7 +13,9 @@ import { useQuizStore } from '../stores/quizStore';
  * navigation type — that is the only thing that distinguishes a real Back from a new push.
  */
 
-vi.mock('../src/components/HomePage/HomePage', () => ({ default: () => <div>home-page</div> }));
+vi.mock('../src/features/public-home/PublicHomeLandingPage', () => ({
+    default: () => <div data-testid="public-home-landing">public-home-landing</div>,
+}));
 vi.mock('../src/components/common/Footer', () => ({ default: () => <div>footer</div> }));
 
 const PAGES = [
@@ -101,7 +103,7 @@ describe.each(PAGES)('$name back control', ({ path, bottomButton }) => {
         await click(screen.getByRole('button', { name: bottomButton }));
 
         expect(screen.getByTestId('probe')).toHaveTextContent('/|POP');
-        expect(await screen.findByText('home-page')).toBeVisible();
+        expect(await screen.findByTestId('public-home-landing')).toBeVisible();
         expect(useQuizStore.getState().view).toBe('home');
     });
 
@@ -112,7 +114,7 @@ describe.each(PAGES)('$name back control', ({ path, bottomButton }) => {
         await click(screen.getByRole('button', { name: bottomButton }));
 
         expect(screen.getByTestId('probe')).toHaveTextContent('/|REPLACE');
-        expect(await screen.findByText('home-page')).toBeVisible();
+        expect(await screen.findByTestId('public-home-landing')).toBeVisible();
     });
 
     it('wires the header arrow to the same handler as the button at the bottom', async () => {
@@ -134,7 +136,7 @@ describe('legal page back scroll restore', () => {
      */
     it('lets the Back restore win over the view change that goHome triggers', async () => {
         renderAt(['/'], 0);
-        await screen.findByText('home-page');
+        await screen.findByTestId('public-home-landing');
 
         setScrollY(1371);
         act(() => { window.dispatchEvent(new Event('scroll')); });
