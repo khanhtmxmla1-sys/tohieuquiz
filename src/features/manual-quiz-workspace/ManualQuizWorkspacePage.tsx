@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useAuthStore } from '../../../stores/authStore';
-import { normalizeQuestionRow, useQuizStore } from '../../../stores/quizStore';
+import { useQuizStore } from '../../../stores/quizStore';
 import { useClassStore } from '../../stores/useClassStore';
-import { getQuizEditorRoute, getTeacherRoute } from '../../app/navigationRoutes';
+import { getTeacherRoute } from '../../app/navigationRoutes';
 import ManualQuizWorkspaceGuard from './components/ManualQuizWorkspaceGuard';
 import DraftRecoveryDialog from './components/DraftRecoveryDialog';
 import DraftConflictDialog from './components/DraftConflictDialog';
@@ -22,20 +22,20 @@ import {
     removeLocalDraft,
 } from './draft/manualQuizDraftRepository';
 import { useManualQuizAutosave } from './hooks/useManualQuizAutosave';
+import { useManualQuizEditorAccess } from './hooks/useManualQuizEditorAccess';
 import { useManualQuizPublish } from './hooks/useManualQuizPublish';
+import { useManualQuizWorkspaceVersionAction } from './hooks/useManualQuizWorkspaceVersionAction';
 import { useWorkspaceKeyboardShortcuts } from './hooks/useWorkspaceKeyboardShortcuts';
 import { useManualQuizWorkspaceStore } from './store/useManualQuizWorkspaceStore';
 import { validateManualQuiz } from './validation/manualQuizValidation';
 import { reportManualQuizTelemetry } from '../../services/telemetryService';
 import { getRemoteManualQuizDraft } from '../../services/manualQuizDraftService';
-import { createQuizVersion, getQuizEditorPayload } from './services/quizEditorService';
 import { showConfirm } from '../../utils/toast';
 import type {
     ManualQuizDraftEnvelope,
     ManualQuizNavigationState,
     ManualQuizSeed,
     ManualQuizQuestion,
-    QuizEditorEditability,
 } from './types/manualQuizWorkspace.types';
 
 const QuestionImportDrawer = React.lazy(() => import('./components/QuestionImportDrawer'));
@@ -98,16 +98,16 @@ const ManualQuizWorkspacePage: React.FC = () => {
         requestedDraftId ? 'loading' : 'loaded',
     );
     const [remoteDraftError, setRemoteDraftError] = useState('');
-    const [editability, setEditability] = useState<QuizEditorEditability | null>(null);
-    const [editorAccessStatus, setEditorAccessStatus] = useState<'loading' | 'loaded' | 'error'>(
-        quizId ? 'loading' : 'loaded',
-    );
     const [editorAccessError, setEditorAccessError] = useState('');
-    const [isCreatingVersion, setCreatingVersion] = useState(false);
     const questionEditorRef = useRef<QuestionEditorPaneHandle>(null);
     const pendingEditorFocusRef = useRef<PendingEditorFocus | null>(null);
 
     const seed = navigationState?.manualQuizSeed ?? DEFAULT_SEED;
+    const { editability, editorAccessStatus } = useManualQuizEditorAccess({
+        quizId,
+        username,
+        onEditorAccessErrorChange: setEditorAccessError,
+    });
     const isReadOnly = editability?.mode === 'READONLY';
 
     const autosaveController = useManualQuizAutosave(isReadOnly ? null : envelope);
@@ -115,6 +115,15 @@ const ManualQuizWorkspacePage: React.FC = () => {
         const flushResult = questionEditorRef.current?.flush();
         return !flushResult || flushResult.ok;
     }, []);
+    const { createVersion: handleCreateVersion, isCreatingVersion } = useManualQuizWorkspaceVersionAction({
+        quizId,
+        envelopeTitle: envelope?.quiz.title,
+        availableQuizTitle: availableQuiz?.title,
+        guardTransition,
+        navigate,
+        loadQuizzes,
+        onEditorAccessErrorChange: setEditorAccessError,
+    });
     const runGuarded = useCallback((action: () => void): boolean => {
         if (!guardTransition()) return false;
         action();
@@ -147,39 +156,6 @@ const ManualQuizWorkspacePage: React.FC = () => {
         if (!isSettingsOpen || !username) return;
         void fetchClasses(isAdmin ? undefined : username);
     }, [fetchClasses, isAdmin, isSettingsOpen, username]);
-
-    useEffect(() => {
-        if (!quizId || !username) return;
-        let active = true;
-        setEditorAccessStatus('loading');
-        setEditorAccessError('');
-
-        void getQuizEditorPayload(quizId)
-            .then((payload) => {
-                if (!active) return;
-                const editorQuiz = {
-                    ...payload.quiz,
-                    questions: payload.questions.map(normalizeQuestionRow),
-                } as NonNullable<typeof availableQuiz>;
-                useQuizStore.setState((state) => ({
-                    quizzes: state.quizzes.some((quiz) => quiz.id === editorQuiz.id)
-                        ? state.quizzes.map((quiz) => quiz.id === editorQuiz.id ? editorQuiz : quiz)
-                        : [...state.quizzes, editorQuiz],
-                    selectedQuiz: state.selectedQuiz?.id === editorQuiz.id ? editorQuiz : state.selectedQuiz,
-                }));
-                setEditability(payload.editability);
-                setEditorAccessStatus('loaded');
-            })
-            .catch((error: unknown) => {
-                if (!active) return;
-                setEditorAccessError(error instanceof Error ? error.message : 'Không thể tải quyền chỉnh sửa đề.');
-                setEditorAccessStatus('error');
-            });
-
-        return () => {
-            active = false;
-        };
-    }, [quizId, username]);
 
     useEffect(() => {
         if (!envelope || openedDraftRef.current === envelope.draftId) return;
@@ -495,26 +471,6 @@ const ManualQuizWorkspacePage: React.FC = () => {
         }, 0);
         return () => window.clearTimeout(timer);
     }, [lastEditedQuestionId, workspaceView]);
-
-    const handleCreateVersion = useCallback(async () => {
-        if (!quizId || isCreatingVersion) return;
-        if (!guardTransition()) return;
-        setCreatingVersion(true);
-        setEditorAccessError('');
-        try {
-            const version = await createQuizVersion(
-                quizId,
-                `${envelope?.quiz.title || availableQuiz?.title || 'Đề kiểm tra'} - Bản chỉnh sửa`,
-            );
-            useManualQuizWorkspaceStore.getState().reset();
-            navigate(getQuizEditorRoute(version.id), { replace: true });
-            void loadQuizzes({ force: true, includeQuestions: true }).catch(() => undefined);
-        } catch (error: unknown) {
-            setEditorAccessError(error instanceof Error ? error.message : 'Không thể tạo phiên bản mới.');
-        } finally {
-            setCreatingVersion(false);
-        }
-    }, [availableQuiz?.title, envelope?.quiz.title, guardTransition, isCreatingVersion, loadQuizzes, navigate, quizId]);
 
     const requestPublish = useCallback(() => {
         if (isReadOnly) return;
