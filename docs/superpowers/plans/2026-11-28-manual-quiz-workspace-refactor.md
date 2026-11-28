@@ -159,7 +159,7 @@ Rollback là revert PR/merge commit của phase; không reset branch dùng chung
 
 ## Checklist delivery và nhắc mục 3 sau khi hoàn tất mục 1
 
-- [ ] Phase 1 đã merge và frontend production smoke đạt.
+- [x] Phase 1 đã merge và frontend production smoke đạt.
 - [ ] Phase 2 đã merge và frontend production smoke đạt.
 - [ ] Phase 3 đã merge và frontend production smoke đạt.
 - [ ] CI, Security, Release readiness và code-owner review đã xanh trên từng HEAD.
@@ -196,3 +196,23 @@ Trạng thái khi lập plan ban đầu là planning-only. User đã duyệt tri
 - Browser focused cuối và toàn bộ script stubbed đang chạy trên source cuối, official npm run dev/predev; API proxy chỉ local, chưa production write/deploy.
 - Browser focused cuối: 20/20 PASS, exit 0. Toàn bộ script stubbed: 13 spec/78 ca PASS, exit 0, 6 phút 7 giây, không fail/skip/pending. Đã dừng dev server của task sau kiểm thử.
 - Phạm vi cuối đúng 6 file của phase 1. Không có P1/P2 sau review độc lập; source ngoài phạm vi không đổi. Báo cáo và manifest được lưu ngoài worktree để duyệt cuối; chưa stage/commit/push/PR. Approval triển khai plan được giữ nguyên; gate phạm vi cuối trước commit là riêng theo AGENTS.md mục 6.
+
+## Tiến độ đợt 2 (snapshot trước commit)
+
+- User đã duyệt triển khai toàn bộ plan và yêu cầu tiếp tục sau CI; không hỏi lại approval triển khai khi scope không đổi. Gate duyệt phạm vi cuối trước commit/push của đợt 2 vẫn riêng.
+- Đợt 1 đã bàn giao: PR #215, approved HEAD bc382472af24c1d54659355e73b9c1a9732b0ea3; merge 460c5cc6673a66cb286c2f8925e86aea91719633. CI, Security, cả 5 Release readiness gate, production SHA/static assets 200, public smoke10/auth14/public browser3 PASS. Worktree/branch đợt1 đã dọn; dirty main giữ nguyên. Không deploy Worker/migration.
+- Đợt 2 dùng worktree `C:\Users\Administrator\.codex\worktrees\refactor-manual-quiz-workspace-recovery\quizpro`, branch `codex/refactor-manual-quiz-workspace-recovery`, baseline `460c5cc6673a66cb286c2f8925e86aea91719633`.
+- Phạm vi dự kiến đúng 4 file: page, hook useManualQuizWorkspaceRecovery.ts mới, ManualQuizWorkspaceRecoveryLifecycle.test.tsx mới, và plan này. Không sửa hook access/version/autosave/publish hoặc store/service implementation.
+- npm ci root/Worker hoàn tất theo lockfile. Baseline regression 12 suite/62 test PASS, exit 0. Baseline browser trên cùng merged SHA được xác minh bởi Release readiness đợt1: workspace20/fullstubbed78 PASS.
+- GitNexus fresh: 27.642 nodes/56.048 edges/300 flows. Exact UID page, continueRecoveredDraft, discardRecoveredDraft đều LOW/0 static direct caller/0 affected flow. Hai prop callback trong DraftRecoveryDialog được đọc trực tiếp vì graph không biểu diễn đầy đủ binding JSX. FTS không khả dụng; bổ sung actual diff/AST/manual review.
+- Đã cho worker viết characterization trên page gốc; chưa cho tách hook trước khi baseline mới GREEN. Bằng chứng đợt2 nằm tại `C:\Users\Administrator\.codex\artifacts\manual-quiz-recovery-460c5cc`.
+- Characterization mới: 1 file/12 ca PASS trên page gốc, exit 0; lint test PASS. Root phát hiện và sửa gap test readonly thiếu draftId; baseline mới có query đúng. Hành vi gốc readonly + requestedDraftId: không GET draft, không prompt local, envelope vẫn null do guard requestedDraftId/status; phải giữ nguyên, không gộp sửa UX vào refactor. Readonly không query vẫn được init từ quiz theo các test cũ.
+- Lượt fixture đầu có một expectation timestamp sai (entry trước draft nên draft thực tế mới hơn); chỉ sửa fixture, log được giữ riêng. Không sửa source để ép test PASS.
+- Root đã cho phép worker tách đúng page + hook recovery; các test còn lại và source ngoài scope giữ nguyên. Verification toàn dự án do root chạy sau source freeze để tránh trùng.
+- Source đợt2 đã freeze: chỉ page + hook recovery. Root/independent reviewer không còn P1/P2; moved remote/local effect và continue/discard body khớp baseline sau parameterization workspaceStartedAt; 21 handler/6 effect còn lại và JSX giữ nguyên.
+- Focused sau tách: 13 suite/74 test PASS, exit0. Final force index 27.666 nodes/56.085 edges/300 flows; hook mới LOW/1 direct caller/0 flow. Compare tracked page+plan: LOW/0 flow; staged fullscope sau approval trước commit.
+- Lint và typecheck frontend/strict/Worker đã qua trong npm run verify; full unit đang chạy trên snapshot source cuối. Chưa stage/commit/push đợt2.
+- Verification cuối: npm run verify gốc exit1 ở hai ca CLI audit fixture không đổi của shard3; không gọi lượt này PASS. Shard1 181file/1.060test PASS; shard2 181/1.018 PASS; shard3 179file/1.116test PASS và 2 fail; shard4 direct 180/1.103 PASS. Audit fixture direct Node/Vitest28/28 PASS, bổ sung đúng2ca thiếu, tổng 4.299 test khác nhau/722file đã PASS qua các lượt.
+- Coverage gate hiện có PASS7suite/56test (schemas/utils: statement88,32%, branch62,12%, function94,73%, line89,38%). Build36,17s PASS; performance PASS initialJSgzip169.259byte/CSS48.322byte, ngưỡng giữ nguyên. Securityscan/history/policies và enforced productionaudits root/Worker0 PASS; development findings khi npm ci không nằm trong scope sửa.
+- Browser focused cuối20/20 PASS trên official npm run dev/predev; toàn bộ13spec stubbed đang chạy. Source hash giữ nguyên từ snapshot đã kiểm thử; chưa stage/commit/push.
+- Browser cuối: focused20/20 PASS exit0; fullstubbed13spec/78ca PASS exit0 trong6phút40giây, không fail/skip/pending. Đã yêu cầu dừng dev server riêng sau kiểm thử. Final scope4file, chưa stage/commit/push; chờ gate duyệt phạm vi cuối theo AGENTS.md mục6.

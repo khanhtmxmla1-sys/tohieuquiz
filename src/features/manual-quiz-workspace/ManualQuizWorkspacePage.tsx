@@ -17,22 +17,17 @@ import PointDistributionDialog from './components/PointDistributionDialog';
 import QuestionBankDrawer from './components/QuestionBankDrawer';
 import QuizEditorAccessBanner from './components/QuizEditorAccessBanner';
 import QuizSettingsDrawer from './components/QuizSettingsDrawer';
-import {
-    findLatestLocalDraft,
-    removeLocalDraft,
-} from './draft/manualQuizDraftRepository';
 import { useManualQuizAutosave } from './hooks/useManualQuizAutosave';
 import { useManualQuizEditorAccess } from './hooks/useManualQuizEditorAccess';
 import { useManualQuizPublish } from './hooks/useManualQuizPublish';
+import { useManualQuizWorkspaceRecovery } from './hooks/useManualQuizWorkspaceRecovery';
 import { useManualQuizWorkspaceVersionAction } from './hooks/useManualQuizWorkspaceVersionAction';
 import { useWorkspaceKeyboardShortcuts } from './hooks/useWorkspaceKeyboardShortcuts';
 import { useManualQuizWorkspaceStore } from './store/useManualQuizWorkspaceStore';
 import { validateManualQuiz } from './validation/manualQuizValidation';
 import { reportManualQuizTelemetry } from '../../services/telemetryService';
-import { getRemoteManualQuizDraft } from '../../services/manualQuizDraftService';
 import { showConfirm } from '../../utils/toast';
 import type {
-    ManualQuizDraftEnvelope,
     ManualQuizNavigationState,
     ManualQuizSeed,
     ManualQuizQuestion,
@@ -81,8 +76,6 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const selectQuestion = useManualQuizWorkspaceStore((state) => state.selectQuestion);
     const updateQuiz = useManualQuizWorkspaceStore((state) => state.updateQuiz);
     const setQuestionPoints = useManualQuizWorkspaceStore((state) => state.setQuestionPoints);
-    const [pendingRecovery, setPendingRecovery] = useState<ManualQuizDraftEnvelope | null>(null);
-    const [recoveryChecked, setRecoveryChecked] = useState(false);
     const [isValidationOpen, setValidationOpen] = useState(false);
     const [isSettingsOpen, setSettingsOpen] = useState(false);
     const [isPointDialogOpen, setPointDialogOpen] = useState(false);
@@ -94,10 +87,6 @@ const ManualQuizWorkspacePage: React.FC = () => {
     const [lastEditedQuestionId, setLastEditedQuestionId] = useState<string | null>(null);
     const openedDraftRef = useRef<string | null>(null);
     const requestedDraftId = useMemo(() => new URLSearchParams(location.search).get('draftId'), [location.search]);
-    const [remoteDraftStatus, setRemoteDraftStatus] = useState<'loading' | 'loaded' | 'error'>(
-        requestedDraftId ? 'loading' : 'loaded',
-    );
-    const [remoteDraftError, setRemoteDraftError] = useState('');
     const [editorAccessError, setEditorAccessError] = useState('');
     const questionEditorRef = useRef<QuestionEditorPaneHandle>(null);
     const pendingEditorFocusRef = useRef<PendingEditorFocus | null>(null);
@@ -210,96 +199,26 @@ const ManualQuizWorkspacePage: React.FC = () => {
         onEscape: closeActiveSurface,
     });
 
-    useEffect(() => {
-        if (!username || !requestedDraftId || envelope || remoteDraftStatus !== 'loading') return;
-        if (quizId && editorAccessStatus !== 'loaded') return;
-        if (isReadOnly) {
-            setRemoteDraftStatus('loaded');
-            return;
-        }
-        const controller = new AbortController();
-        setRemoteDraftError('');
-
-        void getRemoteManualQuizDraft(requestedDraftId, controller.signal)
-            .then((record) => {
-                if (controller.signal.aborted) return;
-                hydrateEnvelope({
-                    ...(record.draft as ManualQuizDraftEnvelope),
-                    draftId: record.id,
-                    quizId: record.quizId,
-                    ownerUsername: record.ownerUsername,
-                    revision: record.revision,
-                    updatedAt: record.updatedAt,
-                });
-                setRemoteDraftStatus('loaded');
-                setRecoveryChecked(true);
-            })
-            .catch((error: unknown) => {
-                if (controller.signal.aborted) return;
-                setRemoteDraftError(error instanceof Error ? error.message : 'Không thể mở bản nháp đã chọn.');
-                setRemoteDraftStatus('error');
-            });
-
-        return () => controller.abort();
-    }, [editorAccessStatus, envelope, hydrateEnvelope, isReadOnly, quizId, remoteDraftStatus, requestedDraftId, username]);
-
-    useEffect(() => {
-        if (!username || envelope || pendingRecovery || recoveryChecked) return;
-        if (quizId && editorAccessStatus !== 'loaded') return;
-        if (requestedDraftId && remoteDraftStatus !== 'error') return;
-
-        if (!isReadOnly) {
-            const latestDraft = findLatestLocalDraft(username, quizId);
-            const workspaceStartedAt = navigationState?.workspaceStartedAt;
-            const isNewerThanCurrentEntry = latestDraft
-                && (!workspaceStartedAt || latestDraft.updatedAt > workspaceStartedAt);
-
-            if (latestDraft && isNewerThanCurrentEntry) {
-                setPendingRecovery(latestDraft);
-                setRecoveryChecked(true);
-                return;
-            }
-        }
-
-        setRecoveryChecked(true);
-        if (availableQuiz) {
-            initializeFromQuiz(availableQuiz, username);
-        } else {
-            initializeFromSeed(seed, username);
-        }
-    }, [
+    const {
+        pendingRecovery,
+        remoteDraftStatus,
+        remoteDraftError,
+        continueRecoveredDraft,
+        discardRecoveredDraft,
+    } = useManualQuizWorkspaceRecovery({
+        username,
+        quizId,
         availableQuiz,
+        seed,
+        workspaceStartedAt: navigationState?.workspaceStartedAt,
+        requestedDraftId,
+        isReadOnly,
         editorAccessStatus,
         envelope,
+        hydrateEnvelope,
         initializeFromQuiz,
         initializeFromSeed,
-        isReadOnly,
-        navigationState?.workspaceStartedAt,
-        pendingRecovery,
-        quizId,
-        recoveryChecked,
-        remoteDraftStatus,
-        requestedDraftId,
-        seed,
-        username,
-    ]);
-
-    const continueRecoveredDraft = () => {
-        if (!pendingRecovery) return;
-        hydrateEnvelope(pendingRecovery);
-        setPendingRecovery(null);
-    };
-
-    const discardRecoveredDraft = () => {
-        if (!pendingRecovery || !username) return;
-        removeLocalDraft(username, pendingRecovery.draftId);
-        setPendingRecovery(null);
-        if (availableQuiz) {
-            initializeFromQuiz(availableQuiz, username);
-        } else {
-            initializeFromSeed(seed, username);
-        }
-    };
+    });
 
     const focusQuestionEditor = useCallback((questionId: string, field?: string, skipGuard = false) => {
         if (!skipGuard && !guardTransition()) return;
